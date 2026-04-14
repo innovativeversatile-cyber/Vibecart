@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "VibeCart",
+    "slug": "vibecart-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "vibecart",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#070b17"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vibecart.mobile",
+      "infoPlist": {
+        "NSUserNotificationUsageDescription": "VibeCart uses notifications for order updates, messages, and security alerts."
+      }
+    },
+    "android": {
+      "package": "com.vibecart.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#070b17"
+      },
+      "permissions": [
+        "INTERNET",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-notifications"
+    ],
+    "extra": {
+      "vibecartBaseUrl": "https://www.vibecart.example"
+    }
+  }
+}

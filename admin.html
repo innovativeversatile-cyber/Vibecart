@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeCart Owner Panel</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">V</span>
+        <span class="brand-name">VibeCart Owner Panel</span>
+      </div>
+      <nav class="nav-links">
+        <a href="./index.html">Back to Website</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="section alt" id="loginBox">
+        <h1>Owner Access</h1>
+        <p>Use strong backend authentication (email + passcode + security phrase + MFA code if enabled).</p>
+        <div class="admin-grid">
+          <label>Backend API Base URL</label>
+          <input id="apiBaseUrl" type="url" placeholder="https://api.yourdomain.com" />
+          <input id="ownerUsername" type="email" placeholder="Enter owner username (email)" />
+          <input id="ownerCode" type="password" placeholder="Enter owner passcode" />
+          <input id="ownerPhrase" type="password" placeholder="Enter owner security phrase" />
+          <input id="ownerMfaCode" type="password" placeholder="Enter MFA/backup code (if required)" />
+          <button id="unlockBtn" class="btn btn-primary">Unlock Panel</button>
+        </div>
+        <p class="note">
+          Owner username: <code>moyok367@gmail.com</code><br />
+          Backend API required: <code>[your-api-base]/api/owner/auth/*</code>
+        </p>
+      </section>
+
+      <section class="section alt hidden" id="panelBox">
+        <h2>Easy Website Settings</h2>
+        <div class="admin-grid">
+          <label>Website Title</label>
+          <input id="setTitle" type="text" />
+
+          <label>Hero Badge</label>
+          <input id="setBadge" type="text" />
+
+          <label>Hero Headline</label>
+          <textarea id="setHeadline"></textarea>
+
+          <label>Hero Description</label>
+          <textarea id="setSubtitle"></textarea>
+
+          <label>Bridge Section Title</label>
+          <input id="setBridgeTitle" type="text" />
+
+          <label>Bridge Section Text</label>
+          <textarea id="setBridgeText"></textarea>
+
+          <label>Theme Style</label>
+          <select id="setTheme">
+            <option value="vibrant">Vibrant</option>
+            <option value="neo">Neo</option>
+            <option value="elegant">Elegant</option>
+          </select>
+        </div>
+
+        <div class="hero-actions">
+          <button id="saveSettings" class="btn btn-primary">Save Changes</button>
+          <button id="resetSettings" class="btn btn-secondary">Reset to Default</button>
+          <button id="logoutOwner" class="btn btn-secondary">Logout</button>
+        </div>
+
+        <hr />
+        <h3>Owner Login Settings</h3>
+        <p class="note">You can change your owner email and password anytime.</p>
+        <div class="admin-grid">
+          <label>Current Owner Email</label>
+          <input id="currentOwnerEmail" type="email" readonly />
+
+          <label>New Owner Email</label>
+          <input id="newOwnerEmail" type="email" placeholder="Enter new owner email" />
+
+          <label>New Owner Password</label>
+          <input id="newOwnerPasscode" type="password" placeholder="Enter new owner password (min 10 chars)" />
+
+          <label>New Security Phrase</label>
+          <input id="newOwnerPhrase" type="password" placeholder="Enter new security phrase (min 10 chars)" />
+        </div>
+        <div class="hero-actions">
+          <button id="updateOwnerAuth" class="btn btn-secondary">Update Email and Password</button>
+        </div>
+        <hr />
+        <h3>AI Assistant Link</h3>
+        <p class="note">
+          Use this section to ask for updates, bug fixes, and feature suggestions directly from your admin page.
+        </p>
+        <div class="admin-grid">
+          <label>AI Workspace Link</label>
+          <input id="aiLink" type="url" placeholder="Paste your AI/Cursor chat link here" />
+
+          <label>What do you need help with?</label>
+          <textarea id="aiTaskText" placeholder="Example: Improve checkout speed and fix login timeout issue."></textarea>
+
+          <label>Generated Prompt</label>
+          <textarea id="aiPromptText" readonly></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="generateAiPrompt" class="btn btn-secondary">Generate Prompt</button>
+          <button id="saveAiSuggestion" class="btn btn-secondary">Save to Suggestions Feed</button>
+          <button id="copyAiPrompt" class="btn btn-secondary">Copy Prompt</button>
+          <button id="openAiLink" class="btn btn-primary">Open AI Assistant</button>
+        </div>
+        <h3>Admin Application Access</h3>
+        <p class="note">
+          Install and use the admin-only app mode on your phone or desktop for faster owner access.
+        </p>
+        <div class="admin-grid">
+          <label>Admin App URL</label>
+          <input id="adminAppUrl" type="text" readonly />
+        </div>
+        <div class="hero-actions">
+          <button id="copyAdminAppUrl" class="btn btn-secondary">Copy Admin App URL</button>
+          <button id="openAdminAppUrl" class="btn btn-primary">Open Admin App</button>
+        </div>
+
+        <h3>AI Suggestions Feed</h3>
+        <p class="note">Track ideas as todo, in progress, or done. Run pending demos automatically.</p>
+        <div class="hero-actions">
+          <button id="runPendingDemos" class="btn btn-secondary">Run Pending Demos</button>
+          <button id="clearDoneSuggestions" class="btn btn-secondary">Clear Done</button>
+        </div>
+        <div id="aiSuggestionsFeed" class="messages-box"></div>
+
+        <hr />
+        <h3>Ad Monetization Setup</h3>
+        <p class="note">
+          Configure small legal ad slots. Brands can pay for campaign visibility without manual back-and-forth.
+        </p>
+        <div class="admin-grid">
+          <label>Ad Slot Share</label>
+          <select id="adSlotShare">
+            <option value="small">Small (recommended)</option>
+            <option value="medium">Medium</option>
+          </select>
+
+          <label>Minimum Campaign Budget (EUR)</label>
+          <input id="minAdBudget" type="number" min="10" value="50" />
+
+          <label>AI Creative Suggestion</label>
+          <textarea id="adCreativeSuggestion" readonly></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="generateAdCreative" class="btn btn-secondary">Generate Ad Creative Ideas</button>
+        </div>
+        <hr />
+        <h3>Revenue Control (Affordable Mode)</h3>
+        <p class="note">
+          Keep fees competitive for normal students. Use presets, then apply monetization safely through backend APIs.
+        </p>
+        <div class="admin-grid">
+          <label>Pricing Preset</label>
+          <select id="pricingPreset">
+            <option value="student_first">Student First (lowest friction)</option>
+            <option value="balanced" selected>Balanced Growth (recommended)</option>
+            <option value="profit_plus">Profit Plus (careful use)</option>
+          </select>
+
+          <label>Order Take Rate (%)</label>
+          <input id="orderTakeRate" type="number" min="1" max="15" step="0.1" value="7.0" />
+
+          <label>Booking Commission (%)</label>
+          <input id="bookingCommission" type="number" min="1" max="15" step="0.1" value="8.0" />
+
+          <label>Buyer Protection Fee (%)</label>
+          <input id="buyerProtectionFeePct" type="number" min="0" max="6" step="0.1" value="1.8" />
+
+          <label>Convenience Fee (EUR equivalent)</label>
+          <input id="convenienceFeeFlat" type="number" min="0" max="5" step="0.1" value="1.0" />
+
+          <label>Suggested Starter Plan Price (EUR/month)</label>
+          <input id="starterPlanPrice" type="number" min="1" max="30" step="0.1" value="9.99" />
+
+          <label>Suggested Boost Price (3-day top)</label>
+          <input id="boost3DayPrice" type="number" min="1" max="30" step="0.1" value="9.0" />
+        </div>
+        <div class="hero-actions">
+          <button id="applyPricingPreset" class="btn btn-secondary">Apply Preset</button>
+          <button id="saveRevenueSettings" class="btn btn-secondary">Save Revenue Settings</button>
+          <button id="seedRevenueProducts" class="btn btn-primary">Create Affordable Plans and Boosts</button>
+        </div>
+
+        <h3>Monetization Quick Actions</h3>
+        <div class="admin-grid">
+          <label>Shop ID (for subscription)</label>
+          <input id="monShopId" type="number" min="1" placeholder="Example: 1" />
+
+          <label>Plan ID (from API result)</label>
+          <input id="monPlanId" type="number" min="1" placeholder="Example: 1" />
+
+          <label>Target Type (product/service)</label>
+          <select id="monTargetType">
+            <option value="product">product</option>
+            <option value="service">service</option>
+          </select>
+
+          <label>Target ID (product or service id)</label>
+          <input id="monTargetId" type="number" min="1" placeholder="Example: 10" />
+        </div>
+        <div class="hero-actions">
+          <button id="assignPlanToShop" class="btn btn-secondary">Assign Plan to Shop</button>
+          <button id="buyBoostForTarget" class="btn btn-secondary">Buy Boost for Target</button>
+        </div>
+
+        <hr />
+        <h3>Trust Score Manager</h3>
+        <p class="note">Manage public trust score cards using verified operational metrics only.</p>
+        <div class="admin-grid">
+          <label>Entity Type</label>
+          <select id="trustEntityType">
+            <option value="seller">seller</option>
+            <option value="provider">provider</option>
+            <option value="courier">courier</option>
+            <option value="insurer">insurer</option>
+          </select>
+
+          <label>Entity ID</label>
+          <input id="trustEntityId" type="number" min="1" placeholder="Example: 1" />
+
+          <label>Trust Score (0-100)</label>
+          <input id="trustScore" type="number" min="0" max="100" step="0.1" placeholder="Example: 92.5" />
+
+          <label>Delivery Success Rate (%)</label>
+          <input id="trustDeliverySuccess" type="number" min="0" max="100" step="0.1" placeholder="Optional" />
+
+          <label>Dispute Rate (%)</label>
+          <input id="trustDisputeRate" type="number" min="0" max="100" step="0.1" placeholder="Optional" />
+
+          <label>Verification Score (0-100)</label>
+          <input id="trustVerificationScore" type="number" min="0" max="100" step="0.1" placeholder="Optional" />
+
+          <label>Response Speed Score (0-100)</label>
+          <input id="trustResponseSpeedScore" type="number" min="0" max="100" step="0.1" placeholder="Optional" />
+        </div>
+        <div class="hero-actions">
+          <button id="saveTrustProfile" class="btn btn-primary">Save Trust Profile</button>
+          <button id="refreshTrustProfiles" class="btn btn-secondary">Refresh Trust Profiles</button>
+        </div>
+        <div id="trustProfilesList" class="messages-box"></div>
+
+        <hr />
+        <h3>Chat Scam Alert Center</h3>
+        <p class="note">Review risky buyer-seller messages and investigate high-risk patterns quickly.</p>
+        <div class="admin-grid">
+          <label>Risk Filter</label>
+          <select id="chatRiskFilter">
+            <option value="">All</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+
+          <label>Max Events</label>
+          <input id="chatRiskLimit" type="number" min="1" max="200" value="50" />
+        </div>
+        <div class="hero-actions">
+          <button id="refreshChatSafetyEvents" class="btn btn-secondary">Refresh Scam Alerts</button>
+        </div>
+        <div id="chatSafetyEventsList" class="messages-box"></div>
+
+        <hr />
+        <h3>AI Health Coach Metrics</h3>
+        <p class="note">Track adoption of health and fitness coaching without exposing private medical details.</p>
+        <div class="hero-actions">
+          <button id="refreshCoachMetrics" class="btn btn-secondary">Refresh Coach Metrics</button>
+        </div>
+        <div id="coachMetricsBox" class="ai-result"></div>
+
+        <hr />
+        <h3>Insurance Jurisdiction Control</h3>
+        <p class="note">
+          Enable insurance only in legal-reviewed low-risk countries. All other countries stay blocked by default.
+        </p>
+        <div class="admin-grid">
+          <label>Country Code (ISO-2)</label>
+          <input id="insCountryCode" type="text" maxlength="2" placeholder="Example: PL" />
+
+          <label>Risk Level</label>
+          <select id="insRiskLevel">
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+
+          <label>Enable Distribution</label>
+          <select id="insDistributionEnabled">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+
+          <label>Legal Notes</label>
+          <textarea id="insLegalNotes" placeholder="Legal review notes and counsel reference."></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshInsuranceJurisdictions" class="btn btn-secondary">Refresh Jurisdictions</button>
+          <button id="upsertInsuranceJurisdiction" class="btn btn-primary">Save Jurisdiction Rule</button>
+          <button id="disableInsuranceJurisdiction" class="btn btn-secondary">Disable Country</button>
+          <button id="downloadBackupJson" class="btn btn-secondary">Download Backup JSON</button>
+        </div>
+        <div id="insuranceJurisdictionList" class="messages-box"></div>
+        <p id="statusMsg" class="note"></p>
+      </section>
+    </main>
+
+    <script src="./admin.js"></script>
+  </body>
+</html>
