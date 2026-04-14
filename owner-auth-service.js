@@ -37,8 +37,8 @@ async function checkLockout(db, ownerAuthId) {
      FROM owner_auth_events
      WHERE owner_auth_id = ? AND event_type = 'login_failed'
      ORDER BY created_at DESC
-     LIMIT ?`,
-    [ownerAuthId, MAX_ATTEMPTS]
+     LIMIT 5`,
+    [ownerAuthId]
   );
   if (rows.length < MAX_ATTEMPTS) {
     return false;
@@ -96,6 +96,10 @@ async function ownerLogin(db, payload, meta) {
 
   const [saltHex, passHash] = String(profile.password_hash).split(":");
   const [phraseSaltHex, phraseHash] = String(profile.security_phrase_hash).split(":");
+  if (!saltHex || !passHash || !phraseSaltHex || !phraseHash) {
+    await recordAuthEvent(db, profile.id, "login_failed", meta.ip, "invalid_stored_hash_format");
+    return { ok: false, code: "INVALID_CREDENTIALS" };
+  }
   const matches =
     hashSecret(payload.password, saltHex) === passHash &&
     hashSecret(payload.securityPhrase, phraseSaltHex) === phraseHash;
