@@ -79,6 +79,7 @@ const REWARD_KEY = "vibecart-reward-profile";
 const ONBOARDING_KEY = "vibecart-onboarding-done";
 let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
+let disclaimerWatchdogTimer = null;
 const PUBLIC_USER_KEY = "vibecart-public-user-id";
 
 function getPublicUserId() {
@@ -660,10 +661,17 @@ function openDisclaimerGate(message, onContinue, checkboxNode) {
   if (!disclaimerGateModal || !disclaimerGateText) {
     return;
   }
+  if (disclaimerWatchdogTimer) {
+    clearTimeout(disclaimerWatchdogTimer);
+  }
   pendingDisclaimerAction = onContinue;
   pendingDisclaimerCheckbox = checkboxNode || null;
   disclaimerGateText.textContent = message;
   disclaimerGateModal.classList.remove("hidden");
+  // Safety net: never leave users trapped in a modal.
+  disclaimerWatchdogTimer = window.setTimeout(() => {
+    closeDisclaimerGate();
+  }, 12000);
 }
 
 function closeDisclaimerGate() {
@@ -671,6 +679,10 @@ function closeDisclaimerGate() {
     return;
   }
   disclaimerGateModal.classList.add("hidden");
+  if (disclaimerWatchdogTimer) {
+    clearTimeout(disclaimerWatchdogTimer);
+    disclaimerWatchdogTimer = null;
+  }
   pendingDisclaimerAction = null;
   pendingDisclaimerCheckbox = null;
 }
@@ -759,6 +771,18 @@ if (disclaimerGateContinue) {
     }
   });
 }
+if (disclaimerGateModal) {
+  disclaimerGateModal.addEventListener("click", (event) => {
+    if (event.target === disclaimerGateModal) {
+      closeDisclaimerGate();
+    }
+  });
+}
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeDisclaimerGate();
+  }
+});
 
 async function saveCoachProfile() {
   if (!coachFocus || !coachDashboard) {
