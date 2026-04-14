@@ -825,6 +825,7 @@ function bindClick(id, handler) {
   if (!el) {
     return;
   }
+  el.dataset.boundClick = "1";
   el.addEventListener("click", handler);
 }
 
@@ -930,6 +931,9 @@ document.addEventListener("click", (event) => {
   }
   const button = target.closest("button[id]");
   if (!button) {
+    return;
+  }
+  if (button.dataset.boundClick === "1") {
     return;
   }
   const handler = clickHandlers[button.id];
