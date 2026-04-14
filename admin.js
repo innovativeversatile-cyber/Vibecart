@@ -818,63 +818,71 @@ function initializeOwnerSecurity() {
   clearSession();
 }
 
-document.getElementById("unlockBtn").addEventListener("click", () => {
+function bindClick(id, handler) {
+  const el = document.getElementById(id);
+  if (!el) {
+    return;
+  }
+  el.addEventListener("click", handler);
+}
+
+bindClick("unlockBtn", () => {
   unlockPanel().catch(() => setStatus("Authentication error."));
 });
-document.getElementById("saveSettings").addEventListener("click", saveSettings);
-document.getElementById("resetSettings").addEventListener("click", resetSettings);
-document.getElementById("updateOwnerAuth").addEventListener("click", () => {
+bindClick("saveSettings", saveSettings);
+bindClick("resetSettings", resetSettings);
+bindClick("updateOwnerAuth", () => {
   updateOwnerAuthFromPanel().catch(() => setStatus("Could not update owner authentication."));
 });
-document.getElementById("logoutOwner").addEventListener("click", () => {
+bindClick("logoutOwner", () => {
   logoutOwner().catch(() => setStatus("Could not logout."));
 });
-document.getElementById("generateAiPrompt").addEventListener("click", generateAiPrompt);
-document.getElementById("saveAiSuggestion").addEventListener("click", saveCurrentPromptToFeed);
-document.getElementById("copyAiPrompt").addEventListener("click", () => {
+bindClick("generateAiPrompt", generateAiPrompt);
+bindClick("saveAiSuggestion", saveCurrentPromptToFeed);
+bindClick("copyAiPrompt", () => {
   copyAiPrompt().catch(() => setStatus("Could not copy prompt."));
 });
-document.getElementById("openAiLink").addEventListener("click", openAiAssistantLink);
-document.getElementById("copyAdminAppUrl").addEventListener("click", () => {
+bindClick("openAiLink", openAiAssistantLink);
+bindClick("copyAdminAppUrl", () => {
   copyAdminAppUrl().catch(() => setStatus("Could not copy admin app URL."));
 });
-document.getElementById("openAdminAppUrl").addEventListener("click", openAdminAppUrl);
-document.getElementById("runPendingDemos").addEventListener("click", runPendingDemos);
-document.getElementById("clearDoneSuggestions").addEventListener("click", clearDoneSuggestions);
-document.getElementById("generateAdCreative").addEventListener("click", generateAdCreative);
-document.getElementById("applyPricingPreset").addEventListener("click", applyPricingPreset);
-document.getElementById("saveRevenueSettings").addEventListener("click", saveRevenueSettings);
-document.getElementById("seedRevenueProducts").addEventListener("click", () => {
+bindClick("openAdminAppUrl", openAdminAppUrl);
+bindClick("runPendingDemos", runPendingDemos);
+bindClick("clearDoneSuggestions", clearDoneSuggestions);
+bindClick("generateAdCreative", generateAdCreative);
+bindClick("applyPricingPreset", applyPricingPreset);
+bindClick("saveRevenueSettings", saveRevenueSettings);
+bindClick("seedRevenueProducts", () => {
   seedRevenueProducts().catch((error) => setStatus(`Seed failed: ${error.message}`));
 });
-document.getElementById("assignPlanToShop").addEventListener("click", () => {
+bindClick("assignPlanToShop", () => {
   assignPlanToShop().catch((error) => setStatus(`Assign failed: ${error.message}`));
 });
-document.getElementById("buyBoostForTarget").addEventListener("click", () => {
+bindClick("buyBoostForTarget", () => {
   buyBoostForTarget().catch((error) => setStatus(`Boost failed: ${error.message}`));
 });
-document.getElementById("refreshInsuranceJurisdictions").addEventListener("click", () => {
+bindClick("refreshInsuranceJurisdictions", () => {
   refreshInsuranceJurisdictions().catch((error) => setStatus(`Refresh failed: ${error.message}`));
 });
-document.getElementById("upsertInsuranceJurisdiction").addEventListener("click", () => {
+bindClick("upsertInsuranceJurisdiction", () => {
   saveInsuranceJurisdictionRule().catch((error) => setStatus(`Save failed: ${error.message}`));
 });
-document.getElementById("disableInsuranceJurisdiction").addEventListener("click", () => {
+bindClick("disableInsuranceJurisdiction", () => {
   disableInsuranceJurisdictionRule().catch((error) => setStatus(`Disable failed: ${error.message}`));
 });
-document.getElementById("downloadBackupJson").addEventListener("click", () => {
+bindClick("downloadBackupJson", () => {
   downloadBackupSnapshot().catch((error) => setStatus(`Backup failed: ${error.message}`));
 });
-document.getElementById("saveTrustProfile").addEventListener("click", () => {
+bindClick("saveTrustProfile", () => {
   saveTrustProfile().catch((error) => setStatus(`Trust save failed: ${error.message}`));
 });
-document.getElementById("refreshTrustProfiles").addEventListener("click", () => {
+bindClick("refreshTrustProfiles", () => {
   refreshTrustProfiles().catch((error) => setStatus(`Trust refresh failed: ${error.message}`));
 });
-document.getElementById("refreshChatSafetyEvents").addEventListener("click", () => {
+bindClick("refreshChatSafetyEvents", () => {
   refreshChatSafetyEvents().catch((error) => setStatus(`Chat safety refresh failed: ${error.message}`));
 });
-document.getElementById("refreshCoachMetrics").addEventListener("click", () => {
+bindClick("refreshCoachMetrics", () => {
   refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`));
 });
 
