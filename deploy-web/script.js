@@ -737,15 +737,26 @@ if (disclaimerGateClose) {
 }
 if (disclaimerGateContinue) {
   disclaimerGateContinue.addEventListener("click", async () => {
-    if (pendingDisclaimerCheckbox) {
-      pendingDisclaimerCheckbox.checked = true;
+    disclaimerGateContinue.disabled = true;
+    disclaimerGateContinue.textContent = "Processing...";
+    try {
+      if (pendingDisclaimerCheckbox) {
+        pendingDisclaimerCheckbox.checked = true;
+      }
+      if (pendingDisclaimerAction) {
+        await pendingDisclaimerAction();
+      } else if (wellbeingTips) {
+        wellbeingTips.textContent = "Disclaimer accepted. Please continue with your action.";
+      }
+    } catch {
+      if (wellbeingTips) {
+        wellbeingTips.textContent = "Disclaimer accepted. You can continue even if telemetry failed.";
+      }
+    } finally {
+      disclaimerGateContinue.disabled = false;
+      disclaimerGateContinue.textContent = "I Accept and Continue";
+      closeDisclaimerGate();
     }
-    if (pendingDisclaimerAction) {
-      await pendingDisclaimerAction();
-    } else if (wellbeingTips) {
-      wellbeingTips.textContent = "Disclaimer accepted. Please continue with your action.";
-    }
-    closeDisclaimerGate();
   });
 }
 
