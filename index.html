@@ -512,24 +512,11 @@
       </div>
     </div>
 
-    <div id="disclaimerGateModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="disclaimerGateTitle">
-      <div class="modal-card">
-        <h3 id="disclaimerGateTitle">Confirm Disclaimer Acceptance</h3>
-        <p id="disclaimerGateText">
-          You must accept the applicable disclaimer before continuing.
-        </p>
-        <div class="hero-actions">
-          <button id="disclaimerGateContinue" class="btn btn-primary">I Accept and Continue</button>
-          <button id="disclaimerGateClose" class="btn btn-secondary">Cancel</button>
-        </div>
-      </div>
-    </div>
-
-    <script src="./script.js?v=20260414d"></script>
+    <script src="./script.js?v=20260414e"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./service-worker.js?v=20260414d").catch(() => {});
+          navigator.serviceWorker.register("./service-worker.js?v=20260414e").catch(() => {});
         });
       }
     </script>

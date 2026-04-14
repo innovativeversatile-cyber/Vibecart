@@ -466,6 +466,11 @@ main,
   box-shadow: var(--shadow);
 }
 
+/* Fail-safe: disclaimer modal is permanently disabled. */
+#disclaimerGateModal {
+  display: none !important;
+}
+
 @media (max-width: 860px) {
   .hero {
     grid-template-columns: 1fr;
