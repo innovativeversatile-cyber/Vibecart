@@ -888,5 +888,57 @@ bindClick("refreshCoachMetrics", () => {
   refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`));
 });
 
+// Global fail-safe: if any direct listener failed to bind, this still handles button clicks.
+const clickHandlers = {
+  unlockBtn: () => unlockPanel().catch(() => setStatus("Authentication error.")),
+  saveSettings: () => saveSettings(),
+  resetSettings: () => resetSettings(),
+  updateOwnerAuth: () => updateOwnerAuthFromPanel().catch(() => setStatus("Could not update owner authentication.")),
+  logoutOwner: () => logoutOwner().catch(() => setStatus("Could not logout.")),
+  generateAiPrompt: () => generateAiPrompt(),
+  saveAiSuggestion: () => saveCurrentPromptToFeed(),
+  copyAiPrompt: () => copyAiPrompt().catch(() => setStatus("Could not copy prompt.")),
+  openAiLink: () => openAiAssistantLink(),
+  copyAdminAppUrl: () => copyAdminAppUrl().catch(() => setStatus("Could not copy admin app URL.")),
+  openAdminAppUrl: () => openAdminAppUrl(),
+  runPendingDemos: () => runPendingDemos(),
+  clearDoneSuggestions: () => clearDoneSuggestions(),
+  generateAdCreative: () => generateAdCreative(),
+  applyPricingPreset: () => applyPricingPreset(),
+  saveRevenueSettings: () => saveRevenueSettings(),
+  seedRevenueProducts: () => seedRevenueProducts().catch((error) => setStatus(`Seed failed: ${error.message}`)),
+  assignPlanToShop: () => assignPlanToShop().catch((error) => setStatus(`Assign failed: ${error.message}`)),
+  buyBoostForTarget: () => buyBoostForTarget().catch((error) => setStatus(`Boost failed: ${error.message}`)),
+  refreshInsuranceJurisdictions: () =>
+    refreshInsuranceJurisdictions().catch((error) => setStatus(`Refresh failed: ${error.message}`)),
+  upsertInsuranceJurisdiction: () =>
+    saveInsuranceJurisdictionRule().catch((error) => setStatus(`Save failed: ${error.message}`)),
+  disableInsuranceJurisdiction: () =>
+    disableInsuranceJurisdictionRule().catch((error) => setStatus(`Disable failed: ${error.message}`)),
+  downloadBackupJson: () => downloadBackupSnapshot().catch((error) => setStatus(`Backup failed: ${error.message}`)),
+  saveTrustProfile: () => saveTrustProfile().catch((error) => setStatus(`Trust save failed: ${error.message}`)),
+  refreshTrustProfiles: () => refreshTrustProfiles().catch((error) => setStatus(`Trust refresh failed: ${error.message}`)),
+  refreshChatSafetyEvents: () =>
+    refreshChatSafetyEvents().catch((error) => setStatus(`Chat safety refresh failed: ${error.message}`)),
+  refreshCoachMetrics: () => refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`))
+};
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+  const button = target.closest("button[id]");
+  if (!button) {
+    return;
+  }
+  const handler = clickHandlers[button.id];
+  if (!handler) {
+    return;
+  }
+  event.preventDefault();
+  handler();
+});
+
 initializeOwnerSecurity();
 renderAiSuggestionsFeed();

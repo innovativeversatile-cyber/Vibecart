@@ -28,7 +28,7 @@
           <input id="ownerCode" type="password" placeholder="Enter owner passcode" />
           <input id="ownerPhrase" type="password" placeholder="Enter owner security phrase" />
           <input id="ownerMfaCode" type="password" placeholder="Enter MFA/backup code (if required)" />
-          <button id="unlockBtn" class="btn btn-primary">Unlock Panel</button>
+          <button id="unlockBtn" type="button" class="btn btn-primary">Unlock Panel</button>
         </div>
         <p class="note">
           Owner username: <code>moyok367@gmail.com</code><br />
@@ -67,9 +67,9 @@
         </div>
 
         <div class="hero-actions">
-          <button id="saveSettings" class="btn btn-primary">Save Changes</button>
-          <button id="resetSettings" class="btn btn-secondary">Reset to Default</button>
-          <button id="logoutOwner" class="btn btn-secondary">Logout</button>
+          <button id="saveSettings" type="button" class="btn btn-primary">Save Changes</button>
+          <button id="resetSettings" type="button" class="btn btn-secondary">Reset to Default</button>
+          <button id="logoutOwner" type="button" class="btn btn-secondary">Logout</button>
         </div>
 
         <hr />
@@ -89,7 +89,7 @@
           <input id="newOwnerPhrase" type="password" placeholder="Enter new security phrase (min 10 chars)" />
         </div>
         <div class="hero-actions">
-          <button id="updateOwnerAuth" class="btn btn-secondary">Update Email and Password</button>
+          <button id="updateOwnerAuth" type="button" class="btn btn-secondary">Update Email and Password</button>
         </div>
         <hr />
         <h3>AI Assistant Link</h3>
@@ -107,10 +107,10 @@
           <textarea id="aiPromptText" readonly></textarea>
         </div>
         <div class="hero-actions">
-          <button id="generateAiPrompt" class="btn btn-secondary">Generate Prompt</button>
-          <button id="saveAiSuggestion" class="btn btn-secondary">Save to Suggestions Feed</button>
-          <button id="copyAiPrompt" class="btn btn-secondary">Copy Prompt</button>
-          <button id="openAiLink" class="btn btn-primary">Open AI Assistant</button>
+          <button id="generateAiPrompt" type="button" class="btn btn-secondary">Generate Prompt</button>
+          <button id="saveAiSuggestion" type="button" class="btn btn-secondary">Save to Suggestions Feed</button>
+          <button id="copyAiPrompt" type="button" class="btn btn-secondary">Copy Prompt</button>
+          <button id="openAiLink" type="button" class="btn btn-primary">Open AI Assistant</button>
         </div>
         <h3>Admin Application Access</h3>
         <p class="note">
@@ -121,15 +121,15 @@
           <input id="adminAppUrl" type="text" readonly />
         </div>
         <div class="hero-actions">
-          <button id="copyAdminAppUrl" class="btn btn-secondary">Copy Admin App URL</button>
-          <button id="openAdminAppUrl" class="btn btn-primary">Open Admin App</button>
+          <button id="copyAdminAppUrl" type="button" class="btn btn-secondary">Copy Admin App URL</button>
+          <button id="openAdminAppUrl" type="button" class="btn btn-primary">Open Admin App</button>
         </div>
 
         <h3>AI Suggestions Feed</h3>
         <p class="note">Track ideas as todo, in progress, or done. Run pending demos automatically.</p>
         <div class="hero-actions">
-          <button id="runPendingDemos" class="btn btn-secondary">Run Pending Demos</button>
-          <button id="clearDoneSuggestions" class="btn btn-secondary">Clear Done</button>
+          <button id="runPendingDemos" type="button" class="btn btn-secondary">Run Pending Demos</button>
+          <button id="clearDoneSuggestions" type="button" class="btn btn-secondary">Clear Done</button>
         </div>
         <div id="aiSuggestionsFeed" class="messages-box"></div>
 
@@ -152,7 +152,7 @@
           <textarea id="adCreativeSuggestion" readonly></textarea>
         </div>
         <div class="hero-actions">
-          <button id="generateAdCreative" class="btn btn-secondary">Generate Ad Creative Ideas</button>
+          <button id="generateAdCreative" type="button" class="btn btn-secondary">Generate Ad Creative Ideas</button>
         </div>
         <hr />
         <h3>Revenue Control (Affordable Mode)</h3>
@@ -186,9 +186,9 @@
           <input id="boost3DayPrice" type="number" min="1" max="30" step="0.1" value="9.0" />
         </div>
         <div class="hero-actions">
-          <button id="applyPricingPreset" class="btn btn-secondary">Apply Preset</button>
-          <button id="saveRevenueSettings" class="btn btn-secondary">Save Revenue Settings</button>
-          <button id="seedRevenueProducts" class="btn btn-primary">Create Affordable Plans and Boosts</button>
+          <button id="applyPricingPreset" type="button" class="btn btn-secondary">Apply Preset</button>
+          <button id="saveRevenueSettings" type="button" class="btn btn-secondary">Save Revenue Settings</button>
+          <button id="seedRevenueProducts" type="button" class="btn btn-primary">Create Affordable Plans and Boosts</button>
         </div>
 
         <h3>Monetization Quick Actions</h3>
@@ -209,8 +209,8 @@
           <input id="monTargetId" type="number" min="1" placeholder="Example: 10" />
         </div>
         <div class="hero-actions">
-          <button id="assignPlanToShop" class="btn btn-secondary">Assign Plan to Shop</button>
-          <button id="buyBoostForTarget" class="btn btn-secondary">Buy Boost for Target</button>
+          <button id="assignPlanToShop" type="button" class="btn btn-secondary">Assign Plan to Shop</button>
+          <button id="buyBoostForTarget" type="button" class="btn btn-secondary">Buy Boost for Target</button>
         </div>
 
         <hr />
@@ -244,8 +244,8 @@
           <input id="trustResponseSpeedScore" type="number" min="0" max="100" step="0.1" placeholder="Optional" />
         </div>
         <div class="hero-actions">
-          <button id="saveTrustProfile" class="btn btn-primary">Save Trust Profile</button>
-          <button id="refreshTrustProfiles" class="btn btn-secondary">Refresh Trust Profiles</button>
+          <button id="saveTrustProfile" type="button" class="btn btn-primary">Save Trust Profile</button>
+          <button id="refreshTrustProfiles" type="button" class="btn btn-secondary">Refresh Trust Profiles</button>
         </div>
         <div id="trustProfilesList" class="messages-box"></div>
 
@@ -265,7 +265,7 @@
           <input id="chatRiskLimit" type="number" min="1" max="200" value="50" />
         </div>
         <div class="hero-actions">
-          <button id="refreshChatSafetyEvents" class="btn btn-secondary">Refresh Scam Alerts</button>
+          <button id="refreshChatSafetyEvents" type="button" class="btn btn-secondary">Refresh Scam Alerts</button>
         </div>
         <div id="chatSafetyEventsList" class="messages-box"></div>
 
@@ -273,7 +273,7 @@
         <h3>AI Health Coach Metrics</h3>
         <p class="note">Track adoption of health and fitness coaching without exposing private medical details.</p>
         <div class="hero-actions">
-          <button id="refreshCoachMetrics" class="btn btn-secondary">Refresh Coach Metrics</button>
+          <button id="refreshCoachMetrics" type="button" class="btn btn-secondary">Refresh Coach Metrics</button>
         </div>
         <div id="coachMetricsBox" class="ai-result"></div>
 
@@ -303,10 +303,10 @@
           <textarea id="insLegalNotes" placeholder="Legal review notes and counsel reference."></textarea>
         </div>
         <div class="hero-actions">
-          <button id="refreshInsuranceJurisdictions" class="btn btn-secondary">Refresh Jurisdictions</button>
-          <button id="upsertInsuranceJurisdiction" class="btn btn-primary">Save Jurisdiction Rule</button>
-          <button id="disableInsuranceJurisdiction" class="btn btn-secondary">Disable Country</button>
-          <button id="downloadBackupJson" class="btn btn-secondary">Download Backup JSON</button>
+          <button id="refreshInsuranceJurisdictions" type="button" class="btn btn-secondary">Refresh Jurisdictions</button>
+          <button id="upsertInsuranceJurisdiction" type="button" class="btn btn-primary">Save Jurisdiction Rule</button>
+          <button id="disableInsuranceJurisdiction" type="button" class="btn btn-secondary">Disable Country</button>
+          <button id="downloadBackupJson" type="button" class="btn btn-secondary">Download Backup JSON</button>
         </div>
         <div id="insuranceJurisdictionList" class="messages-box"></div>
         <p id="statusMsg" class="note"></p>
