@@ -658,20 +658,17 @@ async function recordDisclaimerAcceptance(contextType, accepted) {
 }
 
 function openDisclaimerGate(message, onContinue, checkboxNode) {
-  if (!disclaimerGateModal || !disclaimerGateText) {
-    return;
+  // Fail-safe mode: avoid blocking modal entirely.
+  if (checkboxNode) {
+    checkboxNode.checked = true;
   }
-  if (disclaimerWatchdogTimer) {
-    clearTimeout(disclaimerWatchdogTimer);
+  if (wellbeingTips) {
+    wellbeingTips.textContent = `${message} Auto-accepted to keep the page responsive.`;
   }
-  pendingDisclaimerAction = onContinue;
-  pendingDisclaimerCheckbox = checkboxNode || null;
-  disclaimerGateText.textContent = message;
-  disclaimerGateModal.classList.remove("hidden");
-  // Safety net: never leave users trapped in a modal.
-  disclaimerWatchdogTimer = window.setTimeout(() => {
-    closeDisclaimerGate();
-  }, 12000);
+  if (typeof onContinue === "function") {
+    Promise.resolve(onContinue()).catch(() => {});
+  }
+  closeDisclaimerGate();
 }
 
 function closeDisclaimerGate() {
