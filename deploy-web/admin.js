@@ -42,7 +42,12 @@ function normalizeApiBase(input) {
 
 function getApiBase() {
   const fromStorage = localStorage.getItem(API_BASE_KEY);
-  return normalizeApiBase(window.__VIBECART_API_BASE_URL__ || fromStorage || DEFAULT_API_BASE);
+  const selected = normalizeApiBase(window.__VIBECART_API_BASE_URL__ || fromStorage || DEFAULT_API_BASE);
+  const isProdPage = /^https?:$/i.test(window.location.protocol) && !/localhost|127\.0\.0\.1/i.test(window.location.host);
+  if (isProdPage && /localhost|127\.0\.0\.1/i.test(selected)) {
+    return normalizeApiBase(window.location.origin);
+  }
+  return selected;
 }
 
 function saveApiBase(value) {
