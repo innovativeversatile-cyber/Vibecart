@@ -1,4 +1,4 @@
-const CACHE_NAME = "vibecart-pwa-v1";
+const CACHE_NAME = "vibecart-pwa-v2";
 const OFFLINE_URLS = [
   "./index.html",
   "./styles.css",
@@ -33,18 +33,24 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") {
     return;
   }
+  const url = new URL(event.request.url);
+  // Never cache API responses; always go to network.
+  if (url.pathname.startsWith("/api/")) {
+    return;
+  }
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-      return fetch(event.request)
-        .then((networkResponse) => {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return networkResponse;
-        })
-        .catch(() => caches.match("./index.html"));
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        const clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return networkResponse;
+      })
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) {
+          return cached;
+        }
+        return caches.match("./index.html");
+      })
   );
 });
