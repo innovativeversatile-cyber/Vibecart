@@ -55,10 +55,12 @@ function saveApiBase(value) {
 }
 
 function setStatus(text) {
-  const node = document.getElementById("statusMsg");
-  if (node) {
-    node.textContent = text;
-  }
+  const nodes = [document.getElementById("statusMsg"), document.getElementById("statusMsgLogin")];
+  nodes.forEach((node) => {
+    if (node) {
+      node.textContent = text;
+    }
+  });
 }
 
 function showPanelUnlocked(message) {
