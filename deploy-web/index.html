@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VibeCart | Africa-Europe-Asia Trade Bridge Marketplace</title>
+    <meta
+      name="description"
+      content="VibeCart is a secure Africa-Europe-Asia bridge marketplace, helping users buy and sell legal goods across Africa, Europe, Dubai, and wider Asia with protected payments and reliable delivery."
+    />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="googlebot" content="index, follow" />
+    <meta property="og:title" content="VibeCart | Africa-Europe-Asia Marketplace Bridge" />
+    <meta
+      property="og:description"
+      content="Secure bridge marketplace connecting Africa, Europe, Dubai, and Asia for legal cross-border buying and selling, with trusted payments and reliable delivery."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.vibecart.example/" />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=1200&q=80" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VibeCart | Africa-Europe-Asia Marketplace Bridge" />
+    <meta name="twitter:description" content="Buy and sell legal products between Africa, Europe, Dubai, and Asia with secure payments and trusted delivery routes." />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="#070b17" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VibeCart" />
+    <link rel="canonical" href="https://www.vibecart.example/" />
+    <link rel="alternate" hreflang="en" href="https://www.vibecart.example/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.vibecart.example/" />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "VibeCart",
+        "url": "https://www.vibecart.example/",
+        "description": "Secure legal marketplace bridge connecting buyers and sellers across Africa, Europe, Dubai, and Asia with trusted payments and delivery."
+      }
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">V</span>
+        <span class="brand-name">VibeCart</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#categories">Categories</a>
+        <a href="#shops">Shops</a>
+        <a href="#trust-lab">Trust Lab</a>
+        <a href="#rewards">Rewards</a>
+        <a href="#insurance">Insurance</a>
+        <a href="#security">Security</a>
+        <a href="./policy.html">Policy</a>
+        <a href="./admin.html">Owner Panel</a>
+        <a href="#sell" class="cta-small">Start Selling</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p id="heroBadge" class="badge">Africa <-> Europe <-> Asia Bridge Marketplace</p>
+          <h1 id="heroTitle">One bridge. Africa, Europe, Dubai, and Asia connected for secure trade.</h1>
+          <p id="heroSubtitle">
+            <span id="regionHeadline">VibeCart is a secure, student-friendly marketplace for legal products.</span>
+            Discover offers from Poland and Europe, with routes to South Africa,
+            Namibia, Kenya, Ethiopia, Zimbabwe, and other African markets. Trade both
+            directions across Africa and Europe, plus Dubai and selected Asian markets.
+            Pay with trusted payment systems available in your country and use reliable,
+            secure delivery options.
+          </p>
+          <div class="hero-actions">
+            <a href="#market" class="btn btn-primary">Shop Now</a>
+            <a href="#sell" class="btn btn-secondary">List an Item</a>
+            <button id="openOnboarding" class="btn btn-secondary">Start Smart Tour</button>
+            <button id="installAppBtn" class="btn btn-secondary hidden">Install App</button>
+          </div>
+        </div>
+        <div class="hero-image">
+          <img
+            src="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=1200&q=80"
+            alt="Young shoppers browsing products online"
+          />
+        </div>
+      </section>
+
+      <section id="trust-lab" class="section alt">
+        <h2>Trust Lab</h2>
+        <p>
+          Every seller, provider, and partner has a trust score built from delivery reliability,
+          verification status, response speed, and dispute outcomes.
+        </p>
+        <div id="trustCards" class="grid shop-grid"></div>
+      </section>
+
+      <section id="rewards" class="section">
+        <h2>Campus Rewards and Savings Streaks</h2>
+        <p>
+          Earn points for safe purchases, completed bookings, and on-time subscriptions. Unlock
+          perks without increasing prices.
+        </p>
+        <div class="alt">
+          <div class="rewards-row">
+            <div class="reward-pill">
+              <strong>Current Tier:</strong> <span id="rewardTier">Starter</span>
+            </div>
+            <div class="reward-pill">
+              <strong>Points:</strong> <span id="rewardPoints">120</span>
+            </div>
+            <div class="reward-pill">
+              <strong>Streak:</strong> <span id="rewardStreak">3 weeks</span>
+            </div>
+          </div>
+          <div class="rewards-progress">
+            <div id="rewardProgressBar" class="rewards-progress-fill"></div>
+          </div>
+          <div class="hero-actions">
+            <button id="earnRewardPoints" class="btn btn-primary">Complete Safe Action</button>
+            <button id="redeemReward" class="btn btn-secondary">Redeem Student Perk</button>
+          </div>
+          <p id="rewardStatus" class="note">Keep going. 80 points to unlock Campus Pro Saver tier.</p>
+        </div>
+      </section>
+
+      <section id="categories" class="section">
+        <h2>Popular Categories</h2>
+        <div class="grid cards">
+          <a class="card" href="#market" data-filter="Electronics">
+            <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80" alt="Electronics products" />
+            <h3>Electronics</h3>
+          </a>
+          <a class="card" href="#market" data-filter="Fashion">
+            <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80" alt="Fashion products" />
+            <h3>Fashion</h3>
+          </a>
+          <a class="card" href="#market" data-filter="Books">
+            <img src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&q=80" alt="Books and learning materials" />
+            <h3>Books</h3>
+          </a>
+          <a class="card" href="#market" data-filter="Gaming">
+            <img src="https://images.unsplash.com/photo-1486401899868-0e435ed85128?auto=format&fit=crop&w=900&q=80" alt="Gaming accessories" />
+            <h3>Gaming</h3>
+          </a>
+        </div>
+      </section>
+
+      <section id="shops" class="section alt">
+        <h2>Featured Shops</h2>
+        <div class="grid shop-grid">
+          <a href="#market" class="shop">
+            <h3>Warsaw Campus Deals</h3>
+            <p>Trusted student sellers in Poland.</p>
+          </a>
+          <a href="#market" class="shop">
+            <h3>EuroTech Resale</h3>
+            <p>Phones, laptops, and accessories.</p>
+          </a>
+          <a href="#market" class="shop">
+            <h3>Africa Link Imports</h3>
+            <p>EU products shipped to South Africa, Namibia, Kenya, Ethiopia, and Zimbabwe.</p>
+          </a>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 id="bridgeTitle">Africa-Europe-Asia Trade Bridge</h2>
+        <p id="bridgeText">
+          VibeCart is built as a digital bridge between Africa, Europe, Dubai, and Asian
+          markets, making it possible to source legal products across borders in both
+          directions with confidence.
+        </p>
+      </section>
+
+      <section id="market" class="section">
+        <div class="market-header">
+          <h2>Live Marketplace</h2>
+          <label for="categoryFilter">Filter</label>
+          <select id="categoryFilter" aria-label="Filter products by category">
+            <option value="All">All</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Books">Books</option>
+            <option value="Gaming">Gaming</option>
+          </select>
+        </div>
+        <p class="note">
+          <input id="marketDisclaimerAck" type="checkbox" />
+          I understand and accept the marketplace risk and legal responsibility disclaimer.
+        </p>
+        <div id="products" class="grid product-grid">
+          <article class="product" data-category="Electronics">
+            <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80" alt="Smartphone" />
+            <h3>Premium Smartphone</h3>
+            <p class="price">EUR 280</p>
+            <p>Ships from Poland</p>
+            <button class="btn btn-primary">View Item</button>
+          </article>
+          <article class="product" data-category="Fashion">
+            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80" alt="Streetwear hoodie" />
+            <h3>Streetwear Hoodie</h3>
+            <p class="price">EUR 45</p>
+            <p>Ships from Germany</p>
+            <button class="btn btn-primary">View Item</button>
+          </article>
+          <article class="product" data-category="Books">
+            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80" alt="University textbooks" />
+            <h3>University Textbook Set</h3>
+            <p class="price">EUR 34</p>
+            <p>Ships from Poland</p>
+            <button class="btn btn-primary">View Item</button>
+          </article>
+          <article class="product" data-category="Gaming">
+            <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=900&q=80" alt="Gaming controller" />
+            <h3>Gaming Controller Pro</h3>
+            <p class="price">EUR 52</p>
+            <p>Ships from France</p>
+            <button class="btn btn-primary">View Item</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="sell" class="section alt">
+        <h2>Sell in 3 easy steps</h2>
+        <div class="steps">
+          <article>
+            <h3>1. Upload</h3>
+            <p>Add photos and item details.</p>
+          </article>
+          <article>
+            <h3>2. Price</h3>
+            <p>Set your price, then VibeCart applies platform markup safely.</p>
+          </article>
+          <article>
+            <h3>3. Ship</h3>
+            <p>Choose courier options for buyer country routes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="seller-marketing" class="section">
+        <h2>Seller Marketing Tools</h2>
+        <p>
+          Sellers can promote products, announce new arrivals, and run limited-time campaigns
+          to reach buyers faster across Africa, Europe, Dubai, and Asia.
+        </p>
+        <div class="grid shop-grid">
+          <article class="shop">
+            <h3>Featured Promotions</h3>
+            <p>Highlight discounted products and campaign offers.</p>
+          </article>
+          <article class="shop">
+            <h3>New Product Launches</h3>
+            <p>Show newly introduced products with launch tags.</p>
+          </article>
+          <article class="shop">
+            <h3>Campaign Reach</h3>
+            <p>Target selected countries and trade routes for visibility.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="ads" class="section alt">
+        <h2>Sponsored Brands and Ads</h2>
+        <p>
+          Legal brands can advertise on VibeCart through a secure, policy-reviewed ad system.
+          Ads are shown in small slots so user shopping remains smooth and trusted.
+        </p>
+        <div id="adSlots" class="grid shop-grid"></div>
+        <div class="hero-actions">
+          <button id="refreshAds" class="btn btn-secondary">Refresh Sponsored Ads</button>
+          <a href="./admin.html" class="btn btn-primary">Advertiser Setup</a>
+        </div>
+      </section>
+
+      <section id="ai-assistant" class="section alt">
+        <h2>AI Shopping Assistant</h2>
+        <p>
+          Need help choosing? Tell the assistant your budget, category, and what you need.
+          It will suggest suitable products instantly.
+        </p>
+        <div class="ai-grid">
+          <label for="aiNeed">What do you need?</label>
+          <input id="aiNeed" type="text" placeholder="Example: phone for school and social media" />
+
+          <label for="aiBudget">Your max budget (EUR)</label>
+          <input id="aiBudget" type="number" min="1" placeholder="Example: 60" />
+
+          <label for="aiCategory">Preferred category</label>
+          <select id="aiCategory">
+            <option value="All">Any</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Books">Books</option>
+            <option value="Gaming">Gaming</option>
+          </select>
+
+          <button id="aiSuggest" class="btn btn-primary">Get AI Suggestions</button>
+        </div>
+        <div id="aiResult" class="ai-result" aria-live="polite"></div>
+      </section>
+
+      <section id="security" class="section">
+        <h2>Security First</h2>
+        <ul class="security-list">
+          <li>Owner-only admin with multi-factor authentication and hardware key support.</li>
+          <li>Country-aware fraud detection and transaction monitoring.</li>
+          <li>Buyer and seller protection with suspicious-activity checks, identity verification, and high-risk order review.</li>
+          <li>Escalation and dispute workflow with temporary account lock for suspected fraud.</li>
+          <li>Payments are routed only through vetted providers with encryption, 3D Secure, anti-fraud scoring, and tokenized transactions.</li>
+          <li>Delivery uses trusted logistics partners with tracking, delivery verification, and route risk controls.</li>
+          <li>Encrypted traffic (HTTPS), secure cookies, and strict security headers.</li>
+          <li>Role-based permissions and immutable audit logs.</li>
+          <li>Legal-only marketplace with moderation, reporting controls, and proactive listing removal for unlawful content.</li>
+        </ul>
+        <p>
+          The platform enforces strict rules, but users remain responsible for their own actions.
+          See the <a href="./policy.html">Marketplace Policy and Terms</a> for legal responsibilities.
+        </p>
+        <p>
+          Compliance mode: listings and orders are screened against country/state/city rules.
+          If legality is unclear, the transaction is blocked or sent to manual review.
+        </p>
+      </section>
+      <section class="section alt">
+        <h2>Adaptive Market Interface</h2>
+        <p id="marketMode">
+          Market mode: Global default. The interface can localize messaging and visual style by audience region.
+        </p>
+        <label for="interactionMode">Choose your interaction style</label>
+        <select id="interactionMode">
+          <option value="guided">Guided (AI + helper tips)</option>
+          <option value="simple">Simple (minimal interface)</option>
+          <option value="pro">Pro (full marketplace controls)</option>
+        </select>
+      </section>
+      <section id="communication" class="section">
+        <h2>Buyer-Seller Communication Hub</h2>
+        <p>
+          Buyers and sellers can contact each other quickly for product questions, delivery
+          updates, and order clarifications in a secure communication channel.
+        </p>
+        <div class="alt">
+          <div id="messagesBox" class="messages-box" aria-live="polite"></div>
+          <div class="chat-input-row">
+            <input id="chatInput" type="text" placeholder="Type your message to buyer or seller..." />
+            <button id="chatSend" class="btn btn-primary">Send</button>
+          </div>
+          <div id="chatSafetyAlert" class="safety-alert hidden" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="tracking" class="section alt">
+        <h2>Order Tracking and Delivery Updates</h2>
+        <p>
+          Buyers and sellers receive live progress updates from purchase to final delivery.
+          After delivery, both sides get a review window to accept, return, or refuse based on policy.
+        </p>
+        <div id="trackingTimeline" class="tracking-timeline" aria-live="polite"></div>
+        <div class="hero-actions">
+          <button id="nextTrackingStep" class="btn btn-primary">Simulate Next Update</button>
+          <button id="openReturnWindow" class="btn btn-secondary">Open Return/Refuse Window</button>
+        </div>
+        <p id="returnWindowInfo" class="note">
+          Return/refuse window status: closed
+        </p>
+      </section>
+
+      <section id="beauty-booking" class="section">
+        <h2>Beauty and Service Booking Platform</h2>
+        <p>
+          Hair, nails, barber, and makeup professionals can publish available slots and let
+          clients book instantly without manual back-and-forth.
+        </p>
+        <div class="ai-grid">
+          <label for="bookingServiceType">Service Type</label>
+          <select id="bookingServiceType">
+            <option value="Hair Styling">Hair Styling</option>
+            <option value="Nails">Nails</option>
+            <option value="Makeup">Makeup</option>
+            <option value="Barber">Barber</option>
+          </select>
+
+          <label for="bookingDate">Preferred Date</label>
+          <input id="bookingDate" type="date" />
+
+          <button id="showBookingSlots" class="btn btn-primary">Show Available Slots</button>
+        </div>
+        <div id="bookingSlotsResult" class="ai-result"></div>
+      </section>
+
+      <section id="insurance" class="section alt">
+        <h2>Student Insurance and Well-Being Support</h2>
+        <p>
+          Students and families can access verified insurance offers from real partner companies,
+          including life, funeral, and health support plans with affordable monthly premiums.
+        </p>
+        <div id="insurancePlans" class="grid shop-grid"></div>
+        <p class="note">
+          <input id="insuranceDisclaimerAck" type="checkbox" />
+          I understand insurance decisions are made by third-party insurers and accept the disclaimer.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshInsurance" class="btn btn-secondary">Refresh Insurance Offers</button>
+          <button id="queueInsuranceTips" class="btn btn-primary">Show Safety and Well-Being Tips</button>
+        </div>
+        <div id="wellbeingTips" class="ai-result" aria-live="polite"></div>
+      </section>
+
+      <section id="health-coach" class="section">
+        <h2>Health and Fitness AI Coach</h2>
+        <p>
+          Track weight loss, weight gain, muscle goals, and medication adherence with private check-ins.
+          This coach supports routine fitness and long-term health follow-up workflows.
+        </p>
+        <div class="ai-grid">
+          <label for="coachFocus">Coach Focus</label>
+          <select id="coachFocus">
+            <option value="weight_loss">Weight Loss</option>
+            <option value="weight_gain">Weight Gain</option>
+            <option value="muscle_gain">Muscle Gain</option>
+            <option value="medical_support">Medical Support</option>
+            <option value="general_fitness">General Fitness</option>
+          </select>
+          <label for="coachGoalNotes">Goal Notes</label>
+          <input id="coachGoalNotes" type="text" placeholder="Example: lose 4kg in 10 weeks safely" />
+          <label for="coachBaselineWeight">Baseline Weight (kg)</label>
+          <input id="coachBaselineWeight" type="number" min="1" step="0.1" />
+          <label for="coachTargetWeight">Target Weight (kg)</label>
+          <input id="coachTargetWeight" type="number" min="1" step="0.1" />
+          <label for="coachActivityGoal">Daily Activity Goal</label>
+          <input id="coachActivityGoal" type="text" placeholder="45 min walk + 20 min strength" />
+          <button id="saveCoachProfile" class="btn btn-primary">Save AI Coach Profile</button>
+        </div>
+
+        <div class="ai-grid" style="margin-top: 1rem;">
+          <label for="medicationName">Medication Name</label>
+          <input id="medicationName" type="text" placeholder="Medication name" />
+          <label for="medicationDose">Dosage</label>
+          <input id="medicationDose" type="text" placeholder="e.g. 1 tablet 500mg" />
+          <label for="medicationTime">Schedule Time</label>
+          <input id="medicationTime" type="text" placeholder="e.g. 08:00 and 20:00" />
+          <button id="addMedicationPlan" class="btn btn-secondary">Add Medication Plan</button>
+        </div>
+
+        <div class="ai-grid" style="margin-top: 1rem;">
+          <label for="healthCheckinType">Health Check-in Type</label>
+          <select id="healthCheckinType">
+            <option value="weight">Weight</option>
+            <option value="activity">Activity</option>
+            <option value="symptom">Symptom</option>
+            <option value="medication_taken">Medication Taken</option>
+            <option value="wellbeing">Wellbeing</option>
+          </select>
+          <label for="healthCheckinValue">Metric / Value</label>
+          <input id="healthCheckinValue" type="text" placeholder="e.g. 72.4kg or 6500 steps" />
+          <label for="healthCheckinNotes">Notes</label>
+          <input id="healthCheckinNotes" type="text" placeholder="How you feel or any warning signs" />
+          <button id="addHealthCheckin" class="btn btn-primary">Submit Health Check-in</button>
+        </div>
+
+        <div class="hero-actions" style="margin-top: 0.8rem;">
+          <button id="refreshCoachDashboard" class="btn btn-secondary">Refresh Coach Dashboard</button>
+        </div>
+        <div id="coachDashboard" class="ai-result" aria-live="polite"></div>
+      </section>
+
+      <section id="tax-transparency" class="section alt">
+        <h2>Tax and Payout Transparency</h2>
+        <p>
+          Every transaction includes tax calculation and withholding records before payout.
+          Net revenue and payable tax are tracked to reduce tax-evasion risk.
+        </p>
+      </section>
+
+      <section class="section">
+        <h2>Important Risk Disclaimer</h2>
+        <p>
+          VibeCart applies strong security, fraud screening, and legal controls. However, no digital
+          platform can guarantee zero risk in every scenario. Users remain responsible for lawful use,
+          accurate information, and compliance obligations. The platform owner is not liable for unlawful
+          acts, third-party misconduct, insurer underwriting decisions, or losses caused by user violations,
+          to the maximum extent permitted by applicable law.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>VibeCart - The legal marketplace for Gen Z and adults.</p>
+      <p>Contact: security@vibecart.example</p>
+      <p><a href="./policy.html">Marketplace Policy &amp; Terms</a></p>
+      <p>Disclaimer: security controls reduce risk but cannot eliminate all risk.</p>
+    </footer>
+
+    <div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="modal-card">
+        <h3 id="onboardingTitle">VibeCart Smart Tour</h3>
+        <p id="onboardingText">
+          Welcome. This quick tour helps you shop safely, save money, and use trusted sellers.
+        </p>
+        <div class="hero-actions">
+          <button id="onboardingNext" class="btn btn-primary">Next</button>
+          <button id="onboardingClose" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="disclaimerGateModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="disclaimerGateTitle">
+      <div class="modal-card">
+        <h3 id="disclaimerGateTitle">Confirm Disclaimer Acceptance</h3>
+        <p id="disclaimerGateText">
+          You must accept the applicable disclaimer before continuing.
+        </p>
+        <div class="hero-actions">
+          <button id="disclaimerGateContinue" class="btn btn-primary">I Accept and Continue</button>
+          <button id="disclaimerGateClose" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="./script.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
