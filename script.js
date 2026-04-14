@@ -78,6 +78,7 @@ const INTERACTION_MODE_KEY = "vibecart-interaction-mode";
 const REWARD_KEY = "vibecart-reward-profile";
 const ONBOARDING_KEY = "vibecart-onboarding-done";
 let pendingDisclaimerAction = null;
+let pendingDisclaimerCheckbox = null;
 const PUBLIC_USER_KEY = "vibecart-public-user-id";
 
 function getPublicUserId() {
@@ -655,11 +656,12 @@ async function recordDisclaimerAcceptance(contextType, accepted) {
   }
 }
 
-function openDisclaimerGate(message, onContinue) {
+function openDisclaimerGate(message, onContinue, checkboxNode) {
   if (!disclaimerGateModal || !disclaimerGateText) {
     return;
   }
   pendingDisclaimerAction = onContinue;
+  pendingDisclaimerCheckbox = checkboxNode || null;
   disclaimerGateText.textContent = message;
   disclaimerGateModal.classList.remove("hidden");
 }
@@ -670,6 +672,7 @@ function closeDisclaimerGate() {
   }
   disclaimerGateModal.classList.add("hidden");
   pendingDisclaimerAction = null;
+  pendingDisclaimerCheckbox = null;
 }
 
 function wireMarketActionButtons() {
@@ -684,7 +687,8 @@ function wireMarketActionButtons() {
       if (!marketDisclaimerAck || !marketDisclaimerAck.checked) {
         openDisclaimerGate(
           "Before continuing, accept the marketplace disclaimer checkbox below the market section.",
-          null
+          null,
+          marketDisclaimerAck
         );
         return;
       }
@@ -708,7 +712,8 @@ function wireInsuranceActionButtons() {
       if (!insuranceDisclaimerAck || !insuranceDisclaimerAck.checked) {
         openDisclaimerGate(
           "Before continuing, accept the insurance disclaimer checkbox in the insurance section.",
-          null
+          null,
+          insuranceDisclaimerAck
         );
         return;
       }
@@ -732,8 +737,13 @@ if (disclaimerGateClose) {
 }
 if (disclaimerGateContinue) {
   disclaimerGateContinue.addEventListener("click", async () => {
+    if (pendingDisclaimerCheckbox) {
+      pendingDisclaimerCheckbox.checked = true;
+    }
     if (pendingDisclaimerAction) {
       await pendingDisclaimerAction();
+    } else if (wellbeingTips) {
+      wellbeingTips.textContent = "Disclaimer accepted. Please continue with your action.";
     }
     closeDisclaimerGate();
   });
