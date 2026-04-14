@@ -1088,16 +1088,17 @@ const onboardingSteps = [
 let onboardingIndex = 0;
 
 function openOnboardingModal() {
-  if (!onboardingModal || !onboardingText) {
-    return;
+  // Fail-safe: disable blocking onboarding modal flow.
+  if (rewardStatus) {
+    rewardStatus.textContent =
+      "Smart Tour tips: Check Trust Lab scores, use AI Assistant for budget-safe picks, and complete secure actions for rewards.";
   }
-  onboardingIndex = 0;
-  onboardingText.textContent = onboardingSteps[onboardingIndex];
-  onboardingModal.classList.remove("hidden");
+  localStorage.setItem(ONBOARDING_KEY, "1");
 }
 
 function closeOnboardingModal() {
   if (!onboardingModal) {
+    localStorage.setItem(ONBOARDING_KEY, "1");
     return;
   }
   onboardingModal.classList.add("hidden");
@@ -1127,6 +1128,4 @@ if (onboardingClose) {
 loadTrustCards();
 loadRewardProfile();
 wireMarketActionButtons();
-if (localStorage.getItem(ONBOARDING_KEY) !== "1") {
-  openOnboardingModal();
-}
+localStorage.setItem(ONBOARDING_KEY, "1");

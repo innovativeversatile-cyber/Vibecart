@@ -471,6 +471,11 @@ main,
   display: none !important;
 }
 
+/* Fail-safe: onboarding modal is permanently disabled. */
+#onboardingModal {
+  display: none !important;
+}
+
 @media (max-width: 860px) {
   .hero {
     grid-template-columns: 1fr;
