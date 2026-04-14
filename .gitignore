@@ -2,3 +2,6 @@ health-reminder-task-setup.ps1
 run-health-reminder-cron.ps1
 setup-health-reminder-task.ps1
 setup-reminder.cmd
+
+# Local Netlify folder
+.netlify
