@@ -69,6 +69,28 @@ const {
   getTechnicalRiskRecommendations,
   getOwnerRiskDashboard
 } = require("./risk-intelligence-service");
+const {
+  acceptBarterTerms,
+  upsertBarterProfile,
+  createBarterOffer,
+  buildBarterMatches,
+  listPublicBarterMatches,
+  reportBarterBypassAttempt,
+  listOwnerBarterMatchReviews,
+  decideBarterMatch,
+  suspendBarterAccount
+} = require("./barter-intelligence-service");
+const {
+  createCrowdfundingCampaign,
+  listCrowdfundingCampaigns,
+  ownerDecideCrowdfunding,
+  recordCrowdfundingPledge,
+  runCulturalArbitrageScout,
+  listAiOperationsQueue,
+  createAiOperation,
+  decideAiOperation,
+  generateAiOpsRecommendations
+} = require("./ai-operations-service");
 
 const PORT = Number(process.env.PORT || 8081);
 const DB_HOST = process.env.DB_HOST || "127.0.0.1";
@@ -880,6 +902,194 @@ async function handleOwnerRiskDashboard(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function handlePublicBarterAcceptTerms(req, res) {
+  const body = await readJson(req);
+  const result = await acceptBarterTerms(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicBarterProfileUpsert(req, res) {
+  const body = await readJson(req);
+  const result = await upsertBarterProfile(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicBarterOfferCreate(req, res) {
+  const body = await readJson(req);
+  const result = await createBarterOffer(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicBarterMatchBuild(req, res) {
+  const body = await readJson(req);
+  const result = await buildBarterMatches(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicBarterMatches(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const result = await listPublicBarterMatches(pool, {
+    offerId: Number(urlObj.searchParams.get("offerId") || 0)
+  });
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicBarterBypassReport(req, res) {
+  const body = await readJson(req);
+  const result = await reportBarterBypassAttempt(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerBarterMatchReviews(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await listOwnerBarterMatchReviews(pool, data.body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerBarterMatchDecision(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await decideBarterMatch(pool, data.body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerBarterSuspendAccount(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await suspendBarterAccount(pool, data.body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCrowdfundingCreate(req, res) {
+  const body = await readJson(req);
+  const result = await createCrowdfundingCampaign(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCrowdfundingList(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const result = await listCrowdfundingCampaigns(pool, {
+    status: String(urlObj.searchParams.get("status") || "").trim()
+  });
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCrowdfundingPledge(req, res) {
+  const body = await readJson(req);
+  const result = await recordCrowdfundingPledge(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCulturalArbitrageScout(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const result = await runCulturalArbitrageScout(pool, {
+    sourceCountry: String(urlObj.searchParams.get("sourceCountry") || "").trim(),
+    targetCountry: String(urlObj.searchParams.get("targetCountry") || "").trim(),
+    category: String(urlObj.searchParams.get("category") || "").trim()
+  });
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerCrowdfundingReviewList(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await listCrowdfundingCampaigns(pool, data.body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerCrowdfundingDecision(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await ownerDecideCrowdfunding(pool, data.body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerAiOperationsList(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await listAiOperationsQueue(pool);
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerAiOperationsCreate(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await createAiOperation(pool, data.body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerAiOperationsDecide(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await decideAiOperation(pool, data.body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerAiOpsRecommendations(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await generateAiOpsRecommendations(pool);
+  return sendJson(res, 200, result);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const ip = getIp(req);
@@ -929,8 +1139,38 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/public/technical-risk/recommendations")) {
       return await handlePublicTechnicalRiskRecommendations(req, res);
     }
+    if (req.method === "GET" && req.url.startsWith("/api/public/barter/matches")) {
+      return await handlePublicBarterMatches(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/crowdfunding/campaigns")) {
+      return await handlePublicCrowdfundingList(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/cultural-arbitrage/scout")) {
+      return await handlePublicCulturalArbitrageScout(req, res);
+    }
     if (req.method === "POST" && req.url === "/api/public/platform-risk/plan") {
       return await handlePublicPlatformRiskPlan(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/barter/terms/accept") {
+      return await handlePublicBarterAcceptTerms(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/barter/profile/upsert") {
+      return await handlePublicBarterProfileUpsert(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/barter/offer/create") {
+      return await handlePublicBarterOfferCreate(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/barter/match/build") {
+      return await handlePublicBarterMatchBuild(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/barter/bypass/report") {
+      return await handlePublicBarterBypassReport(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/crowdfunding/campaign/create") {
+      return await handlePublicCrowdfundingCreate(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/crowdfunding/pledge") {
+      return await handlePublicCrowdfundingPledge(req, res);
     }
     if (req.method === "POST" && req.url === "/api/public/fraud/precheck") {
       return await handlePublicFraudPrecheck(req, res);
@@ -1069,6 +1309,33 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && req.url === "/api/risk/owner-dashboard") {
       return await handleOwnerRiskDashboard(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/barter/match/review/list") {
+      return await handleOwnerBarterMatchReviews(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/barter/match/review/decide") {
+      return await handleOwnerBarterMatchDecision(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/barter/account/suspend") {
+      return await handleOwnerBarterSuspendAccount(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/crowdfunding/review/list") {
+      return await handleOwnerCrowdfundingReviewList(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/crowdfunding/review/decide") {
+      return await handleOwnerCrowdfundingDecision(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/ai-ops/list") {
+      return await handleOwnerAiOperationsList(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/ai-ops/create") {
+      return await handleOwnerAiOperationsCreate(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/ai-ops/decide") {
+      return await handleOwnerAiOperationsDecide(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/ai-ops/recommendations") {
+      return await handleOwnerAiOpsRecommendations(req, res);
     }
     return sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
   } catch (error) {

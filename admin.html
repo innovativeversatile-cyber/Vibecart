@@ -332,6 +332,97 @@
         <div id="riskDashboardTrends" class="messages-box"></div>
 
         <hr />
+        <h3>AI Barter Match Control</h3>
+        <p class="note">
+          AI can discover barter matches, but final decisions remain owner-only. Off-platform bypass attempts can be reviewed and accounts suspended here.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshBarterReviews" type="button" class="btn btn-secondary">Refresh Barter Reviews</button>
+        </div>
+        <div class="admin-grid">
+          <label>Match ID</label>
+          <input id="barterMatchId" type="number" min="1" placeholder="Example: 12" />
+
+          <label>Decision</label>
+          <select id="barterDecision">
+            <option value="owner_approved">owner_approved</option>
+            <option value="owner_rejected">owner_rejected</option>
+            <option value="manual_hold">manual_hold</option>
+          </select>
+
+          <label>Owner Notes</label>
+          <textarea id="barterOwnerNotes" placeholder="Reason for approval, rejection, or manual hold"></textarea>
+
+          <label>User ID To Suspend</label>
+          <input id="barterSuspendUserId" type="number" min="1" placeholder="Example: 100001" />
+
+          <label>Suspension Reason</label>
+          <textarea id="barterSuspendReason" placeholder="Example: attempted off-platform bypass and repeated risky messaging"></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="decideBarterMatch" type="button" class="btn btn-primary">Apply Match Decision</button>
+          <button id="suspendBarterUser" type="button" class="btn btn-secondary">Suspend Barter Account</button>
+        </div>
+        <div id="barterReviewList" class="messages-box"></div>
+
+        <hr />
+        <h3>Micro-Equity Crowdfunding Control</h3>
+        <p class="note">
+          Crowdfunding and micro-equity style campaigns can be created and reviewed here, but no crucial campaign goes live without your approval.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshCrowdfunding" type="button" class="btn btn-secondary">Refresh Crowdfunding Campaigns</button>
+        </div>
+        <div class="admin-grid">
+          <label>Campaign ID</label>
+          <input id="crowdfundingCampaignId" type="number" min="1" placeholder="Example: 5" />
+
+          <label>Crowdfunding Decision</label>
+          <select id="crowdfundingDecision">
+            <option value="approved">approved</option>
+            <option value="rejected">rejected</option>
+            <option value="manual_hold">manual_hold</option>
+          </select>
+
+          <label>Owner Campaign Notes</label>
+          <textarea id="crowdfundingOwnerNotes" placeholder="Reason for campaign approval or hold"></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="decideCrowdfunding" type="button" class="btn btn-primary">Apply Crowdfunding Decision</button>
+        </div>
+        <div id="crowdfundingReviewList" class="messages-box"></div>
+
+        <hr />
+        <h3>AI Operations Command Center</h3>
+        <p class="note">
+          AI can recommend daily operations for marketing, security, research, pricing, and updates. Crucial actions stay owner-approved.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshAiOps" type="button" class="btn btn-secondary">Refresh AI Operations Queue</button>
+          <button id="generateAiOpsRecommendations" type="button" class="btn btn-secondary">Generate AI Ops Recommendations</button>
+        </div>
+        <div class="admin-grid">
+          <label>AI Operation ID</label>
+          <input id="aiOpId" type="number" min="1" placeholder="Example: 8" />
+
+          <label>AI Operation Decision</label>
+          <select id="aiOpDecision">
+            <option value="approved">approved</option>
+            <option value="rejected">rejected</option>
+            <option value="manual_hold">manual_hold</option>
+            <option value="executed">executed</option>
+          </select>
+
+          <label>AI Operation Owner Notes</label>
+          <textarea id="aiOpOwnerNotes" placeholder="Final owner decision notes"></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="decideAiOp" type="button" class="btn btn-primary">Apply AI Operation Decision</button>
+        </div>
+        <div id="aiOpsRecommendationsBox" class="ai-result"></div>
+        <div id="aiOpsQueueList" class="messages-box"></div>
+
+        <hr />
         <h3>Insurance Jurisdiction Control</h3>
         <p class="note">
           Enable insurance only in legal-reviewed low-risk countries. All other countries stay blocked by default.

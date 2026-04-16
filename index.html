@@ -59,6 +59,7 @@
         <a href="#insurance">Insurance</a>
         <a href="#security">Security</a>
         <a href="./policy.html">Policy</a>
+        <a href="./terms.html">Terms</a>
         <a href="#sell" class="cta-small">Start Selling</a>
       </nav>
     </header>
@@ -74,7 +75,8 @@
             Namibia, Kenya, Ethiopia, Zimbabwe, and other African markets. Trade both
             directions across Africa and Europe, plus Dubai and selected Asian markets.
             Pay with trusted payment systems available in your country and use reliable,
-            secure delivery options.
+            secure delivery options. AI helps with discovery and risk signals, but final
+            decisions and legal responsibilities remain with humans.
           </p>
           <div class="hero-actions">
             <a href="#market" class="btn btn-primary">Shop Now</a>
@@ -333,6 +335,51 @@
         </div>
       </section>
 
+      <section id="ai-barter-exchange" class="section">
+        <h2>AI Barter Exchange (Goods and Services Matchmaker)</h2>
+        <p>
+          Trade directly across borders using complementary needs instead of cash-first transactions.
+          AI suggests the best barter matches, but final approval decisions are owner-controlled.
+        </p>
+        <p class="note">
+          <input id="barterTermsAck" type="checkbox" />
+          I agree to Barter Terms: bypassing escrow/logistics or taking deals off-platform is prohibited and may trigger account suspension.
+        </p>
+        <div class="ai-grid">
+          <label for="barterUserId">User ID</label>
+          <input id="barterUserId" type="number" min="1" placeholder="Example: 100001" />
+          <label for="barterCountry">Country Code</label>
+          <input id="barterCountry" type="text" maxlength="2" placeholder="Example: ZA" />
+          <label for="barterCategory">Category Focus</label>
+          <input id="barterCategory" type="text" placeholder="Example: electronics or design-services" />
+          <label for="barterOffersText">What can you offer?</label>
+          <textarea id="barterOffersText" placeholder="Example: web design, graphic editing, used iPhone 12"></textarea>
+          <label for="barterNeedsText">What do you need?</label>
+          <textarea id="barterNeedsText" placeholder="Example: laptop, logistics support, legal consultation"></textarea>
+          <button id="barterSaveProfile" class="btn btn-secondary">Save Barter Profile</button>
+        </div>
+        <div class="ai-grid" style="margin-top: 1rem;">
+          <label for="barterOfferTitle">Offer Title</label>
+          <input id="barterOfferTitle" type="text" placeholder="Example: iPhone 12 + design service swap" />
+          <label for="barterOfferDescription">Offer Description</label>
+          <textarea id="barterOfferDescription" placeholder="Describe your goods/services clearly"></textarea>
+          <label for="barterWantDescription">Wanted in Exchange</label>
+          <textarea id="barterWantDescription" placeholder="Describe what you want in return"></textarea>
+          <label for="barterOriginCountry">Origin Country</label>
+          <input id="barterOriginCountry" type="text" maxlength="2" placeholder="Example: PL" />
+          <label for="barterTargetCountry">Target Country</label>
+          <input id="barterTargetCountry" type="text" maxlength="2" placeholder="Example: ZA" />
+          <button id="barterCreateOffer" class="btn btn-primary">Create Offer + Run AI Match</button>
+        </div>
+        <div class="ai-grid" style="margin-top: 1rem;">
+          <label for="barterBypassSnippet">Suspicious bypass message (for AI detection)</label>
+          <input id="barterBypassSnippet" type="text" placeholder="Example: let's do whatsapp and pay direct outside app" />
+          <button id="barterReportBypass" class="btn btn-secondary">Report Bypass Attempt</button>
+        </div>
+        <div id="barterResult" class="ai-result" aria-live="polite"></div>
+        <div id="barterMatches" class="messages-box"></div>
+      </section>
+
       <section id="ads" class="section alt">
         <h2>Sponsored Brands and Ads</h2>
         <p>
@@ -388,7 +435,8 @@
         </ul>
         <p>
           The platform enforces strict rules, but users remain responsible for their own actions.
-          See the <a href="./policy.html">Marketplace Policy and Terms</a> for legal responsibilities.
+          See the <a href="./policy.html">Marketplace Policy</a> and
+          <a href="./terms.html">Terms and Conditions</a> for legal responsibilities.
         </p>
         <p>
           Compliance mode: listings and orders are screened against country/state/city rules.

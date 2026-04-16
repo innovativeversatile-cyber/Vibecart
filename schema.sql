@@ -911,6 +911,128 @@ CREATE TABLE platform_risk_events (
   INDEX idx_platform_risk_focus_time (risk_focus, created_at)
 );
 
+CREATE TABLE barter_terms_acceptance (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  terms_version VARCHAR(40) NOT NULL DEFAULT 'v1',
+  accepted TINYINT(1) NOT NULL DEFAULT 1,
+  acceptance_text VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_barter_terms_user_time (user_id, created_at)
+);
+
+CREATE TABLE barter_profiles (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  offers_text TEXT NOT NULL,
+  needs_text TEXT NOT NULL,
+  country_code CHAR(2) NOT NULL,
+  category_focus VARCHAR(80) NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_barter_profiles_country_active (country_code, active)
+);
+
+CREATE TABLE barter_offers (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  offer_title VARCHAR(180) NOT NULL,
+  offer_description TEXT NOT NULL,
+  want_description TEXT NOT NULL,
+  origin_country CHAR(2) NOT NULL,
+  target_country CHAR(2) NULL,
+  category VARCHAR(80) NULL,
+  status ENUM('open','matched','suspended','closed') NOT NULL DEFAULT 'open',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_barter_offers_status_country (status, origin_country, target_country)
+);
+
+CREATE TABLE barter_match_candidates (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  source_offer_id BIGINT UNSIGNED NOT NULL,
+  candidate_offer_id BIGINT UNSIGNED NOT NULL,
+  match_score DECIMAL(6,2) NOT NULL,
+  match_reason VARCHAR(255) NULL,
+  review_status ENUM('pending_owner_review','owner_approved','owner_rejected','manual_hold') NOT NULL DEFAULT 'pending_owner_review',
+  owner_notes VARCHAR(255) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (source_offer_id) REFERENCES barter_offers(id),
+  FOREIGN KEY (candidate_offer_id) REFERENCES barter_offers(id),
+  INDEX idx_barter_match_source_status (source_offer_id, review_status, match_score),
+  INDEX idx_barter_match_candidate (candidate_offer_id, review_status)
+);
+
+CREATE TABLE barter_bypass_events (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  conversation_snippet VARCHAR(255) NULL,
+  detected_rules VARCHAR(255) NULL,
+  risk_level ENUM('low','medium','high') NOT NULL DEFAULT 'low',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_barter_bypass_user_risk_time (user_id, risk_level, created_at)
+);
+
+CREATE TABLE barter_account_enforcement (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  action_type ENUM('warn','suspend','ban') NOT NULL DEFAULT 'suspend',
+  reason_text VARCHAR(255) NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  expires_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_barter_enforcement_user_active (user_id, active, expires_at)
+);
+
+CREATE TABLE crowdfunding_campaigns (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(180) NOT NULL,
+  description TEXT NOT NULL,
+  target_amount DECIMAL(12,2) NOT NULL,
+  raised_amount DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  currency CHAR(3) NOT NULL DEFAULT 'EUR',
+  country_code CHAR(2) NOT NULL,
+  funding_type ENUM('goods_inventory','service_expansion','micro_equity','community_pool') NOT NULL DEFAULT 'goods_inventory',
+  status ENUM('draft','approved','rejected','manual_hold','live','closed') NOT NULL DEFAULT 'draft',
+  owner_notes VARCHAR(255) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_crowdfunding_status_country (status, country_code, funding_type)
+);
+
+CREATE TABLE crowdfunding_pledges (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  campaign_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'EUR',
+  pledge_status ENUM('committed','captured','refunded','cancelled') NOT NULL DEFAULT 'committed',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (campaign_id) REFERENCES crowdfunding_campaigns(id),
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_crowdfunding_pledges_campaign_status (campaign_id, pledge_status, created_at)
+);
+
+CREATE TABLE ai_operations_queue (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  operation_type ENUM('marketing','security','inventory','research','product_update','compliance','pricing') NOT NULL,
+  summary_text VARCHAR(255) NOT NULL,
+  recommendation_text TEXT NOT NULL,
+  risk_level ENUM('low','medium','high') NOT NULL DEFAULT 'medium',
+  execution_mode ENUM('recommend_only','owner_approval_required','autonomous_safe') NOT NULL DEFAULT 'recommend_only',
+  status ENUM('pending_owner_review','approved','rejected','manual_hold','executed') NOT NULL DEFAULT 'pending_owner_review',
+  owner_notes VARCHAR(255) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ai_ops_status_type_time (status, operation_type, created_at)
+);
+
 CREATE TABLE conversations (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   order_id BIGINT UNSIGNED NULL,

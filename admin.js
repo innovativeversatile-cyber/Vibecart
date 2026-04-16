@@ -569,6 +569,220 @@ async function refreshRiskDashboard() {
   setStatus("Platform risk dashboard refreshed.");
 }
 
+function renderBarterReviewList(items) {
+  const container = document.getElementById("barterReviewList");
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = "<div class='msg msg-buyer'>No barter match reviews yet.</div>";
+    return;
+  }
+  container.innerHTML = "";
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    row.textContent =
+      `match#${item.match_id} | source=${item.source_offer_id} | candidate=${item.candidate_offer_id} | ` +
+      `score=${item.match_score} | status=${item.review_status} | notes=${item.owner_notes || "n/a"}`;
+    row.addEventListener("click", () => {
+      const matchIdNode = document.getElementById("barterMatchId");
+      const decisionNode = document.getElementById("barterDecision");
+      const notesNode = document.getElementById("barterOwnerNotes");
+      if (matchIdNode) {
+        matchIdNode.value = String(item.match_id || "");
+      }
+      if (decisionNode) {
+        decisionNode.value = ["owner_approved", "owner_rejected", "manual_hold"].includes(String(item.review_status))
+          ? String(item.review_status)
+          : "manual_hold";
+      }
+      if (notesNode) {
+        notesNode.value = String(item.owner_notes || "");
+      }
+    });
+    container.appendChild(row);
+  });
+}
+
+async function refreshBarterReviews() {
+  const payload = await authedPost("/api/barter/match/review/list", {
+    status: "",
+    limit: 50
+  });
+  renderBarterReviewList(payload.items || []);
+  setStatus("Barter match reviews refreshed.");
+}
+
+async function decideBarterMatchFromPanel() {
+  const matchId = Number(document.getElementById("barterMatchId")?.value || "0");
+  const decision = String(document.getElementById("barterDecision")?.value || "manual_hold");
+  const ownerNotes = String(document.getElementById("barterOwnerNotes")?.value || "").trim();
+  if (!matchId) {
+    setStatus("Enter a valid barter match ID.");
+    return;
+  }
+  await authedPost("/api/barter/match/review/decide", {
+    matchId,
+    decision,
+    ownerNotes
+  });
+  setStatus(`Barter match #${matchId} updated to ${decision}.`);
+  await refreshBarterReviews();
+}
+
+async function suspendBarterUserFromPanel() {
+  const userId = Number(document.getElementById("barterSuspendUserId")?.value || "0");
+  const reason = String(document.getElementById("barterSuspendReason")?.value || "").trim();
+  if (!userId || !reason) {
+    setStatus("User ID and suspension reason are required.");
+    return;
+  }
+  await authedPost("/api/barter/account/suspend", {
+    userId,
+    reason,
+    days: 14
+  });
+  setStatus(`Barter account for user #${userId} suspended.`);
+}
+
+function renderCrowdfundingReviewList(items) {
+  const container = document.getElementById("crowdfundingReviewList");
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = "<div class='msg msg-buyer'>No crowdfunding campaigns yet.</div>";
+    return;
+  }
+  container.innerHTML = "";
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    row.textContent =
+      `campaign#${item.id} | ${item.title} | raised=${item.raised_amount}/${item.target_amount} ${item.currency} | ` +
+      `type=${item.funding_type} | status=${item.status}`;
+    row.addEventListener("click", () => {
+      const idNode = document.getElementById("crowdfundingCampaignId");
+      const decisionNode = document.getElementById("crowdfundingDecision");
+      const notesNode = document.getElementById("crowdfundingOwnerNotes");
+      if (idNode) {
+        idNode.value = String(item.id || "");
+      }
+      if (decisionNode) {
+        decisionNode.value = ["approved", "rejected", "manual_hold"].includes(String(item.status))
+          ? String(item.status)
+          : "manual_hold";
+      }
+      if (notesNode) {
+        notesNode.value = String(item.owner_notes || "");
+      }
+    });
+    container.appendChild(row);
+  });
+}
+
+async function refreshCrowdfunding() {
+  const payload = await authedPost("/api/crowdfunding/review/list", { status: "" });
+  renderCrowdfundingReviewList(payload.items || []);
+  setStatus("Crowdfunding campaigns refreshed.");
+}
+
+async function decideCrowdfundingFromPanel() {
+  const campaignId = Number(document.getElementById("crowdfundingCampaignId")?.value || "0");
+  const decision = String(document.getElementById("crowdfundingDecision")?.value || "manual_hold");
+  const ownerNotes = String(document.getElementById("crowdfundingOwnerNotes")?.value || "").trim();
+  if (!campaignId) {
+    setStatus("Enter a valid crowdfunding campaign ID.");
+    return;
+  }
+  await authedPost("/api/crowdfunding/review/decide", {
+    campaignId,
+    decision,
+    ownerNotes
+  });
+  setStatus(`Crowdfunding campaign #${campaignId} updated to ${decision}.`);
+  await refreshCrowdfunding();
+}
+
+function renderAiOpsQueue(items) {
+  const container = document.getElementById("aiOpsQueueList");
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = "<div class='msg msg-buyer'>No AI operations queued yet.</div>";
+    return;
+  }
+  container.innerHTML = "";
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    row.textContent =
+      `op#${item.id} | ${item.operation_type} | risk=${item.risk_level} | mode=${item.execution_mode} | status=${item.status} | ${item.summary_text}`;
+    row.addEventListener("click", () => {
+      const idNode = document.getElementById("aiOpId");
+      const decisionNode = document.getElementById("aiOpDecision");
+      const notesNode = document.getElementById("aiOpOwnerNotes");
+      if (idNode) {
+        idNode.value = String(item.id || "");
+      }
+      if (decisionNode) {
+        decisionNode.value = ["approved", "rejected", "manual_hold", "executed"].includes(String(item.status))
+          ? String(item.status)
+          : "manual_hold";
+      }
+      if (notesNode) {
+        notesNode.value = String(item.owner_notes || "");
+      }
+    });
+    container.appendChild(row);
+  });
+}
+
+async function refreshAiOps() {
+  const payload = await authedPost("/api/ai-ops/list", {});
+  renderAiOpsQueue(payload.items || []);
+  setStatus("AI operations queue refreshed.");
+}
+
+async function generateAiOpsRecommendationsFromPanel() {
+  const payload = await authedPost("/api/ai-ops/recommendations", {});
+  const box = document.getElementById("aiOpsRecommendationsBox");
+  if (box) {
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    box.textContent = items.map((item) => `${item.operationType}: ${item.recommendationText}`).join(" | ") || "No recommendations.";
+  }
+  for (const item of payload.items || []) {
+    await authedPost("/api/ai-ops/create", {
+      operationType: item.operationType,
+      summaryText: item.summaryText,
+      recommendationText: item.recommendationText,
+      riskLevel: item.riskLevel,
+      executionMode: item.executionMode
+    });
+  }
+  await refreshAiOps();
+  setStatus("AI operations recommendations generated and queued for owner review.");
+}
+
+async function decideAiOpFromPanel() {
+  const operationId = Number(document.getElementById("aiOpId")?.value || "0");
+  const decision = String(document.getElementById("aiOpDecision")?.value || "manual_hold");
+  const ownerNotes = String(document.getElementById("aiOpOwnerNotes")?.value || "").trim();
+  if (!operationId) {
+    setStatus("Enter a valid AI operation ID.");
+    return;
+  }
+  await authedPost("/api/ai-ops/decide", {
+    operationId,
+    decision,
+    ownerNotes
+  });
+  setStatus(`AI operation #${operationId} updated to ${decision}.`);
+  await refreshAiOps();
+}
+
 function renderInsuranceJurisdictions(items) {
   const container = document.getElementById("insuranceJurisdictionList");
   if (!container) {
@@ -747,6 +961,9 @@ async function unlockPanel() {
   refreshCoachMetrics().catch(() => setStatus("Panel unlocked. Could not load coach metrics yet."));
   refreshOwnerRevenueDashboard().catch(() => setStatus("Panel unlocked. Could not load owner revenue dashboard yet."));
   refreshRiskDashboard().catch(() => setStatus("Panel unlocked. Could not load risk dashboard yet."));
+  refreshBarterReviews().catch(() => setStatus("Panel unlocked. Could not load barter reviews yet."));
+  refreshCrowdfunding().catch(() => setStatus("Panel unlocked. Could not load crowdfunding campaigns yet."));
+  refreshAiOps().catch(() => setStatus("Panel unlocked. Could not load AI operations queue yet."));
 }
 
 async function updateOwnerAuthFromPanel() {
@@ -968,6 +1185,9 @@ function initializeOwnerSecurity() {
     refreshCoachMetrics().catch(() => {});
     refreshOwnerRevenueDashboard().catch(() => {});
     refreshRiskDashboard().catch(() => {});
+    refreshBarterReviews().catch(() => {});
+    refreshCrowdfunding().catch(() => {});
+    refreshAiOps().catch(() => {});
     return;
   }
   clearSession();
@@ -1044,6 +1264,30 @@ bindClick("refreshCoachMetrics", () => {
 bindClick("refreshRiskDashboard", () => {
   refreshRiskDashboard().catch((error) => setStatus(`Risk dashboard refresh failed: ${error.message}`));
 });
+bindClick("refreshBarterReviews", () => {
+  refreshBarterReviews().catch((error) => setStatus(`Barter review refresh failed: ${error.message}`));
+});
+bindClick("decideBarterMatch", () => {
+  decideBarterMatchFromPanel().catch((error) => setStatus(`Barter match decision failed: ${error.message}`));
+});
+bindClick("suspendBarterUser", () => {
+  suspendBarterUserFromPanel().catch((error) => setStatus(`Barter suspension failed: ${error.message}`));
+});
+bindClick("refreshCrowdfunding", () => {
+  refreshCrowdfunding().catch((error) => setStatus(`Crowdfunding refresh failed: ${error.message}`));
+});
+bindClick("decideCrowdfunding", () => {
+  decideCrowdfundingFromPanel().catch((error) => setStatus(`Crowdfunding decision failed: ${error.message}`));
+});
+bindClick("refreshAiOps", () => {
+  refreshAiOps().catch((error) => setStatus(`AI ops refresh failed: ${error.message}`));
+});
+bindClick("generateAiOpsRecommendations", () => {
+  generateAiOpsRecommendationsFromPanel().catch((error) => setStatus(`AI ops recommendation failed: ${error.message}`));
+});
+bindClick("decideAiOp", () => {
+  decideAiOpFromPanel().catch((error) => setStatus(`AI op decision failed: ${error.message}`));
+});
 bindClick("refreshOwnerRevenueDashboard", () => {
   refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`));
 });
@@ -1088,6 +1332,15 @@ const clickHandlers = {
     refreshChatSafetyEvents().catch((error) => setStatus(`Chat safety refresh failed: ${error.message}`)),
   refreshCoachMetrics: () => refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`)),
   refreshRiskDashboard: () => refreshRiskDashboard().catch((error) => setStatus(`Risk dashboard refresh failed: ${error.message}`)),
+  refreshBarterReviews: () => refreshBarterReviews().catch((error) => setStatus(`Barter review refresh failed: ${error.message}`)),
+  decideBarterMatch: () => decideBarterMatchFromPanel().catch((error) => setStatus(`Barter match decision failed: ${error.message}`)),
+  suspendBarterUser: () => suspendBarterUserFromPanel().catch((error) => setStatus(`Barter suspension failed: ${error.message}`)),
+  refreshCrowdfunding: () => refreshCrowdfunding().catch((error) => setStatus(`Crowdfunding refresh failed: ${error.message}`)),
+  decideCrowdfunding: () => decideCrowdfundingFromPanel().catch((error) => setStatus(`Crowdfunding decision failed: ${error.message}`)),
+  refreshAiOps: () => refreshAiOps().catch((error) => setStatus(`AI ops refresh failed: ${error.message}`)),
+  generateAiOpsRecommendations: () =>
+    generateAiOpsRecommendationsFromPanel().catch((error) => setStatus(`AI ops recommendation failed: ${error.message}`)),
+  decideAiOp: () => decideAiOpFromPanel().catch((error) => setStatus(`AI op decision failed: ${error.message}`)),
   refreshOwnerRevenueDashboard: () =>
     refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`)),
   requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),

@@ -81,6 +81,23 @@ const riskSignal = document.getElementById("riskSignal");
 const runRiskPlan = document.getElementById("runRiskPlan");
 const riskPlanResult = document.getElementById("riskPlanResult");
 const riskScoreboard = document.getElementById("riskScoreboard");
+const barterTermsAck = document.getElementById("barterTermsAck");
+const barterUserId = document.getElementById("barterUserId");
+const barterCountry = document.getElementById("barterCountry");
+const barterCategory = document.getElementById("barterCategory");
+const barterOffersText = document.getElementById("barterOffersText");
+const barterNeedsText = document.getElementById("barterNeedsText");
+const barterSaveProfile = document.getElementById("barterSaveProfile");
+const barterOfferTitle = document.getElementById("barterOfferTitle");
+const barterOfferDescription = document.getElementById("barterOfferDescription");
+const barterWantDescription = document.getElementById("barterWantDescription");
+const barterOriginCountry = document.getElementById("barterOriginCountry");
+const barterTargetCountry = document.getElementById("barterTargetCountry");
+const barterCreateOffer = document.getElementById("barterCreateOffer");
+const barterResult = document.getElementById("barterResult");
+const barterMatches = document.getElementById("barterMatches");
+const barterBypassSnippet = document.getElementById("barterBypassSnippet");
+const barterReportBypass = document.getElementById("barterReportBypass");
 const SETTINGS_KEY = "vibecart-site-settings";
 const REWARD_KEY = "vibecart-reward-profile";
 const ONBOARDING_KEY = "vibecart-onboarding-done";
@@ -684,6 +701,162 @@ if (runRiskPlan) {
 renderRiskScoreboardLive().catch(() => {
   renderRiskScoreboard();
 });
+
+async function acceptBarterTermsIfChecked(userId) {
+  if (!barterTermsAck || !barterTermsAck.checked) {
+    throw new Error("Please accept Barter Terms first.");
+  }
+  const response = await fetch("/api/public/barter/terms/accept", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      termsVersion: "v1"
+    })
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.code || "TERMS_ACCEPT_FAILED");
+  }
+}
+
+function renderBarterMatches(items) {
+  if (!barterMatches) {
+    return;
+  }
+  if (!Array.isArray(items) || !items.length) {
+    barterMatches.innerHTML = "<div class='msg msg-buyer'>No strong matches yet.</div>";
+    return;
+  }
+  barterMatches.innerHTML = "";
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    row.textContent =
+      `match#${item.match_id} score=${item.match_score} status=${item.review_status} | ` +
+      `${item.offer_title} | from ${item.origin_country} to ${item.target_country || "any"}`;
+    barterMatches.appendChild(row);
+  });
+}
+
+async function saveBarterProfileFlow() {
+  if (!barterResult || !barterUserId || !barterOffersText || !barterNeedsText || !barterCountry) {
+    return;
+  }
+  const userId = Number(barterUserId.value || "0");
+  if (!userId) {
+    barterResult.textContent = "User ID is required.";
+    return;
+  }
+  try {
+    await acceptBarterTermsIfChecked(userId);
+    const response = await fetch("/api/public/barter/profile/upsert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        offersText: barterOffersText.value,
+        needsText: barterNeedsText.value,
+        countryCode: barterCountry.value,
+        categoryFocus: barterCategory ? barterCategory.value : ""
+      })
+    });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      barterResult.textContent = `Profile save failed: ${payload.code || "UNKNOWN"}`;
+      return;
+    }
+    barterResult.textContent = "Barter profile saved. AI will use this to improve cross-border matching.";
+  } catch (error) {
+    barterResult.textContent = String(error.message || error);
+  }
+}
+
+async function createBarterOfferFlow() {
+  if (!barterResult || !barterUserId || !barterOfferTitle || !barterOfferDescription || !barterWantDescription || !barterOriginCountry) {
+    return;
+  }
+  const userId = Number(barterUserId.value || "0");
+  if (!userId) {
+    barterResult.textContent = "User ID is required.";
+    return;
+  }
+  try {
+    await acceptBarterTermsIfChecked(userId);
+    const createResponse = await fetch("/api/public/barter/offer/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        offerTitle: barterOfferTitle.value,
+        offerDescription: barterOfferDescription.value,
+        wantDescription: barterWantDescription.value,
+        originCountry: barterOriginCountry.value,
+        targetCountry: barterTargetCountry ? barterTargetCountry.value : "",
+        category: barterCategory ? barterCategory.value : ""
+      })
+    });
+    const created = await createResponse.json();
+    if (!createResponse.ok || !created.ok || !created.offerId) {
+      barterResult.textContent = `Offer create failed: ${created.code || "UNKNOWN"}`;
+      return;
+    }
+    await fetch("/api/public/barter/match/build", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ offerId: created.offerId })
+    });
+    const listResponse = await fetch(`/api/public/barter/matches?offerId=${encodeURIComponent(created.offerId)}`);
+    const listPayload = await listResponse.json();
+    renderBarterMatches(listPayload.items || []);
+    barterResult.textContent =
+      "AI matches generated. Note: AI suggests only; final barter approval is owner-controlled.";
+  } catch (error) {
+    barterResult.textContent = String(error.message || error);
+  }
+}
+
+async function reportBarterBypassFlow() {
+  if (!barterResult || !barterUserId || !barterBypassSnippet) {
+    return;
+  }
+  const userId = Number(barterUserId.value || "0");
+  if (!userId) {
+    barterResult.textContent = "User ID is required before bypass reporting.";
+    return;
+  }
+  const response = await fetch("/api/public/barter/bypass/report", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId,
+      conversationSnippet: barterBypassSnippet.value
+    })
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) {
+    barterResult.textContent = `Bypass report failed: ${payload.code || "UNKNOWN"}`;
+    return;
+  }
+  barterResult.textContent =
+    `Bypass pattern logged. Risk=${payload.riskLevel}. Repeated high-risk behavior may trigger suspension by owner review.`;
+}
+
+if (barterSaveProfile) {
+  barterSaveProfile.addEventListener("click", () => {
+    saveBarterProfileFlow().catch(() => {});
+  });
+}
+if (barterCreateOffer) {
+  barterCreateOffer.addEventListener("click", () => {
+    createBarterOfferFlow().catch(() => {});
+  });
+}
+if (barterReportBypass) {
+  barterReportBypass.addEventListener("click", () => {
+    reportBarterBypassFlow().catch(() => {});
+  });
+}
 
 const trackingSteps = [
   "Order placed and payment verified.",
