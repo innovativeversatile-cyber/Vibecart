@@ -141,7 +141,7 @@
 
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./admin-app-sw.js").catch(() => {});
+          navigator.serviceWorker.register("./admin-app-sw.js?v=20260417warm").catch(() => {});
         });
       }
     </script>

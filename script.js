@@ -26,6 +26,20 @@ const bizAssist = document.getElementById("bizAssist");
 const bizResult = document.getElementById("bizResult");
 const bizHistory = document.getElementById("bizHistory");
 const bizClearHistory = document.getElementById("bizClearHistory");
+const sgNiche = document.getElementById("sgNiche");
+const sgRegion = document.getElementById("sgRegion");
+const sgChannel = document.getElementById("sgChannel");
+const sgOwnerName = document.getElementById("sgOwnerName");
+const sgRunPlan = document.getElementById("sgRunPlan");
+const sgPlanOut = document.getElementById("sgPlanOut");
+const sgCount = document.getElementById("sgCount");
+const sgMilestone = document.getElementById("sgMilestone");
+const sgDec = document.getElementById("sgDec");
+const sgInc = document.getElementById("sgInc");
+const logoEmail = document.getElementById("logoEmail");
+const logoEmailHp = document.getElementById("logoEmailHp");
+const logoEmailSend = document.getElementById("logoEmailSend");
+const logoEmailStatus = document.getElementById("logoEmailStatus");
 const trackingTimeline = document.getElementById("trackingTimeline");
 const nextTrackingStep = document.getElementById("nextTrackingStep");
 const openReturnWindow = document.getElementById("openReturnWindow");
@@ -102,6 +116,7 @@ const SETTINGS_KEY = "vibecart-site-settings";
 const REWARD_KEY = "vibecart-reward-profile";
 const ONBOARDING_KEY = "vibecart-onboarding-done";
 const BIZ_PLAN_HISTORY_KEY = "vibecart-biz-plan-history";
+const SELLER_ONBOARDED_KEY = "vibecart-seller-onboarded-count";
 const RISK_SCOREBOARD_KEY = "vibecart-risk-scoreboard";
 let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
@@ -490,7 +505,95 @@ if (bizClearHistory) {
   });
 }
 
+function getSellerOnboardedCount() {
+  const raw = Number(localStorage.getItem(SELLER_ONBOARDED_KEY) || "0");
+  if (!Number.isFinite(raw)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(10, Math.floor(raw)));
+}
+
+function setSellerOnboardedCount(next) {
+  localStorage.setItem(SELLER_ONBOARDED_KEY, String(Math.max(0, Math.min(10, Math.floor(next)))));
+  renderSellerGrowthProgress();
+}
+
+function renderSellerGrowthProgress() {
+  if (sgCount) {
+    sgCount.textContent = String(getSellerOnboardedCount());
+  }
+  if (sgMilestone) {
+    const c = getSellerOnboardedCount();
+    if (c >= 10) {
+      sgMilestone.textContent =
+        "10/10 reached. Next: turn AI focus to buyer traffic, first orders, and featured shop pages.";
+    } else if (c >= 7) {
+      sgMilestone.textContent = `${c}/10: verify payout details, tighten listing quality, and line up two backup sellers so momentum does not stall.`;
+    } else if (c >= 4) {
+      sgMilestone.textContent = `${c}/10: increase outreach volume, ask each seller for one warm intro, and pilot a small referral reward.`;
+    } else {
+      sgMilestone.textContent = `${c}/10: daily outbound plus one live touchpoint (table, room, or call) each week until you pass four verified sellers.`;
+    }
+  }
+}
+
+function buildSellerGrowthPlanText(niche, region, channel, ownerName) {
+  const name = ownerName.trim() || "there";
+  const ch =
+    channel === "whatsapp"
+      ? "WhatsApp groups and voice notes"
+      : channel === "instagram"
+        ? "Instagram DMs and short reels comments"
+        : channel === "orgs"
+          ? "student societies, faith groups, and hobby clubs"
+          : channel === "mixed"
+            ? "a mix of campus tables, WhatsApp, and Instagram"
+            : "campus tables, flyers, and short in-person pitches";
+
+  const dm = `Hi — ${name} from VibeCart. We help ${niche} sellers in ${region} reach serious buyers with clear fees and safer payouts. If you want early placement and founder support, reply YES and I will send the 3-minute setup checklist.`;
+
+  const orgPitch = `Quick pitch: VibeCart is building the first ten ${niche} sellers in ${region} with extra visibility and hands-on onboarding. We handle the boring compliance copy; you keep quality and delivery promises tight.`;
+
+  return (
+    `AI Seller Growth Plan (target: 10 verified sellers) — niche: ${niche}; region: ${region}; channel focus: ${ch}. ` +
+    "Definition of verified: accepted seller terms, completed profile, at least one live listing, and one test order path or manual review done. " +
+    "Week 1 — Build a list of 40 prospects (friends-of-friends, small shops, student side-hustles). Message 10 per day using the template below. Book 5 short calls. " +
+    "Week 2 — Convert calls into 4 live shops minimum; collect two referrals from each new seller. Run one group intro (online or campus) explaining fees and trust. " +
+    "Week 3 — Push for 8 total sellers; fix blockers (photos, pricing, delivery wording) same-day. Start a simple leaderboard in your notes: speed-to-second-listing. " +
+    "Week 4 — Close to 10; freeze messy categories; document your repeatable onboarding checklist for the next wave. " +
+    `Daily cadence: 45 minutes prospecting, 30 minutes follow-ups, 15 minutes logging outcomes in your tracker (use the + button when someone is truly verified). ` +
+    `DM template: "${dm}" ` +
+    `Live/room line: "${orgPitch}" ` +
+    "If progress stalls before 6 sellers, AI rule: cut your pitch to one sentence plus one proof (fee table or mock screenshot) and double touchpoints instead of rewriting copy."
+  );
+}
+
+function runSellerGrowthPlan() {
+  if (!sgPlanOut) {
+    return;
+  }
+  const niche = (sgNiche && sgNiche.value.trim()) || "legal general goods";
+  const region = (sgRegion && sgRegion.value.trim()) || "your primary city";
+  const channel = sgChannel ? String(sgChannel.value || "mixed") : "mixed";
+  const owner = sgOwnerName ? sgOwnerName.value.trim() : "";
+  sgPlanOut.textContent = buildSellerGrowthPlanText(niche, region, channel, owner);
+}
+
+if (sgRunPlan) {
+  sgRunPlan.addEventListener("click", runSellerGrowthPlan);
+}
+if (sgDec) {
+  sgDec.addEventListener("click", () => setSellerOnboardedCount(getSellerOnboardedCount() - 1));
+}
+if (sgInc) {
+  sgInc.addEventListener("click", () => setSellerOnboardedCount(getSellerOnboardedCount() + 1));
+}
+
 renderBizPlanHistory();
+renderSellerGrowthProgress();
+if (sgPlanOut && getSellerOnboardedCount() === 0 && !String(sgPlanOut.textContent || "").trim()) {
+  runSellerGrowthPlan();
+}
 
 function getRiskScoreboard() {
   try {
@@ -1573,6 +1676,54 @@ if (onboardingNext) {
 }
 if (onboardingClose) {
   onboardingClose.addEventListener("click", closeOnboardingModal);
+}
+
+async function sendLogoToEmail() {
+  if (!logoEmailStatus || !logoEmailSend) {
+    return;
+  }
+  const email = logoEmail ? String(logoEmail.value || "").trim() : "";
+  const hp = logoEmailHp ? String(logoEmailHp.value || "").trim() : "";
+  if (hp) {
+    logoEmailStatus.textContent = "Could not send right now.";
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    logoEmailStatus.textContent = "Please enter a valid email address.";
+    return;
+  }
+  logoEmailSend.disabled = true;
+  logoEmailStatus.textContent = "Sending…";
+  try {
+    const response = await fetch("/api/public/brand/email-logo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, website: hp })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok && payload.ok) {
+      logoEmailStatus.textContent = "Check your inbox (and spam) for the SVG attachments.";
+    } else if (payload.code === "FEATURE_DISABLED") {
+      logoEmailStatus.textContent =
+        "This feature is not turned on on the server yet. Ask the owner to set BRAND_LOGO_EMAIL_ENABLED=true and SMTP credentials on Railway.";
+    } else if (payload.code === "SMTP_NOT_CONFIGURED") {
+      logoEmailStatus.textContent = "Email is not configured on the server (SMTP missing).";
+    } else if (payload.code === "RATE_LIMITED") {
+      logoEmailStatus.textContent = "Too many requests. Try again in about an hour.";
+    } else {
+      logoEmailStatus.textContent = payload.message || payload.code || "Could not send. Try again later.";
+    }
+  } catch {
+    logoEmailStatus.textContent = "Network error. Try again when you are online.";
+  } finally {
+    logoEmailSend.disabled = false;
+  }
+}
+
+if (logoEmailSend) {
+  logoEmailSend.addEventListener("click", () => {
+    sendLogoToEmail().catch(() => {});
+  });
 }
 
 loadTrustCards();

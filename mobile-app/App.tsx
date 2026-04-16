@@ -1,12 +1,51 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import type { WebView as WebViewType } from "react-native-webview";
 
-const FALLBACK_BASE_URL = "https://vibecart-marketplace.netlify.app";
+const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
+
+async function getOrCreateInstallId(): Promise<string> {
+  const existing = await AsyncStorage.getItem(INSTALL_STORAGE_KEY);
+  if (existing && existing.length >= 8) {
+    return existing;
+  }
+  const created = `vc-${Platform.OS}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  await AsyncStorage.setItem(INSTALL_STORAGE_KEY, created);
+  return created;
+}
+
+async function registerPushWithBackend(apiBase: string, pushToken: string): Promise<void> {
+  const base = apiBase.replace(/\/$/, "");
+  const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : null;
+  if (!platform) {
+    return;
+  }
+  const installId = await getOrCreateInstallId();
+  const locale =
+    typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().locale.slice(0, 20) : null;
+  const response = await fetch(`${base}/api/public/mobile/push/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      installId,
+      pushToken,
+      platform,
+      appVersion: Constants.expoConfig?.version ?? null,
+      locale
+    })
+  });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`push register failed: ${response.status} ${text}`);
+  }
+}
+
+const FALLBACK_BASE_URL = "https://vibe-cart.com";
 
 function isAllowedUrl(url: string, allowedHost: string): boolean {
   try {
@@ -14,6 +53,20 @@ function isAllowedUrl(url: string, allowedHost: string): boolean {
     return parsed.protocol === "https:" && parsed.host === allowedHost;
   } catch {
     return false;
+  }
+}
+
+/** Bust CDN/browser caches so the WebView loads the same deploy-web bundle as the live site after you ship updates. */
+function withWebCacheTag(url: string, tag: string | undefined): string {
+  if (!tag) {
+    return url;
+  }
+  try {
+    const next = new URL(url);
+    next.searchParams.set("vc_app", tag);
+    return next.toString();
+  } catch {
+    return url;
   }
 }
 
@@ -29,8 +82,26 @@ export default function App(): JSX.Element {
     return String(fromConfig || FALLBACK_BASE_URL);
   }, []);
 
+  const apiBaseUrl = useMemo(() => {
+    const fromConfig = Constants.expoConfig?.extra?.vibecartApiBaseUrl;
+    return fromConfig ? String(fromConfig).trim().replace(/\/$/, "") : "";
+  }, []);
+
   const allowedHost = useMemo(() => new URL(baseUrl).host, [baseUrl]);
-  const entryUrl = useMemo(() => initialUrl || baseUrl, [initialUrl, baseUrl]);
+
+  const webCacheTag = useMemo(() => {
+    const fromExtra = Constants.expoConfig?.extra as { vibecartWebCacheTag?: string } | undefined;
+    const explicit = fromExtra?.vibecartWebCacheTag?.trim();
+    if (explicit) {
+      return explicit;
+    }
+    return Constants.expoConfig?.version?.trim() || undefined;
+  }, []);
+
+  const entryUrl = useMemo(() => {
+    const raw = initialUrl || baseUrl;
+    return withWebCacheTag(raw, webCacheTag);
+  }, [initialUrl, baseUrl, webCacheTag]);
 
   useEffect(() => {
     Notifications.setNotificationHandler({
@@ -46,11 +117,19 @@ export default function App(): JSX.Element {
       if (status !== "granted") {
         return;
       }
-      await Notifications.getExpoPushTokenAsync().catch(() => null);
-      // TODO: Send push token to your backend once endpoint is ready.
+      const extraEas = Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined;
+      const projectId = extraEas?.eas?.projectId;
+      const tokenResult = await Notifications.getExpoPushTokenAsync(
+        typeof projectId === "string" && projectId.length > 0 ? { projectId } : undefined
+      ).catch(() => null);
+      const expoToken = tokenResult?.data;
+      if (!expoToken || !apiBaseUrl) {
+        return;
+      }
+      await registerPushWithBackend(apiBaseUrl, expoToken);
     };
     setupNotifications().catch(() => {});
-  }, []);
+  }, [apiBaseUrl]);
 
   useEffect(() => {
     const toWebUrl = (rawUrl: string): string => {

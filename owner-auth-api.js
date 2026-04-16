@@ -1,12 +1,19 @@
 "use strict";
 
+const fs = require("fs/promises");
+const fsSync = require("fs");
+const path = require("path");
 const http = require("http");
 const crypto = require("crypto");
 const mysql = require("mysql2/promise");
 const nodemailer = require("nodemailer");
 const Stripe = require("stripe");
 const { ownerLogin, hashSecret, sha256 } = require("./owner-auth-service");
-const { registerDeviceToken, sendOrderUpdateNotifications } = require("./push-notification-service");
+const {
+  registerMobileInstallPush,
+  registerDeviceToken,
+  sendOrderUpdateNotifications
+} = require("./push-notification-service");
 const {
   createServiceProvider,
   createServiceOffering,
@@ -117,13 +124,22 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").trim().toLowerCas
 const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || NOTIFICATION_EMAIL || "noreply@localhost").trim();
+const BRAND_LOGO_EMAIL_ENABLED =
+  String(process.env.BRAND_LOGO_EMAIL_ENABLED || "false").trim().toLowerCase() === "true";
 const PAYMENT_PROVIDER = String(process.env.PAYMENT_PROVIDER || "stripe").trim().toLowerCase();
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "").trim();
 const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || "").trim();
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
 const PAYMENT_INTENT_API_SECRET = String(process.env.PAYMENT_INTENT_API_SECRET || "").trim();
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
-const AI_AUTOPILOT_ENABLED = String(process.env.AI_AUTOPILOT_ENABLED || "false").trim().toLowerCase() === "true";
+/** When unset: ON in production (NODE_ENV=production), OFF otherwise. Set AI_AUTOPILOT_ENABLED=false to disable on Railway. */
+const AI_AUTOPILOT_ENABLED = (() => {
+  const raw = process.env.AI_AUTOPILOT_ENABLED;
+  if (raw !== undefined && String(raw).trim() !== "") {
+    return String(raw).trim().toLowerCase() === "true" || String(raw).trim() === "1";
+  }
+  return String(process.env.NODE_ENV || "").toLowerCase() === "production";
+})();
 const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
 const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
 
@@ -139,7 +155,11 @@ const pool = mysql.createPool({
 const ipHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 30;
+const logoEmailIpHits = new Map();
+const LOGO_EMAIL_WINDOW_MS = 60 * 60 * 1000;
+const LOGO_EMAIL_MAX_PER_HOUR = 10;
 let notificationTransporter = null;
+let logoSmtpTransporter = null;
 
 function getNotificationTransporter() {
   if (!EMAIL_NOTIFICATIONS_ENABLED || !SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
@@ -239,6 +259,117 @@ function isRateLimited(ip) {
   item.count += 1;
   ipHits.set(ip, item);
   return item.count > RATE_MAX;
+}
+
+function isLogoEmailIpLimited(ip) {
+  const now = Date.now();
+  const item = logoEmailIpHits.get(ip) || { count: 0, start: now };
+  if (now - item.start > LOGO_EMAIL_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  logoEmailIpHits.set(ip, item);
+  return item.count > LOGO_EMAIL_MAX_PER_HOUR;
+}
+
+function getLogoSmtpTransporter() {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    return null;
+  }
+  if (!logoSmtpTransporter) {
+    logoSmtpTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS
+      }
+    });
+  }
+  return logoSmtpTransporter;
+}
+
+function isValidLogoRecipientEmail(email) {
+  const e = String(email || "").trim().toLowerCase();
+  if (e.length < 5 || e.length > 120) {
+    return false;
+  }
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
+async function handlePublicBrandEmailLogo(req, res, ip) {
+  if (!BRAND_LOGO_EMAIL_ENABLED) {
+    return sendJson(res, 503, { ok: false, code: "FEATURE_DISABLED" });
+  }
+
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+
+  if (String(body.website || "").trim() !== "") {
+    return sendJson(res, 400, { ok: false, code: "INVALID_REQUEST" });
+  }
+
+  const email = String(body.email || "").trim().toLowerCase();
+  if (!isValidLogoRecipientEmail(email)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_EMAIL" });
+  }
+
+  const transporter = getLogoSmtpTransporter();
+  if (!transporter) {
+    return sendJson(res, 503, { ok: false, code: "SMTP_NOT_CONFIGURED" });
+  }
+
+  const iconPath = path.join(__dirname, "icon.svg");
+  let iconSvg;
+  try {
+    iconSvg = await fs.readFile(iconPath);
+  } catch {
+    return sendJson(res, 500, { ok: false, code: "LOGO_FILE_MISSING" });
+  }
+
+  const maskPath = path.join(__dirname, "icon-maskable.svg");
+  const attachments = [
+    {
+      filename: "vibecart-icon.svg",
+      content: iconSvg,
+      contentType: "image/svg+xml"
+    }
+  ];
+  if (fsSync.existsSync(maskPath)) {
+    attachments.push({
+      filename: "vibecart-icon-maskable.svg",
+      content: await fs.readFile(maskPath),
+      contentType: "image/svg+xml"
+    });
+  }
+
+  try {
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to: email,
+      subject: "Your VibeCart logo files (SVG)",
+      text:
+        "Attached are the VibeCart SVG logo files from the official site bundle.\n\n" +
+        "Use them according to your brand guidelines and any trademark rules that apply to your jurisdiction.\n\n" +
+        `Request IP (for abuse monitoring): ${ip}\n`
+      ,
+      attachments
+    });
+  } catch (error) {
+    return sendJson(res, 502, {
+      ok: false,
+      code: "EMAIL_SEND_FAILED",
+      message: String(error.message || error).slice(0, 200)
+    });
+  }
+
+  return sendJson(res, 200, { ok: true });
 }
 
 async function readJson(req) {
@@ -369,6 +500,16 @@ async function handlePushRegister(req, res) {
   }
   const result = await registerDeviceToken(pool, body);
   return sendJson(res, 200, result);
+}
+
+async function handlePublicMobilePushRegister(req, res) {
+  try {
+    const body = await readJson(req);
+    const result = await registerMobileInstallPush(pool, body);
+    return sendJson(res, 200, result);
+  } catch (error) {
+    return sendJson(res, 400, { ok: false, code: "MOBILE_PUSH_REGISTER_FAILED", message: String(error.message || error) });
+  }
 }
 
 async function handlePushOrderUpdate(req, res) {
@@ -1376,7 +1517,12 @@ const server = http.createServer(async (req, res) => {
   try {
     const ip = getIp(req);
     const isStripeWebhook = req.method === "POST" && req.url === "/api/public/payments/webhook/stripe";
-    if (!isStripeWebhook && isRateLimited(ip)) {
+    const isLogoEmailRoute = req.method === "POST" && req.url === "/api/public/brand/email-logo";
+    if (isLogoEmailRoute) {
+      if (isLogoEmailIpLimited(ip)) {
+        return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
+      }
+    } else if (!isStripeWebhook && isRateLimited(ip)) {
       return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
     }
 
@@ -1400,6 +1546,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && req.url === "/api/public/disclaimer/accept") {
       return await handlePublicDisclaimerAccept(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/mobile/push/register") {
+      return await handlePublicMobilePushRegister(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/brand/email-logo") {
+      return await handlePublicBrandEmailLogo(req, res, ip);
     }
     if (req.method === "POST" && req.url === "/api/public/chat/safety-check") {
       return await handlePublicChatSafetyCheck(req, res);

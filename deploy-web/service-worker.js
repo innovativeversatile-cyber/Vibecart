@@ -1,8 +1,8 @@
-const CACHE_NAME = "vibecart-pwa-v2";
+const CACHE_NAME = "vibecart-pwa-v20260417warm";
 const OFFLINE_URLS = [
   "./index.html",
-  "./styles.css",
-  "./script.js",
+  "./styles.css?v=20260417warm",
+  "./script.js?v=20260417warm",
   "./manifest.json",
   "./icon.svg",
   "./icon-maskable.svg",

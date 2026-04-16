@@ -5,4 +5,4 @@ Allow: /
 Disallow: /admin.html
 Disallow: /admin-app.html
 
-Sitemap: https://vibecart-marketplace.netlify.app/sitemap.xml
+Sitemap: https://vibe-cart.com/sitemap.xml

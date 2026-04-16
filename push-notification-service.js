@@ -5,6 +5,35 @@
  * Replace sendViaProvider() with your real push provider integration.
  */
 
+async function registerMobileInstallPush(db, payload) {
+  const installId = String(payload.installId || "").trim().slice(0, 64);
+  const pushToken = String(payload.pushToken || "").trim().slice(0, 512);
+  const platform = String(payload.platform || "").trim().toLowerCase();
+  const appVersion = payload.appVersion ? String(payload.appVersion).trim().slice(0, 50) : null;
+  const locale = payload.locale ? String(payload.locale).trim().slice(0, 20) : null;
+
+  if (installId.length < 8 || !pushToken || pushToken.length < 10) {
+    throw new Error("Missing installId or pushToken.");
+  }
+  if (!["android", "ios"].includes(platform)) {
+    throw new Error("Unsupported platform.");
+  }
+
+  await db.execute(
+    `INSERT INTO mobile_push_installs (install_id, push_token, platform, app_version, locale)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       push_token = VALUES(push_token),
+       platform = VALUES(platform),
+       app_version = VALUES(app_version),
+       locale = VALUES(locale),
+       updated_at = CURRENT_TIMESTAMP`,
+    [installId, pushToken, platform, appVersion, locale]
+  );
+
+  return { ok: true };
+}
+
 async function registerDeviceToken(db, payload) {
   const { userId, platform, pushToken, appVersion, locale } = payload;
   if (!userId || !platform || !pushToken) {
@@ -129,6 +158,7 @@ async function sendOrderUpdateNotifications(db, payload) {
 }
 
 module.exports = {
+  registerMobileInstallPush,
   registerDeviceToken,
   sendOrderUpdateNotifications
 };

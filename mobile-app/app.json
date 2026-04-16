@@ -2,7 +2,7 @@
   "expo": {
     "name": "VibeCart",
     "slug": "vibecart-mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "scheme": "vibecart",
     "userInterfaceStyle": "dark",
@@ -33,7 +33,9 @@
       "expo-notifications"
     ],
     "extra": {
-      "vibecartBaseUrl": "https://vibecart-marketplace.netlify.app"
+      "vibecartBaseUrl": "https://vibe-cart.com",
+      "vibecartApiBaseUrl": "https://api.vibe-cart.com",
+      "vibecartWebCacheTag": "ui-warm-groups-2"
     }
   }
 }

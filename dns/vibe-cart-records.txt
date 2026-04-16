@@ -1,0 +1,23 @@
+# DNS records for vibe-cart.com
+# Paste at your DNS host (where you bought the domain). Values in <angle brackets> come from Netlify / Railway — they are NOT guessable here.
+#
+# --- 1) Website (Netlify) ---
+# In Netlify: Site settings → Domain management → Add custom domain → vibe-cart.com
+# Netlify will show either:
+#   - A few A records for the apex (@), OR
+#   - An ALIAS/ANAME to a Netlify load balancer
+# Create exactly what Netlify displays for the apex.
+#
+# Optional www:
+#   Type: CNAME    Name: www    Target: <your-site>.netlify.app   (Netlify shows this)
+#
+# --- 2) API (Railway) ---
+# In Railway: your Node service → Settings → Networking → Custom domain → api.vibe-cart.com
+# Railway will show a target hostname, often like:  xxxxx.up.railway.app
+#
+#   Type: CNAME    Name: api    Target: <copy from Railway dashboard>
+#
+# --- 3) Email later (optional) ---
+# When you send mail FROM @vibe-cart.com, add SPF/DKIM records your mail provider gives you (e.g. Resend, Google Workspace).
+#
+# Propagation: allow up to 48 hours; often 5–30 minutes.

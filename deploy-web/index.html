@@ -17,35 +17,35 @@
       content="Secure bridge marketplace connecting Africa, Europe, Dubai, and Asia for legal cross-border buying and selling, with trusted payments and reliable delivery."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://vibecart-marketplace.netlify.app/" />
-    <meta property="og:image" content="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=1200&q=80" />
+    <meta property="og:url" content="https://vibe-cart.com/" />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VibeCart | Africa-Europe-Asia Marketplace Bridge" />
     <meta name="twitter:description" content="Buy and sell legal products between Africa, Europe, Dubai, and Asia with secure payments and trusted delivery routes." />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="theme-color" content="#070b17" />
+    <meta name="theme-color" content="#120a1a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="VibeCart" />
-    <link rel="canonical" href="https://vibecart-marketplace.netlify.app/" />
-    <link rel="alternate" hreflang="en" href="https://vibecart-marketplace.netlify.app/" />
-    <link rel="alternate" hreflang="x-default" href="https://vibecart-marketplace.netlify.app/" />
+    <link rel="canonical" href="https://vibe-cart.com/" />
+    <link rel="alternate" hreflang="en" href="https://vibe-cart.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://vibe-cart.com/" />
     <link rel="preconnect" href="https://images.unsplash.com" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20260417warm" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "VibeCart",
-        "url": "https://vibecart-marketplace.netlify.app/",
+        "url": "https://vibe-cart.com/",
         "description": "Secure legal marketplace bridge connecting buyers and sellers across Africa, Europe, Dubai, and Asia with trusted payments and delivery."
       }
     </script>
   </head>
-  <body>
+  <body data-site-revision="warm-ui-20260417c">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">V</span>
@@ -61,11 +61,13 @@
         <a href="./policy.html">Policy</a>
         <a href="./terms.html">Terms</a>
         <a href="./privacy.html">Privacy</a>
+        <a href="#seller-growth-ai">Grow 10 sellers</a>
         <a href="#sell" class="cta-small">Start Selling</a>
       </nav>
     </header>
 
     <main>
+      <div class="page-group page-group--discover" aria-label="Discover and shop">
       <section class="hero">
         <div class="hero-copy">
           <p id="heroBadge" class="badge">Africa-Europe-Asia Trade Bridge</p>
@@ -93,8 +95,8 @@
         </div>
         <div class="hero-image">
           <img
-            src="https://images.unsplash.com/photo-1522199755839-a2bacb67c546?auto=format&fit=crop&w=1200&q=80"
-            alt="Young shoppers browsing products online"
+            src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80"
+            alt="Colourful artisan crafts and textiles at a market"
           />
         </div>
       </section>
@@ -296,7 +298,9 @@
           </article>
         </div>
       </section>
+      </div>
 
+      <div class="page-group page-group--grow" aria-label="Sell, promote, and smart tools">
       <section id="sell" class="section alt">
         <h2>Sell in 3 easy steps</h2>
         <div class="steps">
@@ -335,6 +339,49 @@
             <p>Target selected countries and trade routes for visibility.</p>
           </article>
         </div>
+      </section>
+
+      <section id="seller-growth-ai" class="section alt">
+        <h2>AI Seller Growth — Zero to Ten</h2>
+        <p>
+          You have <strong>0</strong> live sellers today. This module keeps an active acquisition plan until you reach
+          <strong>10 verified sellers</strong>, then hands off to catalog and conversion work. Update the counter when a
+          seller is truly onboarded (profile + listings + rules accepted).
+        </p>
+        <div class="ai-grid">
+          <label for="sgNiche">Target niche (what they sell)</label>
+          <input id="sgNiche" type="text" placeholder="Example: phone accessories, campus snacks, handmade jewelry" />
+
+          <label for="sgRegion">Primary region or city</label>
+          <input id="sgRegion" type="text" placeholder="Example: Lublin PL, Nairobi KE, diaspora EU" />
+
+          <label for="sgChannel">Main outreach channel (first 14 days)</label>
+          <select id="sgChannel">
+            <option value="campus">Campus / in-person tables</option>
+            <option value="whatsapp">WhatsApp groups and DMs</option>
+            <option value="instagram">Instagram DMs and creators</option>
+            <option value="orgs">Student orgs and societies</option>
+            <option value="mixed">Mixed (AI splits the plan)</option>
+          </select>
+
+          <label for="sgOwnerName">Your first name (optional, for message templates)</label>
+          <input id="sgOwnerName" type="text" placeholder="Example: Alex" maxlength="40" />
+
+          <div class="hero-actions">
+            <button id="sgRunPlan" type="button" class="btn btn-primary">Generate my 0→10 plan</button>
+          </div>
+        </div>
+        <div class="ai-result" aria-live="polite">
+          <strong>Verified sellers onboarded</strong>
+          <p id="sgMilestone" class="note">At 0/10: prioritize daily outbound and one live touchpoint per week until you pass 4 sellers.</p>
+          <div class="hero-actions" style="margin-top: 10px">
+            <button id="sgDec" type="button" class="btn btn-secondary" aria-label="Decrease seller count">−</button>
+            <span id="sgCount" class="badge" style="margin: 0 12px; font-size: 1.1rem">0</span>
+            <span style="align-self: center; color: var(--muted)">/ 10</span>
+            <button id="sgInc" type="button" class="btn btn-secondary" aria-label="Increase seller count">+</button>
+          </div>
+        </div>
+        <div id="sgPlanOut" class="ai-result" aria-live="polite"></div>
       </section>
 
       <section id="ads" class="section alt">
@@ -376,7 +423,9 @@
         </div>
         <div id="aiResult" class="ai-result" aria-live="polite"></div>
       </section>
+      </div>
 
+      <div class="page-group page-group--assurance" aria-label="Safety, services, and compliance">
       <section id="security" class="section">
         <h2>Security First</h2>
         <ul class="security-list">
@@ -551,6 +600,24 @@
         </p>
       </section>
 
+      <section id="brand-assets-email" class="section alt">
+        <h2>Email me the VibeCart logo</h2>
+        <p>
+          Enter your email and we will send the official SVG logo files as attachments (same files used on the site).
+          Works in the browser and in the mobile app. The server must have SMTP enabled (see project <code>.env.example</code>).
+        </p>
+        <div class="ai-grid">
+          <label for="logoEmail">Your email</label>
+          <input id="logoEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+
+          <label for="logoEmailHp" class="hidden">Leave blank</label>
+          <input id="logoEmailHp" class="hidden" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+          <button id="logoEmailSend" type="button" class="btn btn-primary">Send to my inbox</button>
+        </div>
+        <p id="logoEmailStatus" class="note" aria-live="polite"></p>
+      </section>
+
       <section class="section">
         <h2>Important Risk Disclaimer</h2>
         <p>
@@ -561,6 +628,7 @@
           to the maximum extent permitted by applicable law.
         </p>
       </section>
+      </div>
     </main>
 
     <footer class="footer">
@@ -583,11 +651,11 @@
       </div>
     </div>
 
-    <script src="./script.js?v=20260414e"></script>
+    <script src="./script.js?v=20260417warm"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./service-worker.js?v=20260414e").catch(() => {});
+          navigator.serviceWorker.register("./service-worker.js?v=20260417warm").catch(() => {});
         });
       }
     </script>

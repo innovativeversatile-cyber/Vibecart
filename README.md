@@ -78,7 +78,7 @@ SOURCE /path/to/vibecart/schema.sql;
    - same `CRON_SECRET` secures `/api/health/cron/daily-reminders`
    - set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` for payment intent + webhook flow
    - set `PAYMENT_PROVIDER=stripe` for approved Stripe route enforcement
-   - optional AI autopilot: `AI_AUTOPILOT_ENABLED=true`
+   - AI autopilot: **on by default when `NODE_ENV=production`** (queues AI ops recommendations on an interval). Set `AI_AUTOPILOT_ENABLED=false` to disable.
 7. Owner panel `admin.html` now authenticates against backend API (`http://localhost:8081`).
 8. If MFA is enabled in `owner_auth_profiles`, configure at least one active factor in `owner_mfa_factors`.
 
@@ -120,7 +120,7 @@ This project includes frontend and data schema foundations. Production security 
 
 ## SEO and Discovery
 
-- Canonical and sitemap URLs default to `https://vibecart-marketplace.netlify.app/`. When you use a custom domain, replace that base URL in:
+- Canonical and sitemap URLs default to `https://vibe-cart.com/`. If you change hostname, replace that base URL in:
   - `deploy-web/index.html` (Netlify publish) and root `index.html` canonical and Open Graph tags
   - `deploy-web/privacy.html` canonical (and root `privacy.html` if used)
   - `deploy-web/robots.txt` and `robots.txt`

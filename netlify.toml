@@ -1,4 +1,4 @@
-# Update the Railway URL below if your backend hostname changes.
+# Public API: Railway custom host api.vibe-cart.com → proxied from this Netlify site as /api/*
 [build]
   publish = "deploy-web"
 
@@ -10,8 +10,19 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
+# Avoid stale HTML after deploys (CSS/JS use ?v= cache-bust in markup).
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[redirects]]
   from = "/api/*"
-  to = "https://vibecart-production.up.railway.app/api/:splat"
+  to = "https://api.vibe-cart.com/api/:splat"
   status = 200
   force = true

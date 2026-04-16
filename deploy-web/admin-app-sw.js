@@ -1,11 +1,11 @@
 "use strict";
 
-const CACHE_NAME = "vibecart-admin-app-v1";
+const CACHE_NAME = "vibecart-admin-app-v20260417warm";
 const URLS = [
   "./admin-app.html",
   "./admin.html",
   "./admin.js",
-  "./styles.css",
+  "./styles.css?v=20260417warm",
   "./icon.svg",
   "./icon-maskable.svg"
 ];

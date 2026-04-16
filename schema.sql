@@ -76,6 +76,21 @@ CREATE TABLE device_push_tokens (
   INDEX idx_push_tokens_user_platform_active (user_id, platform, active)
 );
 
+CREATE TABLE mobile_push_installs (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  install_id VARCHAR(64) NOT NULL UNIQUE,
+  push_token VARCHAR(512) NOT NULL,
+  platform ENUM('android','ios') NOT NULL,
+  app_version VARCHAR(50) NULL,
+  locale VARCHAR(20) NULL,
+  linked_user_id BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (linked_user_id) REFERENCES users(id),
+  INDEX idx_mobile_push_install_linked (linked_user_id),
+  INDEX idx_mobile_push_install_updated (updated_at)
+);
+
 CREATE TABLE notification_events (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
