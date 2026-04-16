@@ -141,8 +141,24 @@ async function createAiOperation(pool, input) {
   const recommendationText = String(input.recommendationText || "").trim();
   const riskLevel = String(input.riskLevel || "medium").trim().toLowerCase();
   const executionMode = String(input.executionMode || "recommend_only").trim().toLowerCase();
+  const dedupeWindowHours = toNum(input.dedupeWindowHours, 24);
   if (!operationType || !summaryText || !recommendationText) {
     return { ok: false, code: "INVALID_AI_OPERATION_INPUT" };
+  }
+  if (dedupeWindowHours > 0) {
+    const [existing] = await pool.execute(
+      `SELECT id
+       FROM ai_operations_queue
+       WHERE operation_type = ?
+         AND summary_text = ?
+         AND status IN ('pending_owner_review', 'approved', 'manual_hold')
+         AND created_at >= (NOW() - INTERVAL ? HOUR)
+       LIMIT 1`,
+      [operationType, summaryText, Math.round(dedupeWindowHours)]
+    );
+    if (Array.isArray(existing) && existing.length > 0) {
+      return { ok: true, deduped: true, existingOperationId: existing[0].id };
+    }
   }
   await pool.execute(
     `INSERT INTO ai_operations_queue (
@@ -211,6 +227,75 @@ async function generateAiOpsRecommendations(pool) {
   return { ok: true, items };
 }
 
+async function queueAiOpsRecommendations(pool, input = {}) {
+  const recommendations = await generateAiOpsRecommendations(pool);
+  if (!recommendations.ok) {
+    return recommendations;
+  }
+  const dedupeWindowHours = toNum(input.dedupeWindowHours, 24);
+  const queued = [];
+  const deduped = [];
+  for (const item of recommendations.items || []) {
+    const created = await createAiOperation(pool, {
+      operationType: item.operationType,
+      summaryText: item.summaryText,
+      recommendationText: item.recommendationText,
+      riskLevel: item.riskLevel,
+      executionMode: item.executionMode,
+      dedupeWindowHours
+    });
+    if (created.deduped) {
+      deduped.push({
+        operationType: item.operationType,
+        existingOperationId: created.existingOperationId || null
+      });
+    } else if (created.ok) {
+      queued.push(item.operationType);
+    }
+  }
+  return {
+    ok: true,
+    queuedCount: queued.length,
+    dedupedCount: deduped.length,
+    queued,
+    deduped
+  };
+}
+
+async function getAiReadinessStatus(pool) {
+  const [opsRows] = await pool.execute(
+    `SELECT
+       COUNT(*) AS total_ai_ops,
+       SUM(CASE WHEN status = 'pending_owner_review' THEN 1 ELSE 0 END) AS pending_owner_review,
+       SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+       SUM(CASE WHEN status = 'executed' THEN 1 ELSE 0 END) AS executed_count
+     FROM ai_operations_queue`
+  );
+  const [campaignRows] = await pool.execute(
+    `SELECT COUNT(*) AS total_campaigns FROM crowdfunding_campaigns`
+  );
+  const [barterRows] = await pool.execute(
+    `SELECT COUNT(*) AS total_offers FROM barter_offers`
+  );
+  const [riskRows] = await pool.execute(
+    `SELECT COUNT(*) AS total_risk_events FROM platform_risk_events`
+  );
+
+  const ops = opsRows[0] || {};
+  return {
+    ok: true,
+    readiness: {
+      aiOpsQueueHealthy: toNum(ops.total_ai_ops, 0) >= 0,
+      recommendationsPendingReview: toNum(ops.pending_owner_review, 0),
+      approvedOps: toNum(ops.approved_count, 0),
+      executedOps: toNum(ops.executed_count, 0),
+      campaignsTracked: toNum(campaignRows[0]?.total_campaigns, 0),
+      barterOffersTracked: toNum(barterRows[0]?.total_offers, 0),
+      riskEventsTracked: toNum(riskRows[0]?.total_risk_events, 0)
+    }
+  };
+}
+
 module.exports = {
   createCrowdfundingCampaign,
   listCrowdfundingCampaigns,
@@ -220,5 +305,7 @@ module.exports = {
   listAiOperationsQueue,
   createAiOperation,
   decideAiOperation,
-  generateAiOpsRecommendations
+  generateAiOpsRecommendations,
+  queueAiOpsRecommendations,
+  getAiReadinessStatus
 };

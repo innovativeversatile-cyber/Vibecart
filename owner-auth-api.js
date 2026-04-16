@@ -90,7 +90,9 @@ const {
   listAiOperationsQueue,
   createAiOperation,
   decideAiOperation,
-  generateAiOpsRecommendations
+  generateAiOpsRecommendations,
+  queueAiOpsRecommendations,
+  getAiReadinessStatus
 } = require("./ai-operations-service");
 
 const PORT = Number(process.env.PORT || 8081);
@@ -108,6 +110,9 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").trim().toLowerCas
 const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "1vibe.cart@gmail.com").trim();
+const AI_AUTOPILOT_ENABLED = String(process.env.AI_AUTOPILOT_ENABLED || "false").trim().toLowerCase() === "true";
+const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
+const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
 
 const pool = mysql.createPool({
   host: DB_HOST,
@@ -1173,6 +1178,65 @@ async function handleOwnerAiOpsRecommendations(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function handleOwnerAiOpsQueueRecommendations(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const dedupeWindowHours = Number(data.body?.dedupeWindowHours || AI_AUTOPILOT_DEDUPE_HOURS);
+  const result = await queueAiOpsRecommendations(pool, { dedupeWindowHours });
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  await sendAdminNotificationEmail("AI operations recommendations queued", [
+    `Queued: ${result.queuedCount}`,
+    `Deduped: ${result.dedupedCount}`,
+    `Interval mode: owner/manual`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerAiReadiness(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await getAiReadinessStatus(pool);
+  return sendJson(res, 200, {
+    ...result,
+    automation: {
+      enabled: AI_AUTOPILOT_ENABLED,
+      intervalMinutes: AI_AUTOPILOT_INTERVAL_MINUTES,
+      dedupeHours: AI_AUTOPILOT_DEDUPE_HOURS
+    }
+  });
+}
+
+async function runAiAutopilotCycle(trigger = "interval") {
+  const result = await queueAiOpsRecommendations(pool, {
+    dedupeWindowHours: AI_AUTOPILOT_DEDUPE_HOURS
+  });
+  if (result.ok && result.queuedCount > 0) {
+    await sendAdminNotificationEmail("AI autopilot queued recommendations", [
+      `Trigger: ${trigger}`,
+      `Queued: ${result.queuedCount}`,
+      `Deduped: ${result.dedupedCount}`,
+      `Timestamp: ${new Date().toISOString()}`
+    ]);
+  }
+  return result;
+}
+
+async function handleAiOpsCronAutopilot(req, res) {
+  const cronHeader = String(req.headers["x-cron-token"] || "");
+  if (!CRON_SECRET || cronHeader !== CRON_SECRET) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_CRON_TOKEN" });
+  }
+  const result = await runAiAutopilotCycle("cron");
+  return sendJson(res, result.ok ? 200 : 400, result);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const ip = getIp(req);
@@ -1420,6 +1484,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/api/ai-ops/recommendations") {
       return await handleOwnerAiOpsRecommendations(req, res);
     }
+    if (req.method === "POST" && req.url === "/api/ai-ops/recommendations/queue") {
+      return await handleOwnerAiOpsQueueRecommendations(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/ai-ops/readiness") {
+      return await handleOwnerAiReadiness(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/ai-ops/cron/autopilot") {
+      return await handleAiOpsCronAutopilot(req, res);
+    }
     return sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
   } catch (error) {
     if (String(error.message || "").toLowerCase().includes("guardrail")) {
@@ -1444,4 +1517,19 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Owner auth API running on http://localhost:${PORT}`);
+  if (AI_AUTOPILOT_ENABLED) {
+    const intervalMs = AI_AUTOPILOT_INTERVAL_MINUTES * 60 * 1000;
+    runAiAutopilotCycle("startup").catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error("AI autopilot startup cycle failed:", error.message || error);
+    });
+    setInterval(() => {
+      runAiAutopilotCycle("interval").catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error("AI autopilot interval cycle failed:", error.message || error);
+      });
+    }, intervalMs);
+    // eslint-disable-next-line no-console
+    console.log(`AI autopilot enabled. Interval: every ${AI_AUTOPILOT_INTERVAL_MINUTES} minutes.`);
+  }
 });
