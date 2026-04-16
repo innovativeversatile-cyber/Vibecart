@@ -4,6 +4,7 @@ const http = require("http");
 const crypto = require("crypto");
 const mysql = require("mysql2/promise");
 const nodemailer = require("nodemailer");
+const Stripe = require("stripe");
 const { ownerLogin, hashSecret, sha256 } = require("./owner-auth-service");
 const { registerDeviceToken, sendOrderUpdateNotifications } = require("./push-notification-service");
 const {
@@ -94,6 +95,12 @@ const {
   queueAiOpsRecommendations,
   getAiReadinessStatus
 } = require("./ai-operations-service");
+const {
+  createStripePaymentIntent,
+  persistWebhookEvent,
+  processStripeWebhookEvent,
+  getPaymentReadiness
+} = require("./payment-service");
 
 const PORT = Number(process.env.PORT || 8081);
 const DB_HOST = process.env.DB_HOST || "127.0.0.1";
@@ -110,6 +117,11 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").trim().toLowerCas
 const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "1vibe.cart@gmail.com").trim();
+const PAYMENT_PROVIDER = String(process.env.PAYMENT_PROVIDER || "stripe").trim().toLowerCase();
+const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "").trim();
+const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || "").trim();
+const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const AI_AUTOPILOT_ENABLED = String(process.env.AI_AUTOPILOT_ENABLED || "false").trim().toLowerCase() === "true";
 const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
 const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
@@ -243,6 +255,24 @@ async function readJson(req) {
       } catch {
         reject(new Error("Invalid JSON"));
       }
+    });
+    req.on("error", reject);
+  });
+}
+
+async function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+      total += chunk.length;
+      if (total > 2_000_000) {
+        reject(new Error("Payload too large"));
+      }
+    });
+    req.on("end", () => {
+      resolve(Buffer.concat(chunks));
     });
     req.on("error", reject);
   });
@@ -1237,10 +1267,98 @@ async function handleAiOpsCronAutopilot(req, res) {
   return sendJson(res, result.ok ? 200 : 400, result);
 }
 
+async function handlePublicPaymentConfig(req, res) {
+  return sendJson(res, 200, {
+    ok: true,
+    provider: PAYMENT_PROVIDER,
+    stripePublishableKey: STRIPE_PUBLISHABLE_KEY || null
+  });
+}
+
+async function handlePublicCreatePaymentIntent(req, res) {
+  if (PAYMENT_PROVIDER !== "stripe") {
+    return sendJson(res, 400, { ok: false, code: "UNSUPPORTED_PAYMENT_PROVIDER" });
+  }
+  if (!stripe) {
+    return sendJson(res, 500, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
+  }
+  const body = await readJson(req);
+  const result = await createStripePaymentIntent(pool, stripe, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  await sendAdminNotificationEmail("Payment intent created", [
+    `Order ID: ${result.orderId}`,
+    `Provider: ${result.provider}`,
+    `Amount: ${result.amount} ${result.currency}`,
+    `Payment intent: ${result.paymentIntentId}`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
+  return sendJson(res, 200, result);
+}
+
+async function handleStripeWebhook(req, res) {
+  if (!stripe || !STRIPE_WEBHOOK_SECRET) {
+    return sendJson(res, 500, { ok: false, code: "STRIPE_WEBHOOK_NOT_CONFIGURED" });
+  }
+  const signature = String(req.headers["stripe-signature"] || "");
+  if (!signature) {
+    return sendJson(res, 400, { ok: false, code: "MISSING_STRIPE_SIGNATURE" });
+  }
+  const rawBody = await readRawBody(req);
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, signature, STRIPE_WEBHOOK_SECRET);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_STRIPE_SIGNATURE" });
+  }
+
+  try {
+    await persistWebhookEvent(pool, event);
+  } catch (error) {
+    if (!String(error.message || "").toLowerCase().includes("duplicate")) {
+      throw error;
+    }
+    return sendJson(res, 200, { ok: true, duplicate: true });
+  }
+
+  const processed = await processStripeWebhookEvent(pool, event);
+  if (processed.ok && !processed.skipped) {
+    await sendAdminNotificationEmail("Payment webhook processed", [
+      `Event: ${event.type}`,
+      `Order ID: ${processed.orderId || "n/a"}`,
+      `Result status: ${processed.status || "n/a"}`,
+      `Provider reference: ${processed.providerReference || "n/a"}`,
+      `Timestamp: ${new Date().toISOString()}`
+    ]);
+  }
+  return sendJson(res, processed.ok ? 200 : 400, processed);
+}
+
+async function handleOwnerPaymentReadiness(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await getPaymentReadiness(pool, {
+    providerCode: String(data.body?.providerCode || "STRIPE")
+  });
+  return sendJson(res, 200, {
+    ...result,
+    config: {
+      provider: PAYMENT_PROVIDER,
+      stripeConfigured: Boolean(stripe),
+      stripePublishableConfigured: Boolean(STRIPE_PUBLISHABLE_KEY),
+      stripeWebhookConfigured: Boolean(STRIPE_WEBHOOK_SECRET)
+    }
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const ip = getIp(req);
-    if (isRateLimited(ip)) {
+    const isStripeWebhook = req.method === "POST" && req.url === "/api/public/payments/webhook/stripe";
+    if (!isStripeWebhook && isRateLimited(ip)) {
       return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
     }
 
@@ -1295,6 +1413,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/public/cultural-arbitrage/scout")) {
       return await handlePublicCulturalArbitrageScout(req, res);
     }
+    if (req.method === "GET" && req.url.startsWith("/api/public/payments/config")) {
+      return await handlePublicPaymentConfig(req, res);
+    }
     if (req.method === "POST" && req.url === "/api/public/platform-risk/plan") {
       return await handlePublicPlatformRiskPlan(req, res);
     }
@@ -1324,6 +1445,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && req.url === "/api/public/trust-safety/evaluate") {
       return await handlePublicTrustSafetyEvaluate(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/payments/intent/create") {
+      return await handlePublicCreatePaymentIntent(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/payments/webhook/stripe") {
+      return await handleStripeWebhook(req, res);
     }
     if (req.method === "POST" && req.url === "/api/chat/safety/events/list") {
       return await handleOwnerChatSafetyEvents(req, res);
@@ -1492,6 +1619,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && req.url === "/api/ai-ops/cron/autopilot") {
       return await handleAiOpsCronAutopilot(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/payments/readiness") {
+      return await handleOwnerPaymentReadiness(req, res);
     }
     return sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
   } catch (error) {

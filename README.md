@@ -70,12 +70,15 @@ SOURCE /path/to/vibecart/schema.sql;
 
 3. Create least-privilege DB users for app runtime and migrations.
 4. Replace placeholder values in `owner_auth_profiles` with real hashed credentials before production.
-5. Install Node dependency for backend auth server:
-   - `npm install mysql2`
+5. Install Node dependencies for backend API:
+   - `npm install mysql2 nodemailer stripe`
 6. Start owner auth API:
    - `node owner-auth-api.js`
    - set `CRON_SECRET` env var for `/api/insurance/cron/daily-reminders`
    - same `CRON_SECRET` secures `/api/health/cron/daily-reminders`
+   - set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` for payment intent + webhook flow
+   - set `PAYMENT_PROVIDER=stripe` for approved Stripe route enforcement
+   - optional AI autopilot: `AI_AUTOPILOT_ENABLED=true`
 7. Owner panel `admin.html` now authenticates against backend API (`http://localhost:8081`).
 8. If MFA is enabled in `owner_auth_profiles`, configure at least one active factor in `owner_mfa_factors`.
 

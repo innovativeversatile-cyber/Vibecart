@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "mysql2": "^3.15.2",
-    "nodemailer": "^8.0.5"
+    "nodemailer": "^8.0.5",
+    "stripe": "^22.0.2"
   }
 }
