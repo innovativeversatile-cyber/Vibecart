@@ -4,20 +4,20 @@ Use these rules in backend endpoints so only approved payment and delivery syste
 
 ## 1) Payment Intent Endpoint
 
-- Endpoint: `POST /api/payments/intent`
-- Required inputs:
+- Endpoint: `POST /api/public/payments/intent/create`
+- **Server-only:** requires Railway env `PAYMENT_INTENT_API_SECRET` and HTTP header `X-Payment-Intent-Secret` matching that value. Never call from public browser JavaScript.
+- Required JSON body:
   - `orderId`
-  - `providerCode`
-  - `buyerCountry`
-  - `sellerCountry`
-  - `currency`
+  - optional `paymentMethod` (default `card`)
+  - optional `providerCode` (default `STRIPE`)
 - Enforcement:
+  - Resolve `buyer_country` and seller origin from `orders` + `order_items` / `products`.
   - Validate provider exists in `approved_payment_providers`.
-  - Reject if any required security flags are disabled.
   - Validate route exists in `approved_payment_provider_routes`.
   - On success, save `approved_provider_id` in `payments`.
 - Block response example:
-  - `403 PAYMENT_PROVIDER_NOT_APPROVED`
+  - `401 INVALID_PAYMENT_INTENT_SECRET`
+  - `400 NO_APPROVED_PAYMENT_ROUTE`
 
 ## 2) Shipment Creation Endpoint
 

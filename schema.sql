@@ -861,7 +861,7 @@ CREATE TABLE payments (
   INDEX idx_payments_order_status_provider (order_id, status, provider)
 );
 
-CREATE TABLE payment_webhook_events (
+CREATE TABLE IF NOT EXISTS payment_webhook_events (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   provider VARCHAR(80) NOT NULL,
   event_id VARCHAR(180) NOT NULL,

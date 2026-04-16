@@ -136,6 +136,23 @@ main,
   margin-top: 1.2rem;
   display: flex;
   gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.hero-trust-row {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.hero-trust-row span {
+  background: rgba(17, 23, 42, 0.92);
+  border: 1px solid #3a4b7c;
+  color: #d9e2ff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.86rem;
 }
 
 .btn {
@@ -184,6 +201,14 @@ main,
   border: 1px solid #293254;
   overflow: hidden;
   box-shadow: var(--shadow);
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.card:hover,
+.shop:hover,
+.product:hover {
+  transform: translateY(-3px);
+  border-color: #4a5fa0;
 }
 
 .card h3,
@@ -207,6 +232,44 @@ main,
 .shop p,
 .product p {
   color: var(--muted);
+}
+
+.market-pillars {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.pill-card {
+  background: linear-gradient(170deg, #111a32, #0e162a);
+  border: 1px solid #344a7f;
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.pill-card h3 {
+  margin-top: 0.2rem;
+  margin-bottom: 0.55rem;
+}
+
+.pill-card p {
+  margin: 0;
+  color: #c5cfef;
+}
+
+.home-cta-strip {
+  border: 1px solid #4160a3;
+  background: linear-gradient(135deg, rgba(63, 98, 182, 0.22), rgba(24, 41, 82, 0.82));
+  border-radius: var(--radius);
+  padding: 1.2rem;
+}
+
+.home-cta-strip h3 {
+  margin: 0 0 0.35rem 0;
+}
+
+.home-cta-strip p {
+  margin: 0;
+  color: #cbd6f7;
 }
 
 .market-header {
@@ -273,8 +336,8 @@ main,
   max-height: 220px;
   overflow-y: auto;
   border-radius: 12px;
-  border: 1px solid #2a3459;
-  background: #0d1427;
+  border: 1px solid #32406b;
+  background: #111b33;
   padding: 0.7rem;
   display: grid;
   gap: 0.5rem;
@@ -284,15 +347,17 @@ main,
   padding: 0.45rem 0.6rem;
   border-radius: 10px;
   max-width: 85%;
+  color: #f2f6ff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .msg-buyer {
-  background: #1f2c4e;
+  background: #2a3a64;
   justify-self: start;
 }
 
 .msg-seller {
-  background: #143937;
+  background: #1d4a47;
   justify-self: end;
 }
 
@@ -476,7 +541,29 @@ main,
     grid-template-columns: 1fr;
   }
 
+  .topbar {
+    align-items: flex-start;
+    gap: 0.7rem;
+    flex-direction: column;
+  }
+
   .nav-links {
-    display: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.7rem;
+    font-size: 0.92rem;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(1.6rem, 6.5vw, 2.3rem);
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .market-pillars {
+    grid-template-columns: 1fr;
   }
 }

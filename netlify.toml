@@ -1,3 +1,4 @@
+# Update the Railway URL below if your backend hostname changes.
 [build]
   publish = "deploy-web"
 

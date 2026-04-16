@@ -84,6 +84,37 @@ async function resolveApprovedProviderRoute(pool, input) {
   };
 }
 
+async function cancelStaleStripeIntents(pool, stripe, orderId) {
+  const [rows] = await pool.execute(
+    `SELECT provider_reference
+     FROM payments
+     WHERE order_id = ?
+       AND provider = 'STRIPE'
+       AND status = 'initiated'`,
+    [orderId]
+  );
+  for (const row of rows) {
+    const ref = String(row.provider_reference || "");
+    if (!ref) {
+      continue;
+    }
+    try {
+      await stripe.paymentIntents.cancel(ref);
+    } catch {
+      /* ignore cancel errors for already-succeeded or unknown intents */
+    }
+  }
+  if (rows.length > 0) {
+    await pool.execute(
+      `DELETE FROM payments
+       WHERE order_id = ?
+         AND provider = 'STRIPE'
+         AND status = 'initiated'`,
+      [orderId]
+    );
+  }
+}
+
 async function createStripePaymentIntent(pool, stripe, input) {
   const orderId = toNum(input.orderId, 0);
   const paymentMethod = String(input.paymentMethod || "card").trim().toLowerCase();
@@ -100,6 +131,7 @@ async function createStripePaymentIntent(pool, stripe, input) {
     return resolvedOrder;
   }
   const order = resolvedOrder.order;
+  await cancelStaleStripeIntents(pool, stripe, order.id);
   const route = await resolveApprovedProviderRoute(pool, {
     buyerCountry: order.buyerCountry,
     sellerCountry: order.sellerCountry,
@@ -221,7 +253,13 @@ async function handleStripePaymentIntentFailed(pool, paymentIntent) {
 }
 
 async function handleStripeChargeRefunded(pool, charge) {
-  const paymentIntentId = String(charge.payment_intent || "");
+  const rawPi = charge.payment_intent;
+  const paymentIntentId =
+    typeof rawPi === "string"
+      ? rawPi
+      : rawPi && typeof rawPi === "object" && rawPi.id
+        ? String(rawPi.id)
+        : "";
   if (!paymentIntentId) {
     return { ok: false, code: "MISSING_PAYMENT_INTENT" };
   }

@@ -109,18 +109,19 @@ const DB_USER = process.env.DB_USER || "root";
 const DB_PASSWORD = process.env.DB_PASSWORD || "";
 const DB_NAME = process.env.DB_NAME || "vibecart";
 const CRON_SECRET = String(process.env.CRON_SECRET || "");
-const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "1vibe.cart@gmail.com").trim().toLowerCase();
+const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "").trim().toLowerCase();
 const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
 const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").trim().toLowerCase() === "true";
 const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
-const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "1vibe.cart@gmail.com").trim();
+const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || NOTIFICATION_EMAIL || "noreply@localhost").trim();
 const PAYMENT_PROVIDER = String(process.env.PAYMENT_PROVIDER || "stripe").trim().toLowerCase();
 const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "").trim();
 const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || "").trim();
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+const PAYMENT_INTENT_API_SECRET = String(process.env.PAYMENT_INTENT_API_SECRET || "").trim();
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 const AI_AUTOPILOT_ENABLED = String(process.env.AI_AUTOPILOT_ENABLED || "false").trim().toLowerCase() === "true";
 const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
@@ -1282,6 +1283,18 @@ async function handlePublicCreatePaymentIntent(req, res) {
   if (!stripe) {
     return sendJson(res, 500, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
   }
+  if (!PAYMENT_INTENT_API_SECRET) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "PAYMENT_INTENT_SECRET_NOT_CONFIGURED",
+      message:
+        "Set PAYMENT_INTENT_API_SECRET in Railway and call this endpoint only from a trusted server (never from public browser JS)."
+    });
+  }
+  const intentSecretHeader = String(req.headers["x-payment-intent-secret"] || "").trim();
+  if (intentSecretHeader !== PAYMENT_INTENT_API_SECRET) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_PAYMENT_INTENT_SECRET" });
+  }
   const body = await readJson(req);
   const result = await createStripePaymentIntent(pool, stripe, body || {});
   if (!result.ok) {
@@ -1316,7 +1329,11 @@ async function handleStripeWebhook(req, res) {
   try {
     await persistWebhookEvent(pool, event);
   } catch (error) {
-    if (!String(error.message || "").toLowerCase().includes("duplicate")) {
+    const dup =
+      error.errno === 1062 ||
+      String(error.code || "") === "ER_DUP_ENTRY" ||
+      String(error.message || "").toLowerCase().includes("duplicate");
+    if (!dup) {
       throw error;
     }
     return sendJson(res, 200, { ok: true, duplicate: true });
@@ -1349,7 +1366,8 @@ async function handleOwnerPaymentReadiness(req, res) {
       provider: PAYMENT_PROVIDER,
       stripeConfigured: Boolean(stripe),
       stripePublishableConfigured: Boolean(STRIPE_PUBLISHABLE_KEY),
-      stripeWebhookConfigured: Boolean(STRIPE_WEBHOOK_SECRET)
+      stripeWebhookConfigured: Boolean(STRIPE_WEBHOOK_SECRET),
+      paymentIntentServerSecretConfigured: Boolean(PAYMENT_INTENT_API_SECRET)
     }
   });
 }

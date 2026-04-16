@@ -120,7 +120,7 @@ function resolveMarketFromLocale() {
   const locale = (navigator.language || "").toLowerCase();
   const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
 
-  if (locale.includes("pl") || tz.includes("warsaw")) {
+  if (locale.includes("pl") || tz.includes("warsaw") || tz.includes("lublin")) {
     return "poland";
   }
   if (locale.includes("en-za") || tz.includes("johannesburg")) {

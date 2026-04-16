@@ -5,10 +5,13 @@ Use this checklist to move from local demo to production safely.
 ## 1) Domain and Hosting
 
 - Buy and configure your production domain (example: `vibecart.com`).
+- Netlify uses **`deploy-web/`** as the publish folder (`netlify.toml`). After local edits, commit and push so Netlify rebuilds.
+- Update `netlify.toml` `[[redirects]]` target if your Railway API URL is not `vibecart-production.up.railway.app`.
 - Deploy static frontend files to production hosting:
   - `index.html`, `policy.html`, `admin.html`, `admin-app.html`, `styles.css`, `script.js`
   - `manifest.json`, `service-worker.js`, `robots.txt`, `sitemap.xml`
 - Enforce HTTPS on all routes.
+
 
 ## 2) Backend Deployment
 
@@ -16,6 +19,14 @@ Use this checklist to move from local demo to production safely.
 - Set environment variables using `.env.example` as template.
 - Run backend behind HTTPS reverse proxy.
 - Restrict inbound traffic with firewall/security groups.
+- If the database was created before `payment_webhook_events` existed, run `railway-migrations/20260213_payment_webhook_events.sql` in Railway MySQL (safe `IF NOT EXISTS`).
+
+## 2b) Payments (Stripe)
+
+- Set `PAYMENT_PROVIDER=stripe`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`.
+- Set **`PAYMENT_INTENT_API_SECRET`** to a long random string. Payment intent creation requires header `X-Payment-Intent-Secret` (never expose this in the static site; use a small server-side checkout or Netlify Function).
+- Stripe webhook URL: `https://<your-railway-host>/api/public/payments/webhook/stripe` with events `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`.
+- Confirm `approved_payment_providers` and `approved_payment_provider_routes` include every country/currency pair you will sell (see `schema.sql` seed inserts).
 
 ## 3) Database
 
