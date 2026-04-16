@@ -162,7 +162,7 @@ async function sendAdminNotificationEmail(subject, lines) {
     await transporter.sendMail({
       from: SMTP_FROM,
       to: NOTIFICATION_EMAIL,
-      subject: `[VibeCart] ${safeSubject}`,
+      subject: `[ADMIN ONLY][VibeCart] ${safeSubject}`,
       text: textBody
     });
   } catch (error) {
