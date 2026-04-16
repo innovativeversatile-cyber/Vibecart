@@ -6,7 +6,7 @@ import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, Text, View } fr
 import { WebView } from "react-native-webview";
 import type { WebView as WebViewType } from "react-native-webview";
 
-const FALLBACK_BASE_URL = "https://www.vibecart.example";
+const FALLBACK_BASE_URL = "https://vibecart-marketplace.netlify.app";
 
 function isAllowedUrl(url: string, allowedHost: string): boolean {
   try {

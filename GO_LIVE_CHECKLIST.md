@@ -37,7 +37,7 @@ Use this checklist to move from local demo to production safely.
 
 ## 4) Replace Placeholder Domains
 
-Update all `https://www.vibecart.example` values to your real domain:
+Production defaults in the repo now use **`https://vibecart-marketplace.netlify.app`**. When you move to a custom domain (for example `https://vibe-cart.com`), update the same values again:
 
 - `index.html`:
   - `canonical`, `og:url`, `alternate hreflang`, JSON-LD `url`

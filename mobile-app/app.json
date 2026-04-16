@@ -33,7 +33,7 @@
       "expo-notifications"
     ],
     "extra": {
-      "vibecartBaseUrl": "https://www.vibecart.example"
+      "vibecartBaseUrl": "https://vibecart-marketplace.netlify.app"
     }
   }
 }

@@ -120,8 +120,9 @@ This project includes frontend and data schema foundations. Production security 
 
 ## SEO and Discovery
 
-- Replace `https://www.vibecart.example/` with your real production domain in:
-  - `index.html` canonical and Open Graph tags
-  - `robots.txt`
-  - `sitemap.xml`
+- Canonical and sitemap URLs default to `https://vibecart-marketplace.netlify.app/`. When you use a custom domain, replace that base URL in:
+  - `deploy-web/index.html` (Netlify publish) and root `index.html` canonical and Open Graph tags
+  - `deploy-web/privacy.html` canonical (and root `privacy.html` if used)
+  - `deploy-web/robots.txt` and `robots.txt`
+  - `deploy-web/sitemap.xml` and `sitemap.xml`
 - Submit the sitemap in Google Search Console and Bing Webmaster Tools.
