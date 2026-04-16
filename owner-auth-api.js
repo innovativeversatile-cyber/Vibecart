@@ -3,6 +3,7 @@
 const http = require("http");
 const crypto = require("crypto");
 const mysql = require("mysql2/promise");
+const nodemailer = require("nodemailer");
 const { ownerLogin, hashSecret, sha256 } = require("./owner-auth-service");
 const { registerDeviceToken, sendOrderUpdateNotifications } = require("./push-notification-service");
 const {
@@ -99,6 +100,14 @@ const DB_USER = process.env.DB_USER || "root";
 const DB_PASSWORD = process.env.DB_PASSWORD || "";
 const DB_NAME = process.env.DB_NAME || "vibecart";
 const CRON_SECRET = String(process.env.CRON_SECRET || "");
+const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "1vibe.cart@gmail.com").trim().toLowerCase();
+const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
+const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
+const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
+const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").trim().toLowerCase() === "true";
+const SMTP_USER = String(process.env.SMTP_USER || "").trim();
+const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
+const SMTP_FROM = String(process.env.SMTP_FROM || SMTP_USER || "1vibe.cart@gmail.com").trim();
 
 const pool = mysql.createPool({
   host: DB_HOST,
@@ -112,6 +121,55 @@ const pool = mysql.createPool({
 const ipHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 30;
+let notificationTransporter = null;
+
+function getNotificationTransporter() {
+  if (!EMAIL_NOTIFICATIONS_ENABLED || !SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+    return null;
+  }
+  if (!notificationTransporter) {
+    notificationTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS
+      }
+    });
+  }
+  return notificationTransporter;
+}
+
+async function sendAdminNotificationEmail(subject, lines) {
+  if (!NOTIFICATION_EMAIL) {
+    return;
+  }
+  const transporter = getNotificationTransporter();
+  if (!transporter) {
+    return;
+  }
+
+  const safeSubject = String(subject || "VibeCart admin notification").slice(0, 200);
+  const textBody = Array.isArray(lines)
+    ? lines.map((line) => String(line || "").trim()).filter(Boolean).join("\n")
+    : String(lines || "").trim();
+  if (!textBody) {
+    return;
+  }
+
+  try {
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to: NOTIFICATION_EMAIL,
+      subject: `[VibeCart] ${safeSubject}`,
+      text: textBody
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Email notification send failed:", error.message || error);
+  }
+}
 
 function setSecurityHeaders(res) {
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
@@ -976,6 +1034,12 @@ async function handleOwnerBarterMatchDecision(req, res) {
   if (!result.ok) {
     return sendJson(res, 400, result);
   }
+  await sendAdminNotificationEmail("Barter match decision recorded", [
+    `Match ID: ${data.body?.matchId || "n/a"}`,
+    `Decision: ${data.body?.decision || "n/a"}`,
+    `Owner notes: ${data.body?.ownerNotes || "none"}`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
   return sendJson(res, 200, result);
 }
 
@@ -1045,6 +1109,12 @@ async function handleOwnerCrowdfundingDecision(req, res) {
   if (!result.ok) {
     return sendJson(res, 400, result);
   }
+  await sendAdminNotificationEmail("Crowdfunding decision recorded", [
+    `Campaign ID: ${data.body?.campaignId || "n/a"}`,
+    `Decision: ${data.body?.decision || "n/a"}`,
+    `Owner notes: ${data.body?.ownerNotes || "none"}`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
   return sendJson(res, 200, result);
 }
 
@@ -1066,6 +1136,13 @@ async function handleOwnerAiOperationsCreate(req, res) {
   if (!result.ok) {
     return sendJson(res, 400, result);
   }
+  await sendAdminNotificationEmail("AI operation queued", [
+    `Operation type: ${data.body?.operationType || "n/a"}`,
+    `Risk level: ${data.body?.riskLevel || "n/a"}`,
+    `Execution mode: ${data.body?.executionMode || "n/a"}`,
+    `Summary: ${data.body?.summaryText || "none"}`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
   return sendJson(res, 200, result);
 }
 
@@ -1078,6 +1155,12 @@ async function handleOwnerAiOperationsDecide(req, res) {
   if (!result.ok) {
     return sendJson(res, 400, result);
   }
+  await sendAdminNotificationEmail("AI operation decision recorded", [
+    `Operation ID: ${data.body?.operationId || "n/a"}`,
+    `Decision: ${data.body?.decision || "n/a"}`,
+    `Owner notes: ${data.body?.ownerNotes || "none"}`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
   return sendJson(res, 200, result);
 }
 
