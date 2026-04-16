@@ -894,7 +894,8 @@ if (refreshCoachDashboardBtn) {
 refreshCoachDashboard();
 
 const trustEntities = [
-  { name: "Warsaw Campus Deals", type: "Seller", score: 96, note: "Fast dispatch and low dispute rate." },
+  { name: "Lublin Campus Deals", type: "Seller", score: 96, note: "Fast dispatch and low dispute rate." },
+  { name: "Warsaw Campus Deals", type: "Seller", score: 95, note: "Reliable order handling and low dispute rate." },
   { name: "WellNest Health Cover", type: "Insurance", score: 93, note: "Verified partner with stable support." },
   { name: "DHL Express Route PL-ZA", type: "Delivery", score: 95, note: "Strong on-time and proof-of-delivery record." }
 ];
