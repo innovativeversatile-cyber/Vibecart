@@ -4,7 +4,6 @@ const categoryFilter = document.getElementById("categoryFilter");
 const categoryCards = document.querySelectorAll("[data-filter]");
 const products = document.querySelectorAll(".product");
 const regionHeadline = document.getElementById("regionHeadline");
-const marketMode = document.getElementById("marketMode");
 const heroTitle = document.getElementById("heroTitle");
 const heroBadge = document.getElementById("heroBadge");
 const heroSubtitle = document.getElementById("heroSubtitle");
@@ -19,15 +18,19 @@ const aiBudget = document.getElementById("aiBudget");
 const aiCategory = document.getElementById("aiCategory");
 const aiSuggest = document.getElementById("aiSuggest");
 const aiResult = document.getElementById("aiResult");
+const bizGoal = document.getElementById("bizGoal");
+const bizPriority = document.getElementById("bizPriority");
+const bizInventory = document.getElementById("bizInventory");
+const bizBudget = document.getElementById("bizBudget");
+const bizAssist = document.getElementById("bizAssist");
+const bizResult = document.getElementById("bizResult");
+const bizHistory = document.getElementById("bizHistory");
+const bizClearHistory = document.getElementById("bizClearHistory");
 const trackingTimeline = document.getElementById("trackingTimeline");
 const nextTrackingStep = document.getElementById("nextTrackingStep");
 const openReturnWindow = document.getElementById("openReturnWindow");
 const returnWindowInfo = document.getElementById("returnWindowInfo");
 const installAppBtn = document.getElementById("installAppBtn");
-const interactionMode = document.getElementById("interactionMode");
-const aiAssistantSection = document.getElementById("ai-assistant");
-const communicationSection = document.getElementById("communication");
-const trackingSection = document.getElementById("tracking");
 const adSlots = document.getElementById("adSlots");
 const refreshAds = document.getElementById("refreshAds");
 const bookingServiceType = document.getElementById("bookingServiceType");
@@ -73,10 +76,16 @@ const healthCheckinNotes = document.getElementById("healthCheckinNotes");
 const addHealthCheckinBtn = document.getElementById("addHealthCheckin");
 const refreshCoachDashboardBtn = document.getElementById("refreshCoachDashboard");
 const coachDashboard = document.getElementById("coachDashboard");
+const riskFocus = document.getElementById("riskFocus");
+const riskSignal = document.getElementById("riskSignal");
+const runRiskPlan = document.getElementById("runRiskPlan");
+const riskPlanResult = document.getElementById("riskPlanResult");
+const riskScoreboard = document.getElementById("riskScoreboard");
 const SETTINGS_KEY = "vibecart-site-settings";
-const INTERACTION_MODE_KEY = "vibecart-interaction-mode";
 const REWARD_KEY = "vibecart-reward-profile";
 const ONBOARDING_KEY = "vibecart-onboarding-done";
+const BIZ_PLAN_HISTORY_KEY = "vibecart-biz-plan-history";
+const RISK_SCOREBOARD_KEY = "vibecart-risk-scoreboard";
 let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
 let disclaimerWatchdogTimer = null;
@@ -162,9 +171,6 @@ function setMarketCopy(market) {
 
   if (regionHeadline) {
     regionHeadline.textContent = messages[market] || messages["africa-general"];
-  }
-  if (marketMode) {
-    marketMode.textContent = `Market mode: ${market}. Interface copy and style adapt to user region and engagement trends.`;
   }
 }
 
@@ -371,6 +377,314 @@ if (aiSuggest) {
   aiSuggest.addEventListener("click", getAISuggestions);
 }
 
+function getAIManagementPlan() {
+  if (!bizResult || !bizPriority || !bizGoal || !bizInventory || !bizBudget) {
+    return;
+  }
+
+  const goal = bizGoal.value.trim() || "improve business performance";
+  const priority = bizPriority.value;
+  const inventory = bizInventory.value.trim() || "inventory data not provided";
+  const budget = Number(bizBudget.value || "0");
+
+  let focusLine = "Focus on balanced pricing, healthy stock, and fast buyer response.";
+  if (priority === "sales") {
+    focusLine = "Focus on sales growth with bundle offers and high-conversion product positioning.";
+  } else if (priority === "inventory") {
+    focusLine = "Focus on inventory turnover by promoting slow-moving stock and reducing overstock risk.";
+  } else if (priority === "marketing") {
+    focusLine = "Focus on marketing reach with route-specific campaigns and time-limited ads.";
+  } else if (priority === "service") {
+    focusLine = "Focus on customer service speed, delivery communication, and dispute prevention.";
+  }
+
+  const budgetLine = budget > 0
+    ? `Use about EUR ${budget} for phased campaigns: 60% top-performing products, 25% retargeting, 15% testing.`
+    : "Set a promotion budget to get campaign allocation guidance.";
+
+  const planText =
+    `AI Management Plan: Goal - ${goal}. ${focusLine} Inventory snapshot: ${inventory}. ${budgetLine} ` +
+    "Next step: review performance weekly and adjust pricing/promotions based on conversion and trust signals.";
+  bizResult.textContent = planText;
+  addBizPlanHistory({
+    goal,
+    priority,
+    inventory,
+    budget,
+    planText,
+    createdAt: new Date().toISOString()
+  });
+  renderBizPlanHistory();
+}
+
+if (bizAssist) {
+  bizAssist.addEventListener("click", getAIManagementPlan);
+}
+
+function getBizPlanHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BIZ_PLAN_HISTORY_KEY) || "[]");
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+function saveBizPlanHistory(items) {
+  localStorage.setItem(BIZ_PLAN_HISTORY_KEY, JSON.stringify(items));
+}
+
+function addBizPlanHistory(item) {
+  const items = getBizPlanHistory();
+  items.unshift(item);
+  const capped = items.slice(0, 12);
+  saveBizPlanHistory(capped);
+}
+
+function renderBizPlanHistory() {
+  if (!bizHistory) {
+    return;
+  }
+  const items = getBizPlanHistory();
+  if (!items.length) {
+    bizHistory.textContent = "No saved plans yet.";
+    return;
+  }
+  bizHistory.innerHTML = "";
+  items.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.className = "tracking-step";
+    const dateLabel = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Unknown time";
+    row.textContent = `${index + 1}. [${dateLabel}] Goal: ${item.goal} | Priority: ${item.priority} | ${item.planText}`;
+    bizHistory.appendChild(row);
+  });
+}
+
+if (bizClearHistory) {
+  bizClearHistory.addEventListener("click", () => {
+    localStorage.removeItem(BIZ_PLAN_HISTORY_KEY);
+    renderBizPlanHistory();
+    if (bizResult) {
+      bizResult.textContent = "Management plan history cleared.";
+    }
+  });
+}
+
+renderBizPlanHistory();
+
+function getRiskScoreboard() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RISK_SCOREBOARD_KEY) || "{}");
+    return {
+      liquidity: Number(parsed.liquidity || 62),
+      trust: Number(parsed.trust || 74),
+      bad_debt: Number(parsed.bad_debt || 66),
+      compliance: Number(parsed.compliance || 71),
+      scaling: Number(parsed.scaling || 63),
+      cac: Number(parsed.cac || 58),
+      logistics: Number(parsed.logistics || 64)
+    };
+  } catch {
+    return {
+      liquidity: 62,
+      trust: 74,
+      bad_debt: 66,
+      compliance: 71,
+      scaling: 63,
+      cac: 58,
+      logistics: 64
+    };
+  }
+}
+
+function saveRiskScoreboard(board) {
+  localStorage.setItem(RISK_SCOREBOARD_KEY, JSON.stringify(board));
+}
+
+async function loadRiskScoreboardFromApi() {
+  try {
+    const response = await fetch("/api/public/platform-risk/scoreboard");
+    const payload = await response.json();
+    if (!response.ok || !payload.ok || !payload.scoreboard) {
+      return null;
+    }
+    const board = {
+      liquidity: Number(payload.scoreboard.liquidity || 0),
+      trust: Number(payload.scoreboard.trust || 0),
+      bad_debt: Number(payload.scoreboard.bad_debt || 0),
+      compliance: Number(payload.scoreboard.compliance || 0),
+      scaling: Number(payload.scoreboard.scaling || 0),
+      cac: Number(payload.scoreboard.cac || 0),
+      logistics: Number(payload.scoreboard.logistics || 0)
+    };
+    saveRiskScoreboard(board);
+    return board;
+  } catch {
+    return null;
+  }
+}
+
+function clampScore(value) {
+  return Math.max(0, Math.min(100, value));
+}
+
+function computeRiskPlan(focus, signalText) {
+  const signal = String(signalText || "").trim() || "No extra signal provided.";
+  const plans = {
+    liquidity: {
+      headline: "Solve chicken-and-egg with route seeding and guaranteed demand windows.",
+      actions: [
+        "Launch city-route micro campaigns with verified sellers before broad buyer ads.",
+        "Use limited-time buyer incentives only in routes with enough active inventory.",
+        "Promote trusted top sellers automatically to keep first-buyer conversion high."
+      ],
+      scoreDelta: 5
+    },
+    trust: {
+      headline: "Tighten trust and safety controls with risk-triggered friction.",
+      actions: [
+        "Step-up verification for high-risk accounts and unusual behavior clusters.",
+        "Auto-hold suspicious transactions and require identity or delivery proof.",
+        "Prioritize moderation queues by dispute severity and scam-signal score."
+      ],
+      scoreDelta: 6
+    },
+    bad_debt: {
+      headline: "Reduce bad debt and fraud exposure through smarter payment routing.",
+      actions: [
+        "Route high-risk orders to stronger authentication and tokenized payment flows.",
+        "Delay seller payout release for risky orders until delivery confirmation.",
+        "Cap daily exposure for new sellers until trust score and completion improve."
+      ],
+      scoreDelta: 6
+    },
+    compliance: {
+      headline: "Enforce legal and regulatory compliance by jurisdiction and category.",
+      actions: [
+        "Apply country-level product restrictions and block uncertain legal categories.",
+        "Log required consent/audit events for marketplace and insurance decisions.",
+        "Require policy re-acceptance when compliance terms change in a region."
+      ],
+      scoreDelta: 5
+    },
+    scaling: {
+      headline: "Control technical complexity with staged scale and resilience checks.",
+      actions: [
+        "Prioritize critical APIs with rate limits and request budgets per tenant.",
+        "Run queue-based processing for non-critical background tasks and reminders.",
+        "Use route-level performance thresholds to trigger autoscaling and alerts."
+      ],
+      scoreDelta: 5
+    },
+    cac: {
+      headline: "Lower customer acquisition costs with trust-led conversion loops.",
+      actions: [
+        "Shift spend toward high-retention cohorts and low-dispute seller segments.",
+        "Use referral rewards tied to successful delivered orders, not just signups.",
+        "Cut weak channels quickly using weekly CAC-to-LTV guardrails."
+      ],
+      scoreDelta: 6
+    },
+    logistics: {
+      headline: "Stabilize logistics and disputes with route-level risk controls.",
+      actions: [
+        "Auto-switch from low-reliability couriers on routes crossing failure thresholds.",
+        "Open proactive dispute workflows when delay and complaint signals combine.",
+        "Require proof-of-delivery evidence before closing contested shipments."
+      ],
+      scoreDelta: 6
+    }
+  };
+  const selected = plans[focus] || plans.logistics;
+  return {
+    ...selected,
+    signal
+  };
+}
+
+function renderRiskScoreboard() {
+  if (!riskScoreboard) {
+    return;
+  }
+  const board = getRiskScoreboard();
+  const labels = {
+    liquidity: "Chicken-and-Egg",
+    trust: "Trust and Safety",
+    bad_debt: "Bad Debt/Fraud",
+    compliance: "Compliance",
+    scaling: "Scalability",
+    cac: "Customer Acquisition Cost",
+    logistics: "Logistics/Disputes"
+  };
+  const rows = Object.keys(labels).map((key) => {
+    const score = clampScore(Number(board[key] || 0));
+    const status = score >= 75 ? "Stable" : score >= 60 ? "Watch" : "Critical";
+    return `${labels[key]}: ${score}/100 (${status})`;
+  });
+  riskScoreboard.innerHTML = "";
+  rows.forEach((line) => {
+    const row = document.createElement("div");
+    row.className = "tracking-step";
+    row.textContent = line;
+    riskScoreboard.appendChild(row);
+  });
+}
+
+async function renderRiskScoreboardLive() {
+  const remote = await loadRiskScoreboardFromApi();
+  if (remote) {
+    renderRiskScoreboard();
+    return;
+  }
+  renderRiskScoreboard();
+}
+
+async function runAIResiliencePlan() {
+  if (!riskFocus || !riskPlanResult) {
+    return;
+  }
+  const focus = String(riskFocus.value || "liquidity");
+  const plan = computeRiskPlan(focus, riskSignal ? riskSignal.value : "");
+  const board = getRiskScoreboard();
+  board[focus] = clampScore(Number(board[focus] || 0) + plan.scoreDelta);
+  saveRiskScoreboard(board);
+  renderRiskScoreboard();
+
+  try {
+    await fetch("/api/public/platform-risk/plan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        riskFocus: focus,
+        riskSignal: plan.signal,
+        planHeadline: plan.headline,
+        scoreDelta: plan.scoreDelta
+      })
+    });
+    await renderRiskScoreboardLive();
+  } catch {
+    // Keep local fallback if backend is not available.
+  }
+
+  riskPlanResult.textContent =
+    `AI Resilience Plan: ${plan.headline} Signal: ${plan.signal} ` +
+    `Actions: 1) ${plan.actions[0]} 2) ${plan.actions[1]} 3) ${plan.actions[2]} ` +
+    `Expected outcome: stronger operational control for ${focus.replace("_", " ")}.`;
+}
+
+if (runRiskPlan) {
+  runRiskPlan.addEventListener("click", () => {
+    runAIResiliencePlan().catch(() => {});
+  });
+}
+
+renderRiskScoreboardLive().catch(() => {
+  renderRiskScoreboard();
+});
+
 const trackingSteps = [
   "Order placed and payment verified.",
   "Seller confirmed and is preparing shipment.",
@@ -450,44 +764,6 @@ if (installAppBtn) {
     installAppBtn.classList.add("hidden");
   });
 }
-
-function applyInteractionMode(mode) {
-  if (!aiAssistantSection || !communicationSection || !trackingSection) {
-    return;
-  }
-  if (mode === "simple") {
-    aiAssistantSection.style.display = "none";
-    communicationSection.style.display = "none";
-    trackingSection.style.display = "block";
-    return;
-  }
-  if (mode === "pro") {
-    aiAssistantSection.style.display = "block";
-    communicationSection.style.display = "block";
-    trackingSection.style.display = "block";
-    return;
-  }
-  aiAssistantSection.style.display = "block";
-  communicationSection.style.display = "block";
-  trackingSection.style.display = "block";
-}
-
-function initializeInteractionMode() {
-  const stored = localStorage.getItem(INTERACTION_MODE_KEY) || "guided";
-  if (interactionMode) {
-    interactionMode.value = stored;
-  }
-  applyInteractionMode(stored);
-  if (interactionMode) {
-    interactionMode.addEventListener("change", (event) => {
-      const nextMode = String(event.target.value || "guided");
-      localStorage.setItem(INTERACTION_MODE_KEY, nextMode);
-      applyInteractionMode(nextMode);
-    });
-  }
-}
-
-initializeInteractionMode();
 
 const demoAds = [
   {

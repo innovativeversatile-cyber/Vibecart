@@ -21,6 +21,23 @@ function guard(condition, message) {
   }
 }
 
+async function ensureOwnerPayoutTable(db) {
+  await db.execute(
+    `CREATE TABLE IF NOT EXISTS owner_payouts (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      request_amount DECIMAL(12,2) NOT NULL,
+      currency CHAR(3) NOT NULL DEFAULT 'EUR',
+      destination_label VARCHAR(180) NULL,
+      notes VARCHAR(255) NULL,
+      payout_status ENUM('pending','ready','paid','on_hold') NOT NULL DEFAULT 'pending',
+      requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      paid_at DATETIME NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_owner_payouts_status_time (payout_status, requested_at)
+    )`
+  );
+}
+
 function applyPricingGuardrails(payload) {
   const orderTakeRatePercent = Number(payload.orderTakeRatePercent || 0);
   const bookingCommissionPercent = Number(payload.bookingCommissionPercent || 0);
@@ -287,6 +304,163 @@ async function recordAffiliateReferral(db, payload) {
   return { ok: true, affiliateReferralId: result.insertId };
 }
 
+async function getOwnerRevenueDashboard(db, payload = {}) {
+  await ensureOwnerPayoutTable(db);
+  const reservePercentInput = Number(payload.reservePercent ?? 10);
+  const reservePercent = Number.isFinite(reservePercentInput)
+    ? Math.min(50, Math.max(0, reservePercentInput))
+    : 10;
+
+  const [totalsRows] = await db.execute(
+    `SELECT
+       COALESCE(SUM(gross_amount), 0) AS gross_total,
+       COALESCE(SUM(tax_withheld_amount), 0) AS tax_withheld_total,
+       COALESCE(SUM(net_amount), 0) AS net_total
+     FROM platform_revenue_entries`
+  );
+  const totals = totalsRows[0] || {};
+  const grossTotal = toMoney(totals.gross_total);
+  const taxWithheldTotal = toMoney(totals.tax_withheld_total);
+  const netTotal = toMoney(totals.net_total);
+
+  const [sourceRows] = await db.execute(
+    `SELECT source_type, currency,
+            COALESCE(SUM(gross_amount), 0) AS gross_total,
+            COALESCE(SUM(tax_withheld_amount), 0) AS tax_withheld_total,
+            COALESCE(SUM(net_amount), 0) AS net_total
+     FROM platform_revenue_entries
+     GROUP BY source_type, currency
+     ORDER BY net_total DESC`
+  );
+
+  const [taxRows] = await db.execute(
+    `SELECT liable_party,
+            COALESCE(SUM(taxable_amount), 0) AS taxable_total,
+            COALESCE(SUM(tax_amount), 0) AS tax_total
+     FROM tax_ledger_entries
+     GROUP BY liable_party`
+  );
+  const taxByParty = { seller: { taxable: 0, tax: 0 }, platform: { taxable: 0, tax: 0 }, buyer: { taxable: 0, tax: 0 } };
+  taxRows.forEach((row) => {
+    const party = String(row.liable_party || "").toLowerCase();
+    if (!taxByParty[party]) {
+      return;
+    }
+    taxByParty[party] = {
+      taxable: toMoney(row.taxable_total),
+      tax: toMoney(row.tax_total)
+    };
+  });
+
+  const reserveAmount = toMoney((netTotal * reservePercent) / 100);
+  const [payoutTotalsRows] = await db.execute(
+    `SELECT
+       COALESCE(SUM(CASE WHEN payout_status IN ('pending','ready') THEN request_amount ELSE 0 END), 0) AS unsettled_total,
+       COALESCE(SUM(CASE WHEN payout_status = 'paid' THEN request_amount ELSE 0 END), 0) AS paid_total
+     FROM owner_payouts`
+  );
+  const payoutTotals = payoutTotalsRows[0] || {};
+  const unsettledPayoutTotal = toMoney(payoutTotals.unsettled_total);
+  const paidOutTotal = toMoney(payoutTotals.paid_total);
+  const ownerPayoutReady = toMoney(Math.max(0, netTotal - reserveAmount - unsettledPayoutTotal));
+
+  const [recentPayoutRows] = await db.execute(
+    `SELECT id, request_amount, currency, destination_label, notes, payout_status, requested_at, paid_at
+     FROM owner_payouts
+     ORDER BY requested_at DESC
+     LIMIT 20`
+  );
+
+  return {
+    ok: true,
+    policy: {
+      sellerHandlesTaxes: true,
+      ownerReceivesNetAfterPlatformWithholding: true
+    },
+    reservePercent,
+    totals: {
+      grossTotal,
+      taxWithheldTotal,
+      netTotal,
+      reserveAmount,
+      ownerPayoutReady,
+      unsettledPayoutTotal,
+      paidOutTotal
+    },
+    taxByParty,
+    bySource: sourceRows.map((row) => ({
+      sourceType: row.source_type,
+      currency: row.currency,
+      grossTotal: toMoney(row.gross_total),
+      taxWithheldTotal: toMoney(row.tax_withheld_total),
+      netTotal: toMoney(row.net_total)
+    })),
+    payouts: recentPayoutRows.map((row) => ({
+      payoutId: row.id,
+      requestAmount: toMoney(row.request_amount),
+      currency: row.currency,
+      destinationLabel: row.destination_label || "",
+      notes: row.notes || "",
+      payoutStatus: row.payout_status,
+      requestedAt: row.requested_at,
+      paidAt: row.paid_at
+    })),
+    notes: [
+      "Seller tax obligations remain with sellers according to their jurisdiction.",
+      "Owner payout-ready amount uses platform net revenue minus reserve holdback."
+    ]
+  };
+}
+
+async function requestOwnerPayout(db, payload = {}) {
+  await ensureOwnerPayoutTable(db);
+  const amount = toMoney(payload.amount);
+  const currency = String(payload.currency || "EUR").trim().toUpperCase() || "EUR";
+  const destinationLabel = String(payload.destinationLabel || "").trim();
+  const notes = String(payload.notes || "").trim();
+  const reservePercentInput = Number(payload.reservePercent ?? 10);
+  const reservePercent = Number.isFinite(reservePercentInput)
+    ? Math.min(50, Math.max(0, reservePercentInput))
+    : 10;
+  guard(amount > 0, "Payout amount must be greater than zero.");
+
+  const dashboard = await getOwnerRevenueDashboard(db, { reservePercent });
+  guard(amount <= Number(dashboard.totals.ownerPayoutReady || 0), "Payout amount exceeds owner payout-ready balance.");
+
+  const [result] = await db.execute(
+    `INSERT INTO owner_payouts (request_amount, currency, destination_label, notes, payout_status)
+     VALUES (?, ?, ?, ?, 'pending')`,
+    [amount, currency, destinationLabel || null, notes || null]
+  );
+  return { ok: true, payoutId: result.insertId, payoutStatus: "pending" };
+}
+
+async function updateOwnerPayoutStatus(db, payload = {}) {
+  await ensureOwnerPayoutTable(db);
+  const payoutId = Number(payload.payoutId || 0);
+  const payoutStatus = String(payload.payoutStatus || "").trim().toLowerCase();
+  const allowed = new Set(["pending", "ready", "paid", "on_hold"]);
+  guard(payoutId > 0, "Valid payoutId is required.");
+  guard(allowed.has(payoutStatus), "Invalid payout status.");
+
+  if (payoutStatus === "paid") {
+    await db.execute(
+      `UPDATE owner_payouts
+       SET payout_status = ?, paid_at = NOW()
+       WHERE id = ?`,
+      [payoutStatus, payoutId]
+    );
+  } else {
+    await db.execute(
+      `UPDATE owner_payouts
+       SET payout_status = ?, paid_at = NULL
+       WHERE id = ?`,
+      [payoutStatus, payoutId]
+    );
+  }
+  return { ok: true, payoutId, payoutStatus };
+}
+
 module.exports = {
   PRICE_GUARDRAILS,
   applyPricingGuardrails,
@@ -297,5 +471,8 @@ module.exports = {
   applyOrderMonetizationCharges,
   createLogisticsRateCard,
   createAffiliatePartner,
-  recordAffiliateReferral
+  recordAffiliateReferral,
+  getOwnerRevenueDashboard,
+  requestOwnerPayout,
+  updateOwnerPayoutStatus
 };

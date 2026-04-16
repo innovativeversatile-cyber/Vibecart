@@ -312,6 +312,109 @@ async function buyBoostForTarget() {
   setStatus(`Boost purchased. Purchase ID ${payload.boostPurchaseId}.`);
 }
 
+function renderOwnerRevenueDashboard(payload) {
+  const summaryNode = document.getElementById("ownerRevenueSummary");
+  const sourcesNode = document.getElementById("ownerRevenueSources");
+  const payoutHistoryNode = document.getElementById("ownerPayoutHistory");
+  if (!summaryNode || !sourcesNode || !payoutHistoryNode) {
+    return;
+  }
+  const totals = payload?.totals || {};
+  const taxByParty = payload?.taxByParty || {};
+  const sellerTax = taxByParty.seller || {};
+  const platformTax = taxByParty.platform || {};
+  const reservePercent = Number(payload?.reservePercent ?? 10);
+
+  summaryNode.textContent =
+    `Owner payout ready: EUR ${Number(totals.ownerPayoutReady || 0).toFixed(2)} | ` +
+    `Net platform revenue: EUR ${Number(totals.netTotal || 0).toFixed(2)} | ` +
+    `Platform tax withheld: EUR ${Number(totals.taxWithheldTotal || 0).toFixed(2)} | ` +
+    `Reserve (${reservePercent}%): EUR ${Number(totals.reserveAmount || 0).toFixed(2)} | ` +
+    `Unsettled payouts: EUR ${Number(totals.unsettledPayoutTotal || 0).toFixed(2)} | ` +
+    `Paid out total: EUR ${Number(totals.paidOutTotal || 0).toFixed(2)} | ` +
+    `Seller tax ledger: EUR ${Number(sellerTax.tax || 0).toFixed(2)} | ` +
+    `Platform tax ledger: EUR ${Number(platformTax.tax || 0).toFixed(2)}`;
+
+  const rows = Array.isArray(payload?.bySource) ? payload.bySource : [];
+  if (!rows.length) {
+    sourcesNode.innerHTML = "<div class='msg msg-buyer'>No revenue entries yet.</div>";
+    return;
+  }
+  sourcesNode.innerHTML = "";
+  rows.forEach((row) => {
+    const line = document.createElement("div");
+    line.className = "msg msg-buyer";
+    line.textContent =
+      `${row.sourceType} (${row.currency}) | gross=${Number(row.grossTotal || 0).toFixed(2)} | ` +
+      `tax_withheld=${Number(row.taxWithheldTotal || 0).toFixed(2)} | net=${Number(row.netTotal || 0).toFixed(2)}`;
+    sourcesNode.appendChild(line);
+  });
+
+  const payouts = Array.isArray(payload?.payouts) ? payload.payouts : [];
+  if (!payouts.length) {
+    payoutHistoryNode.innerHTML = "<div class='msg msg-buyer'>No owner payouts yet.</div>";
+    return;
+  }
+  payoutHistoryNode.innerHTML = "";
+  payouts.forEach((item) => {
+    const line = document.createElement("div");
+    line.className = "msg msg-buyer";
+    line.textContent =
+      `payout#${item.payoutId} | ${item.payoutStatus} | amount=${Number(item.requestAmount || 0).toFixed(2)} ${item.currency} | ` +
+      `destination=${item.destinationLabel || "n/a"} | requested=${item.requestedAt || "n/a"} | paid=${item.paidAt || "n/a"}`;
+    line.addEventListener("click", () => {
+      const idNode = document.getElementById("ownerPayoutId");
+      const statusNode = document.getElementById("ownerPayoutStatus");
+      if (idNode) {
+        idNode.value = String(item.payoutId || "");
+      }
+      if (statusNode) {
+        statusNode.value = String(item.payoutStatus || "pending");
+      }
+    });
+    payoutHistoryNode.appendChild(line);
+  });
+}
+
+async function refreshOwnerRevenueDashboard() {
+  const reservePercent = Number(document.getElementById("ownerReservePercent")?.value || "10");
+  const payload = await authedPost("/api/monetization/revenue/owner-dashboard", { reservePercent });
+  renderOwnerRevenueDashboard(payload);
+  setStatus("Owner revenue dashboard refreshed. Seller tax remains seller liability.");
+}
+
+async function requestOwnerPayoutFromPanel() {
+  const amount = Number(document.getElementById("ownerPayoutAmount")?.value || "0");
+  const destinationLabel = String(document.getElementById("ownerPayoutDestination")?.value || "").trim();
+  const notes = String(document.getElementById("ownerPayoutNotes")?.value || "").trim();
+  const reservePercent = Number(document.getElementById("ownerReservePercent")?.value || "10");
+  if (amount <= 0) {
+    setStatus("Enter a payout amount greater than zero.");
+    return;
+  }
+  const payload = await authedPost("/api/monetization/revenue/payout/request", {
+    amount,
+    currency: "EUR",
+    destinationLabel,
+    notes,
+    reservePercent
+  });
+  setStatus(`Payout request created. Payout ID ${payload.payoutId}.`);
+  await refreshOwnerRevenueDashboard();
+}
+
+async function updateOwnerPayoutStatusFromPanel() {
+  const payoutId = Number(document.getElementById("ownerPayoutId")?.value || "0");
+  const payoutStatus = String(document.getElementById("ownerPayoutStatus")?.value || "pending");
+  if (!payoutId) {
+    setStatus("Enter a valid payout record ID.");
+    return;
+  }
+  await authedPost("/api/monetization/revenue/payout/status/update", { payoutId, payoutStatus });
+  setStatus(`Payout #${payoutId} updated to ${payoutStatus}.`);
+  await refreshOwnerRevenueDashboard();
+}
+
 function renderTrustProfiles(items) {
   const container = document.getElementById("trustProfilesList");
   if (!container) {
@@ -418,6 +521,52 @@ async function refreshCoachMetrics() {
     `General fitness: ${s.generalFitness || 0} | Active medication plans: ${s.activeMedicationSchedules || 0} | ` +
     `Check-ins (7 days): ${s.checkinsLast7Days || 0}`;
   setStatus("AI coach metrics refreshed.");
+}
+
+function renderRiskDashboard(payload) {
+  const summaryNode = document.getElementById("riskDashboardSummary");
+  const byFocusNode = document.getElementById("riskDashboardByFocus");
+  const trendsNode = document.getElementById("riskDashboardTrends");
+  if (!summaryNode || !byFocusNode || !trendsNode) {
+    return;
+  }
+  const summary = payload?.summary || {};
+  summaryNode.textContent =
+    `Avg trust score: ${Number(summary.avgTrustScore || 0).toFixed(1)} | ` +
+    `High safety events (30d): ${Number(summary.highSafetyEvents30d || 0)} | ` +
+    `Medium safety events (30d): ${Number(summary.mediumSafetyEvents30d || 0)} | ` +
+    `Delivery reliability (30d): ${Number(summary.deliveryReliability30d || 0).toFixed(2)}%`;
+
+  const byFocus = Array.isArray(payload?.byFocus) ? payload.byFocus : [];
+  if (!byFocus.length) {
+    byFocusNode.innerHTML = "<div class='msg msg-buyer'>No risk action history yet.</div>";
+  } else {
+    byFocusNode.innerHTML = "";
+    byFocus.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "msg msg-buyer";
+      row.textContent = `${item.riskFocus} | events=${item.eventCount} | score_delta=${item.totalDelta}`;
+      byFocusNode.appendChild(row);
+    });
+  }
+
+  const seven = Array.isArray(payload?.trends?.sevenDay) ? payload.trends.sevenDay : [];
+  const thirty = Array.isArray(payload?.trends?.thirtyDay) ? payload.trends.thirtyDay : [];
+  trendsNode.innerHTML = "";
+  const sevenNode = document.createElement("div");
+  sevenNode.className = "msg msg-buyer";
+  sevenNode.textContent = `7-day trend: ${seven.map((x) => `${x.day}:${x.events}`).join(" | ") || "no events"}`;
+  trendsNode.appendChild(sevenNode);
+  const thirtyNode = document.createElement("div");
+  thirtyNode.className = "msg msg-buyer";
+  thirtyNode.textContent = `30-day trend: ${thirty.map((x) => `${x.day}:${x.events}`).join(" | ") || "no events"}`;
+  trendsNode.appendChild(thirtyNode);
+}
+
+async function refreshRiskDashboard() {
+  const payload = await authedPost("/api/risk/owner-dashboard", {});
+  renderRiskDashboard(payload);
+  setStatus("Platform risk dashboard refreshed.");
 }
 
 function renderInsuranceJurisdictions(items) {
@@ -596,6 +745,8 @@ async function unlockPanel() {
   refreshTrustProfiles().catch(() => setStatus("Panel unlocked. Could not load trust list yet."));
   refreshChatSafetyEvents().catch(() => setStatus("Panel unlocked. Could not load chat safety events yet."));
   refreshCoachMetrics().catch(() => setStatus("Panel unlocked. Could not load coach metrics yet."));
+  refreshOwnerRevenueDashboard().catch(() => setStatus("Panel unlocked. Could not load owner revenue dashboard yet."));
+  refreshRiskDashboard().catch(() => setStatus("Panel unlocked. Could not load risk dashboard yet."));
 }
 
 async function updateOwnerAuthFromPanel() {
@@ -815,6 +966,8 @@ function initializeOwnerSecurity() {
     refreshTrustProfiles().catch(() => {});
     refreshChatSafetyEvents().catch(() => {});
     refreshCoachMetrics().catch(() => {});
+    refreshOwnerRevenueDashboard().catch(() => {});
+    refreshRiskDashboard().catch(() => {});
     return;
   }
   clearSession();
@@ -888,6 +1041,18 @@ bindClick("refreshChatSafetyEvents", () => {
 bindClick("refreshCoachMetrics", () => {
   refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`));
 });
+bindClick("refreshRiskDashboard", () => {
+  refreshRiskDashboard().catch((error) => setStatus(`Risk dashboard refresh failed: ${error.message}`));
+});
+bindClick("refreshOwnerRevenueDashboard", () => {
+  refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`));
+});
+bindClick("requestOwnerPayout", () => {
+  requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`));
+});
+bindClick("updateOwnerPayoutStatus", () => {
+  updateOwnerPayoutStatusFromPanel().catch((error) => setStatus(`Payout status update failed: ${error.message}`));
+});
 
 // Global fail-safe: if any direct listener failed to bind, this still handles button clicks.
 const clickHandlers = {
@@ -921,7 +1086,13 @@ const clickHandlers = {
   refreshTrustProfiles: () => refreshTrustProfiles().catch((error) => setStatus(`Trust refresh failed: ${error.message}`)),
   refreshChatSafetyEvents: () =>
     refreshChatSafetyEvents().catch((error) => setStatus(`Chat safety refresh failed: ${error.message}`)),
-  refreshCoachMetrics: () => refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`))
+  refreshCoachMetrics: () => refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`)),
+  refreshRiskDashboard: () => refreshRiskDashboard().catch((error) => setStatus(`Risk dashboard refresh failed: ${error.message}`)),
+  refreshOwnerRevenueDashboard: () =>
+    refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`)),
+  requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),
+  updateOwnerPayoutStatus: () =>
+    updateOwnerPayoutStatusFromPanel().catch((error) => setStatus(`Payout status update failed: ${error.message}`))
 };
 
 document.addEventListener("click", (event) => {

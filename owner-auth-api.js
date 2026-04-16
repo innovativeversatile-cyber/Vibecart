@@ -23,7 +23,10 @@ const {
   applyOrderMonetizationCharges,
   createLogisticsRateCard,
   createAffiliatePartner,
-  recordAffiliateReferral
+  recordAffiliateReferral,
+  getOwnerRevenueDashboard,
+  requestOwnerPayout,
+  updateOwnerPayoutStatus
 } = require("./monetization-service");
 const {
   listPublicInsurancePlans,
@@ -59,6 +62,13 @@ const {
   getCoachMetricsSummary,
   queueDailyHealthReminders
 } = require("./safety-wellness-service");
+const {
+  runFraudPrecheck,
+  evaluateTrustSafety,
+  getDiscoveryRecommendations,
+  getTechnicalRiskRecommendations,
+  getOwnerRiskDashboard
+} = require("./risk-intelligence-service");
 
 const PORT = Number(process.env.PORT || 8081);
 const DB_HOST = process.env.DB_HOST || "127.0.0.1";
@@ -430,6 +440,33 @@ async function handleValidatePricing(req, res) {
   return sendJson(res, 200, { ok: true, message: "Pricing fits affordability guardrails." });
 }
 
+async function handleOwnerRevenueDashboard(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await getOwnerRevenueDashboard(pool, data.body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerPayoutRequest(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await requestOwnerPayout(pool, data.body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerPayoutStatusUpdate(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await updateOwnerPayoutStatus(pool, data.body || {});
+  return sendJson(res, 200, result);
+}
+
 async function handleCreateInsuranceProvider(req, res) {
   const data = await readBodyWithSession(req, res);
   if (!data) {
@@ -664,6 +701,185 @@ async function handleHealthDailyCron(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function handlePublicPlatformRiskScoreboard(req, res) {
+  const [trustRows] = await pool.execute(
+    `SELECT AVG(trust_score) AS avg_trust_score FROM trust_profiles`
+  );
+  const avgTrust = Number(trustRows[0]?.avg_trust_score || 60);
+
+  const [chatRows] = await pool.execute(
+    `SELECT
+       SUM(CASE WHEN risk_level = 'high' THEN 1 ELSE 0 END) AS high_count,
+       COUNT(*) AS total_count
+     FROM chat_safety_events
+     WHERE created_at >= (NOW() - INTERVAL 30 DAY)`
+  );
+  const highSafety = Number(chatRows[0]?.high_count || 0);
+  const totalSafety = Number(chatRows[0]?.total_count || 0);
+  const highRatio = totalSafety > 0 ? highSafety / totalSafety : 0;
+
+  const [complianceRows] = await pool.execute(
+    `SELECT
+       SUM(CASE WHEN result = 'blocked' THEN 1 ELSE 0 END) AS blocked_count,
+       COUNT(*) AS total_count
+     FROM compliance_checks
+     WHERE checked_at >= (NOW() - INTERVAL 30 DAY)`
+  );
+  const blockedCompliance = Number(complianceRows[0]?.blocked_count || 0);
+  const totalCompliance = Number(complianceRows[0]?.total_count || 0);
+  const blockedRatio = totalCompliance > 0 ? blockedCompliance / totalCompliance : 0;
+
+  const [deliveryRows] = await pool.execute(
+    `SELECT
+       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered_count,
+       SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+       COUNT(*) AS total_count
+     FROM shipments
+     WHERE created_at >= (NOW() - INTERVAL 30 DAY)`
+  );
+  const deliveredCount = Number(deliveryRows[0]?.delivered_count || 0);
+  const failedCount = Number(deliveryRows[0]?.failed_count || 0);
+  const totalDelivery = Number(deliveryRows[0]?.total_count || 0);
+  const deliveryReliability = totalDelivery > 0 ? deliveredCount / totalDelivery : 0.6;
+
+  const [disputeRows] = await pool.execute(
+    `SELECT COUNT(*) AS dispute_count
+     FROM return_requests
+     WHERE created_at >= (NOW() - INTERVAL 30 DAY)`
+  );
+  const disputeCount = Number(disputeRows[0]?.dispute_count || 0);
+
+  const [sellerRows] = await pool.execute(
+    `SELECT COUNT(*) AS active_sellers
+     FROM shops
+     WHERE active = 1`
+  );
+  const activeSellers = Number(sellerRows[0]?.active_sellers || 0);
+
+  const [productRows] = await pool.execute(
+    `SELECT COUNT(*) AS active_products
+     FROM products
+     WHERE status = 'active'`
+  );
+  const activeProducts = Number(productRows[0]?.active_products || 0);
+
+  const [buyerRows] = await pool.execute(
+    `SELECT COUNT(DISTINCT buyer_user_id) AS active_buyers_30d
+     FROM orders
+     WHERE created_at >= (NOW() - INTERVAL 30 DAY)`
+  );
+  const activeBuyers30d = Number(buyerRows[0]?.active_buyers_30d || 0);
+
+  const [riskEventRows] = await pool.execute(
+    `SELECT risk_focus, COALESCE(SUM(score_delta), 0) AS total_delta
+     FROM platform_risk_events
+     WHERE created_at >= (NOW() - INTERVAL 30 DAY)
+     GROUP BY risk_focus`
+  );
+  const riskDeltaMap = Object.create(null);
+  riskEventRows.forEach((row) => {
+    riskDeltaMap[String(row.risk_focus)] = Number(row.total_delta || 0);
+  });
+
+  const liquidityBase = activeSellers > 0
+    ? Math.min(100, Math.round((activeBuyers30d / Math.max(activeSellers, 1)) * 30 + Math.min(activeProducts, 400) / 8))
+    : 45;
+  const trustBase = Math.round((avgTrust * 0.7) + ((1 - highRatio) * 30));
+  const badDebtBase = Math.round((1 - highRatio) * 55 + deliveryReliability * 30 + (1 - blockedRatio) * 15);
+  const complianceBase = Math.round((1 - blockedRatio) * 85 + 10);
+  const scalingBase = Math.round(Math.max(45, Math.min(95, 55 + Math.log10(Math.max(totalDelivery + totalSafety + totalCompliance, 1)) * 20)));
+  const cacBase = Math.round(Math.max(40, Math.min(90, 50 + Math.min(activeBuyers30d, 500) / 10 - Math.min(disputeCount, 80) / 4)));
+  const logisticsBase = Math.round(deliveryReliability * 80 + Math.max(0, 20 - Math.min(disputeCount, 40) / 2));
+
+  const scoreboard = {
+    liquidity: Math.max(0, Math.min(100, liquidityBase + (riskDeltaMap.liquidity || 0))),
+    trust: Math.max(0, Math.min(100, trustBase + (riskDeltaMap.trust || 0))),
+    bad_debt: Math.max(0, Math.min(100, badDebtBase + (riskDeltaMap.bad_debt || 0))),
+    compliance: Math.max(0, Math.min(100, complianceBase + (riskDeltaMap.compliance || 0))),
+    scaling: Math.max(0, Math.min(100, scalingBase + (riskDeltaMap.scaling || 0))),
+    cac: Math.max(0, Math.min(100, cacBase + (riskDeltaMap.cac || 0))),
+    logistics: Math.max(0, Math.min(100, logisticsBase + (riskDeltaMap.logistics || 0)))
+  };
+
+  return sendJson(res, 200, {
+    ok: true,
+    scoreboard,
+    signals: {
+      activeSellers,
+      activeProducts,
+      activeBuyers30d,
+      highSafetyEvents30d: highSafety,
+      disputeCount30d: disputeCount,
+      deliveryReliability: Number((deliveryReliability * 100).toFixed(2))
+    }
+  });
+}
+
+async function handlePublicPlatformRiskPlan(req, res) {
+  const body = await readJson(req);
+  const allowed = new Set(["liquidity", "trust", "bad_debt", "compliance", "scaling", "cac", "logistics"]);
+  const riskFocus = String(body.riskFocus || "").trim().toLowerCase();
+  const riskSignal = String(body.riskSignal || "").trim().slice(0, 255);
+  const planHeadline = String(body.planHeadline || "").trim().slice(0, 255);
+  const scoreDelta = Number(body.scoreDelta || 0);
+
+  if (!allowed.has(riskFocus)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_RISK_FOCUS" });
+  }
+  if (!planHeadline) {
+    return sendJson(res, 400, { ok: false, code: "PLAN_HEADLINE_REQUIRED" });
+  }
+  if (!Number.isFinite(scoreDelta) || Math.abs(scoreDelta) > 20) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_SCORE_DELTA" });
+  }
+
+  await pool.execute(
+    `INSERT INTO platform_risk_events (
+      risk_focus, risk_signal, plan_headline, score_delta
+    ) VALUES (?, ?, ?, ?)`,
+    [riskFocus, riskSignal || null, planHeadline, Math.round(scoreDelta)]
+  );
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handlePublicFraudPrecheck(req, res) {
+  const body = await readJson(req);
+  const result = await runFraudPrecheck(pool, body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicTrustSafetyEvaluate(req, res) {
+  const body = await readJson(req);
+  const result = await evaluateTrustSafety(pool, body || {});
+  if (!result.ok) {
+    return sendJson(res, 400, result);
+  }
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicDiscoveryRecommendations(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const result = await getDiscoveryRecommendations(pool, {
+    userCountry: String(urlObj.searchParams.get("userCountry") || "").trim().toUpperCase(),
+    preferredCategory: String(urlObj.searchParams.get("preferredCategory") || "").trim()
+  });
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicTechnicalRiskRecommendations(req, res) {
+  const result = await getTechnicalRiskRecommendations(pool);
+  return sendJson(res, 200, result);
+}
+
+async function handleOwnerRiskDashboard(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const result = await getOwnerRiskDashboard(pool);
+  return sendJson(res, 200, result);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const ip = getIp(req);
@@ -703,6 +919,24 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && req.url === "/api/public/coach/checkin/add") {
       return await handlePublicHealthCheckin(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/platform-risk/scoreboard")) {
+      return await handlePublicPlatformRiskScoreboard(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/discovery/recommendations")) {
+      return await handlePublicDiscoveryRecommendations(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/technical-risk/recommendations")) {
+      return await handlePublicTechnicalRiskRecommendations(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/platform-risk/plan") {
+      return await handlePublicPlatformRiskPlan(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/fraud/precheck") {
+      return await handlePublicFraudPrecheck(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/public/trust-safety/evaluate") {
+      return await handlePublicTrustSafetyEvaluate(req, res);
     }
     if (req.method === "POST" && req.url === "/api/chat/safety/events/list") {
       return await handleOwnerChatSafetyEvents(req, res);
@@ -782,6 +1016,15 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/api/monetization/guardrails/validate") {
       return await handleValidatePricing(req, res);
     }
+    if (req.method === "POST" && req.url === "/api/monetization/revenue/owner-dashboard") {
+      return await handleOwnerRevenueDashboard(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/monetization/revenue/payout/request") {
+      return await handleOwnerPayoutRequest(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/monetization/revenue/payout/status/update") {
+      return await handleOwnerPayoutStatusUpdate(req, res);
+    }
     if (req.method === "POST" && req.url === "/api/insurance/provider/create") {
       return await handleCreateInsuranceProvider(req, res);
     }
@@ -823,6 +1066,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && req.url === "/api/trust/profile/list") {
       return await handleOwnerListTrustProfiles(req, res);
+    }
+    if (req.method === "POST" && req.url === "/api/risk/owner-dashboard") {
+      return await handleOwnerRiskDashboard(req, res);
     }
     return sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
   } catch (error) {

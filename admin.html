@@ -212,6 +212,47 @@
           <button id="assignPlanToShop" type="button" class="btn btn-secondary">Assign Plan to Shop</button>
           <button id="buyBoostForTarget" type="button" class="btn btn-secondary">Buy Boost for Target</button>
         </div>
+        <hr />
+        <h3>Owner Revenue Dashboard (Net Payout First)</h3>
+        <p class="note">
+          Seller taxes stay the seller's legal responsibility. This dashboard prioritizes your clean owner payout after platform-level
+          withholding and reserve holdback.
+        </p>
+        <div class="admin-grid">
+          <label>Reserve Holdback (%)</label>
+          <input id="ownerReservePercent" type="number" min="0" max="50" step="1" value="10" />
+        </div>
+        <div class="hero-actions">
+          <button id="refreshOwnerRevenueDashboard" type="button" class="btn btn-primary">Refresh Owner Revenue</button>
+        </div>
+        <div class="admin-grid">
+          <label>Payout Request Amount (EUR)</label>
+          <input id="ownerPayoutAmount" type="number" min="0.01" step="0.01" placeholder="Example: 150.00" />
+
+          <label>Payout Destination Label</label>
+          <input id="ownerPayoutDestination" type="text" placeholder="Example: FNB Primary Account" />
+
+          <label>Payout Notes</label>
+          <input id="ownerPayoutNotes" type="text" placeholder="Optional note for payout record" />
+
+          <label>Payout Record ID (for status update)</label>
+          <input id="ownerPayoutId" type="number" min="1" placeholder="Example: 3" />
+
+          <label>Set Payout Status</label>
+          <select id="ownerPayoutStatus">
+            <option value="pending">pending</option>
+            <option value="ready">ready</option>
+            <option value="paid">paid</option>
+            <option value="on_hold">on_hold</option>
+          </select>
+        </div>
+        <div class="hero-actions">
+          <button id="requestOwnerPayout" type="button" class="btn btn-secondary">Request Payout</button>
+          <button id="updateOwnerPayoutStatus" type="button" class="btn btn-secondary">Update Payout Status</button>
+        </div>
+        <div id="ownerRevenueSummary" class="ai-result"></div>
+        <div id="ownerRevenueSources" class="messages-box"></div>
+        <div id="ownerPayoutHistory" class="messages-box"></div>
 
         <hr />
         <h3>Trust Score Manager</h3>
@@ -276,6 +317,19 @@
           <button id="refreshCoachMetrics" type="button" class="btn btn-secondary">Refresh Coach Metrics</button>
         </div>
         <div id="coachMetricsBox" class="ai-result"></div>
+
+        <hr />
+        <h3>Platform Risk Command Dashboard</h3>
+        <p class="note">
+          Central risk intelligence for launch challenges: liquidity, trust/safety, bad debt, compliance,
+          technical scaling, CAC pressure, and logistics disputes.
+        </p>
+        <div class="hero-actions">
+          <button id="refreshRiskDashboard" type="button" class="btn btn-secondary">Refresh Risk Dashboard</button>
+        </div>
+        <div id="riskDashboardSummary" class="ai-result"></div>
+        <div id="riskDashboardByFocus" class="messages-box"></div>
+        <div id="riskDashboardTrends" class="messages-box"></div>
 
         <hr />
         <h3>Insurance Jurisdiction Control</h3>

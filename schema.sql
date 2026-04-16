@@ -901,6 +901,16 @@ CREATE TABLE audit_logs (
   INDEX idx_audit_actor_created (actor_user_id, created_at)
 );
 
+CREATE TABLE platform_risk_events (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  risk_focus ENUM('liquidity','trust','bad_debt','compliance','scaling','cac','logistics') NOT NULL,
+  risk_signal VARCHAR(255) NULL,
+  plan_headline VARCHAR(255) NOT NULL,
+  score_delta INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_platform_risk_focus_time (risk_focus, created_at)
+);
+
 CREATE TABLE conversations (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   order_id BIGINT UNSIGNED NULL,

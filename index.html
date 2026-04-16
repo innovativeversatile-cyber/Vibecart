@@ -297,6 +297,42 @@
         </div>
       </section>
 
+      <section id="ai-management-assistant" class="section alt">
+        <h2>AI Management Assistant</h2>
+        <p>
+          Running a business on VibeCart? Use AI management help for pricing, stock, promotions,
+          and daily operations based on your goals.
+        </p>
+        <div class="ai-grid">
+          <label for="bizGoal">Business Goal</label>
+          <input id="bizGoal" type="text" placeholder="Example: increase sales by 20% this month" />
+
+          <label for="bizPriority">Current Priority</label>
+          <select id="bizPriority">
+            <option value="sales">Sales Growth</option>
+            <option value="inventory">Inventory Turnover</option>
+            <option value="marketing">Marketing Reach</option>
+            <option value="service">Customer Service</option>
+          </select>
+
+          <label for="bizInventory">Inventory Status</label>
+          <input id="bizInventory" type="text" placeholder="Example: 15 phones, 8 headsets, 2 low-stock items" />
+
+          <label for="bizBudget">Promotion Budget (EUR)</label>
+          <input id="bizBudget" type="number" min="0" placeholder="Example: 150" />
+
+          <div class="hero-actions">
+            <button id="bizAssist" class="btn btn-primary">Get AI Management Plan</button>
+            <button id="bizClearHistory" class="btn btn-secondary">Clear Plan History</button>
+          </div>
+        </div>
+        <div id="bizResult" class="ai-result" aria-live="polite"></div>
+        <div class="ai-result">
+          <strong>Previous Management Plans</strong>
+          <div id="bizHistory" class="biz-history"></div>
+        </div>
+      </section>
+
       <section id="ads" class="section alt">
         <h2>Sponsored Brands and Ads</h2>
         <p>
@@ -358,18 +394,6 @@
           Compliance mode: listings and orders are screened against country/state/city rules.
           If legality is unclear, the transaction is blocked or sent to manual review.
         </p>
-      </section>
-      <section class="section alt">
-        <h2>Adaptive Market Interface</h2>
-        <p id="marketMode">
-          Market mode: Global default. The interface can localize messaging and visual style by audience region.
-        </p>
-        <label for="interactionMode">Choose your interaction style</label>
-        <select id="interactionMode">
-          <option value="guided">Guided (AI + helper tips)</option>
-          <option value="simple">Simple (minimal interface)</option>
-          <option value="pro">Pro (full marketplace controls)</option>
-        </select>
       </section>
       <section id="communication" class="section">
         <h2>Buyer-Seller Communication Hub</h2>
@@ -508,6 +532,37 @@
           Every transaction includes tax calculation and withholding records before payout.
           Net revenue and payable tax are tracked to reduce tax-evasion risk.
         </p>
+      </section>
+
+      <section id="platform-resilience" class="section">
+        <h2>AI Platform Resilience System</h2>
+        <p>
+          This system handles major marketplace launch risks automatically across website and app:
+          liquidity (chicken-and-egg), trust and safety, bad debt/fraud exposure, legal compliance,
+          technical scaling, customer acquisition cost, logistics reliability, and dispute pressure.
+        </p>
+        <div class="ai-grid">
+          <label for="riskFocus">Current Risk Focus</label>
+          <select id="riskFocus">
+            <option value="liquidity">Chicken-and-Egg (buyers vs sellers)</option>
+            <option value="trust">Trust and Safety</option>
+            <option value="bad_debt">Bad Debt and Fraud Risk</option>
+            <option value="compliance">Legal and Regulatory Compliance</option>
+            <option value="scaling">Technical Complexity and Scalability</option>
+            <option value="cac">High Customer Acquisition Cost</option>
+            <option value="logistics">Logistics and Disputes</option>
+          </select>
+
+          <label for="riskSignal">Current Signal</label>
+          <input id="riskSignal" type="text" placeholder="Example: disputes up 18% and delivery delays in 2 routes" />
+
+          <button id="runRiskPlan" class="btn btn-primary">Run AI Resilience Plan</button>
+        </div>
+        <div id="riskPlanResult" class="ai-result" aria-live="polite"></div>
+        <div class="ai-result">
+          <strong>Risk Control Scoreboard</strong>
+          <div id="riskScoreboard" class="biz-history"></div>
+        </div>
       </section>
 
       <section class="section">
