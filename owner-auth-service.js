@@ -2,7 +2,8 @@
 
 const crypto = require("crypto");
 
-const SESSION_TTL_MS = 15 * 60 * 1000;
+// Longer sessions reduce “save failed” right after admin login during real edits.
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const LOCKOUT_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 

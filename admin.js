@@ -1252,15 +1252,21 @@ async function saveSettings() {
   }
   if (!saved) {
     if (lastCode === "INVALID_SESSION") {
-      setStatus("Saved locally only. Cloud save failed: session expired. Unlock panel again, then save.");
+      setStatus(
+        `Saved locally only. Cloud save failed: session not accepted (${lastCode}). Unlock again, then save.${lastMessage ? ` Detail: ${lastMessage}` : ""}`
+      );
       return;
     }
     if (lastCode === "SITE_SETTINGS_DB_UNAVAILABLE" || lastCode === "SITE_SETTINGS_SAVE_FAILED") {
-      setStatus("Saved locally only. Cloud save backend is unavailable. Restart API service and try again.");
+      setStatus(
+        `Saved locally only. Cloud save failed (${lastCode}). Check Railway API logs and MySQL.${lastMessage ? ` Detail: ${lastMessage}` : ""}`
+      );
       return;
     }
     if (lastCode === "SERVER_ERROR") {
-      setStatus("Saved locally only. Cloud save hit a server error. Restart API service, then retry.");
+      setStatus(
+        `Saved locally only. Cloud save failed (${lastCode}).${lastMessage ? ` Detail: ${lastMessage}` : " Restart API and retry."}`
+      );
       return;
     }
     setStatus(`Saved locally only. Cloud save failed: ${lastCode}${lastMessage ? ` (${lastMessage})` : ""}`);

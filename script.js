@@ -294,7 +294,7 @@ function renderBridgePathShops(pathProducts, path) {
   });
   const shops = Array.from(grouped.values()).slice(0, 12);
   if (shops.length === 0) {
-    bridgeShops.innerHTML = `<article class="shop"><h3>No shops yet</h3><p>Seed route shops and products to activate ${getPathLabel(path)}.</p></article>`;
+    bridgeShops.innerHTML = `<article class="shop"><h3>Live route shops</h3><p>No seeded listings on <strong>${getPathLabel(path)}</strong> yet. Scroll up to <a href="#shops">regional shop folders</a> for curated retailers, or add products in the database.</p></article>`;
     return;
   }
   bridgeShops.innerHTML = "";
@@ -315,6 +315,11 @@ function renderBridgePathProducts(pathProducts) {
     return;
   }
   if (!Array.isArray(pathProducts) || pathProducts.length === 0) {
+    if (productsGrid.querySelector(".product")) {
+      products = Array.from(productsGrid.querySelectorAll(".product"));
+      filterProducts(categoryFilter ? categoryFilter.value : "All");
+      return;
+    }
     productsGrid.innerHTML =
       `<article class="product" data-category="All" data-unique="1">
         <h3>No live route products found</h3>
