@@ -222,6 +222,21 @@ function getProductsForPath(path) {
   return liveMarketplaceCache.filter((item) => classifyBridgePath(item.originCountry) === path);
 }
 
+const DEMO_BRIDGE_SHOPS = {
+  "from-europe": [
+    { name: "Lublin Campus Deals", origin: "PL", href: "#shops", line: "Europe → Africa lane — seed live listings to replace this tile." },
+    { name: "Warsaw Campus Deals", origin: "PL", href: "#shops", line: "Campus picks in Regional shop folders above." },
+    { name: "Berlin & Lyon (live)", origin: "DE / FR", href: "#market", line: "Browse the demo grid below when the live API is quiet." },
+    { name: "EU national retailers", origin: "EU", href: "#shops", line: "Allegro, Zalando, Amazon DE, UK high-street tiles in folders." }
+  ],
+  "from-africa": [
+    { name: "Mama Africa lane", origin: "AFR", href: "#shops", line: "ZA, KE, NG, ZW & more — curated tiles in Regional shop folders." },
+    { name: "Takealot (South Africa)", origin: "ZA", href: "https://www.takealot.com", line: "External marketplace — high national traffic.", external: true },
+    { name: "Jumia South Africa", origin: "ZA", href: "https://www.jumia.co.za", line: "External storefront on the Africa → Europe story.", external: true },
+    { name: "Seed live shops", origin: "—", href: "#market", line: "Add African-origin products in Railway DB to populate live tiles." }
+  ]
+};
+
 function renderBridgePathShops(pathProducts, path) {
   if (!bridgeShops) {
     return;
@@ -240,7 +255,22 @@ function renderBridgePathShops(pathProducts, path) {
   });
   const shops = Array.from(grouped.values()).slice(0, 12);
   if (shops.length === 0) {
-    bridgeShops.innerHTML = `<article class="shop"><h3>Live route shops</h3><p>No seeded listings on <strong>${getPathLabel(path)}</strong> yet. Scroll up to <a href="#shops">regional shop folders</a> for curated retailers, or add products in the database.</p></article>`;
+    const demos = DEMO_BRIDGE_SHOPS[path] || DEMO_BRIDGE_SHOPS["from-europe"];
+    bridgeShops.innerHTML = "";
+    demos.forEach((row) => {
+      const node = document.createElement("article");
+      node.className = "shop";
+      const safeName = String(row.name || "Shop").replace(/</g, "&lt;");
+      const safeLine = String(row.line || "").replace(/</g, "&lt;");
+      const safeOrigin = String(row.origin || "").replace(/</g, "&lt;");
+      const ext = row.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+      node.innerHTML = `
+        <a href="${String(row.href)}"${ext}><h3>${safeName}</h3></a>
+        <p class="note">${safeOrigin}</p>
+        <p>${safeLine}</p>
+      `;
+      bridgeShops.appendChild(node);
+    });
     return;
   }
   bridgeShops.innerHTML = "";
@@ -909,7 +939,7 @@ function registerEngagementSignals() {
 function initLuxuryMotion() {
   document.body.classList.add("luxe-ready");
   const nodes = document.querySelectorAll(
-    ".hero, .section, .home-cta-strip, .bento-card, .product, .shop, .settings-card"
+    ".hero, .section, .home-cta-strip, .bento-card, .settings-card"
   );
   nodes.forEach((node, index) => {
     if (index < 3) {

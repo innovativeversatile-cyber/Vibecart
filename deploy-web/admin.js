@@ -978,77 +978,117 @@ async function downloadBackupSnapshot() {
   setStatus("Backup JSON downloaded.");
 }
 
+const SAVE_SETTINGS_FETCH_MS = 25000;
+
 async function saveSettings() {
   const session = getSession();
   if (!session.token) {
     setStatus("Unlock panel first before saving.");
+    updateOwnerCommandDeck("Not signed in");
     return;
   }
-  const payload = {
-    title: document.getElementById("setTitle").value.trim() || defaults.title,
-    badge: document.getElementById("setBadge").value.trim() || defaults.badge,
-    headline: document.getElementById("setHeadline").value.trim() || defaults.headline,
-    subtitle: document.getElementById("setSubtitle").value.trim() || defaults.subtitle,
-    bridgeTitle: document.getElementById("setBridgeTitle").value.trim() || defaults.bridgeTitle,
-    bridgeText: document.getElementById("setBridgeText").value.trim() || defaults.bridgeText,
-    theme: document.getElementById("setTheme").value || defaults.theme
-  };
+  setStatus("Saving…");
+  updateOwnerCommandDeck("Saving site settings…");
+  try {
+    const payload = {
+      title: (document.getElementById("setTitle")?.value || "").trim() || defaults.title,
+      badge: (document.getElementById("setBadge")?.value || "").trim() || defaults.badge,
+      headline: (document.getElementById("setHeadline")?.value || "").trim() || defaults.headline,
+      subtitle: (document.getElementById("setSubtitle")?.value || "").trim() || defaults.subtitle,
+      bridgeTitle: (document.getElementById("setBridgeTitle")?.value || "").trim() || defaults.bridgeTitle,
+      bridgeText: (document.getElementById("setBridgeText")?.value || "").trim() || defaults.bridgeText,
+      theme: document.getElementById("setTheme")?.value || defaults.theme
+    };
 
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  localStorage.setItem("vibecart-theme", payload.theme);
-  const requestBody = JSON.stringify({
-    token: session.token,
-    authToken: session.token,
-    settings: payload
-  });
-  const endpoints = [
-    `${getApiBase()}/api/owner/site-settings/upsert`,
-    "https://api.vibe-cart.com/api/owner/site-settings/upsert"
-  ];
-  let saved = false;
-  let lastCode = "UNKNOWN_ERROR";
-  let lastMessage = "";
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: requestBody
-      });
-      const result = await response.json().catch(() => ({}));
-      if (response.ok && result.ok) {
-        saved = true;
-        break;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem("vibecart-theme", payload.theme);
+    const requestBody = JSON.stringify({
+      token: session.token,
+      authToken: session.token,
+      settings: payload
+    });
+    const endpoints = [
+      `${getApiBase()}/api/owner/site-settings/upsert`,
+      "https://api.vibe-cart.com/api/owner/site-settings/upsert"
+    ];
+    let saved = false;
+    let lastCode = "UNKNOWN_ERROR";
+    let lastMessage = "";
+    for (const endpoint of endpoints) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), SAVE_SETTINGS_FETCH_MS);
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: requestBody,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const raw = await response.text();
+        let result = {};
+        try {
+          result = raw ? JSON.parse(raw) : {};
+        } catch {
+          lastCode = `HTTP_${response.status}_NOT_JSON`;
+          lastMessage = raw.slice(0, 200);
+          continue;
+        }
+        if (response.ok && result.ok) {
+          saved = true;
+          break;
+        }
+        lastCode = result.code || `HTTP_${response.status}`;
+        lastMessage = String(result.message || "").trim();
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error && error.name === "AbortError") {
+          lastCode = "REQUEST_TIMEOUT";
+          lastMessage = `No response within ${SAVE_SETTINGS_FETCH_MS / 1000}s (${endpoint})`;
+        } else {
+          lastCode = "NETWORK_ERROR";
+          lastMessage = String(error?.message || error || "").trim();
+        }
       }
-      lastCode = result.code || `HTTP_${response.status}`;
-      lastMessage = String(result.message || "").trim();
-    } catch {
-      lastCode = "NETWORK_ERROR";
     }
+    if (!saved) {
+      if (lastCode === "INVALID_SESSION") {
+        setStatus(
+          `Saved locally only. Cloud save failed: session not accepted (${lastCode}). Unlock again, then save.${lastMessage ? ` Detail: ${lastMessage}` : ""}`
+        );
+        updateOwnerCommandDeck("Save failed: session");
+        return;
+      }
+      if (lastCode === "SITE_SETTINGS_DB_UNAVAILABLE" || lastCode === "SITE_SETTINGS_SAVE_FAILED") {
+        setStatus(
+          `Saved locally only. Cloud save failed (${lastCode}). Check Railway API logs and MySQL.${lastMessage ? ` Detail: ${lastMessage}` : ""}`
+        );
+        updateOwnerCommandDeck("Save failed: DB");
+        return;
+      }
+      if (lastCode === "SERVER_ERROR") {
+        setStatus(
+          `Saved locally only. Cloud save failed (${lastCode}).${lastMessage ? ` Detail: ${lastMessage}` : " Restart API and retry."}`
+        );
+        updateOwnerCommandDeck("Save failed: server");
+        return;
+      }
+      if (lastCode === "REQUEST_TIMEOUT") {
+        setStatus(`Saved locally only. Cloud save timed out. ${lastMessage || "Check API base URL and backend."}`);
+        updateOwnerCommandDeck("Save timed out");
+        return;
+      }
+      setStatus(`Saved locally only. Cloud save failed: ${lastCode}${lastMessage ? ` (${lastMessage})` : ""}`);
+      updateOwnerCommandDeck("Save failed");
+      return;
+    }
+    setStatus("Saved and synced. Website + app will load this version.");
+    updateOwnerCommandDeck("Saved and synced");
+  } catch (error) {
+    const msg = error?.message || String(error);
+    setStatus(`Save failed: ${msg}`);
+    updateOwnerCommandDeck("Save error");
   }
-  if (!saved) {
-    if (lastCode === "INVALID_SESSION") {
-      setStatus(
-        `Saved locally only. Cloud save failed: session not accepted (${lastCode}). Unlock again, then save.${lastMessage ? ` Detail: ${lastMessage}` : ""}`
-      );
-      return;
-    }
-    if (lastCode === "SITE_SETTINGS_DB_UNAVAILABLE" || lastCode === "SITE_SETTINGS_SAVE_FAILED") {
-      setStatus(
-        `Saved locally only. Cloud save failed (${lastCode}). Check Railway API logs and MySQL.${lastMessage ? ` Detail: ${lastMessage}` : ""}`
-      );
-      return;
-    }
-    if (lastCode === "SERVER_ERROR") {
-      setStatus(
-        `Saved locally only. Cloud save failed (${lastCode}).${lastMessage ? ` Detail: ${lastMessage}` : " Restart API and retry."}`
-      );
-      return;
-    }
-    setStatus(`Saved locally only. Cloud save failed: ${lastCode}${lastMessage ? ` (${lastMessage})` : ""}`);
-    return;
-  }
-  setStatus("Saved and synced. Website + app will load this version.");
 }
 
 function resetSettings() {
@@ -1384,7 +1424,12 @@ updateMessageBadge().catch(() => {});
 bindClick("unlockBtn", () => {
   unlockPanel().catch(() => setStatus("Authentication error."));
 });
-bindClick("saveSettings", saveSettings);
+bindClick("saveSettings", () => {
+  saveSettings().catch((error) => {
+    setStatus(`Save failed: ${error?.message || String(error)}`);
+    updateOwnerCommandDeck("Save error");
+  });
+});
 bindClick("resetSettings", resetSettings);
 bindClick("updateOwnerAuth", () => {
   updateOwnerAuthFromPanel().catch(() => setStatus("Could not update owner authentication."));
@@ -1462,7 +1507,11 @@ bindClick("updateOwnerPayoutStatus", () => {
 // Global fail-safe: if any direct listener failed to bind, this still handles button clicks.
 const clickHandlers = {
   unlockBtn: () => unlockPanel().catch(() => setStatus("Authentication error.")),
-  saveSettings: () => saveSettings(),
+  saveSettings: () =>
+    saveSettings().catch((error) => {
+      setStatus(`Save failed: ${error?.message || String(error)}`);
+      updateOwnerCommandDeck("Save error");
+    }),
   resetSettings: () => resetSettings(),
   updateOwnerAuth: () => updateOwnerAuthFromPanel().catch(() => setStatus("Could not update owner authentication.")),
   logoutOwner: () => logoutOwner().catch(() => setStatus("Could not logout.")),
