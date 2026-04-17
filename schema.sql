@@ -15,6 +15,19 @@ CREATE TABLE users (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE user_auth_sessions (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT UNSIGNED NOT NULL,
+  session_token_hash VARCHAR(255) NOT NULL UNIQUE,
+  ip_address VARCHAR(45) NULL,
+  user_agent VARCHAR(255) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  INDEX idx_user_auth_sessions_user_expiry (user_id, expires_at)
+);
+
 CREATE TABLE owner_auth_profiles (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   owner_email VARCHAR(255) NOT NULL UNIQUE,

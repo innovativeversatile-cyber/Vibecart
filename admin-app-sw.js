@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_NAME = "vibecart-admin-app-v20260417warm";
+const CACHE_NAME = "vibecart-admin-app-v20260417ultra";
 const URLS = [
   "./admin-app.html",
   "./admin.html",
@@ -27,6 +27,26 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  const requestUrl = new URL(event.request.url);
+  const isHtml =
+    event.request.mode === "navigate" ||
+    requestUrl.pathname.endsWith(".html") ||
+    requestUrl.pathname.endsWith("/admin-app") ||
+    requestUrl.pathname.endsWith("/admin");
+
+  if (isHtml) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          const cloned = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );

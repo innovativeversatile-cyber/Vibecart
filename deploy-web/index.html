@@ -34,7 +34,7 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./styles.css?v=20260417warm" />
+    <link rel="stylesheet" href="./styles.css?v=20260418deploy1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -45,7 +45,13 @@
       }
     </script>
   </head>
-  <body data-site-revision="warm-ui-20260417c">
+  <body data-site-revision="deploy-20260418-sw-nav">
+    <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
+      <div class="cinematic-intro-card">
+        <div class="cinematic-logo-pulse">V</div>
+        <p class="cinematic-intro-text">VibeCart</p>
+      </div>
+    </div>
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">V</span>
@@ -53,27 +59,31 @@
       </div>
       <nav class="nav-links">
         <a href="#categories">Categories</a>
-        <a href="#shops">Shops</a>
-        <a href="#trust-lab">Trust Lab</a>
+        <a href="#shops">Regional shops</a>
+        <a href="#market">Hot Picks</a>
         <a href="#rewards">Rewards</a>
         <a href="#insurance">Insurance</a>
         <a href="#security">Security</a>
-        <a href="./policy.html">Policy</a>
-        <a href="./terms.html">Terms</a>
-        <a href="./privacy.html">Privacy</a>
-        <a href="#seller-growth-ai">Grow 10 sellers</a>
+        <a href="#settings-hub" class="nav-settings">Settings</a>
+        <a href="#seller-growth-ai">Seller Boost</a>
         <a href="#sell" class="cta-small">Start Selling</a>
       </nav>
     </header>
 
     <main>
       <div class="page-group page-group--discover" aria-label="Discover and shop">
-      <section class="hero">
+      <section class="hero" data-vc-frag-k="K">
+        <div class="hero-captivate-bg" aria-hidden="true">
+          <canvas id="heroCanvasFx" class="hero-canvas-fx"></canvas>
+          <span class="bg-orb bg-orb-a"></span>
+          <span class="bg-orb bg-orb-b"></span>
+          <span class="bg-orb bg-orb-c"></span>
+        </div>
         <div class="hero-copy">
           <p id="heroBadge" class="badge">Africa-Europe-Asia Trade Bridge</p>
-          <h1 id="heroTitle">Secure trade bridge connecting Africa, Europe, Dubai, and Asia.</h1>
+          <h1 id="heroTitle">Discover bold finds. Buy fast. Sell globally.</h1>
           <p id="heroSubtitle">
-            <span id="regionHeadline">VibeCart is a secure, student-friendly marketplace for legal products.</span>
+            <span id="regionHeadline">VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.</span>
             Discover offers from Poland and Europe, with routes to South Africa,
             Namibia, Kenya, Ethiopia, Zimbabwe, and other African markets. Trade both
             directions across Africa and Europe, plus Dubai and selected Asian markets.
@@ -92,6 +102,11 @@
             <span>Approved logistics</span>
             <span>AI-assisted safety checks</span>
           </div>
+          <div class="signature-strip" aria-label="VibeCart signature values">
+            <span>VC Signal</span>
+            <span>Route Aura</span>
+            <span>Trust Pulse</span>
+          </div>
         </div>
         <div class="hero-image">
           <img
@@ -101,7 +116,37 @@
         </div>
       </section>
 
-      <section id="market-fit" class="section">
+      <section id="vibeFlowReel" class="section alt vibe-flow-section" data-vc-frag-n="n">
+        <h2>Vibe Motion Lane</h2>
+        <p>Swipe sideways, scroll diagonally, and watch the signal lens reveal hot zones.</p>
+        <div id="vibeFlowTrack" class="vibe-flow-track" aria-label="Horizontal vibe flow reel">
+          <article class="vibe-flow-card" data-diagonal-layer="1">
+            <h3>Street Drip</h3>
+            <p>Fast-moving fashion drops for youth buyers.</p>
+          </article>
+          <article class="vibe-flow-card" data-diagonal-layer="2">
+            <h3>Tech Sparks</h3>
+            <p>Unique gadgets with secure one-click checkout.</p>
+          </article>
+          <article class="vibe-flow-card" data-diagonal-layer="1">
+            <h3>Creator Finds</h3>
+            <p>Handpicked products from upcoming sellers.</p>
+          </article>
+          <article class="vibe-flow-card" data-diagonal-layer="3">
+            <h3>Global Pulse</h3>
+            <p>Trending cross-border picks routed smartly.</p>
+          </article>
+          <article class="vibe-flow-card" data-diagonal-layer="2">
+            <h3>Campus Heat</h3>
+            <p>Student-loved deals built for speed and trust.</p>
+          </article>
+        </div>
+        <div class="lens-stage" aria-hidden="true">
+          <div id="signalLens" class="signal-lens"></div>
+        </div>
+      </section>
+
+      <section id="market-fit" class="section" data-vc-frag-u="u">
         <h2>Built for Students, Families, and Growing Businesses</h2>
         <p>
           VibeCart is designed for fast, trustworthy cross-border trading between African and European markets, with clear support for both modern and traditional shoppers.
@@ -133,16 +178,7 @@
         </div>
       </section>
 
-      <section id="trust-lab" class="section alt">
-        <h2>Trust Lab</h2>
-        <p>
-          Every seller, provider, and partner has a trust score built from delivery reliability,
-          verification status, response speed, and dispute outcomes.
-        </p>
-        <div id="trustCards" class="grid shop-grid"></div>
-      </section>
-
-      <section id="rewards" class="section">
+      <section id="rewards" class="section" data-vc-frag-a="a">
         <h2>Campus Rewards and Savings Streaks</h2>
         <p>
           Earn points for safe purchases, completed bookings, and on-time subscriptions. Unlock
@@ -194,64 +230,566 @@
       </section>
 
       <section id="shops" class="section alt">
-        <h2>Featured Shops</h2>
-        <div class="grid shop-grid">
-          <a href="#market" class="shop">
-            <h3>Lublin Campus Deals</h3>
-            <p>Trusted student sellers in Lublin, Poland.</p>
-          </a>
-          <a href="#market" class="shop">
-            <h3>Warsaw Campus Deals</h3>
-            <p>Trusted student sellers in Warsaw, Poland.</p>
-          </a>
-          <a href="#market" class="shop">
-            <h3>Africa Link Imports</h3>
-            <p>EU products shipped to South Africa, Namibia, Kenya, Ethiopia, and Zimbabwe.</p>
-          </a>
+        <h2>Regional shop folders</h2>
+        <p class="note regional-folders-kicker">
+          <strong>Europe</strong> · <strong>Mama Africa</strong> · <strong>Asia</strong> · <strong>Scents</strong> ·
+          <strong>Global brands</strong>
+        </p>
+        <p class="note bridge-shop-intro">
+          Five folders below — four regional lanes plus mainstream &amp; resale global picks. VibeCart lane cards jump to
+          <a href="#bridge-routes">Trade Bridge &amp; Live Marketplace</a>; external tiles open in a new tab.
+        </p>
+        <div class="shop-folders">
+          <div class="shop-folder shop-folder--europe" aria-labelledby="folder-europe-shop-title">
+            <div class="shop-folder-tab">
+              <h3 id="folder-europe-shop-title" class="shop-folder-title">Europe shop</h3>
+              <p class="note shop-folder-desc">Continental EU, United Kingdom, and Ireland — campus routes plus high-traffic national retailers.</p>
+            </div>
+            <div class="shop-folder-body grid shop-grid">
+              <a href="#bridge-routes" class="shop" data-bridge-hop="from-europe">
+                <h3>Lublin Campus Deals</h3>
+                <p>Poland — student sellers on the Europe → Africa lane.</p>
+              </a>
+              <a href="#bridge-routes" class="shop" data-bridge-hop="from-europe">
+                <h3>Warsaw Campus Deals</h3>
+                <p>Poland — trusted campus marketplace picks.</p>
+              </a>
+              <a href="#bridge-routes" class="shop" data-bridge-hop="from-europe">
+                <h3>Berlin &amp; Lyon (live route)</h3>
+                <p>Germany &amp; France — open live catalog filtered to European origins.</p>
+              </a>
+              <a href="https://allegro.pl" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Allegro</h3>
+                <p>Poland’s largest online marketplace.</p>
+              </a>
+              <a href="https://www.zalando.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Zalando</h3>
+                <p>Fashion &amp; lifestyle across the EU.</p>
+              </a>
+              <a href="https://www.amazon.de" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Amazon Germany</h3>
+                <p>Major EU fulfilment hub for cross-border orders.</p>
+              </a>
+              <a href="https://www.cdiscount.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Cdiscount</h3>
+                <p>France — broad electronics &amp; home assortment.</p>
+              </a>
+              <a href="https://www.bol.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Bol</h3>
+                <p>Netherlands &amp; Belgium — books, tech, and daily goods.</p>
+              </a>
+              <a href="https://www.fnac.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Fnac</h3>
+                <p>France — electronics, books, tickets, and culture retail.</p>
+              </a>
+              <a href="https://www.mediamarkt.de" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>MediaMarkt</h3>
+                <p>Germany — high-volume consumer electronics chain.</p>
+              </a>
+              <a href="https://www.asos.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>ASOS</h3>
+                <p>UK-based fashion marketplace shipping across Europe.</p>
+              </a>
+              <a href="https://www.ikea.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>IKEA</h3>
+                <p>Sweden — home, furniture, and everyday essentials online.</p>
+              </a>
+              <a href="https://www.decathlon.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Decathlon</h3>
+                <p>France — sports gear with strong EU web traffic.</p>
+              </a>
+              <a href="https://www.otto.de" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Otto</h3>
+                <p>Germany — department-store scale general merchandise.</p>
+              </a>
+              <a href="https://www.carrefour.es" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Carrefour Spain</h3>
+                <p>Groceries, electronics, and marketplace-style listings.</p>
+              </a>
+              <a href="https://www.aboutyou.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>About You</h3>
+                <p>Germany — fashion &amp; lifestyle with broad EU reach.</p>
+              </a>
+              <p class="note shop-folder-subhead">United Kingdom</p>
+              <a href="https://www.amazon.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Amazon UK</h3>
+                <p>United Kingdom — dominant general e-commerce &amp; marketplace.</p>
+              </a>
+              <a href="https://www.boots.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Boots</h3>
+                <p>UK — pharmacy, beauty, and fragrance with huge weekly traffic.</p>
+              </a>
+              <a href="https://www.argos.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Argos</h3>
+                <p>UK — catalogue &amp; same-day pickup culture, broad SKU depth.</p>
+              </a>
+              <a href="https://www.johnlewis.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>John Lewis</h3>
+                <p>UK — department store &amp; online with strong beauty halls.</p>
+              </a>
+              <a href="https://www.currys.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Currys</h3>
+                <p>UK — electronics &amp; appliances omnichannel leader.</p>
+              </a>
+              <a href="https://www.tesco.com/groceries/en-GB/" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Tesco Groceries</h3>
+                <p>UK — top grocery click-&amp;-collect &amp; delivery volumes.</p>
+              </a>
+              <a href="https://www.very.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Very</h3>
+                <p>UK — fashion, home, and electricals marketplace scale.</p>
+              </a>
+              <a href="https://www.next.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Next</h3>
+                <p>UK — fashion &amp; homeware with heavy online conversion.</p>
+              </a>
+              <a href="https://www.marksandspencer.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Marks &amp; Spencer</h3>
+                <p>UK — food, clothing, and home; strong web &amp; app orders.</p>
+              </a>
+              <a href="https://www.screwfix.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Screwfix</h3>
+                <p>UK — trade &amp; DIY click-&amp;-collect giant.</p>
+              </a>
+              <a href="https://www.diy.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>B&amp;Q</h3>
+                <p>UK — DIY &amp; garden online &amp; store integration.</p>
+              </a>
+              <a href="https://www.wickes.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Wickes</h3>
+                <p>UK — kitchens, bathrooms, and trade DIY web traffic.</p>
+              </a>
+              <a href="https://www.wayfair.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Wayfair UK</h3>
+                <p>UK — furniture &amp; home marketplace visits.</p>
+              </a>
+              <a href="https://www.ocado.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Ocado</h3>
+                <p>UK — premium online grocery &amp; marketplace partner model.</p>
+              </a>
+              <p class="note shop-folder-subhead">Ireland</p>
+              <a href="https://www.tesco.ie/groceries/" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Tesco Ireland</h3>
+                <p>Ireland — grocery &amp; general merchandise online.</p>
+              </a>
+              <a href="https://www.dunnesstores.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Dunnes Stores</h3>
+                <p>Ireland — fashion, food, and home; national retail staple.</p>
+              </a>
+              <a href="https://www.arnotts.ie" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Arnotts</h3>
+                <p>Ireland — Dublin department store &amp; beauty destination.</p>
+              </a>
+              <a href="https://www.brownthomas.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Brown Thomas</h3>
+                <p>Ireland — luxury fashion &amp; fragrance halls.</p>
+              </a>
+              <a href="https://www.smythstoys.com/ie" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Smyths Toys Ireland</h3>
+                <p>Ireland — toys &amp; games omnichannel with strong Irish visits.</p>
+              </a>
+              <a href="https://www.littlewoodsireland.ie" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Littlewoods Ireland</h3>
+                <p>Ireland — catalogue &amp; online general merchandise.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="shop-folder shop-folder--mama-africa" aria-labelledby="folder-mama-africa-title">
+            <div class="shop-folder-tab">
+              <h3 id="folder-mama-africa-title" class="shop-folder-title">Mama Africa</h3>
+              <p class="note shop-folder-desc">High-traffic African e-commerce (ZA, KE, NG, ZW, …) plus VibeCart’s Mama Africa lane.</p>
+            </div>
+            <div class="shop-folder-body grid shop-grid">
+              <a href="#bridge-routes" class="shop" data-bridge-hop="from-africa">
+                <h3>VibeCart — Mama Africa lane</h3>
+                <p>African-origin live listings (seeded shops &amp; checkout on VibeCart).</p>
+              </a>
+              <a href="#bridge-routes" class="shop" data-bridge-hop="from-africa">
+                <h3>Cape &amp; Nairobi picks</h3>
+                <p>Southern &amp; East Africa routes inside your live catalog.</p>
+              </a>
+              <a href="https://www.takealot.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Takealot</h3>
+                <p>South Africa — leading mass-market online store.</p>
+              </a>
+              <a href="https://www.superbalist.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Superbalist</h3>
+                <p>South Africa — fashion &amp; lifestyle (Takealot group).</p>
+              </a>
+              <a href="https://www.woolworths.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Woolworths South Africa</h3>
+                <p>Food, fashion &amp; home — strong national retail web store.</p>
+              </a>
+              <a href="https://www.bidorbuy.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Bidorbuy</h3>
+                <p>South Africa — auctions, tech, and collectibles.</p>
+              </a>
+              <a href="https://www.jumia.co.ke" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jumia Kenya</h3>
+                <p>Kenya — Pan-African marketplace with heavy Nairobi traffic.</p>
+              </a>
+              <a href="https://www.jumia.com.ng" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jumia Nigeria</h3>
+                <p>Nigeria — one of the continent’s busiest e-commerce fronts.</p>
+              </a>
+              <a href="https://www.kilimall.co.ke" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Kilimall</h3>
+                <p>Kenya — popular mobile-first shopping app &amp; site.</p>
+              </a>
+              <a href="https://www.konga.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Konga</h3>
+                <p>Nigeria — electronics, fashion &amp; everyday goods.</p>
+              </a>
+              <a href="https://www.spar.co.zw" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>SPAR Zimbabwe</h3>
+                <p>Zimbabwe — national retail chain with online presence.</p>
+              </a>
+              <a href="https://www.jumia.ug" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jumia Uganda</h3>
+                <p>East Africa — same ecosystem, Kampala corridor.</p>
+              </a>
+              <a href="https://www.jumia.com.gh" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jumia Ghana</h3>
+                <p>West Africa — Accra-heavy marketplace traffic.</p>
+              </a>
+              <a href="https://www.jumia.com.eg" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jumia Egypt</h3>
+                <p>North Africa — Cairo &amp; Alexandria corridor.</p>
+              </a>
+              <a href="https://www.makro.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Makro South Africa</h3>
+                <p>Bulk retail &amp; B2C web store with national reach.</p>
+              </a>
+              <a href="https://www.pnp.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Pick n Pay</h3>
+                <p>South Africa — groceries, general merchandise, online slots.</p>
+              </a>
+              <a href="https://www.game.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Game</h3>
+                <p>South Africa — discount department store &amp; e-commerce.</p>
+              </a>
+              <a href="https://www.jiji.ng" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jiji Nigeria</h3>
+                <p>Classifieds &amp; C2C marketplace with very high Nigerian usage.</p>
+              </a>
+              <a href="https://www.jumia.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Jumia South Africa</h3>
+                <p>South Africa — Jumia regional storefront.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="shop-folder shop-folder--asia" aria-labelledby="folder-asia-shop-title">
+            <div class="shop-folder-tab">
+              <h3 id="folder-asia-shop-title" class="shop-folder-title">Asia shop</h3>
+              <p class="note shop-folder-desc">India, SEA, Japan, Korea — plus a China cluster (Tmall, JD, AliExpress appear above; more mainland portals below).</p>
+            </div>
+            <div class="shop-folder-body grid shop-grid">
+              <a href="#bridge-routes" class="shop">
+                <h3>VibeCart — Dubai &amp; Asia bridge</h3>
+                <p>Open the trade bridge; use site navigation for Dubai / wider Asia flows.</p>
+              </a>
+              <a href="https://shopee.sg" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Shopee Singapore</h3>
+                <p>SEA super-app style marketplace — reference hub for the region.</p>
+              </a>
+              <a href="https://www.lazada.sg" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Lazada Singapore</h3>
+                <p>Major Lazada corridor for cross-border SEA shopping.</p>
+              </a>
+              <a href="https://www.tokopedia.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Tokopedia</h3>
+                <p>Indonesia — one of the busiest domestic marketplaces.</p>
+              </a>
+              <a href="https://www.blibli.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Blibli</h3>
+                <p>Indonesia — electronics, fashion, and lifestyle at scale.</p>
+              </a>
+              <a href="https://www.flipkart.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Flipkart</h3>
+                <p>India — leading national e-tailer across categories.</p>
+              </a>
+              <a href="https://www.amazon.in" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Amazon India</h3>
+                <p>India — massive fulfilment &amp; marketplace volume.</p>
+              </a>
+              <a href="https://www.meesho.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Meesho</h3>
+                <p>India — social &amp; value commerce with huge mobile traffic.</p>
+              </a>
+              <a href="https://www.coupang.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Coupang</h3>
+                <p>South Korea — same-day culture and dominant app usage.</p>
+              </a>
+              <a href="https://www.rakuten.co.jp" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Rakuten Japan</h3>
+                <p>Japan — marketplace &amp; ecosystem with very high loyalty.</p>
+              </a>
+              <a href="https://www.amazon.co.jp" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Amazon Japan</h3>
+                <p>Japan — top-tier traffic for imports and domestic goods.</p>
+              </a>
+              <a href="https://www.jd.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>JD.com</h3>
+                <p>China — major B2C electronics &amp; general retail platform.</p>
+              </a>
+              <a href="https://www.tmall.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Tmall</h3>
+                <p>China — premium brand flagship traffic on Alibaba’s mall.</p>
+              </a>
+              <a href="https://www.aliexpress.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>AliExpress</h3>
+                <p>Global — China-originated cross-border marketplace (huge daily visits).</p>
+              </a>
+              <a href="https://www.daraz.pk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Daraz Pakistan</h3>
+                <p>South Asia — Alibaba-backed marketplace with strong app use.</p>
+              </a>
+              <a href="https://www.qoo10.sg" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Qoo10 Singapore</h3>
+                <p>Singapore — long-running deals marketplace in SEA.</p>
+              </a>
+              <p class="note shop-folder-subhead">China — mainland &amp; cross-border (high traffic)</p>
+              <a href="https://www.temu.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Temu</h3>
+                <p>PDD-backed global app — massive Chinese supply-chain reach.</p>
+              </a>
+              <a href="https://world.taobao.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Taobao Global</h3>
+                <p>Alibaba — C2C &amp; small-seller marketplace, huge domestic volume.</p>
+              </a>
+              <a href="https://mobile.yangkeduo.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Pinduoduo</h3>
+                <p>China — social group-buying &amp; value retail app traffic.</p>
+              </a>
+              <a href="https://www.suning.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Suning</h3>
+                <p>China — appliances, electronics, and omnichannel retail.</p>
+              </a>
+              <a href="https://www.vip.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>VIP.com</h3>
+                <p>China — flash sales &amp; branded discount fashion volume.</p>
+              </a>
+              <a href="https://www.kaola.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Kaola</h3>
+                <p>China — imported goods &amp; cross-border retail (NetEase).</p>
+              </a>
+              <a href="https://you.163.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Yanxuan</h3>
+                <p>NetEase — design-led lifestyle &amp; home private-label store.</p>
+              </a>
+              <a href="https://www.dangdang.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Dangdang</h3>
+                <p>China — books, media, and general e-commerce heritage player.</p>
+              </a>
+              <a href="https://www.1688.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>1688.com</h3>
+                <p>Alibaba — domestic wholesale &amp; SME sourcing (very high visits).</p>
+              </a>
+              <a href="https://www.xiaohongshu.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Xiaohongshu (RED)</h3>
+                <p>China — social commerce &amp; lifestyle discovery super-app.</p>
+              </a>
+              <a href="https://www.shein.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>SHEIN</h3>
+                <p>Global brand — China-origin supply chain &amp; fashion app traffic.</p>
+              </a>
+              <a href="https://www.gome.com.cn" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Gome</h3>
+                <p>China — appliances &amp; consumer electronics retail chain online.</p>
+              </a>
+              <a href="https://www.mi.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Xiaomi Store</h3>
+                <p>China — phones, wearables, and ecosystem goods (very high traffic).</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="shop-folder shop-folder--scents" aria-labelledby="folder-scents-title">
+            <div class="shop-folder-tab">
+              <h3 id="folder-scents-title" class="shop-folder-title">Scents</h3>
+              <p class="note shop-folder-desc">Worldwide perfume, cologne, niche fragrance, and beauty retailers.</p>
+            </div>
+            <div class="shop-folder-body grid shop-grid">
+              <a href="https://www.notino.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Notino</h3>
+                <p>Europe-wide — discount fragrance &amp; beauty with huge catalog depth.</p>
+              </a>
+              <a href="https://www.notino.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Notino UK</h3>
+                <p>United Kingdom — same group, strong GBP traffic.</p>
+              </a>
+              <a href="https://www.fragrancenet.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>FragranceNet</h3>
+                <p>United States — long-running online discounter for scent &amp; skincare.</p>
+              </a>
+              <a href="https://www.fragrancex.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>FragranceX</h3>
+                <p>United States — global shipping on designer &amp; celebrity scents.</p>
+              </a>
+              <a href="https://www.luckyscent.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Luckyscent</h3>
+                <p>United States — niche &amp; indie perfume destination.</p>
+              </a>
+              <a href="https://www.sephora.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Sephora US</h3>
+                <p>United States — prestige beauty &amp; fragrance traffic leader.</p>
+              </a>
+              <a href="https://www.sephora.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Sephora UK</h3>
+                <p>United Kingdom — high-street &amp; online prestige beauty.</p>
+              </a>
+              <a href="https://www.ulta.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Ulta Beauty</h3>
+                <p>United States — mass &amp; prestige fragrance &amp; cosmetics.</p>
+              </a>
+              <a href="https://www.lookfantastic.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Lookfantastic</h3>
+                <p>UK-based — global beauty &amp; scent subscription culture.</p>
+              </a>
+              <a href="https://www.cultbeauty.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Cult Beauty</h3>
+                <p>United Kingdom — curated indie &amp; niche fragrance drops.</p>
+              </a>
+              <a href="https://www.escentual.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Escentual</h3>
+                <p>United Kingdom — pharmacy-led fragrance &amp; French beauty.</p>
+              </a>
+              <a href="https://www.theperfumeshop.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>The Perfume Shop</h3>
+                <p>United Kingdom — specialist chain &amp; online store.</p>
+              </a>
+              <a href="https://www.douglas.de" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Douglas</h3>
+                <p>Germany — Europe’s largest beauty &amp; fragrance retail ecosystem.</p>
+              </a>
+              <a href="https://www.douglas.nl" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Douglas Netherlands</h3>
+                <p>Benelux — same group, strong Dutch online visits.</p>
+              </a>
+              <a href="https://www.strawberrynet.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Strawberrynet</h3>
+                <p>Hong Kong — global discount beauty &amp; fragrance shipping.</p>
+              </a>
+              <a href="https://www.beautybay.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Beauty Bay</h3>
+                <p>United Kingdom — Gen-Z beauty &amp; niche scent curation.</p>
+              </a>
+              <a href="https://www.harrods.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Harrods</h3>
+                <p>United Kingdom — luxury department store beauty halls.</p>
+              </a>
+              <a href="https://www.selfridges.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Selfridges</h3>
+                <p>United Kingdom — designer fragrance &amp; limited editions.</p>
+              </a>
+              <a href="https://www.chemistwarehouse.com.au" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Chemist Warehouse AU</h3>
+                <p>Australia — discount pharmacy with major fragrance aisles online.</p>
+              </a>
+              <a href="https://www.mecca.com.au" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Mecca AU</h3>
+                <p>Australia &amp; NZ — prestige beauty &amp; niche perfume culture.</p>
+              </a>
+              <a href="https://www.sephora.ae" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Sephora Middle East</h3>
+                <p>UAE hub — Gulf fragrance &amp; beauty traffic.</p>
+              </a>
+              <a href="https://www.nordicfeel.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>NordicFeel</h3>
+                <p>Nordic region — Scandinavian beauty &amp; scent e-tailer.</p>
+              </a>
+              <a href="https://www.parfumdreams.de" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Parfumdreams</h3>
+                <p>Germany — discount designer &amp; niche fragrance online.</p>
+              </a>
+            </div>
+          </div>
+
+          <div class="shop-folder shop-folder--global" aria-labelledby="folder-global-brands-title">
+            <div class="shop-folder-tab">
+              <h3 id="folder-global-brands-title" class="shop-folder-title">Global brands</h3>
+              <p class="note shop-folder-desc">
+                High-traffic mainstream fashion, tech, marketplaces, and vintage / resale — worldwide.
+              </p>
+            </div>
+            <div class="shop-folder-body grid shop-grid">
+              <a href="https://www.shein.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>SHEIN</h3>
+                <p>Trending fashion and lifestyle drops.</p>
+              </a>
+              <a href="https://www.zara.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Zara</h3>
+                <p>International fashion collections.</p>
+              </a>
+              <a href="https://www.nike.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Nike</h3>
+                <p>Sportswear and performance gear.</p>
+              </a>
+              <a href="https://www.apple.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Apple</h3>
+                <p>Official devices and accessories.</p>
+              </a>
+              <a href="https://www.amazon.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Amazon</h3>
+                <p>Global online marketplace.</p>
+              </a>
+              <a href="https://www.ebay.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>eBay</h3>
+                <p>Auctions, resale, and collectors.</p>
+              </a>
+              <a href="https://www.etsy.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Etsy</h3>
+                <p>Handmade, vintage, and artisan items.</p>
+              </a>
+              <a href="https://www.depop.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Depop</h3>
+                <p>Youth-focused fashion resale and vintage.</p>
+              </a>
+              <a href="https://www.vinted.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Vinted</h3>
+                <p>Popular secondhand fashion and vintage marketplace.</p>
+              </a>
+              <a href="https://www.vestiairecollective.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Vestiaire Collective</h3>
+                <p>Pre-owned luxury and vintage fashion.</p>
+              </a>
+              <a href="https://www.grailed.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Grailed</h3>
+                <p>Streetwear, designer, and vintage menswear.</p>
+              </a>
+              <a href="https://poshmark.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Poshmark</h3>
+                <p>Popular secondhand fashion marketplace.</p>
+              </a>
+              <a href="https://www.thredup.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>thredUP</h3>
+                <p>Large online thrift and vintage selection.</p>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section id="prestige-shops" class="section">
-        <h2>Prestigious Global Shops</h2>
-        <p>Official external shop links for premium shopping options.</p>
-        <div class="grid shop-grid">
-          <a href="https://www.shein.com" target="_blank" rel="noopener noreferrer" class="shop">
-            <h3>SHEIN</h3>
-            <p>Fashion and lifestyle collections.</p>
-          </a>
-          <a href="https://www.zara.com" target="_blank" rel="noopener noreferrer" class="shop">
-            <h3>Zara</h3>
-            <p>International fashion lines.</p>
-          </a>
-          <a href="https://www.nike.com" target="_blank" rel="noopener noreferrer" class="shop">
-            <h3>Nike</h3>
-            <p>Sportswear and performance gear.</p>
-          </a>
-          <a href="https://www.apple.com" target="_blank" rel="noopener noreferrer" class="shop">
-            <h3>Apple</h3>
-            <p>Official devices and accessories.</p>
-          </a>
-          <a href="https://www.amazon.com" target="_blank" rel="noopener noreferrer" class="shop">
-            <h3>Amazon</h3>
-            <p>Global shopping marketplace.</p>
-          </a>
-          <a href="https://www.ebay.com" target="_blank" rel="noopener noreferrer" class="shop">
-            <h3>eBay</h3>
-            <p>Auctions, resale, and collector goods.</p>
-          </a>
-        </div>
-      </section>
-
-      <section class="section">
+      <section id="bridge-routes" class="section">
         <h2 id="bridgeTitle">Africa-Europe-Asia Trade Bridge</h2>
         <p id="bridgeText">
           VibeCart is built as a digital bridge between Africa, Europe, Dubai, and Asian
           markets, making it possible to source legal products across borders in both
           directions with confidence.
         </p>
+        <div id="bridgePathSwitch" class="hero-actions">
+          <button type="button" class="btn btn-primary" data-bridge-path="from-europe">From Europe</button>
+          <button type="button" class="btn btn-secondary" data-bridge-path="from-africa">Mama Africa</button>
+        </div>
+        <p id="bridgePathStatus" class="note">
+          Active path: From Europe to Africa. Products and shops are filtered to this route.
+        </p>
+        <div id="bridgeShops" class="grid shop-grid"></div>
       </section>
 
-      <section id="market" class="section">
+      <section id="market" class="section" data-vc-frag-w="w">
         <div class="market-header">
           <h2>Live Marketplace</h2>
           <label for="categoryFilter">Filter</label>
@@ -262,7 +800,15 @@
             <option value="Books">Books</option>
             <option value="Gaming">Gaming</option>
           </select>
+          <label for="buyerDestinationSelect">Buyer Destination</label>
+          <select id="buyerDestinationSelect" aria-label="Buyer destination">
+            <option value="africa">Africa buyer</option>
+            <option value="europe">Europe buyer</option>
+          </select>
         </div>
+        <p id="buyerDestinationHint" class="note">
+          Destination defaults switch automatically with the active bridge path.
+        </p>
         <p class="note">
           <input id="marketDisclaimerAck" type="checkbox" />
           I understand and accept the marketplace risk and legal responsibility disclaimer.
@@ -273,30 +819,31 @@
             <h3>Premium Smartphone</h3>
             <p class="price">EUR 280</p>
             <p>Ships from Poland</p>
-            <button class="btn btn-primary">View Item</button>
+            <button class="btn btn-primary buy-now-btn" data-title="Premium Smartphone" data-price="280">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Fashion">
             <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80" alt="Streetwear hoodie" />
             <h3>Streetwear Hoodie</h3>
             <p class="price">EUR 45</p>
             <p>Ships from Germany</p>
-            <button class="btn btn-primary">View Item</button>
+            <button class="btn btn-primary buy-now-btn" data-title="Streetwear Hoodie" data-price="45">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Books">
             <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80" alt="University textbooks" />
             <h3>University Textbook Set</h3>
             <p class="price">EUR 34</p>
             <p>Ships from Poland</p>
-            <button class="btn btn-primary">View Item</button>
+            <button class="btn btn-primary buy-now-btn" data-title="University Textbook Set" data-price="34">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Gaming">
             <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=900&q=80" alt="Gaming controller" />
             <h3>Gaming Controller Pro</h3>
             <p class="price">EUR 52</p>
             <p>Ships from France</p>
-            <button class="btn btn-primary">View Item</button>
+            <button class="btn btn-primary buy-now-btn" data-title="Gaming Controller Pro" data-price="52">Buy in 1 Click</button>
           </article>
         </div>
+        <p id="expressCheckoutStatus" class="note" aria-live="polite"></p>
       </section>
       </div>
 
@@ -600,42 +1147,48 @@
         </p>
       </section>
 
-      <section id="brand-assets-email" class="section alt">
-        <h2>Email me the VibeCart logo</h2>
-        <p>
-          Enter your email and we will send the official SVG logo files as attachments (same files used on the site).
-          Works in the browser and in the mobile app. The server must have SMTP enabled (see project <code>.env.example</code>).
-        </p>
-        <div class="ai-grid">
-          <label for="logoEmail">Your email</label>
-          <input id="logoEmail" type="email" autocomplete="email" placeholder="you@example.com" />
-
-          <label for="logoEmailHp" class="hidden">Leave blank</label>
-          <input id="logoEmailHp" class="hidden" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
-
-          <button id="logoEmailSend" type="button" class="btn btn-primary">Send to my inbox</button>
+      <section id="settings-hub" class="section settings-hub">
+        <h2>Settings & Legal</h2>
+        <p>Everything important in one clean place for trust, transparency, and account confidence.</p>
+        <div class="settings-grid">
+          <article class="settings-card">
+            <span class="vc-icon vc-icon-legal" aria-hidden="true"></span>
+            <h3>Legal Center</h3>
+            <p>Read platform terms, privacy controls, and marketplace policy before buying or selling.</p>
+            <p class="settings-links">
+              <a href="./terms.html">Terms & Conditions</a>
+              <a href="./privacy.html">Privacy</a>
+              <a href="./policy.html">Marketplace Policy</a>
+            </p>
+          </article>
+          <article class="settings-card">
+            <span class="vc-icon vc-icon-account" aria-hidden="true"></span>
+            <h3>Account Controls</h3>
+            <p>Use Account Access to switch between buyer and seller profiles securely.</p>
+            <p class="settings-links">
+              <a href="#account-access">Open Account Access</a>
+              <a href="#security">Review Security</a>
+            </p>
+          </article>
         </div>
-        <p id="logoEmailStatus" class="note" aria-live="polite"></p>
-      </section>
-
-      <section class="section">
-        <h2>Important Risk Disclaimer</h2>
-        <p>
-          VibeCart applies strong security, fraud screening, and legal controls. However, no digital
-          platform can guarantee zero risk in every scenario. Users remain responsible for lawful use,
-          accurate information, and compliance obligations. The platform owner is not liable for unlawful
-          acts, third-party misconduct, insurer underwriting decisions, or losses caused by user violations,
-          to the maximum extent permitted by applicable law.
-        </p>
       </section>
       </div>
     </main>
 
+    <nav id="mobileQuickNav" class="mobile-quick-nav" aria-label="Mobile quick actions">
+      <a href="#market" data-quick-target="market">Shop</a>
+      <a href="#categories" data-quick-target="categories">Explore</a>
+      <a href="#tracking" data-quick-target="tracking">Orders</a>
+      <a href="#settings-hub" data-quick-target="settings-hub">Account</a>
+    </nav>
+
     <footer class="footer">
-      <p>VibeCart - The legal marketplace for Gen Z and adults.</p>
+      <p class="note build-id-note" data-build-id="20260418">
+        Site build: 20260418 · hard refresh once after deploy if layout looks old.
+      </p>
+      <p>VibeCart - Discover, trade, and grow your vibe globally.</p>
       <p>Contact: <a href="mailto:1vibe.cart@gmail.com">1vibe.cart@gmail.com</a></p>
-      <p><a href="./policy.html">Policy</a> · <a href="./terms.html">Terms</a> · <a href="./privacy.html">Privacy</a></p>
-      <p>Disclaimer: security controls reduce risk but cannot eliminate all risk.</p>
+      <p><a href="#settings-hub">Settings & Legal Center</a></p>
     </footer>
 
     <div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
@@ -651,11 +1204,14 @@
       </div>
     </div>
 
-    <script src="./script.js?v=20260417warm"></script>
+    <script src="./script.js?v=20260418deploy1"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./service-worker.js?v=20260417warm").catch(() => {});
+          navigator.serviceWorker
+            .register("./service-worker.js?v=20260418b", { updateViaCache: "none" })
+            .then((reg) => reg.update())
+            .catch(() => {});
         });
       }
     </script>

@@ -21,12 +21,16 @@ function sha256(value) {
 }
 
 async function getOwnerProfile(db, ownerEmail) {
+  const email = String(ownerEmail || "").trim().toLowerCase();
+  if (!email) {
+    return null;
+  }
   const [rows] = await db.execute(
     `SELECT id, owner_email, password_hash, security_phrase_hash, mfa_required, active
      FROM owner_auth_profiles
      WHERE owner_email = ? AND active = 1
      LIMIT 1`,
-    [ownerEmail.toLowerCase()]
+    [email]
   );
   return rows[0] || null;
 }
@@ -83,7 +87,13 @@ async function verifyMfaCode(db, ownerAuthId, code) {
 }
 
 async function ownerLogin(db, payload, meta) {
-  const profile = await getOwnerProfile(db, payload.email);
+  const email = String(payload?.email || "").trim().toLowerCase();
+  const password = String(payload?.password || "");
+  const securityPhrase = String(payload?.securityPhrase || "");
+  if (!email || !password || !securityPhrase) {
+    return { ok: false, code: "INVALID_CREDENTIALS" };
+  }
+  const profile = await getOwnerProfile(db, email);
   if (!profile) {
     return { ok: false, code: "INVALID_CREDENTIALS" };
   }
@@ -101,8 +111,8 @@ async function ownerLogin(db, payload, meta) {
     return { ok: false, code: "INVALID_CREDENTIALS" };
   }
   const matches =
-    hashSecret(payload.password, saltHex) === passHash &&
-    hashSecret(payload.securityPhrase, phraseSaltHex) === phraseHash;
+    hashSecret(password, saltHex) === passHash &&
+    hashSecret(securityPhrase, phraseSaltHex) === phraseHash;
 
   if (!matches) {
     await recordAuthEvent(db, profile.id, "login_failed", meta.ip, "bad_password_or_phrase");
@@ -110,7 +120,7 @@ async function ownerLogin(db, payload, meta) {
   }
 
   if (profile.mfa_required) {
-    const mfaOk = await verifyMfaCode(db, profile.id, payload.mfaCode || "");
+    const mfaOk = await verifyMfaCode(db, profile.id, String(payload?.mfaCode || ""));
     if (!mfaOk) {
       await recordAuthEvent(db, profile.id, "login_failed", meta.ip, "bad_mfa");
       return { ok: false, code: "MFA_REQUIRED_OR_INVALID" };

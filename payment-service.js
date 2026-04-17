@@ -9,6 +9,12 @@ function toMinorUnits(amount) {
   return Math.round(toNum(amount, 0) * 100);
 }
 
+function makeTrackingNumber(partnerCode, orderId) {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
+  return `${String(partnerCode || "VC").slice(0, 6).toUpperCase()}-${String(orderId)}-${stamp}-${rand}`;
+}
+
 async function resolveOrderForPayment(pool, orderId) {
   const [orders] = await pool.execute(
     `SELECT id, total_amount, currency, buyer_country, status
@@ -113,6 +119,152 @@ async function cancelStaleStripeIntents(pool, stripe, orderId) {
       [orderId]
     );
   }
+}
+
+async function resolveOrderForShipment(pool, orderId) {
+  const [rows] = await pool.execute(
+    `SELECT o.id, o.buyer_country, o.seller_shop_id, p.origin_country AS from_country
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     JOIN products p ON p.id = oi.product_id
+     WHERE o.id = ?
+     ORDER BY oi.id ASC
+     LIMIT 1`,
+    [orderId]
+  );
+  const row = rows[0];
+  if (!row) {
+    return { ok: false, code: "ORDER_NOT_FOUND_FOR_SHIPMENT" };
+  }
+  return {
+    ok: true,
+    fromCountry: String(row.from_country || "").trim().toUpperCase(),
+    toCountry: String(row.buyer_country || "").trim().toUpperCase()
+  };
+}
+
+async function resolveApprovedDeliveryRoute(pool, fromCountry, toCountry) {
+  const [rows] = await pool.execute(
+    `SELECT d.id, d.partner_code, d.partner_name, r.shipping_method
+     FROM approved_delivery_partner_routes r
+     JOIN approved_delivery_partners d ON d.id = r.partner_id
+     WHERE r.active = 1
+       AND d.active = 1
+       AND d.tracking_enabled = 1
+       AND d.proof_of_delivery_enabled = 1
+       AND d.security_screening_enabled = 1
+       AND d.reliability_score >= 90.00
+       AND r.from_country = ?
+       AND r.to_country = ?
+     ORDER BY CASE r.shipping_method
+       WHEN 'express' THEN 1
+       WHEN 'priority' THEN 2
+       ELSE 3
+     END ASC, d.reliability_score DESC
+     LIMIT 1`,
+    [fromCountry, toCountry]
+  );
+  const row = rows[0];
+  if (!row) {
+    return { ok: false, code: "NO_APPROVED_DELIVERY_ROUTE" };
+  }
+  return {
+    ok: true,
+    partnerId: Number(row.id),
+    partnerCode: String(row.partner_code),
+    partnerName: String(row.partner_name),
+    shippingMethod: String(row.shipping_method || "standard")
+  };
+}
+
+async function autoCreateShipmentForPaidOrder(pool, orderId) {
+  const [existing] = await pool.execute(
+    `SELECT id, courier, shipping_method, tracking_number, status
+     FROM shipments
+     WHERE order_id = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [orderId]
+  );
+  if (existing[0]) {
+    return {
+      ok: true,
+      reused: true,
+      shipmentId: Number(existing[0].id),
+      courier: String(existing[0].courier),
+      shippingMethod: String(existing[0].shipping_method),
+      trackingNumber: String(existing[0].tracking_number || ""),
+      shipmentStatus: String(existing[0].status || "pending")
+    };
+  }
+
+  const resolvedOrder = await resolveOrderForShipment(pool, orderId);
+  if (!resolvedOrder.ok) {
+    return resolvedOrder;
+  }
+  const route = await resolveApprovedDeliveryRoute(pool, resolvedOrder.fromCountry, resolvedOrder.toCountry);
+  if (!route.ok) {
+    await pool.execute(
+      `UPDATE orders
+       SET status = 'processing'
+       WHERE id = ?
+         AND status IN ('pending', 'paid', 'processing')`,
+      [orderId]
+    );
+    await pool.execute(
+      `INSERT INTO order_status_updates (
+        order_id, status_code, status_message, actor_role, notify_buyer, notify_seller
+      ) VALUES (?, 'manual_delivery_review', 'No approved delivery route found. Order routed for manual logistics review.', 'system', 1, 1)`,
+      [orderId]
+    );
+    return route;
+  }
+
+  const trackingNumber = makeTrackingNumber(route.partnerCode, orderId);
+  const [inserted] = await pool.execute(
+    `INSERT INTO shipments (
+      order_id, approved_partner_id, courier, shipping_method, from_country, to_country, tracking_number, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'label_created')`,
+    [
+      orderId,
+      route.partnerId,
+      route.partnerName,
+      route.shippingMethod,
+      resolvedOrder.fromCountry,
+      resolvedOrder.toCountry,
+      trackingNumber
+    ]
+  );
+
+  await pool.execute(
+    `UPDATE orders
+     SET status = 'shipped'
+     WHERE id = ?
+       AND status IN ('pending', 'paid', 'processing')`,
+    [orderId]
+  );
+  await pool.execute(
+    `INSERT INTO order_status_updates (
+      order_id, status_code, status_message, actor_role, notify_buyer, notify_seller
+    ) VALUES
+      (?, 'shipment_label_created', ?, 'system', 1, 1),
+      (?, 'shipment_in_transit', ?, 'courier', 1, 1)`,
+    [
+      orderId,
+      `Shipment label created with ${route.partnerName}. Tracking: ${trackingNumber}.`,
+      orderId,
+      `Parcel dispatched via ${route.partnerName} (${route.shippingMethod}).`
+    ]
+  );
+
+  return {
+    ok: true,
+    shipmentId: Number(inserted.insertId || 0),
+    courier: route.partnerName,
+    shippingMethod: route.shippingMethod,
+    trackingNumber,
+    shipmentStatus: "label_created"
+  };
 }
 
 async function createStripePaymentIntent(pool, stripe, input) {
@@ -226,7 +378,14 @@ async function handleStripePaymentIntentSucceeded(pool, paymentIntent) {
     ) VALUES (?, 'payment_captured', 'Payment captured successfully.', 'system', 1, 1)`,
     [orderId]
   );
-  return { ok: true, orderId, providerReference, status: "captured" };
+  const shipment = await autoCreateShipmentForPaidOrder(pool, orderId);
+  return {
+    ok: true,
+    orderId,
+    providerReference,
+    status: "captured",
+    shipment
+  };
 }
 
 async function handleStripePaymentIntentFailed(pool, paymentIntent) {

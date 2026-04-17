@@ -7,7 +7,7 @@
     <title>VibeCart Owner Panel</title>
     <link rel="stylesheet" href="./styles.css?v=20260417warm" />
   </head>
-  <body>
+  <body class="admin-surface">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">V</span>
@@ -15,6 +15,11 @@
       </div>
       <nav class="nav-links">
         <a href="./index.html">Back to Website</a>
+        <a href="./admin-messages.html" class="admin-message-link" aria-label="Open messages">
+          <span aria-hidden="true">✉</span>
+          <span>Messages</span>
+          <span id="adminMessageBadge" class="admin-message-badge hidden">0</span>
+        </a>
       </nav>
     </header>
 
@@ -32,14 +37,51 @@
           <button id="unlockBtn" type="button" class="btn btn-primary">Unlock Panel</button>
         </div>
         <p class="note">
-          Owner username: <code>moyok367@gmail.com</code><br />
-          Backend API required: <code>[your-api-base]/api/owner/auth/*</code>
+          Owner email must match the active row in <code>owner_auth_profiles</code> (see Railway seed/reset scripts).<br />
+          On Netlify: leave <strong>API Base URL</strong> empty to use this site’s <code>/api</code> proxy, or set
+          <code>https://api.vibe-cart.com</code> after the API is redeployed with CORS.<br />
+          Backend: <code>[api-base]/api/owner/auth/*</code>
         </p>
         <p id="statusMsgLogin" class="note"></p>
       </section>
 
       <section class="section alt hidden" id="panelBox">
         <h2>Easy Website Settings</h2>
+        <div class="command-deck">
+          <article class="command-card">
+            <p class="note">Control Status</p>
+            <h3 id="cmdStatus">Ready</h3>
+          </article>
+          <article class="command-card">
+            <p class="note">API Target</p>
+            <h3 id="cmdApi">not set</h3>
+          </article>
+          <article class="command-card">
+            <p class="note">Last Sync</p>
+            <h3 id="cmdSync">not yet</h3>
+          </article>
+        </div>
+        <div class="kpi-strip">
+          <article class="kpi-card">
+            <p class="note">Trust</p>
+            <strong id="kpiTrustValue">0</strong>
+            <div class="kpi-bar"><span id="kpiTrustBar" style="width: 0%"></span></div>
+          </article>
+          <article class="kpi-card">
+            <p class="note">Risk Events (30d)</p>
+            <strong id="kpiRiskValue">0</strong>
+            <div class="kpi-bar"><span id="kpiRiskBar" style="width: 0%"></span></div>
+          </article>
+          <article class="kpi-card">
+            <p class="note">Owner Payout Ready (EUR)</p>
+            <strong id="kpiRevenueValue">0.00</strong>
+            <div class="kpi-bar"><span id="kpiRevenueBar" style="width: 0%"></span></div>
+          </article>
+        </div>
+        <div class="pulse-feed-wrap">
+          <p class="note">Live Pulse</p>
+          <div id="pulseFeed" class="pulse-feed"></div>
+        </div>
         <div class="admin-grid">
           <label>Website Title</label>
           <input id="setTitle" type="text" />

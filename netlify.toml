@@ -21,6 +21,12 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# Service worker must always revalidate or users stay on old cached site forever.
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "no-store, max-age=0, must-revalidate"
+
 [[redirects]]
   from = "/api/*"
   to = "https://api.vibe-cart.com/api/:splat"

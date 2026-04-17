@@ -1,8 +1,15 @@
 "use strict";
 
 const categoryFilter = document.getElementById("categoryFilter");
+const uniqueOnlyFilter = document.getElementById("uniqueOnlyFilter");
 const categoryCards = document.querySelectorAll("[data-filter]");
-const products = document.querySelectorAll(".product");
+let products = Array.from(document.querySelectorAll(".product"));
+const productsGrid = document.getElementById("products");
+const bridgePathSwitch = document.getElementById("bridgePathSwitch");
+const bridgePathStatus = document.getElementById("bridgePathStatus");
+const bridgeShops = document.getElementById("bridgeShops");
+const buyerDestinationSelect = document.getElementById("buyerDestinationSelect");
+const buyerDestinationHint = document.getElementById("buyerDestinationHint");
 const regionHeadline = document.getElementById("regionHeadline");
 const heroTitle = document.getElementById("heroTitle");
 const heroBadge = document.getElementById("heroBadge");
@@ -17,6 +24,9 @@ const aiNeed = document.getElementById("aiNeed");
 const aiBudget = document.getElementById("aiBudget");
 const aiCategory = document.getElementById("aiCategory");
 const aiSuggest = document.getElementById("aiSuggest");
+const aiQuickStudent = document.getElementById("aiQuickStudent");
+const aiQuickPremium = document.getElementById("aiQuickPremium");
+const aiQuickUnique = document.getElementById("aiQuickUnique");
 const aiResult = document.getElementById("aiResult");
 const bizGoal = document.getElementById("bizGoal");
 const bizPriority = document.getElementById("bizPriority");
@@ -36,10 +46,6 @@ const sgCount = document.getElementById("sgCount");
 const sgMilestone = document.getElementById("sgMilestone");
 const sgDec = document.getElementById("sgDec");
 const sgInc = document.getElementById("sgInc");
-const logoEmail = document.getElementById("logoEmail");
-const logoEmailHp = document.getElementById("logoEmailHp");
-const logoEmailSend = document.getElementById("logoEmailSend");
-const logoEmailStatus = document.getElementById("logoEmailStatus");
 const trackingTimeline = document.getElementById("trackingTimeline");
 const nextTrackingStep = document.getElementById("nextTrackingStep");
 const openReturnWindow = document.getElementById("openReturnWindow");
@@ -95,6 +101,37 @@ const riskSignal = document.getElementById("riskSignal");
 const runRiskPlan = document.getElementById("runRiskPlan");
 const riskPlanResult = document.getElementById("riskPlanResult");
 const riskScoreboard = document.getElementById("riskScoreboard");
+const pageGroupDiscover = document.querySelector(".page-group--discover");
+const pageGroupGrow = document.querySelector(".page-group--grow");
+const pageGroupAssurance = document.querySelector(".page-group--assurance");
+const viewDiscover = document.getElementById("viewDiscover");
+const viewGrow = document.getElementById("viewGrow");
+const viewAssurance = document.getElementById("viewAssurance");
+const viewAll = document.getElementById("viewAll");
+const openBuyerLogin = document.getElementById("openBuyerLogin");
+const openSellerLogin = document.getElementById("openSellerLogin");
+const authModal = document.getElementById("authModal");
+const authTitle = document.getElementById("authTitle");
+const authSubtitle = document.getElementById("authSubtitle");
+const authModeLogin = document.getElementById("authModeLogin");
+const authModeSignup = document.getElementById("authModeSignup");
+const authRole = document.getElementById("authRole");
+const authSignupOnlyFields = document.getElementById("authSignupOnlyFields");
+const authFullName = document.getElementById("authFullName");
+const authCountryCode = document.getElementById("authCountryCode");
+const authEmail = document.getElementById("authEmail");
+const authPassword = document.getElementById("authPassword");
+const authStatus = document.getElementById("authStatus");
+const authSubmit = document.getElementById("authSubmit");
+const authClose = document.getElementById("authClose");
+const authTopbarText = document.getElementById("authTopbarText");
+const authTopbarLogout = document.getElementById("authTopbarLogout");
+const tradeRouteLegend = document.getElementById("tradeRouteLegend");
+const expressCheckout = document.getElementById("expressCheckout");
+const expressCheckoutText = document.getElementById("expressCheckoutText");
+const expressCheckoutConfirm = document.getElementById("expressCheckoutConfirm");
+const expressCheckoutCancel = document.getElementById("expressCheckoutCancel");
+const expressCheckoutStatus = document.getElementById("expressCheckoutStatus");
 const barterTermsAck = document.getElementById("barterTermsAck");
 const barterUserId = document.getElementById("barterUserId");
 const barterCountry = document.getElementById("barterCountry");
@@ -122,6 +159,269 @@ let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
 let disclaimerWatchdogTimer = null;
 const PUBLIC_USER_KEY = "vibecart-public-user-id";
+const HOME_VIEW_KEY = "vibecart-home-view";
+const AUTH_MODE_KEY = "vibecart-auth-mode";
+const PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
+const PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
+const QUICK_BUY_EMAIL_KEY = "vibecart-quick-buy-email";
+const QUICK_BUY_PASSWORD_KEY = "vibecart-quick-buy-password";
+const CINEMATIC_INTRO_KEY = "vibecart-cinematic-intro-v1";
+const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
+let pendingExpressItem = null;
+const easterState = { routeClicks: [], voiceClicks: 0 };
+const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "TZ", "UG", "RW", "BW", "ZM"]);
+const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
+const BRIDGE_PATH_KEY = "vibecart-bridge-path";
+const BUYER_DESTINATION_KEY = "vibecart-buyer-destination";
+let activeBridgePath = localStorage.getItem(BRIDGE_PATH_KEY) || "from-europe";
+let liveMarketplaceCache = [];
+
+function inferCategoryFromTitle(title) {
+  const text = String(title || "").toLowerCase();
+  if (/phone|laptop|camera|tablet|headset|controller|gaming|console|tech|electronic/.test(text)) {
+    return "Electronics";
+  }
+  if (/fashion|hoodie|dress|shoe|sneaker|wear|streetwear|bag/.test(text)) {
+    return "Fashion";
+  }
+  if (/book|textbook|guide|course|manual/.test(text)) {
+    return "Books";
+  }
+  if (/game|gaming|controller|joystick/.test(text)) {
+    return "Gaming";
+  }
+  return "Electronics";
+}
+
+function classifyBridgePath(originCountry) {
+  const code = String(originCountry || "").trim().toUpperCase();
+  if (AFRICA_ORIGIN_CODES.has(code)) {
+    return "from-africa";
+  }
+  if (EUROPE_ORIGIN_CODES.has(code)) {
+    return "from-europe";
+  }
+  return "other";
+}
+
+function getPathLabel(path) {
+  return path === "from-africa" ? "Mama Africa to Europe" : "From Europe to Africa";
+}
+
+function getBuyerCountryCode() {
+  const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
+  return destination === "europe" ? "PL" : "ZA";
+}
+
+function getBuyerShippingMethod() {
+  const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
+  return destination === "europe" ? "priority-eu-lane" : "express-africa-lane";
+}
+
+function getBuyerDestinationLabel() {
+  const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
+  return destination === "europe" ? "Europe buyer" : "Africa buyer";
+}
+
+function updateBuyerDestinationHint() {
+  if (!buyerDestinationHint) {
+    return;
+  }
+  const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
+  if (destination === "europe") {
+    buyerDestinationHint.textContent = "Checkout defaults: Europe buyer (country PL), priority EU lane shipping.";
+  } else {
+    buyerDestinationHint.textContent = "Checkout defaults: Africa buyer (country ZA), express Africa lane shipping.";
+  }
+}
+
+function applyBuyerDestinationDefaultForPath(path) {
+  const destination = path === "from-africa" ? "europe" : "africa";
+  localStorage.setItem(BUYER_DESTINATION_KEY, destination);
+  if (buyerDestinationSelect) {
+    buyerDestinationSelect.value = destination;
+  }
+  updateBuyerDestinationHint();
+}
+
+async function fetchLiveMarketplaceProducts() {
+  const urls = [
+    "/api/public/products/live?limit=100&bridgePath=from-europe",
+    "/api/public/products/live?limit=100&bridgePath=from-africa"
+  ];
+  const merged = [];
+  const seen = new Set();
+  for (const url of urls) {
+    const response = await fetch(url);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.ok || !Array.isArray(body.products)) {
+      continue;
+    }
+    body.products.forEach((item) => {
+      const id = Number(item.id);
+      if (!Number.isFinite(id) || seen.has(id)) {
+        return;
+      }
+      seen.add(id);
+      merged.push(item);
+    });
+  }
+  if (merged.length === 0) {
+    throw new Error("NO_LIVE_PRODUCTS");
+  }
+  return merged;
+}
+
+function getProductsForPath(path) {
+  return liveMarketplaceCache.filter((item) => classifyBridgePath(item.originCountry) === path);
+}
+
+function renderBridgePathShops(pathProducts, path) {
+  if (!bridgeShops) {
+    return;
+  }
+  const grouped = new Map();
+  pathProducts.forEach((item) => {
+    const key = `${item.shopId || "0"}:${item.shopName || "Unknown Shop"}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        shopName: String(item.shopName || "Unknown Shop"),
+        originCountry: String(item.originCountry || "").toUpperCase(),
+        count: 0
+      });
+    }
+    grouped.get(key).count += 1;
+  });
+  const shops = Array.from(grouped.values()).slice(0, 12);
+  if (shops.length === 0) {
+    bridgeShops.innerHTML = `<article class="shop"><h3>No shops yet</h3><p>Seed route shops and products to activate ${getPathLabel(path)}.</p></article>`;
+    return;
+  }
+  bridgeShops.innerHTML = "";
+  shops.forEach((shop) => {
+    const node = document.createElement("article");
+    node.className = "shop";
+    node.innerHTML = `
+      <h3>${shop.shopName}</h3>
+      <p>Origin: ${shop.originCountry}</p>
+      <p>${shop.count} live product${shop.count === 1 ? "" : "s"} on this path.</p>
+    `;
+    bridgeShops.appendChild(node);
+  });
+}
+
+function renderBridgePathProducts(pathProducts) {
+  if (!productsGrid) {
+    return;
+  }
+  if (!Array.isArray(pathProducts) || pathProducts.length === 0) {
+    productsGrid.innerHTML =
+      `<article class="product" data-category="All" data-unique="1">
+        <h3>No live route products found</h3>
+        <p class="price">Awaiting listings</p>
+        <p>Seed shops/products for this bridge path, then refresh.</p>
+      </article>`;
+    products = Array.from(document.querySelectorAll(".product"));
+    return;
+  }
+  productsGrid.innerHTML = "";
+  pathProducts.slice(0, 36).forEach((item) => {
+    const category = inferCategoryFromTitle(item.title);
+    const node = document.createElement("article");
+    node.className = "product";
+    node.setAttribute("data-category", category);
+    node.setAttribute("data-unique", "1");
+    node.innerHTML = `
+      <h3>${String(item.title || "Live Product")}</h3>
+      <p class="price">${String(item.currency || "EUR")} ${Number(item.basePrice || 0).toFixed(2)}</p>
+      <p>Shop: ${String(item.shopName || "Unknown Shop")} | Ships from ${String(item.originCountry || "").toUpperCase()}</p>
+      <button class="btn btn-primary buy-now-btn" data-title="${String(item.title || "").replace(/"/g, "&quot;")}" data-price="${Number(item.basePrice || 0)}">Buy in 1 Click</button>
+    `;
+    productsGrid.appendChild(node);
+  });
+  products = Array.from(document.querySelectorAll(".product"));
+}
+
+function setBridgePath(path) {
+  activeBridgePath = path === "from-africa" ? "from-africa" : "from-europe";
+  localStorage.setItem(BRIDGE_PATH_KEY, activeBridgePath);
+  if (bridgePathStatus) {
+    const count = getProductsForPath(activeBridgePath).length;
+    const total = liveMarketplaceCache.length;
+    const otherPath = activeBridgePath === "from-africa" ? "from-europe" : "from-africa";
+    const otherCount = getProductsForPath(otherPath).length;
+    let suffix = "";
+    if (count === 0 && total > 0) {
+      suffix = ` No listings match this path in the live catalog yet (${otherCount} on ${getPathLabel(otherPath)}).`;
+    } else if (count === 0 && total === 0) {
+      suffix = " Live catalog is empty — check API connection or seed products.";
+    }
+    bridgePathStatus.textContent =
+      `Active path: ${getPathLabel(activeBridgePath)}. ${count} live product${count === 1 ? "" : "s"} on this path (${total} loaded).${suffix}`;
+  }
+  if (bridgePathSwitch) {
+    bridgePathSwitch.querySelectorAll("[data-bridge-path]").forEach((btn) => {
+      const isActive = btn.getAttribute("data-bridge-path") === activeBridgePath;
+      btn.classList.toggle("btn-primary", isActive);
+      btn.classList.toggle("btn-secondary", !isActive);
+    });
+  }
+  const pathProducts = getProductsForPath(activeBridgePath);
+  applyBuyerDestinationDefaultForPath(activeBridgePath);
+  renderBridgePathShops(pathProducts, activeBridgePath);
+  renderBridgePathProducts(pathProducts);
+  wireOneClickBuy();
+  wireMarketActionButtons();
+  filterProducts(categoryFilter ? categoryFilter.value : "All");
+}
+
+async function initializeBridgePaths() {
+  if (buyerDestinationSelect && buyerDestinationSelect.dataset.boundBuyerDestination !== "1") {
+    buyerDestinationSelect.dataset.boundBuyerDestination = "1";
+    buyerDestinationSelect.addEventListener("change", () => {
+      localStorage.setItem(BUYER_DESTINATION_KEY, String(buyerDestinationSelect.value || "africa"));
+      updateBuyerDestinationHint();
+    });
+  }
+  updateBuyerDestinationHint();
+  if (bridgePathSwitch) {
+    bridgePathSwitch.querySelectorAll("[data-bridge-path]").forEach((btn) => {
+      if (btn.dataset.boundBridgePath === "1") {
+        return;
+      }
+      btn.dataset.boundBridgePath = "1";
+      btn.addEventListener("click", () => {
+        setBridgePath(btn.getAttribute("data-bridge-path") || "from-europe");
+      });
+    });
+  }
+  try {
+    liveMarketplaceCache = await fetchLiveMarketplaceProducts();
+  } catch {
+    liveMarketplaceCache = [];
+  }
+  setBridgePath(activeBridgePath);
+  document.querySelectorAll("[data-bridge-hop]").forEach((link) => {
+    if (link.dataset.bridgeHopBound === "1") {
+      return;
+    }
+    link.dataset.bridgeHopBound = "1";
+    link.addEventListener("click", () => {
+      const path = link.getAttribute("data-bridge-hop");
+      if (path) {
+        setBridgePath(path);
+      }
+    });
+  });
+}
+
+function getPublicAuthHeaders(extraHeaders = {}) {
+  const token = String(localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY) || "");
+  return {
+    ...extraHeaders,
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
 
 function getPublicUserId() {
   const stored = Number(localStorage.getItem(PUBLIC_USER_KEY) || "0");
@@ -133,10 +433,58 @@ function getPublicUserId() {
   return generated;
 }
 
+function setHomeView(view) {
+  const groups = {
+    discover: pageGroupDiscover,
+    grow: pageGroupGrow,
+    assurance: pageGroupAssurance
+  };
+  Object.values(groups).forEach((node) => {
+    if (!node) {
+      return;
+    }
+    node.classList.add("hidden-group");
+  });
+
+  if (view === "all") {
+    Object.values(groups).forEach((node) => {
+      if (node) {
+        node.classList.remove("hidden-group");
+      }
+    });
+  } else if (groups[view]) {
+    groups[view].classList.remove("hidden-group");
+  } else if (groups.discover) {
+    groups.discover.classList.remove("hidden-group");
+    view = "discover";
+  }
+  localStorage.setItem(HOME_VIEW_KEY, view);
+}
+
+function bindHomeViewButtons() {
+  if (viewDiscover) {
+    viewDiscover.addEventListener("click", () => setHomeView("discover"));
+  }
+  if (viewGrow) {
+    viewGrow.addEventListener("click", () => setHomeView("grow"));
+  }
+  if (viewAssurance) {
+    viewAssurance.addEventListener("click", () => setHomeView("assurance"));
+  }
+  if (viewAll) {
+    viewAll.addEventListener("click", () => setHomeView("all"));
+  }
+  setHomeView(localStorage.getItem(HOME_VIEW_KEY) || "discover");
+}
+
 function filterProducts(value) {
+  const uniqueOnly = Boolean(uniqueOnlyFilter && uniqueOnlyFilter.checked);
   products.forEach((item) => {
     const category = item.getAttribute("data-category");
-    const show = value === "All" || category === value;
+    const isUnique = String(item.getAttribute("data-unique") || "0") === "1";
+    const categoryOk = value === "All" || category === value;
+    const uniqueOk = !uniqueOnly || isUnique;
+    const show = categoryOk && uniqueOk;
     item.style.display = show ? "block" : "none";
   });
 }
@@ -144,6 +492,11 @@ function filterProducts(value) {
 if (categoryFilter) {
   categoryFilter.addEventListener("change", (event) => {
     filterProducts(event.target.value);
+  });
+}
+if (uniqueOnlyFilter) {
+  uniqueOnlyFilter.addEventListener("change", () => {
+    filterProducts(categoryFilter ? categoryFilter.value : "All");
   });
 }
 
@@ -247,6 +600,24 @@ function applyOwnerSettings() {
   }
 }
 
+async function hydrateOwnerSettingsFromCloud() {
+  try {
+    const response = await fetch("/api/public/site-settings");
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok || !payload.settings) {
+      return;
+    }
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload.settings));
+    if (payload.settings.theme) {
+      localStorage.setItem("vibecart-theme", String(payload.settings.theme));
+    }
+    applyOwnerSettings();
+    applyAdaptiveTheme();
+  } catch {
+    // keep local fallback
+  }
+}
+
 function registerEngagementSignals() {
   const interactive = document.querySelectorAll("a, button, select");
   interactive.forEach((node) => {
@@ -266,15 +637,910 @@ function registerEngagementSignals() {
   });
 }
 
+function initLuxuryMotion() {
+  document.body.classList.add("luxe-ready");
+  const nodes = document.querySelectorAll(
+    ".hero, .section, .home-cta-strip, .bento-card, .product, .shop, .settings-card"
+  );
+  nodes.forEach((node, index) => {
+    if (index < 3) {
+      node.classList.add("is-visible");
+    }
+  });
+  if (!("IntersectionObserver" in window)) {
+    nodes.forEach((node) => node.classList.add("is-visible"));
+    return;
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.14, rootMargin: "0px 0px -8% 0px" }
+  );
+  nodes.forEach((node) => observer.observe(node));
+}
+
+function initBrandSignatureMotion() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const hero = document.querySelector(".hero");
+  const heroVisual = document.querySelector(".hero-image");
+  const heroBg = document.querySelector(".hero-captivate-bg");
+  if (!hero || !heroVisual || !heroBg) {
+    return;
+  }
+
+  const applyDepth = (x, y) => {
+    heroVisual.style.transform = `translate(${x * 12}px, ${y * 12}px) scale(1.02)`;
+    heroBg.style.transform = `translate(${x * -16}px, ${y * -10}px) scale(1.03)`;
+  };
+
+  hero.addEventListener("mousemove", (event) => {
+    const rect = hero.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    applyDepth(x, y);
+  });
+  hero.addEventListener("mouseleave", () => {
+    heroVisual.style.transform = "translate(0, 0) scale(1)";
+    heroBg.style.transform = "translate(0, 0) scale(1)";
+  });
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      const rect = hero.getBoundingClientRect();
+      const viewportH = window.innerHeight || 1;
+      const progress = Math.max(-1, Math.min(1, (rect.top + rect.height * 0.5 - viewportH * 0.5) / viewportH));
+      heroVisual.style.transform = `translate(0, ${progress * -14}px) scale(1.02)`;
+      heroBg.style.transform = `translate(0, ${progress * -24}px) scale(1.04)`;
+    },
+    { passive: true }
+  );
+
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener(
+      "deviceorientation",
+      (event) => {
+        const beta = Number(event.beta || 0);
+        const gamma = Number(event.gamma || 0);
+        const tiltX = Math.max(-0.5, Math.min(0.5, gamma / 40));
+        const tiltY = Math.max(-0.5, Math.min(0.5, beta / 80));
+        applyDepth(tiltX, tiltY);
+      },
+      { passive: true }
+    );
+  }
+}
+
+function initMobileQuickNav() {
+  const nav = document.getElementById("mobileQuickNav");
+  if (!nav) {
+    return;
+  }
+  const links = Array.from(nav.querySelectorAll("a[data-quick-target]"));
+  const sections = links
+    .map((link) => document.getElementById(String(link.getAttribute("data-quick-target") || "")))
+    .filter(Boolean);
+
+  links.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const targetId = String(link.getAttribute("data-quick-target") || "");
+      const target = document.getElementById(targetId);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+
+  if (!("IntersectionObserver" in window) || sections.length === 0) {
+    return;
+  }
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) {
+        return;
+      }
+      const id = String(visible.target.id || "");
+      links.forEach((link) => {
+        const active = String(link.getAttribute("data-quick-target") || "") === id;
+        link.classList.toggle("is-active", active);
+      });
+    },
+    { threshold: [0.2, 0.4, 0.6] }
+  );
+  sections.forEach((section) => observer.observe(section));
+}
+
 const market = resolveMarketFromLocale();
 applyOwnerSettings();
+hydrateOwnerSettingsFromCloud().catch(() => {});
 setMarketCopy(market);
 applyAdaptiveTheme();
 registerEngagementSignals();
+initLuxuryMotion();
+initBrandSignatureMotion();
+initMobileQuickNav();
 
 if (heroTitle) {
   heroTitle.setAttribute("title", "Adaptive secure marketplace");
 }
+
+function setAuthMode(mode) {
+  const nextMode = mode === "signup" ? "signup" : "login";
+  localStorage.setItem(AUTH_MODE_KEY, nextMode);
+  if (authModeLogin && authModeSignup) {
+    authModeLogin.classList.toggle("btn-primary", nextMode === "login");
+    authModeLogin.classList.toggle("btn-secondary", nextMode !== "login");
+    authModeSignup.classList.toggle("btn-primary", nextMode === "signup");
+    authModeSignup.classList.toggle("btn-secondary", nextMode !== "signup");
+  }
+  if (authSubmit) {
+    authSubmit.textContent = nextMode === "signup" ? "Create Account" : "Login";
+  }
+  if (authSignupOnlyFields) {
+    authSignupOnlyFields.classList.toggle("hidden", nextMode !== "signup");
+  }
+}
+
+function openAuthModal(role) {
+  if (!authModal) {
+    return;
+  }
+  authModal.classList.remove("hidden");
+  if (authRole && (role === "buyer" || role === "seller")) {
+    authRole.value = role;
+  }
+  const label = role === "seller" ? "Seller" : "Buyer";
+  if (authTitle) {
+    authTitle.textContent = `${label} Account Access`;
+  }
+  if (authSubtitle) {
+    authSubtitle.textContent = `Login or sign up as a ${label.toLowerCase()} to continue.`;
+  }
+  if (authStatus) {
+    authStatus.textContent = "";
+  }
+  setAuthMode(localStorage.getItem(AUTH_MODE_KEY) || "login");
+}
+
+function closeAuthModal() {
+  if (authModal) {
+    authModal.classList.add("hidden");
+  }
+}
+
+function setAuthUi(user) {
+  if (!authTopbarText || !authTopbarLogout) {
+    return;
+  }
+  if (!user || !user.email) {
+    authTopbarText.textContent = "Not signed in";
+    authTopbarLogout.classList.add("hidden");
+    return;
+  }
+  authTopbarText.textContent = `${user.fullName || "User"} (${user.role || "buyer"})`;
+  authTopbarLogout.classList.remove("hidden");
+}
+
+function clearRoleGuardNotes() {
+  document.querySelectorAll(".role-guard-note").forEach((node) => node.remove());
+}
+
+function applyRoleGuards(user) {
+  clearRoleGuardNotes();
+  const roleRequiredNodes = document.querySelectorAll("[data-role-required]");
+  const canUseSeller = Boolean(user && user.role === "seller");
+  roleRequiredNodes.forEach((node) => {
+    const required = String(node.getAttribute("data-role-required") || "").trim().toLowerCase();
+    if (required !== "seller") {
+      return;
+    }
+    if (canUseSeller) {
+      node.classList.remove("role-guard-hidden");
+      return;
+    }
+    node.classList.add("role-guard-hidden");
+  });
+
+  if (canUseSeller) {
+    return;
+  }
+  const sellSection = document.getElementById("sell");
+  if (!sellSection || !sellSection.parentElement) {
+    return;
+  }
+  const note = document.createElement("div");
+  note.className = "role-guard-note";
+  note.textContent =
+    "Seller tools are visible only to signed-in seller accounts. Use Account Access -> Seller Login / Sign Up.";
+  sellSection.parentElement.insertBefore(note, sellSection);
+}
+
+
+function initCinematicIntro() {
+  const intro = document.getElementById("cinematicIntro");
+  if (!intro) {
+    return;
+  }
+  if (localStorage.getItem(CINEMATIC_INTRO_KEY) === "1") {
+    intro.remove();
+    return;
+  }
+  intro.classList.add("is-visible");
+  const hide = () => {
+    intro.classList.add("is-hidden");
+    localStorage.setItem(CINEMATIC_INTRO_KEY, "1");
+    setTimeout(() => intro.remove(), 520);
+  };
+  setTimeout(hide, 2100);
+}
+
+function initVibeFlowMotion() {
+  const track = document.getElementById("vibeFlowTrack");
+  if (!track) {
+    return;
+  }
+  let swipeCount = 0;
+  let touchStartX = 0;
+  let longPressTimer = null;
+  let neonArmed = false;
+  const cards = Array.from(track.querySelectorAll("[data-diagonal-layer]"));
+
+  track.addEventListener(
+    "wheel",
+    (event) => {
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        event.preventDefault();
+        track.scrollLeft += event.deltaY * 1.05;
+      }
+    },
+    { passive: false }
+  );
+
+  const applyDiagonal = () => {
+    const viewportMid = window.innerHeight * 0.5;
+    const trackRect = track.getBoundingClientRect();
+    const lensCenterX = trackRect.left + trackRect.width * 0.5;
+    const lensRange = Math.max(trackRect.width * 0.42, 1);
+    cards.forEach((card) => {
+      const depth = Number(card.getAttribute("data-diagonal-layer") || "1");
+      const rect = card.getBoundingClientRect();
+      const distance = (rect.top + rect.height * 0.5 - viewportMid) / viewportMid;
+      const xShift = distance * depth * -8;
+      const yShift = distance * depth * 6;
+      const cardCenterX = rect.left + rect.width * 0.5;
+      const centerDelta = Math.abs(cardCenterX - lensCenterX);
+      const centerBoost = Math.max(0, 1 - centerDelta / lensRange);
+      const scale = 0.9 + centerBoost * 0.24;
+      const opacity = 0.72 + centerBoost * 0.28;
+      card.style.transform = `translate(${xShift}px, ${yShift}px) scale(${scale.toFixed(3)})`;
+      card.style.opacity = opacity.toFixed(3);
+      card.style.filter = `saturate(${(0.88 + centerBoost * 0.28).toFixed(3)})`;
+    });
+  };
+
+  window.addEventListener("scroll", applyDiagonal, { passive: true });
+  track.addEventListener("scroll", applyDiagonal, { passive: true });
+  applyDiagonal();
+
+  const activateNeonMode = () => {
+    document.body.classList.add("night-neon");
+    localStorage.setItem(NIGHT_NEON_KEY, "1");
+    if (authTopbarText) {
+      authTopbarText.textContent = "Night Neon mode unlocked.";
+    }
+  };
+  const deactivateNeonMode = () => {
+    document.body.classList.remove("night-neon");
+    localStorage.removeItem(NIGHT_NEON_KEY);
+    if (authTopbarText) {
+      authTopbarText.textContent = "Night Neon mode disabled.";
+    }
+  };
+
+  if (localStorage.getItem(NIGHT_NEON_KEY) === "1") {
+    activateNeonMode();
+  }
+
+  track.addEventListener("touchstart", (event) => {
+    touchStartX = Number(event.touches?.[0]?.clientX || 0);
+  }, { passive: true });
+
+  track.addEventListener("touchend", (event) => {
+    const endX = Number(event.changedTouches?.[0]?.clientX || 0);
+    if (Math.abs(endX - touchStartX) > 34) {
+      swipeCount += 1;
+      if (swipeCount >= 3) {
+        neonArmed = true;
+      }
+    }
+  }, { passive: true });
+
+  const beginHold = () => {
+    if (!neonArmed) {
+      return;
+    }
+    longPressTimer = setTimeout(() => {
+      if (document.body.classList.contains("night-neon")) {
+        deactivateNeonMode();
+      } else {
+        activateNeonMode();
+      }
+      neonArmed = false;
+      swipeCount = 0;
+    }, 900);
+  };
+
+  const endHold = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  };
+
+  track.addEventListener("pointerdown", beginHold);
+  track.addEventListener("pointerup", endHold);
+  track.addEventListener("pointerleave", endHold);
+}
+
+function initHeroCanvasFx() {
+  const canvas = document.getElementById("heroCanvasFx");
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return;
+  }
+  const particles = [];
+  let width = 0;
+  let height = 0;
+
+  const resize = () => {
+    const host = canvas.parentElement || canvas;
+    width = Math.max(320, Math.floor(host.clientWidth || 0));
+    height = Math.max(240, Math.floor(host.clientHeight || 0));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+
+  const seed = () => {
+    particles.length = 0;
+    const count = Math.max(14, Math.floor(width / 70));
+    for (let i = 0; i < count; i += 1) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: 1.2 + Math.random() * 3.4,
+        vx: -0.12 + Math.random() * 0.24,
+        vy: -0.08 + Math.random() * 0.16,
+        hue: [30, 165, 265][i % 3]
+      });
+    }
+  };
+
+  const frame = () => {
+    ctx.clearRect(0, 0, width, height);
+    const grad = ctx.createLinearGradient(0, 0, width, height);
+    grad.addColorStop(0, "rgba(255,140,40,0.18)");
+    grad.addColorStop(0.5, "rgba(15,235,190,0.14)");
+    grad.addColorStop(1, "rgba(140,110,255,0.18)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    particles.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < -20) p.x = width + 20;
+      if (p.x > width + 20) p.x = -20;
+      if (p.y < -20) p.y = height + 20;
+      if (p.y > height + 20) p.y = -20;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 92%, 68%, 0.45)`;
+      ctx.fill();
+    });
+    requestAnimationFrame(frame);
+  };
+
+  resize();
+  seed();
+  frame();
+  window.addEventListener("resize", () => {
+    resize();
+    seed();
+  });
+}
+
+function startVoiceCommandMode() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    if (authTopbarText) {
+      authTopbarText.textContent = "Voice command is not supported on this browser.";
+    }
+    return;
+  }
+  const rec = new SpeechRec();
+  rec.lang = "en-US";
+  rec.interimResults = false;
+  rec.continuous = false;
+  if (authTopbarText) {
+    authTopbarText.textContent = "Listening for voice command...";
+  }
+  rec.onresult = (event) => {
+    const text = String(event.results?.[0]?.[0]?.transcript || "").toLowerCase();
+    if (text.includes("vibe unlock kuda")) {
+      tryRevealHiddenPhrase("command");
+    }
+    if (text.includes("discover")) {
+      setHomeView("discover");
+    } else if (text.includes("sell") || text.includes("grow")) {
+      setHomeView("grow");
+    } else if (text.includes("security") || text.includes("assurance")) {
+      setHomeView("assurance");
+    } else if (text.includes("trust")) {
+      document.getElementById("trust-lab")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (text.includes("market")) {
+      document.getElementById("market")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (text.includes("seller login")) {
+      openAuthModal("seller");
+    } else if (text.includes("buyer login")) {
+      openAuthModal("buyer");
+    }
+    if (authTopbarText) {
+      authTopbarText.textContent = `Voice command: ${text || "no speech captured"}`;
+    }
+  };
+  rec.onerror = () => {
+    if (authTopbarText) {
+      authTopbarText.textContent = "Voice command failed. Please try again.";
+    }
+  };
+  rec.start();
+  easterState.voiceClicks += 1;
+}
+
+function getHiddenPhraseFromFragments() {
+  const pieces = {
+    k: document.querySelector("[data-vc-frag-k]")?.getAttribute("data-vc-frag-k") || "",
+    u: document.querySelector("[data-vc-frag-u]")?.getAttribute("data-vc-frag-u") || "",
+    d: document.querySelector("[data-vc-frag-d]")?.getAttribute("data-vc-frag-d") || "",
+    a: document.querySelector("[data-vc-frag-a]")?.getAttribute("data-vc-frag-a") || "",
+    w: document.querySelector("[data-vc-frag-w]")?.getAttribute("data-vc-frag-w") || "",
+    q: document.querySelector("[data-vc-frag-q]")?.getAttribute("data-vc-frag-q") || "",
+    s: document.querySelector("[data-vc-frag-s]")?.getAttribute("data-vc-frag-s") || "",
+    h: document.querySelector("[data-vc-frag-h]")?.getAttribute("data-vc-frag-h") || "",
+    i: document.querySelector("[data-vc-frag-i]")?.getAttribute("data-vc-frag-i") || ""
+  };
+  const trailing = String("e");
+  return `${pieces.k}${pieces.u}${pieces.d}${pieces.a} ${pieces.w}${pieces.a}${pieces.i}${pieces.s}${pieces.h}${trailing}`;
+}
+
+function tryRevealHiddenPhrase(trigger) {
+  const routeSecret = easterState.routeClicks.join("-");
+  const routeMatch = routeSecret.endsWith("eu-africa-africa-dubai-dubai-asia-asia-africa");
+  if (trigger !== "command" && !(routeMatch && easterState.voiceClicks >= 2)) {
+    return;
+  }
+  const codeUnits = [75, 117, 100, 97, 32, 107, 119, 97, 105, 115, 104, 101];
+  const phrase = getHiddenPhraseFromFragments() || String.fromCharCode(...codeUnits);
+  if (authTopbarText) {
+    authTopbarText.textContent = `Secret unlocked: ${phrase}`;
+  }
+  if (tradeRouteLegend) {
+    tradeRouteLegend.textContent = `Hidden route note: ${phrase}`;
+  }
+}
+
+function savePublicUser(user) {
+  localStorage.setItem(PUBLIC_AUTH_USER_KEY, JSON.stringify(user || {}));
+  setAuthUi(user);
+  applyRoleGuards(user);
+}
+
+function clearPublicAuth() {
+  localStorage.removeItem(PUBLIC_AUTH_TOKEN_KEY);
+  localStorage.removeItem(PUBLIC_AUTH_USER_KEY);
+  setAuthUi(null);
+  applyRoleGuards(null);
+}
+
+function openExpressCheckout(itemTitle, price) {
+  pendingExpressItem = { itemTitle, price };
+  if (expressCheckout) {
+    expressCheckout.classList.remove("hidden");
+  }
+  if (expressCheckoutText) {
+    expressCheckoutText.textContent = `Express checkout ready: ${itemTitle} (EUR ${price}) for ${getBuyerDestinationLabel()}.`;
+  }
+  if (expressCheckoutStatus) {
+    expressCheckoutStatus.textContent = "One-click buy is armed. Confirm to proceed securely.";
+  }
+}
+
+function closeExpressCheckout() {
+  pendingExpressItem = null;
+  if (expressCheckout) {
+    expressCheckout.classList.add("hidden");
+  }
+  if (expressCheckoutStatus) {
+    expressCheckoutStatus.textContent = "";
+  }
+}
+
+function wireOneClickBuy() {
+  document.querySelectorAll(".buy-now-btn").forEach((btn) => {
+    if (btn.dataset.boundQuickBuy === "1") {
+      return;
+    }
+    btn.dataset.boundQuickBuy = "1";
+    btn.addEventListener("click", () => {
+      const itemTitle = String(btn.getAttribute("data-title") || "Selected item");
+      const price = Number(btn.getAttribute("data-price") || "0");
+      const user = loadStoredPublicUser();
+      if (!user || !user.email) {
+        if (expressCheckoutStatus) {
+          expressCheckoutStatus.textContent = "Please login as buyer for one-click checkout.";
+        }
+        openAuthModal("buyer");
+        return;
+      }
+      if (String(user.role || "").toLowerCase() !== "buyer") {
+        if (expressCheckoutStatus) {
+          expressCheckoutStatus.textContent = "One-click buy is available for buyer accounts.";
+        }
+        return;
+      }
+      if (marketDisclaimerAck && !marketDisclaimerAck.checked) {
+        if (expressCheckoutStatus) {
+          expressCheckoutStatus.textContent = "Please accept the marketplace disclaimer first.";
+        }
+        return;
+      }
+      openExpressCheckout(itemTitle, price);
+    });
+  });
+}
+
+async function ensureBuyerSessionToken() {
+  const existing = String(localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY) || "");
+  if (existing) {
+    return existing;
+  }
+  const email = String(localStorage.getItem(QUICK_BUY_EMAIL_KEY) || "");
+  const password = String(localStorage.getItem(QUICK_BUY_PASSWORD_KEY) || "");
+  if (email && password) {
+    const loginResponse = await fetch("/api/public/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, role: "buyer" })
+    });
+    const loginBody = await loginResponse.json();
+    if (loginResponse.ok && loginBody.ok && loginBody.token) {
+      localStorage.setItem(PUBLIC_AUTH_TOKEN_KEY, String(loginBody.token));
+      savePublicUser(loginBody.user || { email, role: "buyer" });
+      return String(loginBody.token);
+    }
+  }
+
+  const generatedEmail = `quickbuyer+${Date.now()}@vibecart.local`;
+  const generatedPassword = `Quick#${Math.random().toString(36).slice(2, 10)}A1`;
+  const registerResponse = await fetch("/api/public/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: generatedEmail,
+      password: generatedPassword,
+      role: "buyer",
+      fullName: "Quick Buyer",
+      countryCode: "ZA"
+    })
+  });
+  const registerBody = await registerResponse.json();
+  if (!registerResponse.ok || !registerBody.ok || !registerBody.token) {
+    throw new Error(registerBody.code || "BUYER_SESSION_FAILED");
+  }
+  localStorage.setItem(QUICK_BUY_EMAIL_KEY, generatedEmail);
+  localStorage.setItem(QUICK_BUY_PASSWORD_KEY, generatedPassword);
+  localStorage.setItem(PUBLIC_AUTH_TOKEN_KEY, String(registerBody.token));
+  savePublicUser(registerBody.user || { email: generatedEmail, role: "buyer", fullName: "Quick Buyer" });
+  return String(registerBody.token);
+}
+
+async function resolveLiveProductId(preferredTitle) {
+  const response = await fetch("/api/public/products/live?limit=30");
+  const body = await response.json();
+  if (!response.ok || !body.ok || !Array.isArray(body.products) || body.products.length === 0) {
+    throw new Error("NO_LIVE_PRODUCTS");
+  }
+  const titleNeedle = String(preferredTitle || "").trim().toLowerCase();
+  const matched = body.products.find((item) => String(item.title || "").toLowerCase() === titleNeedle)
+    || body.products.find((item) => String(item.title || "").toLowerCase().includes(titleNeedle))
+    || body.products[0];
+  return Number(matched.id);
+}
+
+async function runLiveOneClickCheckout(itemTitle) {
+  const token = await ensureBuyerSessionToken();
+  const productId = await resolveLiveProductId(itemTitle);
+  const buyerCountry = getBuyerCountryCode();
+  const shippingMethod = getBuyerShippingMethod();
+  const createResponse = await fetch("/api/public/orders/create", {
+    method: "POST",
+    headers: getPublicAuthHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      productId,
+      quantity: 1,
+      buyerCountry,
+      shippingMethod
+    })
+  });
+  const createBody = await createResponse.json();
+  if (!createResponse.ok || !createBody.ok || !createBody.order?.orderId) {
+    throw new Error(createBody.code || "ORDER_CREATE_FAILED");
+  }
+  const trackResponse = await fetch(`/api/public/orders/track?orderId=${Number(createBody.order.orderId)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const trackBody = await trackResponse.json();
+  if (!trackResponse.ok || !trackBody.ok || !trackBody.order) {
+    throw new Error(trackBody.code || "ORDER_TRACK_FAILED");
+  }
+  return { createBody, trackBody };
+}
+
+async function startOrderTrackingPoll(orderId, token) {
+  const maxChecks = 20;
+  const waitMs = 4000;
+  for (let i = 0; i < maxChecks; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    const trackResponse = await fetch(`/api/public/orders/track?orderId=${Number(orderId)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const trackBody = await trackResponse.json();
+    if (!trackResponse.ok || !trackBody.ok || !trackBody.order) {
+      continue;
+    }
+    const shipment = trackBody.shipment;
+    const latestUpdate = Array.isArray(trackBody.updates) && trackBody.updates.length > 0
+      ? trackBody.updates[0].statusMessage
+      : "Tracking refreshed.";
+    if (expressCheckoutStatus) {
+      expressCheckoutStatus.textContent =
+        `Order #${orderId} now ${trackBody.order.status}. ` +
+        (shipment
+          ? `Courier: ${shipment.courier} | Tracking: ${shipment.trackingNumber || "pending"} | ${latestUpdate}`
+          : latestUpdate);
+    }
+    const status = String(trackBody.order.status || "").toLowerCase();
+    if (status === "shipped" || status === "delivered" || status === "cancelled" || status === "refunded") {
+      break;
+    }
+  }
+}
+
+function loadStoredPublicUser() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PUBLIC_AUTH_USER_KEY) || "{}");
+    if (parsed && parsed.email) {
+      setAuthUi(parsed);
+      applyRoleGuards(parsed);
+      return parsed;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  setAuthUi(null);
+  applyRoleGuards(null);
+  return null;
+}
+
+async function validateStoredSession() {
+  const token = String(localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY) || "");
+  if (!token) {
+    clearPublicAuth();
+    return;
+  }
+  try {
+    const response = await fetch("/api/public/auth/session", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const body = await response.json();
+    if (!response.ok || !body.ok || !body.user) {
+      clearPublicAuth();
+      return;
+    }
+    savePublicUser(body.user);
+  } catch {
+    // keep stored user visible on temporary network errors
+  }
+}
+
+async function handleAuthSubmit() {
+  const mode = localStorage.getItem(AUTH_MODE_KEY) || "login";
+  const role = authRole ? authRole.value : "buyer";
+  const fullName = authFullName ? String(authFullName.value || "").trim() : "";
+  const countryCode = authCountryCode ? String(authCountryCode.value || "").trim().toUpperCase() : "";
+  const email = authEmail ? String(authEmail.value || "").trim() : "";
+  const password = authPassword ? String(authPassword.value || "").trim() : "";
+  if (!email || !password) {
+    if (authStatus) {
+      authStatus.textContent = "Please enter both email and password.";
+    }
+    return;
+  }
+  if (mode === "signup" && (!fullName || countryCode.length !== 2)) {
+    if (authStatus) {
+      authStatus.textContent = "For signup, add full name and 2-letter country code.";
+    }
+    return;
+  }
+
+  if (authStatus) {
+    authStatus.textContent = "Please wait...";
+  }
+
+  const endpoint = mode === "signup" ? "/api/public/auth/register" : "/api/public/auth/login";
+  const payload = mode === "signup"
+    ? { email, password, role, fullName, countryCode }
+    : { email, password, role };
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const body = await response.json();
+    if (!response.ok || !body.ok || !body.token) {
+      if (authStatus) {
+        authStatus.textContent = body.code || "Authentication failed.";
+      }
+      return;
+    }
+    localStorage.setItem(PUBLIC_AUTH_TOKEN_KEY, String(body.token));
+    savePublicUser(body.user || { email, role, fullName });
+    if (authStatus) {
+      authStatus.textContent =
+        `${mode === "signup" ? "Account created" : "Logged in"} successfully as ${String(body.user?.role || role)}.`;
+    }
+    setTimeout(closeAuthModal, 600);
+  } catch {
+    if (authStatus) {
+      authStatus.textContent = "Network error during authentication.";
+    }
+  }
+}
+
+if (openBuyerLogin) {
+  openBuyerLogin.addEventListener("click", () => openAuthModal("buyer"));
+}
+if (openSellerLogin) {
+  openSellerLogin.addEventListener("click", () => openAuthModal("seller"));
+}
+if (authModeLogin) {
+  authModeLogin.addEventListener("click", () => setAuthMode("login"));
+}
+if (authModeSignup) {
+  authModeSignup.addEventListener("click", () => setAuthMode("signup"));
+}
+if (authSubmit) {
+  authSubmit.addEventListener("click", () => {
+    handleAuthSubmit().catch(() => {});
+  });
+}
+if (authClose) {
+  authClose.addEventListener("click", closeAuthModal);
+}
+if (authTopbarLogout) {
+  authTopbarLogout.addEventListener("click", async () => {
+    const token = String(localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY) || "");
+    try {
+      if (token) {
+        await fetch("/api/public/auth/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch {
+      // ignore network error and still clear local state
+    } finally {
+      clearPublicAuth();
+    }
+  });
+}
+if (authModal) {
+  authModal.addEventListener("click", (event) => {
+    if (event.target === authModal) {
+      closeAuthModal();
+    }
+  });
+}
+
+bindHomeViewButtons();
+wireOneClickBuy();
+initializeBridgePaths().catch(() => {});
+initCinematicIntro();
+initVibeFlowMotion();
+initHeroCanvasFx();
+
+if (expressCheckoutCancel) {
+  expressCheckoutCancel.addEventListener("click", closeExpressCheckout);
+}
+if (expressCheckoutConfirm) {
+  expressCheckoutConfirm.addEventListener("click", () => {
+    const user = loadStoredPublicUser();
+    if (!pendingExpressItem || !user || String(user.role || "").toLowerCase() !== "buyer") {
+      if (expressCheckoutStatus) {
+        expressCheckoutStatus.textContent = "Session invalid for express checkout. Please login as buyer.";
+      }
+      return;
+    }
+    if (expressCheckoutStatus) {
+      expressCheckoutStatus.textContent = "Creating live order and loading tracking...";
+    }
+    runLiveOneClickCheckout(pendingExpressItem.itemTitle)
+      .then(({ createBody, trackBody }) => {
+        if (!expressCheckoutStatus) {
+          return;
+        }
+        const shipment = trackBody.shipment;
+        const buyerDestination = getBuyerDestinationLabel();
+        expressCheckoutStatus.textContent =
+          `Order #${createBody.order.orderId} created for ${buyerDestination} (${trackBody.order.status}). ` +
+          (shipment
+            ? `Courier: ${shipment.courier} | Tracking: ${shipment.trackingNumber || "pending"}`
+            : "Shipment will appear after payment capture.");
+        const token = String(localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY) || "");
+        if (token) {
+          startOrderTrackingPoll(createBody.order.orderId, token).catch(() => {});
+        }
+      })
+      .catch((error) => {
+        if (expressCheckoutStatus) {
+          expressCheckoutStatus.textContent = `Checkout failed: ${String(error.message || error)}`;
+        }
+      });
+  });
+}
+
+document.querySelectorAll(".trade-route").forEach((pathNode) => {
+  pathNode.addEventListener("click", () => {
+    document.querySelectorAll(".trade-route").forEach((n) => n.classList.remove("route-active"));
+    pathNode.classList.add("route-active");
+    if (!tradeRouteLegend) {
+      return;
+    }
+    const key = String(pathNode.getAttribute("data-route") || "");
+    easterState.routeClicks.push(key);
+    if (easterState.routeClicks.length > 8) {
+      easterState.routeClicks = easterState.routeClicks.slice(-8);
+    }
+    const routeCopy = {
+      "eu-africa": "Selected route: Europe ↔ Africa (high demand, strong trust score).",
+      "africa-dubai": "Selected route: Africa ↔ Dubai (premium logistics corridor).",
+      "dubai-asia": "Selected route: Dubai ↔ Asia (fast-moving lifestyle lane).",
+      "asia-africa": "Selected route: Asia ↔ Africa (unique goods and value sourcing)."
+    };
+    tradeRouteLegend.textContent = routeCopy[key] || "Selected route updated.";
+    tryRevealHiddenPhrase("routes");
+  });
+});
+
+loadStoredPublicUser();
+validateStoredSession().catch(() => {});
 
 function appendMessage(text, senderType) {
   if (!messagesBox) {
@@ -407,6 +1673,40 @@ function getAISuggestions() {
 
 if (aiSuggest) {
   aiSuggest.addEventListener("click", getAISuggestions);
+}
+
+function triggerGuidedAiPreset(kind) {
+  if (!aiNeed || !aiBudget || !aiCategory) {
+    return;
+  }
+  if (kind === "student") {
+    aiNeed.value = "affordable and durable products for daily student use";
+    aiBudget.value = "60";
+    aiCategory.value = "All";
+  } else if (kind === "premium") {
+    aiNeed.value = "premium lifestyle products with strong trust score";
+    aiBudget.value = "350";
+    aiCategory.value = "All";
+  } else {
+    aiNeed.value = "unique products not commonly found in regular stores";
+    aiBudget.value = "200";
+    aiCategory.value = "All";
+    if (uniqueOnlyFilter) {
+      uniqueOnlyFilter.checked = true;
+      filterProducts(categoryFilter ? categoryFilter.value : "All");
+    }
+  }
+  getAISuggestions();
+}
+
+if (aiQuickStudent) {
+  aiQuickStudent.addEventListener("click", () => triggerGuidedAiPreset("student"));
+}
+if (aiQuickPremium) {
+  aiQuickPremium.addEventListener("click", () => triggerGuidedAiPreset("premium"));
+}
+if (aiQuickUnique) {
+  aiQuickUnique.addEventListener("click", () => triggerGuidedAiPreset("unique"));
 }
 
 function getAIManagementPlan() {
@@ -855,7 +2155,7 @@ async function saveBarterProfileFlow() {
     await acceptBarterTermsIfChecked(userId);
     const response = await fetch("/api/public/barter/profile/upsert", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getPublicAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         userId,
         offersText: barterOffersText.value,
@@ -888,7 +2188,7 @@ async function createBarterOfferFlow() {
     await acceptBarterTermsIfChecked(userId);
     const createResponse = await fetch("/api/public/barter/offer/create", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getPublicAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         userId,
         offerTitle: barterOfferTitle.value,
@@ -930,7 +2230,7 @@ async function reportBarterBypassFlow() {
   }
   const response = await fetch("/api/public/barter/bypass/report", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getPublicAuthHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       userId,
       conversationSnippet: barterBypassSnippet.value
@@ -1460,9 +2760,11 @@ function renderTrustCards() {
   trustEntities.forEach((item) => {
     const node = document.createElement("article");
     node.className = "shop";
+    const meter = Math.max(0, Math.min(100, Number(item.score || 0)));
     node.innerHTML = `
       <h3>${item.name}</h3>
       <p><strong>${item.type}</strong> Trust Score: <span class="price">${item.score}/100</span></p>
+      <div class="rewards-progress"><div class="rewards-progress-fill" style="width:${meter}%"></div></div>
       <p>${item.note}</p>
     `;
     trustCards.appendChild(node);
@@ -1484,9 +2786,11 @@ async function loadTrustCards() {
     payload.items.slice(0, 6).forEach((item) => {
       const node = document.createElement("article");
       node.className = "shop";
+      const meter = Math.max(0, Math.min(100, Number(item.trust_score || 0)));
       node.innerHTML = `
         <h3>${String(item.entity_type).toUpperCase()} #${item.entity_id}</h3>
         <p><strong>Trust Score:</strong> <span class="price">${Number(item.trust_score).toFixed(1)}/100</span></p>
+        <div class="rewards-progress"><div class="rewards-progress-fill" style="width:${meter}%"></div></div>
         <p>Delivery: ${item.delivery_success_rate ?? "n/a"} | Dispute: ${item.dispute_rate ?? "n/a"} | Verify: ${item.verification_score ?? "n/a"}</p>
       `;
       trustCards.appendChild(node);
@@ -1634,7 +2938,7 @@ if (redeemReward) {
 
 const onboardingSteps = [
   "Welcome. This quick tour helps you shop safely, save money, and use trusted sellers.",
-  "Step 1: Check Trust Lab scores before buying from new sellers or providers.",
+  "Step 1: Start with Hot Picks and compare options quickly.",
   "Step 2: Use AI Assistant for budget-safe product picks and compare options fast.",
   "Step 3: Activate rewards by completing secure actions and on-time payments."
 ];
@@ -1644,7 +2948,7 @@ function openOnboardingModal() {
   // Fail-safe: disable blocking onboarding modal flow.
   if (rewardStatus) {
     rewardStatus.textContent =
-      "Smart Tour tips: Check Trust Lab scores, use AI Assistant for budget-safe picks, and complete secure actions for rewards.";
+      "Smart Tour tips: Explore Hot Picks, use AI Assistant for budget-safe finds, and complete secure actions for rewards.";
   }
   localStorage.setItem(ONBOARDING_KEY, "1");
 }
@@ -1676,54 +2980,6 @@ if (onboardingNext) {
 }
 if (onboardingClose) {
   onboardingClose.addEventListener("click", closeOnboardingModal);
-}
-
-async function sendLogoToEmail() {
-  if (!logoEmailStatus || !logoEmailSend) {
-    return;
-  }
-  const email = logoEmail ? String(logoEmail.value || "").trim() : "";
-  const hp = logoEmailHp ? String(logoEmailHp.value || "").trim() : "";
-  if (hp) {
-    logoEmailStatus.textContent = "Could not send right now.";
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    logoEmailStatus.textContent = "Please enter a valid email address.";
-    return;
-  }
-  logoEmailSend.disabled = true;
-  logoEmailStatus.textContent = "Sending…";
-  try {
-    const response = await fetch("/api/public/brand/email-logo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, website: hp })
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (response.ok && payload.ok) {
-      logoEmailStatus.textContent = "Check your inbox (and spam) for the SVG attachments.";
-    } else if (payload.code === "FEATURE_DISABLED") {
-      logoEmailStatus.textContent =
-        "This feature is not turned on on the server yet. Ask the owner to set BRAND_LOGO_EMAIL_ENABLED=true and SMTP credentials on Railway.";
-    } else if (payload.code === "SMTP_NOT_CONFIGURED") {
-      logoEmailStatus.textContent = "Email is not configured on the server (SMTP missing).";
-    } else if (payload.code === "RATE_LIMITED") {
-      logoEmailStatus.textContent = "Too many requests. Try again in about an hour.";
-    } else {
-      logoEmailStatus.textContent = payload.message || payload.code || "Could not send. Try again later.";
-    }
-  } catch {
-    logoEmailStatus.textContent = "Network error. Try again when you are online.";
-  } finally {
-    logoEmailSend.disabled = false;
-  }
-}
-
-if (logoEmailSend) {
-  logoEmailSend.addEventListener("click", () => {
-    sendLogoToEmail().catch(() => {});
-  });
 }
 
 loadTrustCards();

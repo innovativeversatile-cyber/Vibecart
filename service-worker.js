@@ -1,13 +1,7 @@
-const CACHE_NAME = "vibecart-pwa-v20260417warm";
-const OFFLINE_URLS = [
-  "./index.html",
-  "./styles.css?v=20260417warm",
-  "./script.js?v=20260417warm",
-  "./manifest.json",
-  "./icon.svg",
-  "./icon-maskable.svg",
-  "./policy.html"
-];
+// Bump CACHE_NAME whenever you need all clients to drop old cached assets.
+const CACHE_NAME = "vibecart-pwa-v20260418b";
+// Precache only small static assets — do NOT precache index.html/CSS/JS or updates never show.
+const OFFLINE_URLS = ["./manifest.json", "./icon.svg", "./icon-maskable.svg", "./policy.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -34,15 +28,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   const url = new URL(event.request.url);
-  // Never cache API responses; always go to network.
   if (url.pathname.startsWith("/api/")) {
     return;
   }
+
+  // Always hit the network for full page loads so HTML updates are never stuck on an old SW cache.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        const clone = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        if (networkResponse.ok) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return networkResponse;
       })
       .catch(async () => {

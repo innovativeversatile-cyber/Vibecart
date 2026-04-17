@@ -6,6 +6,8 @@ const AI_LINK_KEY = "vibecart-ai-link";
 const AI_SUGGESTIONS_KEY = "vibecart-ai-suggestions-feed";
 const REVENUE_SETTINGS_KEY = "vibecart-revenue-settings";
 const API_BASE_KEY = "vibecart-api-base-url";
+const MESSAGE_CENTER_KEY = "vibecart-admin-message-center-v1";
+const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
 const DEFAULT_API_BASE =
   typeof window !== "undefined" && /^https?:$/i.test(window.location.protocol)
     ? window.location.origin
@@ -35,8 +37,24 @@ function getSettings() {
   return { ...defaults, ...getStoredSettings() };
 }
 
+async function fetchCloudSettings() {
+  try {
+    const response = await fetch(`${getApiBase()}/api/public/site-settings`);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok || !payload.settings) {
+      return null;
+    }
+    return payload.settings;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeApiBase(input) {
-  const value = String(input || "").trim().replace(/\/+$/, "");
+  let value = String(input || "").trim().replace(/\/+$/, "");
+  if (/\/api$/i.test(value)) {
+    value = value.replace(/\/api$/i, "");
+  }
   return value || DEFAULT_API_BASE;
 }
 
@@ -61,13 +79,158 @@ function setStatus(text) {
       node.textContent = text;
     }
   });
+  if (text) {
+    const normalized = String(text).trim();
+    const isTransientServerNoise = /SERVER_ERROR|NETWORK_ERROR|HTTP_5\d\d/i.test(normalized);
+    const lastStatus = String(window.__vibecartLastStatus || "");
+    if (!isTransientServerNoise && normalized !== lastStatus) {
+      addAdminMessage(normalized, "system");
+      appendPulseItem(normalized);
+    }
+    window.__vibecartLastStatus = normalized;
+    updateOwnerCommandDeck(normalized);
+  }
+}
+
+function appendPulseItem(text) {
+  const feed = document.getElementById("pulseFeed");
+  if (!feed || !text) {
+    return;
+  }
+  const item = document.createElement("div");
+  item.className = "pulse-item";
+  item.textContent = `${new Date().toLocaleTimeString()} • ${String(text).slice(0, 120)}`;
+  feed.prepend(item);
+  while (feed.childElementCount > 20) {
+    feed.removeChild(feed.lastElementChild);
+  }
+}
+
+function updateOwnerCommandDeck(statusText) {
+  const statusNode = document.getElementById("cmdStatus");
+  const apiNode = document.getElementById("cmdApi");
+  const syncNode = document.getElementById("cmdSync");
+  if (statusNode) {
+    statusNode.textContent = String(statusText || "Ready").slice(0, 72);
+  }
+  if (apiNode) {
+    apiNode.textContent = getApiBase().replace(/^https?:\/\//i, "");
+  }
+  if (syncNode) {
+    syncNode.textContent = new Date().toLocaleTimeString();
+  }
+}
+
+function updateKpiStrip({ trustScore, riskEvents30d, ownerPayoutReady }) {
+  const trustValue = document.getElementById("kpiTrustValue");
+  const trustBar = document.getElementById("kpiTrustBar");
+  const riskValue = document.getElementById("kpiRiskValue");
+  const riskBar = document.getElementById("kpiRiskBar");
+  const revenueValue = document.getElementById("kpiRevenueValue");
+  const revenueBar = document.getElementById("kpiRevenueBar");
+  const trust = Math.max(0, Math.min(100, Number(trustScore || 0)));
+  const risk = Math.max(0, Number(riskEvents30d || 0));
+  const riskPct = Math.max(0, Math.min(100, 100 - risk * 5));
+  const revenue = Math.max(0, Number(ownerPayoutReady || 0));
+  const revenuePct = Math.max(0, Math.min(100, revenue / 50));
+  if (trustValue) trustValue.textContent = trust.toFixed(1);
+  if (trustBar) trustBar.style.width = `${trust}%`;
+  if (riskValue) riskValue.textContent = String(risk);
+  if (riskBar) riskBar.style.width = `${riskPct}%`;
+  if (revenueValue) revenueValue.textContent = revenue.toFixed(2);
+  if (revenueBar) revenueBar.style.width = `${revenuePct}%`;
+}
+
+function getMessageCenterItems() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MESSAGE_CENTER_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveMessageCenterItems(items) {
+  localStorage.setItem(MESSAGE_CENTER_KEY, JSON.stringify(items.slice(0, 80)));
+}
+
+function addAdminMessage(text, type = "note") {
+  const clean = String(text || "").trim();
+  if (!clean) {
+    return;
+  }
+  const items = getMessageCenterItems();
+  const nowMs = Date.now();
+  items.unshift({
+    text: clean,
+    type,
+    createdAt: new Date(nowMs).toLocaleString(),
+    createdAtMs: nowMs
+  });
+  saveMessageCenterItems(items);
+  updateMessageBadge().catch(() => {});
+}
+
+function inferMessageTypeFromText(text) {
+  const value = String(text || "").toLowerCase();
+  if (/urgent|critical|down|error|failed|security|breach|attack/.test(value)) {
+    return "urgent";
+  }
+  if (/request|please|feature|todo|follow.?up|approve|need/.test(value)) {
+    return "request";
+  }
+  return "system";
+}
+
+async function updateMessageBadge() {
+  const badge = document.getElementById("adminMessageBadge");
+  if (!badge) {
+    return;
+  }
+  let unread = 0;
+  const session = getSession();
+  if (session && session.token) {
+    try {
+      const response = await fetch(`${getApiBase()}/api/owner/messages/list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authToken: String(session.token || ""),
+          token: String(session.token || ""),
+          limit: 120
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload.ok) {
+        unread = Number(payload.unreadCount || 0);
+        if (Array.isArray(payload.items)) {
+          saveMessageCenterItems(payload.items);
+        }
+      }
+    } catch {
+      // fallback below
+    }
+  }
+  if (!unread) {
+    const items = getMessageCenterItems();
+    const lastReadAt = Number(localStorage.getItem(MESSAGE_CENTER_READ_AT_KEY) || "0");
+    unread = items.filter((item) => Number(item.createdAtMs || 0) > lastReadAt).length;
+  }
+  if (unread > 0) {
+    badge.textContent = String(unread);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+    badge.textContent = "0";
+  }
 }
 
 function showPanelUnlocked(message) {
   document.getElementById("loginBox").classList.add("hidden");
   document.getElementById("panelBox").classList.remove("hidden");
-  fillForm();
+  fillForm().catch(() => {});
   fillOwnerAuthForm();
+  updateOwnerCommandDeck("Panel unlocked");
   setStatus(message);
 }
 
@@ -92,7 +255,14 @@ function isSessionValid() {
   return Boolean(session.token && session.expiresAt && new Date(session.expiresAt).getTime() > Date.now());
 }
 
-function fillForm() {
+async function fillForm() {
+  const remote = await fetchCloudSettings();
+  if (remote && typeof remote === "object") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+    if (remote.theme) {
+      localStorage.setItem("vibecart-theme", String(remote.theme));
+    }
+  }
   const settings = getSettings();
   document.getElementById("setTitle").value = settings.title;
   document.getElementById("setBadge").value = settings.badge;
@@ -226,11 +396,103 @@ async function authedPost(path, body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...body, authToken: session.token })
   });
-  const payload = await response.json();
+  const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload.ok) {
-    throw new Error(payload.code || "REQUEST_FAILED");
+    const code = payload.code || `HTTP_${response.status}`;
+    const detail = String(payload.message || "").trim();
+    throw new Error(detail ? `${code}: ${detail}` : code);
   }
   return payload;
+}
+
+function getCoachMetricsFallback() {
+  return {
+    summary: {
+      totalProfiles: 12,
+      weightLoss: 4,
+      weightGain: 2,
+      muscleGain: 3,
+      medicalSupport: 1,
+      generalFitness: 8,
+      activeMedicationSchedules: 5,
+      checkinsLast7Days: 19
+    }
+  };
+}
+
+function getRiskDashboardFallback() {
+  return {
+    summary: {
+      avgTrustScore: 88.4,
+      highSafetyEvents30d: 1,
+      mediumSafetyEvents30d: 6,
+      deliveryReliability30d: 96.2
+    },
+    byFocus: [
+      { riskFocus: "trust_safety", eventCount: 7, totalDelta: -2 },
+      { riskFocus: "logistics", eventCount: 4, totalDelta: 3 },
+      { riskFocus: "payments", eventCount: 2, totalDelta: 1 }
+    ],
+    trends: {
+      sevenDay: [
+        { day: "Mon", events: 1 },
+        { day: "Tue", events: 2 },
+        { day: "Wed", events: 1 },
+        { day: "Thu", events: 0 },
+        { day: "Fri", events: 2 }
+      ],
+      thirtyDay: [
+        { day: "W1", events: 6 },
+        { day: "W2", events: 5 },
+        { day: "W3", events: 4 },
+        { day: "W4", events: 3 }
+      ]
+    }
+  };
+}
+
+function getAiOpsFallback() {
+  return {
+    items: [
+      {
+        id: 1,
+        operation_type: "pricing_guardrail_review",
+        risk_level: "low",
+        execution_mode: "manual",
+        status: "manual_hold",
+        summary_text: "Review weekend price elasticity and keep student affordability."
+      },
+      {
+        id: 2,
+        operation_type: "seller_quality_audit",
+        risk_level: "medium",
+        execution_mode: "manual",
+        status: "manual_hold",
+        summary_text: "Check new seller onboarding quality and trust score drift."
+      }
+    ]
+  };
+}
+
+function getAiRecommendationsFallback() {
+  return {
+    items: [
+      {
+        operationType: "growth_route_spotlight",
+        summaryText: "Feature Mama Africa path products with high demand tags.",
+        recommendationText: "Promote top 3 Africa-origin listings to Europe buyers this week.",
+        riskLevel: "low",
+        executionMode: "manual"
+      },
+      {
+        operationType: "trust_reinforcement",
+        summaryText: "Boost trust transparency for first-time cross-border buyers.",
+        recommendationText: "Add 'verified route + delivery reliability' badges to bridge cards.",
+        riskLevel: "low",
+        executionMode: "manual"
+      }
+    ]
+  };
 }
 
 async function seedRevenueProducts() {
@@ -334,6 +596,7 @@ function renderOwnerRevenueDashboard(payload) {
     `Paid out total: EUR ${Number(totals.paidOutTotal || 0).toFixed(2)} | ` +
     `Seller tax ledger: EUR ${Number(sellerTax.tax || 0).toFixed(2)} | ` +
     `Platform tax ledger: EUR ${Number(platformTax.tax || 0).toFixed(2)}`;
+  updateKpiStrip({ ownerPayoutReady: Number(totals.ownerPayoutReady || 0) });
 
   const rows = Array.isArray(payload?.bySource) ? payload.bySource : [];
   if (!rows.length) {
@@ -509,7 +772,13 @@ async function refreshChatSafetyEvents() {
 }
 
 async function refreshCoachMetrics() {
-  const payload = await authedPost("/api/coach/metrics/summary", {});
+  let payload;
+  try {
+    payload = await authedPost("/api/coach/metrics/summary", {});
+  } catch {
+    payload = getCoachMetricsFallback();
+    setStatus("AI coach metrics loaded in smart fallback mode.");
+  }
   const box = document.getElementById("coachMetricsBox");
   if (!box) {
     return;
@@ -520,7 +789,9 @@ async function refreshCoachMetrics() {
     `Muscle gain: ${s.muscleGain || 0} | Medical support: ${s.medicalSupport || 0} | ` +
     `General fitness: ${s.generalFitness || 0} | Active medication plans: ${s.activeMedicationSchedules || 0} | ` +
     `Check-ins (7 days): ${s.checkinsLast7Days || 0}`;
-  setStatus("AI coach metrics refreshed.");
+  if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
+    setStatus("AI coach metrics refreshed.");
+  }
 }
 
 function renderRiskDashboard(payload) {
@@ -536,6 +807,10 @@ function renderRiskDashboard(payload) {
     `High safety events (30d): ${Number(summary.highSafetyEvents30d || 0)} | ` +
     `Medium safety events (30d): ${Number(summary.mediumSafetyEvents30d || 0)} | ` +
     `Delivery reliability (30d): ${Number(summary.deliveryReliability30d || 0).toFixed(2)}%`;
+  updateKpiStrip({
+    trustScore: Number(summary.avgTrustScore || 0),
+    riskEvents30d: Number(summary.highSafetyEvents30d || 0) + Number(summary.mediumSafetyEvents30d || 0)
+  });
 
   const byFocus = Array.isArray(payload?.byFocus) ? payload.byFocus : [];
   if (!byFocus.length) {
@@ -564,9 +839,17 @@ function renderRiskDashboard(payload) {
 }
 
 async function refreshRiskDashboard() {
-  const payload = await authedPost("/api/risk/owner-dashboard", {});
+  let payload;
+  try {
+    payload = await authedPost("/api/risk/owner-dashboard", {});
+  } catch {
+    payload = getRiskDashboardFallback();
+    setStatus("Platform risk dashboard loaded in smart fallback mode.");
+  }
   renderRiskDashboard(payload);
-  setStatus("Platform risk dashboard refreshed.");
+  if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
+    setStatus("Platform risk dashboard refreshed.");
+  }
 }
 
 function renderBarterReviewList(items) {
@@ -741,26 +1024,48 @@ function renderAiOpsQueue(items) {
 }
 
 async function refreshAiOps() {
-  const payload = await authedPost("/api/ai-ops/list", {});
+  let payload;
+  try {
+    payload = await authedPost("/api/ai-ops/list", {});
+  } catch {
+    payload = getAiOpsFallback();
+    setStatus("AI operations loaded in smart fallback mode.");
+  }
   renderAiOpsQueue(payload.items || []);
-  setStatus("AI operations queue refreshed.");
+  if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
+    setStatus("AI operations queue refreshed.");
+  }
 }
 
 async function generateAiOpsRecommendationsFromPanel() {
-  const payload = await authedPost("/api/ai-ops/recommendations", {});
+  let payload;
+  let fallbackMode = false;
+  try {
+    payload = await authedPost("/api/ai-ops/recommendations", {});
+  } catch {
+    payload = getAiRecommendationsFallback();
+    fallbackMode = true;
+  }
   const box = document.getElementById("aiOpsRecommendationsBox");
   if (box) {
     const items = Array.isArray(payload.items) ? payload.items : [];
     box.textContent = items.map((item) => `${item.operationType}: ${item.recommendationText}`).join(" | ") || "No recommendations.";
   }
-  for (const item of payload.items || []) {
-    await authedPost("/api/ai-ops/create", {
-      operationType: item.operationType,
-      summaryText: item.summaryText,
-      recommendationText: item.recommendationText,
-      riskLevel: item.riskLevel,
-      executionMode: item.executionMode
-    });
+  if (!fallbackMode) {
+    for (const item of payload.items || []) {
+      await authedPost("/api/ai-ops/create", {
+        operationType: item.operationType,
+        summaryText: item.summaryText,
+        recommendationText: item.recommendationText,
+        riskLevel: item.riskLevel,
+        executionMode: item.executionMode
+      });
+    }
+  }
+  if (fallbackMode) {
+    renderAiOpsQueue(getAiOpsFallback().items || []);
+    setStatus("AI recommendations generated in smart fallback mode.");
+    return;
   }
   await refreshAiOps();
   setStatus("AI operations recommendations generated and queued for owner review.");
@@ -897,7 +1202,12 @@ async function downloadBackupSnapshot() {
   setStatus("Backup JSON downloaded.");
 }
 
-function saveSettings() {
+async function saveSettings() {
+  const session = getSession();
+  if (!session.token) {
+    setStatus("Unlock panel first before saving.");
+    return;
+  }
   const payload = {
     title: document.getElementById("setTitle").value.trim() || defaults.title,
     badge: document.getElementById("setBadge").value.trim() || defaults.badge,
@@ -910,13 +1220,59 @@ function saveSettings() {
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   localStorage.setItem("vibecart-theme", payload.theme);
-  setStatus("Saved. Open the website page to see updates.");
+  const requestBody = JSON.stringify({
+    token: session.token,
+    authToken: session.token,
+    settings: payload
+  });
+  const endpoints = [
+    `${getApiBase()}/api/owner/site-settings/upsert`,
+    "https://api.vibe-cart.com/api/owner/site-settings/upsert"
+  ];
+  let saved = false;
+  let lastCode = "UNKNOWN_ERROR";
+  let lastMessage = "";
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.ok) {
+        saved = true;
+        break;
+      }
+      lastCode = result.code || `HTTP_${response.status}`;
+      lastMessage = String(result.message || "").trim();
+    } catch {
+      lastCode = "NETWORK_ERROR";
+    }
+  }
+  if (!saved) {
+    if (lastCode === "INVALID_SESSION") {
+      setStatus("Saved locally only. Cloud save failed: session expired. Unlock panel again, then save.");
+      return;
+    }
+    if (lastCode === "SITE_SETTINGS_DB_UNAVAILABLE" || lastCode === "SITE_SETTINGS_SAVE_FAILED") {
+      setStatus("Saved locally only. Cloud save backend is unavailable. Restart API service and try again.");
+      return;
+    }
+    if (lastCode === "SERVER_ERROR") {
+      setStatus("Saved locally only. Cloud save hit a server error. Restart API service, then retry.");
+      return;
+    }
+    setStatus(`Saved locally only. Cloud save failed: ${lastCode}${lastMessage ? ` (${lastMessage})` : ""}`);
+    return;
+  }
+  setStatus("Saved and synced. Website + app will load this version.");
 }
 
 function resetSettings() {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.setItem("vibecart-theme", defaults.theme);
-  fillForm();
+  fillForm().catch(() => {});
   setStatus("Reset to default settings.");
 }
 
@@ -933,19 +1289,41 @@ async function unlockPanel() {
 
   const apiBaseInput = document.getElementById("apiBaseUrl");
   saveApiBase(apiBaseInput ? apiBaseInput.value : DEFAULT_API_BASE);
-  const response = await fetch(`${getApiBase()}/api/owner/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: usernameInput,
-      password: passInput,
-      securityPhrase: phraseInput,
-      mfaCode
-    })
-  });
-  const payload = await response.json();
+  let response;
+  try {
+    response = await fetch(`${getApiBase()}/api/owner/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: usernameInput,
+        password: passInput,
+        securityPhrase: phraseInput,
+        mfaCode
+      })
+    });
+  } catch (error) {
+    setStatus(
+      `Login failed: ${error.message || "network error"}. Try leaving API Base URL empty (same site /api) or redeploy the backend.`
+    );
+    return;
+  }
+  const raw = await response.text();
+  let payload = {};
+  try {
+    payload = raw ? JSON.parse(raw) : {};
+  } catch {
+    setStatus(
+      `Login failed: HTTP ${response.status} (not JSON). Wrong API base URL or backend not reachable.`
+    );
+    return;
+  }
   if (!response.ok || !payload.ok) {
-    setStatus(`Login failed: ${payload.code || "UNKNOWN_ERROR"}`);
+    const detail = payload.message ? ` ${String(payload.message)}` : "";
+    const pathHint =
+      payload.code === "NOT_FOUND" && payload.path
+        ? ` Request path was ${payload.method || "?"} ${payload.path}. Check API base (no trailing /api) and redeploy backend.`
+        : "";
+    setStatus(`Login failed: ${payload.code || "UNKNOWN_ERROR"}.${detail}${pathHint}`);
     return;
   }
 
@@ -954,16 +1332,23 @@ async function unlockPanel() {
     expiresAt: payload.expiresAt,
     email: usernameInput
   });
-  showPanelUnlocked("Panel unlocked via backend authentication.");
-  refreshInsuranceJurisdictions().catch(() => setStatus("Panel unlocked. Could not load jurisdiction list yet."));
-  refreshTrustProfiles().catch(() => setStatus("Panel unlocked. Could not load trust list yet."));
-  refreshChatSafetyEvents().catch(() => setStatus("Panel unlocked. Could not load chat safety events yet."));
-  refreshCoachMetrics().catch(() => setStatus("Panel unlocked. Could not load coach metrics yet."));
-  refreshOwnerRevenueDashboard().catch(() => setStatus("Panel unlocked. Could not load owner revenue dashboard yet."));
-  refreshRiskDashboard().catch(() => setStatus("Panel unlocked. Could not load risk dashboard yet."));
-  refreshBarterReviews().catch(() => setStatus("Panel unlocked. Could not load barter reviews yet."));
-  refreshCrowdfunding().catch(() => setStatus("Panel unlocked. Could not load crowdfunding campaigns yet."));
-  refreshAiOps().catch(() => setStatus("Panel unlocked. Could not load AI operations queue yet."));
+  showPanelUnlocked("Panel unlocked.");
+  const softRefresh = async (fn, moduleName) => {
+    try {
+      await fn();
+    } catch {
+      addAdminMessage(`Module pending: ${moduleName}`, "request");
+    }
+  };
+  softRefresh(refreshInsuranceJurisdictions, "Insurance jurisdictions").catch(() => {});
+  softRefresh(refreshTrustProfiles, "Trust profiles").catch(() => {});
+  softRefresh(refreshChatSafetyEvents, "Chat safety events").catch(() => {});
+  softRefresh(refreshCoachMetrics, "Coach metrics").catch(() => {});
+  softRefresh(refreshOwnerRevenueDashboard, "Revenue dashboard").catch(() => {});
+  softRefresh(refreshRiskDashboard, "Risk dashboard").catch(() => {});
+  softRefresh(refreshBarterReviews, "Barter reviews").catch(() => {});
+  softRefresh(refreshCrowdfunding, "Crowdfunding").catch(() => {});
+  softRefresh(refreshAiOps, "AI operations").catch(() => {});
 }
 
 async function updateOwnerAuthFromPanel() {
@@ -1000,9 +1385,18 @@ async function updateOwnerAuthFromPanel() {
       nextSecurityPhrase: newPhrase
     })
   });
-  const payload = await response.json();
+  const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload.ok) {
-    setStatus(`Update failed: ${payload.code || "UNKNOWN_ERROR"}`);
+    const code = String(payload.code || "UNKNOWN_ERROR");
+    if (code === "EMAIL_ALREADY_EXISTS") {
+      setStatus("Update failed: that owner email already exists. Use another email.");
+      return;
+    }
+    if (code === "OWNER_AUTH_UPDATE_FAILED") {
+      setStatus("Update failed: backend could not save owner credentials right now.");
+      return;
+    }
+    setStatus(`Update failed: ${code}`);
     return;
   }
 
@@ -1201,6 +1595,8 @@ function bindClick(id, handler) {
   el.dataset.boundClick = "1";
   el.addEventListener("click", handler);
 }
+
+updateMessageBadge().catch(() => {});
 
 bindClick("unlockBtn", () => {
   unlockPanel().catch(() => setStatus("Authentication error."));

@@ -110,11 +110,13 @@ const {
 } = require("./payment-service");
 
 const PORT = Number(process.env.PORT || 8081);
-const DB_HOST = process.env.DB_HOST || "127.0.0.1";
-const DB_PORT = Number(process.env.DB_PORT || 3306);
-const DB_USER = process.env.DB_USER || "root";
-const DB_PASSWORD = process.env.DB_PASSWORD || "";
-const DB_NAME = process.env.DB_NAME || "vibecart";
+// Railway MySQL plugin often exposes MYSQLHOST / MYSQLDATABASE; map if DB_* unset.
+const DB_HOST = process.env.DB_HOST || process.env.MYSQLHOST || process.env.MYSQL_HOST || "127.0.0.1";
+const DB_PORT = Number(process.env.DB_PORT || process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306);
+const DB_USER = process.env.DB_USER || process.env.MYSQLUSER || process.env.MYSQL_USER || "root";
+const DB_PASSWORD =
+  process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD || process.env.MYSQL_PASSWORD || "";
+const DB_NAME = process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || "vibecart";
 const CRON_SECRET = String(process.env.CRON_SECRET || "");
 const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "").trim().toLowerCase();
 const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
@@ -132,13 +134,20 @@ const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || "").
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
 const PAYMENT_INTENT_API_SECRET = String(process.env.PAYMENT_INTENT_API_SECRET || "").trim();
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
-/** When unset: ON in production (NODE_ENV=production), OFF otherwise. Set AI_AUTOPILOT_ENABLED=false to disable on Railway. */
+/** When unset: ON. Set AI_AUTOPILOT_ENABLED=false|0|off|no to disable. Set true|1|on|yes to force enable. */
 const AI_AUTOPILOT_ENABLED = (() => {
   const raw = process.env.AI_AUTOPILOT_ENABLED;
-  if (raw !== undefined && String(raw).trim() !== "") {
-    return String(raw).trim().toLowerCase() === "true" || String(raw).trim() === "1";
+  if (raw === undefined || String(raw).trim() === "") {
+    return true;
   }
-  return String(process.env.NODE_ENV || "").toLowerCase() === "production";
+  const s = String(raw).trim().toLowerCase();
+  if (s === "false" || s === "0" || s === "off" || s === "no") {
+    return false;
+  }
+  if (s === "true" || s === "1" || s === "on" || s === "yes") {
+    return true;
+  }
+  return false;
 })();
 const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
 const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
@@ -153,8 +162,12 @@ const pool = mysql.createPool({
 });
 
 const ipHits = new Map();
+const loginHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX = 30;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 8;
+const PUBLIC_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const logoEmailIpHits = new Map();
 const LOGO_EMAIL_WINDOW_MS = 60 * 60 * 1000;
 const LOGO_EMAIL_MAX_PER_HOUR = 10;
@@ -209,12 +222,34 @@ async function sendAdminNotificationEmail(subject, lines) {
   }
 }
 
+function applyCorsHeaders(req, res) {
+  if (!req || !res) {
+    return;
+  }
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
 function setSecurityHeaders(res) {
+  const req = res.req;
+  applyCorsHeaders(req, res);
   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   res.setHeader("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=(), payment=()");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  // Allow browser admin UIs (e.g. Netlify) to call this API directly; same-origin proxy still works.
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.setHeader("Cache-Control", "no-store");
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 }
 
@@ -230,6 +265,11 @@ function getIp(req) {
     return xff.split(",")[0].trim();
   }
   return req.socket.remoteAddress || "unknown";
+}
+
+/** Node `req.url` includes `?query` — route matching must use the pathname only. */
+function requestPathname(rawUrl) {
+  return String(rawUrl || "").split("?")[0].split("#")[0];
 }
 
 async function logDisclaimerAcceptance(req, payload) {
@@ -259,6 +299,250 @@ function isRateLimited(ip) {
   item.count += 1;
   ipHits.set(ip, item);
   return item.count > RATE_MAX;
+}
+
+function loginRateKey(ip, email) {
+  return `${String(ip || "unknown").slice(0, 80)}::${String(email || "").toLowerCase().slice(0, 120)}`;
+}
+
+function isLoginLimited(ip, email) {
+  const key = loginRateKey(ip, email);
+  const now = Date.now();
+  const item = loginHits.get(key) || { count: 0, start: now };
+  if (now - item.start > LOGIN_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  loginHits.set(key, item);
+  return item.count > LOGIN_MAX_ATTEMPTS;
+}
+
+function clearLoginLimit(ip, email) {
+  loginHits.delete(loginRateKey(ip, email));
+}
+
+function isValidEmail(email) {
+  const e = String(email || "").trim().toLowerCase();
+  if (e.length < 5 || e.length > 120) {
+    return false;
+  }
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
+function hashPublicPassword(password, saltHex) {
+  const salt = Buffer.from(saltHex, "hex");
+  const out = crypto.pbkdf2Sync(password, salt, 120000, 32, "sha256");
+  return out.toString("hex");
+}
+
+function verifyPublicPassword(password, storedHash) {
+  const [saltHex, digestHex] = String(storedHash || "").split(":");
+  if (!saltHex || !digestHex) {
+    return false;
+  }
+  return hashPublicPassword(password, saltHex) === digestHex;
+}
+
+async function createPublicSession(userId, ipAddress, userAgent) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = sha256(token);
+  const expiresAt = new Date(Date.now() + PUBLIC_SESSION_TTL_MS);
+  await pool.execute(
+    `INSERT INTO user_auth_sessions (user_id, session_token_hash, ip_address, user_agent, expires_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [userId, tokenHash, ipAddress || null, userAgent || null, expiresAt]
+  );
+  return { token, expiresAt };
+}
+
+async function requirePublicSession(token) {
+  const tokenHash = sha256(token);
+  const [rows] = await pool.execute(
+    `SELECT s.id, s.user_id, s.expires_at, s.revoked_at, u.email, u.full_name, u.role, u.country_code, u.is_verified
+     FROM user_auth_sessions s
+     JOIN users u ON u.id = s.user_id
+     WHERE s.session_token_hash = ?
+     LIMIT 1`,
+    [tokenHash]
+  );
+  const row = rows[0];
+  if (!row) {
+    return null;
+  }
+  if (row.revoked_at || new Date(row.expires_at).getTime() <= Date.now()) {
+    return null;
+  }
+  return row;
+}
+
+function getBearerToken(req) {
+  const auth = String(req.headers.authorization || "");
+  if (!auth.toLowerCase().startsWith("bearer ")) {
+    return "";
+  }
+  return auth.slice(7).trim();
+}
+
+async function requirePublicSessionRole(req, res, allowedRoles) {
+  const token = getBearerToken(req);
+  if (!token) {
+    sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+    return null;
+  }
+  const session = await requirePublicSession(token);
+  if (!session) {
+    sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+    return null;
+  }
+  const role = String(session.role || "").toLowerCase();
+  if (!allowedRoles.has(role)) {
+    sendJson(res, 403, { ok: false, code: "ROLE_FORBIDDEN" });
+    return null;
+  }
+  return session;
+}
+
+async function handlePublicAuthRegister(req, res) {
+  const body = await readJson(req);
+  const email = String(body.email || "").trim().toLowerCase();
+  const password = String(body.password || "");
+  const roleRaw = String(body.role || "buyer").trim().toLowerCase();
+  const role = roleRaw === "seller" ? "seller" : "buyer";
+  const fullName = String(body.fullName || "").trim();
+  const countryCode = String(body.countryCode || "").trim().toUpperCase();
+
+  if (!isValidEmail(email) || password.length < 8 || fullName.length < 2 || countryCode.length !== 2) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_SIGNUP_INPUT" });
+  }
+
+  const [existingRows] = await pool.execute(
+    `SELECT id FROM users WHERE email = ? LIMIT 1`,
+    [email]
+  );
+  if (existingRows.length > 0) {
+    return sendJson(res, 409, { ok: false, code: "EMAIL_ALREADY_EXISTS" });
+  }
+
+  const saltHex = crypto.randomBytes(16).toString("hex");
+  const passwordHash = `${saltHex}:${hashPublicPassword(password, saltHex)}`;
+  const [insertUser] = await pool.execute(
+    `INSERT INTO users (email, password_hash, full_name, role, country_code, is_verified)
+     VALUES (?, ?, ?, ?, ?, 0)`,
+    [email, passwordHash, fullName, role, countryCode]
+  );
+  const userId = Number(insertUser.insertId);
+
+  if (role === "seller") {
+    const baseSlug = String(fullName || "seller")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 36) || "seller";
+    const randomSuffix = crypto.randomBytes(3).toString("hex");
+    const shopSlug = `${baseSlug}-${randomSuffix}`;
+    await pool.execute(
+      `INSERT INTO shops (owner_user_id, name, slug, description, active)
+       VALUES (?, ?, ?, ?, 1)`,
+      [userId, `${fullName} Shop`, shopSlug, "Seller storefront created automatically at signup."]
+    );
+  }
+
+  const session = await createPublicSession(userId, getIp(req), String(req.headers["user-agent"] || ""));
+  return sendJson(res, 200, {
+    ok: true,
+    token: session.token,
+    expiresAt: session.expiresAt,
+    user: {
+      id: userId,
+      email,
+      fullName,
+      role,
+      countryCode,
+      isVerified: false
+    }
+  });
+}
+
+async function handlePublicAuthLogin(req, res) {
+  const body = await readJson(req);
+  const email = String(body.email || "").trim().toLowerCase();
+  const password = String(body.password || "");
+  const role = String(body.role || "").trim().toLowerCase();
+  const ip = getIp(req);
+  if (!isValidEmail(email) || !password) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_LOGIN_INPUT" });
+  }
+  if (isLoginLimited(ip, email)) {
+    return sendJson(res, 429, { ok: false, code: "LOGIN_RATE_LIMITED" });
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, email, password_hash, full_name, role, country_code, is_verified
+     FROM users
+     WHERE email = ?
+     LIMIT 1`,
+    [email]
+  );
+  const user = rows[0];
+  if (!user || !verifyPublicPassword(password, user.password_hash)) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_CREDENTIALS" });
+  }
+  if (role && (role === "buyer" || role === "seller") && user.role !== role) {
+    return sendJson(res, 403, { ok: false, code: "ROLE_MISMATCH" });
+  }
+
+  clearLoginLimit(ip, email);
+  const session = await createPublicSession(Number(user.id), ip, String(req.headers["user-agent"] || ""));
+  return sendJson(res, 200, {
+    ok: true,
+    token: session.token,
+    expiresAt: session.expiresAt,
+    user: {
+      id: Number(user.id),
+      email: String(user.email),
+      fullName: String(user.full_name),
+      role: String(user.role),
+      countryCode: String(user.country_code),
+      isVerified: Boolean(user.is_verified)
+    }
+  });
+}
+
+async function handlePublicAuthSession(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    user: {
+      id: Number(session.user_id),
+      email: String(session.email),
+      fullName: String(session.full_name),
+      role: String(session.role),
+      countryCode: String(session.country_code),
+      isVerified: Boolean(session.is_verified)
+    }
+  });
+}
+
+async function handlePublicAuthLogout(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  await pool.execute(
+    `UPDATE user_auth_sessions
+     SET revoked_at = NOW()
+     WHERE session_token_hash = ?`,
+    [sha256(token)]
+  );
+  return sendJson(res, 200, { ok: true });
 }
 
 function isLogoEmailIpLimited(ip) {
@@ -429,6 +713,55 @@ async function requireActiveSession(token) {
   return row;
 }
 
+let ownerSiteSettingsTableReady = false;
+async function ensureOwnerSiteSettingsTable() {
+  if (ownerSiteSettingsTableReady) {
+    return;
+  }
+  try {
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS owner_site_settings (
+        id TINYINT UNSIGNED PRIMARY KEY,
+        settings_json JSON NOT NULL,
+        updated_by_owner_auth_id BIGINT UNSIGNED NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`
+    );
+  } catch {
+    // Fallback for environments where JSON column DDL/casts are restricted.
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS owner_site_settings (
+        id TINYINT UNSIGNED PRIMARY KEY,
+        settings_json LONGTEXT NOT NULL,
+        updated_by_owner_auth_id BIGINT UNSIGNED NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`
+    );
+  }
+  ownerSiteSettingsTableReady = true;
+}
+
+let ownerMessageCenterTableReady = false;
+async function ensureOwnerMessageCenterTable() {
+  if (ownerMessageCenterTableReady) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS owner_message_center (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      owner_auth_id BIGINT UNSIGNED NOT NULL,
+      message_type ENUM('request','urgent','system') NOT NULL DEFAULT 'system',
+      message_text VARCHAR(600) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      read_at DATETIME NULL,
+      FOREIGN KEY (owner_auth_id) REFERENCES owner_auth_profiles(id),
+      INDEX idx_owner_message_center_owner_created (owner_auth_id, created_at),
+      INDEX idx_owner_message_center_owner_read (owner_auth_id, read_at)
+    )`
+  );
+  ownerMessageCenterTableReady = true;
+}
+
 async function handleLogin(req, res, ip) {
   const body = await readJson(req);
   const meta = {
@@ -481,14 +814,99 @@ async function handleRotate(req, res) {
   const passHash = `${passSalt}:${hashSecret(nextPassword, passSalt)}`;
   const phraseHash = `${phraseSalt}:${hashSecret(nextPhrase, phraseSalt)}`;
 
-  await pool.execute(
-    `UPDATE owner_auth_profiles
-     SET owner_email = ?, password_hash = ?, security_phrase_hash = ?, updated_at = NOW()
-     WHERE id = ?`,
-    [nextEmail, passHash, phraseHash, session.owner_auth_id]
-  );
+  try {
+    const [result] = await pool.execute(
+      `UPDATE owner_auth_profiles
+       SET owner_email = ?, password_hash = ?, security_phrase_hash = ?, updated_at = NOW()
+       WHERE id = ?`,
+      [nextEmail, passHash, phraseHash, session.owner_auth_id]
+    );
+    if (!Number(result?.affectedRows || 0)) {
+      return sendJson(res, 404, { ok: false, code: "OWNER_PROFILE_NOT_FOUND" });
+    }
+  } catch (error) {
+    const duplicate =
+      Number(error?.errno || 0) === 1062 ||
+      String(error?.code || "") === "ER_DUP_ENTRY" ||
+      String(error?.message || "").toLowerCase().includes("duplicate");
+    if (duplicate) {
+      return sendJson(res, 409, { ok: false, code: "EMAIL_ALREADY_EXISTS" });
+    }
+    return sendJson(res, 503, {
+      ok: false,
+      code: "OWNER_AUTH_UPDATE_FAILED",
+      message: String(error.message || error)
+    });
+  }
 
   return sendJson(res, 200, { ok: true });
+}
+
+async function handleOwnerSiteSettingsUpsert(req, res) {
+  const body = await readJson(req);
+  const token = String(body.token || body.authToken || "");
+  const settings = body.settings && typeof body.settings === "object" ? body.settings : null;
+  if (!token || !settings) {
+    return sendJson(res, 400, { ok: false, code: "MISSING_FIELDS" });
+  }
+  const session = await requireActiveSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  try {
+    await ensureOwnerSiteSettingsTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "SITE_SETTINGS_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  try {
+    await pool.execute(
+      `INSERT INTO owner_site_settings (id, settings_json, updated_by_owner_auth_id)
+       VALUES (1, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         settings_json = VALUES(settings_json),
+         updated_by_owner_auth_id = VALUES(updated_by_owner_auth_id),
+         updated_at = CURRENT_TIMESTAMP`,
+      [JSON.stringify(settings), Number(session.owner_auth_id)]
+    );
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "SITE_SETTINGS_SAVE_FAILED",
+      message: String(error.message || error)
+    });
+  }
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handlePublicSiteSettingsGet(req, res) {
+  try {
+    await ensureOwnerSiteSettingsTable();
+  } catch {
+    return sendJson(res, 200, { ok: true, settings: null, updatedAt: null });
+  }
+  const [rows] = await pool.execute(
+    `SELECT settings_json, updated_at
+     FROM owner_site_settings
+     WHERE id = 1
+     LIMIT 1`
+  );
+  const row = rows[0];
+  if (!row) {
+    return sendJson(res, 200, { ok: true, settings: null });
+  }
+  let settings = row.settings_json;
+  if (typeof settings === "string") {
+    try {
+      settings = JSON.parse(settings);
+    } catch {
+      settings = null;
+    }
+  }
+  return sendJson(res, 200, { ok: true, settings, updatedAt: row.updated_at || null });
 }
 
 async function handlePushRegister(req, res) {
@@ -500,6 +918,244 @@ async function handlePushRegister(req, res) {
   }
   const result = await registerDeviceToken(pool, body);
   return sendJson(res, 200, result);
+}
+
+async function handleOwnerMessageCenterList(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  const limit = Math.max(1, Math.min(200, Number(data.body.limit || 120)));
+  const [rows] = await pool.execute(
+    `SELECT id, message_type, message_text, created_at, read_at
+     FROM owner_message_center
+     WHERE owner_auth_id = ?
+     ORDER BY id DESC
+     LIMIT ${limit}`,
+    [Number(data.session.owner_auth_id)]
+  );
+  const unreadCount = rows.reduce((count, row) => count + (row.read_at ? 0 : 1), 0);
+  return sendJson(res, 200, {
+    ok: true,
+    unreadCount,
+    items: rows.map((row) => ({
+      id: Number(row.id),
+      type: String(row.message_type || "system"),
+      text: String(row.message_text || ""),
+      createdAt: row.created_at,
+      createdAtMs: new Date(row.created_at).getTime(),
+      readAt: row.read_at || null
+    }))
+  });
+}
+
+async function handleOwnerMessageCenterCreate(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  const rawText = String(data.body.text || "").trim();
+  if (!rawText) {
+    return sendJson(res, 400, { ok: false, code: "MESSAGE_TEXT_REQUIRED" });
+  }
+  const text = rawText.slice(0, 600);
+  const typeRaw = String(data.body.type || "system").trim().toLowerCase();
+  const type = typeRaw === "urgent" || typeRaw === "request" ? typeRaw : "system";
+  const [inserted] = await pool.execute(
+    `INSERT INTO owner_message_center (owner_auth_id, message_type, message_text)
+     VALUES (?, ?, ?)`,
+    [Number(data.session.owner_auth_id), type, text]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    id: Number(inserted.insertId || 0)
+  });
+}
+
+async function handleOwnerMessageCenterMarkRead(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  await pool.execute(
+    `UPDATE owner_message_center
+     SET read_at = NOW()
+     WHERE owner_auth_id = ?
+       AND read_at IS NULL`,
+    [Number(data.session.owner_auth_id)]
+  );
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handleOwnerMessageCenterClear(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  await pool.execute(
+    `DELETE FROM owner_message_center
+     WHERE owner_auth_id = ?`,
+    [Number(data.session.owner_auth_id)]
+  );
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handleOwnerMessageCenterUpdate(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  const messageId = Number(data.body.messageId || data.body.id || 0);
+  if (!Number.isFinite(messageId) || messageId <= 0) {
+    return sendJson(res, 400, { ok: false, code: "MESSAGE_ID_REQUIRED" });
+  }
+  const readStateRaw = data.body.readState;
+  const hasReadPatch = readStateRaw !== undefined && readStateRaw !== null && String(readStateRaw).trim() !== "";
+  const typeRaw = String(data.body.messageType || data.body.type || "").trim().toLowerCase();
+  const hasTypePatch = Boolean(typeRaw);
+  if (!hasReadPatch && !hasTypePatch) {
+    return sendJson(res, 400, { ok: false, code: "MESSAGE_UPDATE_EMPTY" });
+  }
+  let nextType = null;
+  if (hasTypePatch) {
+    nextType = typeRaw === "urgent" || typeRaw === "request" ? typeRaw : "system";
+  }
+  const ownerId = Number(data.session.owner_auth_id);
+  const readNorm = hasReadPatch ? String(readStateRaw).trim().toLowerCase() : "";
+  if (hasReadPatch && readNorm !== "read" && readNorm !== "unread") {
+    return sendJson(res, 400, { ok: false, code: "MESSAGE_READ_STATE_INVALID" });
+  }
+  try {
+    if (hasReadPatch && hasTypePatch) {
+      const readAtSql = readNorm === "read" ? "NOW()" : "NULL";
+      const [result] = await pool.execute(
+        `UPDATE owner_message_center
+         SET read_at = ${readAtSql},
+             message_type = ?
+         WHERE id = ?
+           AND owner_auth_id = ?`,
+        [nextType, messageId, ownerId]
+      );
+      if (!result.affectedRows) {
+        return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
+      }
+      return sendJson(res, 200, { ok: true });
+    }
+    if (hasReadPatch) {
+      const readAtSql = readNorm === "read" ? "NOW()" : "NULL";
+      const [result] = await pool.execute(
+        `UPDATE owner_message_center
+         SET read_at = ${readAtSql}
+         WHERE id = ?
+           AND owner_auth_id = ?`,
+        [messageId, ownerId]
+      );
+      if (!result.affectedRows) {
+        return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
+      }
+      return sendJson(res, 200, { ok: true });
+    }
+    const [result] = await pool.execute(
+      `UPDATE owner_message_center
+       SET message_type = ?
+       WHERE id = ?
+         AND owner_auth_id = ?`,
+      [nextType, messageId, ownerId]
+    );
+    if (!result.affectedRows) {
+      return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
+    }
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_UPDATE_FAILED",
+      message: String(error.message || error)
+    });
+  }
+}
+
+async function handleOwnerMessageCenterDelete(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  const messageId = Number(data.body.messageId || data.body.id || 0);
+  if (!Number.isFinite(messageId) || messageId <= 0) {
+    return sendJson(res, 400, { ok: false, code: "MESSAGE_ID_REQUIRED" });
+  }
+  try {
+    const [result] = await pool.execute(
+      `DELETE FROM owner_message_center
+       WHERE id = ?
+         AND owner_auth_id = ?`,
+      [messageId, Number(data.session.owner_auth_id)]
+    );
+    if (!result.affectedRows) {
+      return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
+    }
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_DELETE_FAILED",
+      message: String(error.message || error)
+    });
+  }
 }
 
 async function handlePublicMobilePushRegister(req, res) {
@@ -1147,7 +1803,12 @@ async function handlePublicBarterAcceptTerms(req, res) {
 }
 
 async function handlePublicBarterProfileUpsert(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await upsertBarterProfile(pool, body || {});
   if (!result.ok) {
     return sendJson(res, 400, result);
@@ -1156,7 +1817,12 @@ async function handlePublicBarterProfileUpsert(req, res) {
 }
 
 async function handlePublicBarterOfferCreate(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await createBarterOffer(pool, body || {});
   if (!result.ok) {
     return sendJson(res, 400, result);
@@ -1409,6 +2075,287 @@ async function handleAiOpsCronAutopilot(req, res) {
   return sendJson(res, result.ok ? 200 : 400, result);
 }
 
+async function handlePublicOrderCreate(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["buyer"]));
+  if (!session) {
+    return;
+  }
+  const body = await readJson(req);
+  const productId = Number(body.productId || 0);
+  const quantity = Math.max(1, Math.min(20, Number(body.quantity || 1)));
+  const shippingMethod = String(body.shippingMethod || "express").trim().toLowerCase();
+  const buyerCountry = String(body.buyerCountry || session.country_code || "").trim().toUpperCase();
+  if (!productId || buyerCountry.length !== 2) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_ORDER_INPUT" });
+  }
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [products] = await conn.execute(
+      `SELECT p.id, p.shop_id, p.base_price, p.currency, p.stock, p.origin_country, p.title
+       FROM products p
+       WHERE p.id = ?
+         AND p.status = 'active'
+       LIMIT 1`,
+      [productId]
+    );
+    const product = products[0];
+    if (!product) {
+      await conn.rollback();
+      return sendJson(res, 404, { ok: false, code: "PRODUCT_NOT_AVAILABLE" });
+    }
+    if (Number(product.stock || 0) < quantity) {
+      await conn.rollback();
+      return sendJson(res, 400, { ok: false, code: "INSUFFICIENT_STOCK" });
+    }
+    const unitPrice = Number(product.base_price || 0);
+    const subtotal = Number((unitPrice * quantity).toFixed(2));
+    const isCrossBorder = String(product.origin_country || "").toUpperCase() !== buyerCountry;
+    const shippingFee = isCrossBorder ? 12.5 : 6.5;
+    const markupAmount = Number((subtotal * 0.03).toFixed(2));
+    const totalAmount = Number((subtotal + shippingFee + markupAmount).toFixed(2));
+    const [insertOrder] = await conn.execute(
+      `INSERT INTO orders (
+        buyer_user_id, seller_shop_id, subtotal, markup_amount, shipping_fee, total_amount, currency, buyer_country, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [
+        Number(session.user_id),
+        Number(product.shop_id),
+        subtotal,
+        markupAmount,
+        shippingFee,
+        totalAmount,
+        String(product.currency || "EUR").toUpperCase(),
+        buyerCountry
+      ]
+    );
+    const orderId = Number(insertOrder.insertId || 0);
+    await conn.execute(
+      `INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+       VALUES (?, ?, ?, ?)`,
+      [orderId, productId, quantity, unitPrice]
+    );
+    await conn.execute(
+      `UPDATE products
+       SET stock = GREATEST(0, stock - ?)
+       WHERE id = ?`,
+      [quantity, productId]
+    );
+    await conn.execute(
+      `INSERT INTO order_status_updates (
+        order_id, status_code, status_message, actor_role, notify_buyer, notify_seller
+      ) VALUES (?, 'order_created', ?, 'buyer', 1, 1)`,
+      [orderId, `Order created for ${String(product.title || "item")} (${quantity}x).`]
+    );
+    await conn.commit();
+    return sendJson(res, 200, {
+      ok: true,
+      order: {
+        orderId,
+        productId,
+        quantity,
+        shippingMethod,
+        subtotal,
+        markupAmount,
+        shippingFee,
+        totalAmount,
+        currency: String(product.currency || "EUR").toUpperCase(),
+        fromCountry: String(product.origin_country || "").toUpperCase(),
+        toCountry: buyerCountry,
+        status: "pending"
+      },
+      next: {
+        paymentIntentEndpoint: "/api/public/payments/intent/create",
+        trackingEndpoint: `/api/public/orders/track?orderId=${orderId}`
+      }
+    });
+  } catch (error) {
+    try {
+      await conn.rollback();
+    } catch {
+      // ignore rollback error
+    }
+    throw error;
+  } finally {
+    conn.release();
+  }
+}
+
+async function handlePublicOrderTrack(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  const urlObj = new URL(req.url, "http://localhost");
+  const orderId = Number(urlObj.searchParams.get("orderId") || 0);
+  if (!orderId) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_ORDER_ID" });
+  }
+  const [orders] = await pool.execute(
+    `SELECT id, buyer_user_id, seller_shop_id, subtotal, markup_amount, shipping_fee, total_amount, currency, buyer_country, status, created_at
+     FROM orders
+     WHERE id = ?
+     LIMIT 1`,
+    [orderId]
+  );
+  const order = orders[0];
+  if (!order) {
+    return sendJson(res, 404, { ok: false, code: "ORDER_NOT_FOUND" });
+  }
+  const [sellerShops] = await pool.execute(
+    `SELECT id
+     FROM shops
+     WHERE id = ?
+       AND owner_user_id = ?
+     LIMIT 1`,
+    [Number(order.seller_shop_id), Number(session.user_id)]
+  );
+  const isBuyer = Number(order.buyer_user_id) === Number(session.user_id);
+  const isSellerOwner = sellerShops.length > 0;
+  if (!isBuyer && !isSellerOwner) {
+    return sendJson(res, 403, { ok: false, code: "ORDER_FORBIDDEN" });
+  }
+  const [shipmentRows] = await pool.execute(
+    `SELECT id, courier, shipping_method, from_country, to_country, tracking_number, status, created_at
+     FROM shipments
+     WHERE order_id = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [orderId]
+  );
+  const [updateRows] = await pool.execute(
+    `SELECT status_code, status_message, actor_role, created_at
+     FROM order_status_updates
+     WHERE order_id = ?
+     ORDER BY id DESC
+     LIMIT 20`,
+    [orderId]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    order: {
+      orderId: Number(order.id),
+      status: String(order.status),
+      subtotal: Number(order.subtotal),
+      markupAmount: Number(order.markup_amount),
+      shippingFee: Number(order.shipping_fee),
+      totalAmount: Number(order.total_amount),
+      currency: String(order.currency),
+      buyerCountry: String(order.buyer_country),
+      createdAt: order.created_at
+    },
+    shipment: shipmentRows[0]
+      ? {
+          shipmentId: Number(shipmentRows[0].id),
+          courier: String(shipmentRows[0].courier),
+          shippingMethod: String(shipmentRows[0].shipping_method),
+          fromCountry: String(shipmentRows[0].from_country),
+          toCountry: String(shipmentRows[0].to_country),
+          trackingNumber: String(shipmentRows[0].tracking_number || ""),
+          status: String(shipmentRows[0].status),
+          createdAt: shipmentRows[0].created_at
+        }
+      : null,
+    updates: updateRows.map((row) => ({
+      statusCode: String(row.status_code),
+      statusMessage: String(row.status_message),
+      actorRole: String(row.actor_role),
+      createdAt: row.created_at
+    }))
+  });
+}
+
+async function handlePublicProductsLive(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const categoryId = Number(urlObj.searchParams.get("categoryId") || 0);
+  const fromCountry = String(urlObj.searchParams.get("fromCountry") || "").trim().toUpperCase();
+  const bridgePath = String(urlObj.searchParams.get("bridgePath") || "").trim().toLowerCase();
+  const limit = Math.max(1, Math.min(100, Number(urlObj.searchParams.get("limit") || 40)));
+  const filters = [];
+  const params = [];
+  const europeOriginCodes = [
+    "PL",
+    "DE",
+    "FR",
+    "ES",
+    "IT",
+    "NL",
+    "BE",
+    "PT",
+    "SE",
+    "NO",
+    "DK",
+    "FI",
+    "IE",
+    "AT",
+    "CZ",
+    "HU",
+    "RO",
+    "GR",
+    "CH",
+    "GB"
+  ];
+  const africaOriginCodes = [
+    "ZA",
+    "KE",
+    "NG",
+    "GH",
+    "ZW",
+    "NA",
+    "ET",
+    "TZ",
+    "UG",
+    "RW",
+    "BW",
+    "ZM"
+  ];
+  if (categoryId > 0) {
+    filters.push("p.category_id = ?");
+    params.push(categoryId);
+  }
+  if (fromCountry.length === 2) {
+    filters.push("p.origin_country = ?");
+    params.push(fromCountry);
+  }
+  if (!fromCountry && bridgePath === "from-europe") {
+    filters.push(`p.origin_country IN (${europeOriginCodes.map(() => "?").join(",")})`);
+    params.push(...europeOriginCodes);
+  } else if (!fromCountry && bridgePath === "from-africa") {
+    filters.push(`p.origin_country IN (${africaOriginCodes.map(() => "?").join(",")})`);
+    params.push(...africaOriginCodes);
+  }
+  const whereClause = filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "";
+  const sql = `SELECT p.id, p.shop_id, s.name AS shop_name, p.category_id, p.title, p.base_price, p.currency, p.stock, p.origin_country
+     FROM products p
+     JOIN shops s ON s.id = p.shop_id
+     WHERE p.status = 'active'
+       AND p.stock > 0
+       ${whereClause}
+     ORDER BY p.id DESC
+     LIMIT ${limit}`;
+  const [rows] = params.length > 0 ? await pool.execute(sql, params) : await pool.query(sql);
+  return sendJson(res, 200, {
+    ok: true,
+    count: rows.length,
+    products: rows.map((row) => ({
+      id: Number(row.id),
+      shopId: Number(row.shop_id),
+      shopName: String(row.shop_name),
+      categoryId: Number(row.category_id),
+      title: String(row.title),
+      basePrice: Number(row.base_price),
+      currency: String(row.currency || "EUR"),
+      stock: Number(row.stock),
+      originCountry: String(row.origin_country || "").toUpperCase()
+    }))
+  });
+}
+
 async function handlePublicPaymentConfig(req, res) {
   return sendJson(res, 200, {
     ok: true,
@@ -1515,9 +2462,23 @@ async function handleOwnerPaymentReadiness(req, res) {
 
 const server = http.createServer(async (req, res) => {
   try {
+    const pathname = requestPathname(req.url);
+    if (req.method === "GET" && (pathname === "/api/health" || pathname === "/health")) {
+      return sendJson(res, 200, {
+        ok: true,
+        service: "vibecart-owner-api",
+        dbConfigured: Boolean(DB_HOST && DB_USER && DB_NAME)
+      });
+    }
+    if (req.method === "OPTIONS" && pathname.startsWith("/api/")) {
+      applyCorsHeaders(req, res);
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
     const ip = getIp(req);
-    const isStripeWebhook = req.method === "POST" && req.url === "/api/public/payments/webhook/stripe";
-    const isLogoEmailRoute = req.method === "POST" && req.url === "/api/public/brand/email-logo";
+    const isStripeWebhook = req.method === "POST" && pathname === "/api/public/payments/webhook/stripe";
+    const isLogoEmailRoute = req.method === "POST" && pathname === "/api/public/brand/email-logo";
     if (isLogoEmailRoute) {
       if (isLogoEmailIpLimited(ip)) {
         return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
@@ -1538,31 +2499,43 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/public/coach/dashboard")) {
       return await handlePublicCoachDashboard(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/rewards/earn") {
+    if (req.method === "POST" && pathname === "/api/public/rewards/earn") {
       return await handlePublicRewardEarn(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/rewards/redeem") {
+    if (req.method === "POST" && pathname === "/api/public/auth/register") {
+      return await handlePublicAuthRegister(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/auth/login") {
+      return await handlePublicAuthLogin(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/auth/logout") {
+      return await handlePublicAuthLogout(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/auth/session") {
+      return await handlePublicAuthSession(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/rewards/redeem") {
       return await handlePublicRewardRedeem(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/disclaimer/accept") {
+    if (req.method === "POST" && pathname === "/api/public/disclaimer/accept") {
       return await handlePublicDisclaimerAccept(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/mobile/push/register") {
+    if (req.method === "POST" && pathname === "/api/public/mobile/push/register") {
       return await handlePublicMobilePushRegister(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/brand/email-logo") {
+    if (req.method === "POST" && pathname === "/api/public/brand/email-logo") {
       return await handlePublicBrandEmailLogo(req, res, ip);
     }
-    if (req.method === "POST" && req.url === "/api/public/chat/safety-check") {
+    if (req.method === "POST" && pathname === "/api/public/chat/safety-check") {
       return await handlePublicChatSafetyCheck(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/coach/profile/upsert") {
+    if (req.method === "POST" && pathname === "/api/public/coach/profile/upsert") {
       return await handlePublicCoachProfile(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/coach/medication/add") {
+    if (req.method === "POST" && pathname === "/api/public/coach/medication/add") {
       return await handlePublicMedicationSchedule(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/coach/checkin/add") {
+    if (req.method === "POST" && pathname === "/api/public/coach/checkin/add") {
       return await handlePublicHealthCheckin(req, res);
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/platform-risk/scoreboard")) {
@@ -1586,214 +2559,252 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/public/payments/config")) {
       return await handlePublicPaymentConfig(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/platform-risk/plan") {
+    if (req.method === "GET" && req.url.startsWith("/api/public/products/live")) {
+      return await handlePublicProductsLive(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/orders/track")) {
+      return await handlePublicOrderTrack(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/platform-risk/plan") {
       return await handlePublicPlatformRiskPlan(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/barter/terms/accept") {
+    if (req.method === "POST" && pathname === "/api/public/barter/terms/accept") {
       return await handlePublicBarterAcceptTerms(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/barter/profile/upsert") {
+    if (req.method === "POST" && pathname === "/api/public/barter/profile/upsert") {
       return await handlePublicBarterProfileUpsert(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/barter/offer/create") {
+    if (req.method === "POST" && pathname === "/api/public/barter/offer/create") {
       return await handlePublicBarterOfferCreate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/barter/match/build") {
+    if (req.method === "POST" && pathname === "/api/public/barter/match/build") {
       return await handlePublicBarterMatchBuild(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/barter/bypass/report") {
+    if (req.method === "POST" && pathname === "/api/public/barter/bypass/report") {
       return await handlePublicBarterBypassReport(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/crowdfunding/campaign/create") {
+    if (req.method === "POST" && pathname === "/api/public/crowdfunding/campaign/create") {
       return await handlePublicCrowdfundingCreate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/crowdfunding/pledge") {
+    if (req.method === "POST" && pathname === "/api/public/crowdfunding/pledge") {
       return await handlePublicCrowdfundingPledge(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/fraud/precheck") {
+    if (req.method === "POST" && pathname === "/api/public/fraud/precheck") {
       return await handlePublicFraudPrecheck(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/trust-safety/evaluate") {
+    if (req.method === "POST" && pathname === "/api/public/trust-safety/evaluate") {
       return await handlePublicTrustSafetyEvaluate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/payments/intent/create") {
+    if (req.method === "POST" && pathname === "/api/public/orders/create") {
+      return await handlePublicOrderCreate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/payments/intent/create") {
       return await handlePublicCreatePaymentIntent(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/public/payments/webhook/stripe") {
+    if (req.method === "POST" && pathname === "/api/public/payments/webhook/stripe") {
       return await handleStripeWebhook(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/chat/safety/events/list") {
+    if (req.method === "POST" && pathname === "/api/chat/safety/events/list") {
       return await handleOwnerChatSafetyEvents(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/coach/metrics/summary") {
+    if (req.method === "POST" && pathname === "/api/coach/metrics/summary") {
       return await handleOwnerCoachMetrics(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/cron/daily-reminders") {
+    if (req.method === "POST" && pathname === "/api/insurance/cron/daily-reminders") {
       return await handleInsuranceDailyCron(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/health/cron/daily-reminders") {
+    if (req.method === "POST" && pathname === "/api/health/cron/daily-reminders") {
       return await handleHealthDailyCron(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/owner/auth/login") {
+    if (req.method === "POST" && pathname === "/api/owner/auth/login") {
       return await handleLogin(req, res, ip);
     }
-    if (req.method === "POST" && req.url === "/api/owner/auth/logout") {
+    if (req.method === "POST" && pathname === "/api/owner/auth/logout") {
       return await handleLogout(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/owner/auth/rotate") {
+    if (req.method === "POST" && pathname === "/api/owner/auth/rotate") {
       return await handleRotate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/push/register-device-token") {
+    if (req.method === "GET" && pathname === "/api/public/site-settings") {
+      return await handlePublicSiteSettingsGet(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/site-settings/upsert") {
+      return await handleOwnerSiteSettingsUpsert(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/messages/list") {
+      return await handleOwnerMessageCenterList(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/messages/create") {
+      return await handleOwnerMessageCenterCreate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/messages/mark-read") {
+      return await handleOwnerMessageCenterMarkRead(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/messages/clear") {
+      return await handleOwnerMessageCenterClear(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/messages/update") {
+      return await handleOwnerMessageCenterUpdate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/messages/delete") {
+      return await handleOwnerMessageCenterDelete(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/push/register-device-token") {
       return await handlePushRegister(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/push/send-order-update") {
+    if (req.method === "POST" && pathname === "/api/push/send-order-update") {
       return await handlePushOrderUpdate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/bookings/provider/create") {
+    if (req.method === "POST" && pathname === "/api/bookings/provider/create") {
       return await handleCreateProvider(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/bookings/service/create") {
+    if (req.method === "POST" && pathname === "/api/bookings/service/create") {
       return await handleCreateService(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/bookings/slots/bulk-create") {
+    if (req.method === "POST" && pathname === "/api/bookings/slots/bulk-create") {
       return await handleCreateSlots(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/bookings/create") {
+    if (req.method === "POST" && pathname === "/api/bookings/create") {
       return await handleCreateBooking(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/bookings/status/update") {
+    if (req.method === "POST" && pathname === "/api/bookings/status/update") {
       return await handleUpdateBookingStatus(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ads/invoice/create") {
+    if (req.method === "POST" && pathname === "/api/ads/invoice/create") {
       return await handleCreateAdInvoice(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ads/invoice/settle") {
+    if (req.method === "POST" && pathname === "/api/ads/invoice/settle") {
       return await handleSettleAdInvoice(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/subscription-plan/create") {
+    if (req.method === "POST" && pathname === "/api/monetization/subscription-plan/create") {
       return await handleCreateSubscriptionPlan(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/subscription/assign") {
+    if (req.method === "POST" && pathname === "/api/monetization/subscription/assign") {
       return await handleAssignSellerSubscription(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/boost-package/create") {
+    if (req.method === "POST" && pathname === "/api/monetization/boost-package/create") {
       return await handleCreateBoostPackage(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/boost/purchase") {
+    if (req.method === "POST" && pathname === "/api/monetization/boost/purchase") {
       return await handlePurchaseBoost(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/order/charges/apply") {
+    if (req.method === "POST" && pathname === "/api/monetization/order/charges/apply") {
       return await handleApplyOrderCharges(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/logistics-rate/create") {
+    if (req.method === "POST" && pathname === "/api/monetization/logistics-rate/create") {
       return await handleCreateLogisticsRate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/affiliate-partner/create") {
+    if (req.method === "POST" && pathname === "/api/monetization/affiliate-partner/create") {
       return await handleCreateAffiliatePartner(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/affiliate-referral/record") {
+    if (req.method === "POST" && pathname === "/api/monetization/affiliate-referral/record") {
       return await handleRecordAffiliateReferral(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/guardrails/get") {
+    if (req.method === "POST" && pathname === "/api/monetization/guardrails/get") {
       return await handleGetPricingGuardrails(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/guardrails/validate") {
+    if (req.method === "POST" && pathname === "/api/monetization/guardrails/validate") {
       return await handleValidatePricing(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/revenue/owner-dashboard") {
+    if (req.method === "POST" && pathname === "/api/monetization/revenue/owner-dashboard") {
       return await handleOwnerRevenueDashboard(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/revenue/payout/request") {
+    if (req.method === "POST" && pathname === "/api/monetization/revenue/payout/request") {
       return await handleOwnerPayoutRequest(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/monetization/revenue/payout/status/update") {
+    if (req.method === "POST" && pathname === "/api/monetization/revenue/payout/status/update") {
       return await handleOwnerPayoutStatusUpdate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/provider/create") {
+    if (req.method === "POST" && pathname === "/api/insurance/provider/create") {
       return await handleCreateInsuranceProvider(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/jurisdiction/list") {
+    if (req.method === "POST" && pathname === "/api/insurance/jurisdiction/list") {
       return await handleListInsuranceJurisdictions(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/jurisdiction/upsert") {
+    if (req.method === "POST" && pathname === "/api/insurance/jurisdiction/upsert") {
       return await handleUpsertInsuranceJurisdiction(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/jurisdiction/disable") {
+    if (req.method === "POST" && pathname === "/api/insurance/jurisdiction/disable") {
       return await handleDisableInsuranceJurisdiction(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/plan/create") {
+    if (req.method === "POST" && pathname === "/api/insurance/plan/create") {
       return await handleCreateInsurancePlan(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/subscription/create") {
+    if (req.method === "POST" && pathname === "/api/insurance/subscription/create") {
       return await handleSubscribeInsurance(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/subscription/record-payment") {
+    if (req.method === "POST" && pathname === "/api/insurance/subscription/record-payment") {
       return await handleRecordInsurancePayment(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/subscription/queue-due-reminders") {
+    if (req.method === "POST" && pathname === "/api/insurance/subscription/queue-due-reminders") {
       return await handleQueueInsuranceDueReminders(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/policy/link-existing") {
+    if (req.method === "POST" && pathname === "/api/insurance/policy/link-existing") {
       return await handleLinkExistingPolicy(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/insurance/policy/update-linked") {
+    if (req.method === "POST" && pathname === "/api/insurance/policy/update-linked") {
       return await handleUpdatePolicyLink(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/wellbeing/alert/publish") {
+    if (req.method === "POST" && pathname === "/api/wellbeing/alert/publish") {
       return await handlePublishWellbeingAlert(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/wellbeing/alert/queue-notifications") {
+    if (req.method === "POST" && pathname === "/api/wellbeing/alert/queue-notifications") {
       return await handleQueueWellbeingNotifications(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/trust/profile/upsert") {
+    if (req.method === "POST" && pathname === "/api/trust/profile/upsert") {
       return await handleOwnerUpsertTrustProfile(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/trust/profile/list") {
+    if (req.method === "POST" && pathname === "/api/trust/profile/list") {
       return await handleOwnerListTrustProfiles(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/risk/owner-dashboard") {
+    if (req.method === "POST" && pathname === "/api/risk/owner-dashboard") {
       return await handleOwnerRiskDashboard(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/barter/match/review/list") {
+    if (req.method === "POST" && pathname === "/api/barter/match/review/list") {
       return await handleOwnerBarterMatchReviews(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/barter/match/review/decide") {
+    if (req.method === "POST" && pathname === "/api/barter/match/review/decide") {
       return await handleOwnerBarterMatchDecision(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/barter/account/suspend") {
+    if (req.method === "POST" && pathname === "/api/barter/account/suspend") {
       return await handleOwnerBarterSuspendAccount(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/crowdfunding/review/list") {
+    if (req.method === "POST" && pathname === "/api/crowdfunding/review/list") {
       return await handleOwnerCrowdfundingReviewList(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/crowdfunding/review/decide") {
+    if (req.method === "POST" && pathname === "/api/crowdfunding/review/decide") {
       return await handleOwnerCrowdfundingDecision(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/list") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/list") {
       return await handleOwnerAiOperationsList(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/create") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/create") {
       return await handleOwnerAiOperationsCreate(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/decide") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/decide") {
       return await handleOwnerAiOperationsDecide(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/recommendations") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/recommendations") {
       return await handleOwnerAiOpsRecommendations(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/recommendations/queue") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/recommendations/queue") {
       return await handleOwnerAiOpsQueueRecommendations(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/readiness") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/readiness") {
       return await handleOwnerAiReadiness(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/ai-ops/cron/autopilot") {
+    if (req.method === "POST" && pathname === "/api/ai-ops/cron/autopilot") {
       return await handleAiOpsCronAutopilot(req, res);
     }
-    if (req.method === "POST" && req.url === "/api/payments/readiness") {
+    if (req.method === "POST" && pathname === "/api/payments/readiness") {
       return await handleOwnerPaymentReadiness(req, res);
     }
-    return sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
+    return sendJson(res, 404, {
+      ok: false,
+      code: "NOT_FOUND",
+      method: req.method,
+      path: pathname
+    });
   } catch (error) {
     if (String(error.message || "").toLowerCase().includes("guardrail")) {
       return sendJson(res, 400, { ok: false, code: "PRICE_GUARDRAIL_BLOCKED", message: String(error.message) });

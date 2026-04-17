@@ -1,0 +1,5 @@
+setup-reminder.cmd
+.git
+.cursor
+node_modules
+mobile-app/node_modules
