@@ -481,7 +481,6 @@ CREATE TABLE user_reward_profiles (
   last_activity_at DATETIME NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id),
   INDEX idx_reward_profiles_tier_points (current_tier, points_balance)
 );
 
@@ -493,7 +492,6 @@ CREATE TABLE reward_events (
   reference_type VARCHAR(60) NULL,
   reference_id BIGINT UNSIGNED NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id),
   INDEX idx_reward_events_user_time (user_id, created_at)
 );
 
@@ -506,7 +504,6 @@ CREATE TABLE disclaimer_acceptance_events (
   user_agent VARCHAR(255) NULL,
   acceptance_text VARCHAR(255) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id),
   INDEX idx_disclaimer_acceptance_context_time (context_type, created_at)
 );
 

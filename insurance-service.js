@@ -101,7 +101,19 @@ async function getCommissionRule(db, providerId, billingType) {
 }
 
 async function listPublicInsurancePlans(db, payload) {
-  const countryCode = await assertJurisdictionAllowed(db, payload.countryCode);
+  const raw = String(payload.countryCode || "").trim().toUpperCase();
+  if (!raw) {
+    return { ok: true, countryCode: "", plans: [], jurisdictionBlocked: true };
+  }
+  try {
+    await assertJurisdictionAllowed(db, raw);
+  } catch (error) {
+    const msg = String(error.message || "");
+    if (msg === "INSURANCE_JURISDICTION_BLOCKED" || msg.includes("Missing countryCode")) {
+      return { ok: true, countryCode: raw, plans: [], jurisdictionBlocked: true };
+    }
+    throw error;
+  }
   const [rows] = await db.execute(
     `SELECT p.id, p.plan_name, p.plan_type, p.monthly_premium, p.currency, p.waiting_period_days, p.renewal_cycle, p.summary_text,
             ip.provider_name, ip.website_url
@@ -112,7 +124,7 @@ async function listPublicInsurancePlans(db, payload) {
      LIMIT 100`,
     []
   );
-  return { ok: true, countryCode, plans: rows };
+  return { ok: true, countryCode: raw, plans: rows };
 }
 
 async function createInsuranceProvider(db, payload) {

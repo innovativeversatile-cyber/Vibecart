@@ -1540,7 +1540,7 @@ async function loadPublicInsurancePlans() {
   try {
     const localeCountry = (navigator.language || "").split("-")[1] || "";
     const response = await fetch(`/api/public/insurance/plans?countryCode=${encodeURIComponent(localeCountry)}`);
-    const payload = await response.json();
+    const payload = await response.json().catch(() => ({}));
     if (!response.ok || !payload.ok || !Array.isArray(payload.plans) || payload.plans.length === 0) {
       renderInsurancePlans();
       return;
@@ -1901,7 +1901,7 @@ async function loadRewardProfile() {
   const userId = getPublicUserId();
   try {
     const response = await fetch(`/api/public/rewards/profile?userId=${encodeURIComponent(userId)}`);
-    const payload = await response.json();
+    const payload = await response.json().catch(() => ({}));
     if (!response.ok || !payload.ok || !payload.profile) {
       renderRewards();
       return;

@@ -1515,8 +1515,37 @@ async function handlePublicTrustProfiles(req, res) {
 async function handlePublicRewardProfile(req, res) {
   const urlObj = new URL(req.url, "http://localhost");
   const userId = Number(urlObj.searchParams.get("userId") || 0);
-  const result = await getRewardProfile(pool, { userId });
-  return sendJson(res, 200, result);
+  if (!Number.isFinite(userId) || userId <= 0) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_USER_ID" });
+  }
+  try {
+    const result = await getRewardProfile(pool, { userId });
+    return sendJson(res, 200, result);
+  } catch (error) {
+    const errno = Number(error.errno || 0);
+    const sqlCode = String(error.code || "");
+    const msg = String(error.message || error || "");
+    const fkBroken =
+      errno === 1452 ||
+      sqlCode === "ER_NO_REFERENCED_ROW_2" ||
+      /foreign key|cannot add or update a child row/i.test(msg);
+    if (fkBroken) {
+      return sendJson(res, 200, {
+        ok: true,
+        profile: {
+          user_id: userId,
+          points_balance: 0,
+          current_tier: "starter",
+          safe_action_streak_weeks: 0,
+          last_activity_at: null,
+          updated_at: null
+        },
+        fallback: true,
+        code: "REWARD_PROFILE_DB_CONSTRAINT"
+      });
+    }
+    throw error;
+  }
 }
 
 async function handlePublicRewardEarn(req, res) {
