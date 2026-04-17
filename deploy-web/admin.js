@@ -8,10 +8,22 @@ const REVENUE_SETTINGS_KEY = "vibecart-revenue-settings";
 const API_BASE_KEY = "vibecart-api-base-url";
 const MESSAGE_CENTER_KEY = "vibecart-admin-message-center-v1";
 const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
-const DEFAULT_API_BASE =
-  typeof window !== "undefined" && /^https?:$/i.test(window.location.protocol)
-    ? window.location.origin
-    : "http://localhost:8081";
+/** When admin is opened as file:// or odd schemes, localhost:8081 causes ECONNREFUSED if no local API. */
+const PUBLIC_PRODUCTION_API_FALLBACK = "https://api.vibe-cart.com";
+const DEFAULT_API_BASE = (() => {
+  if (typeof window === "undefined") {
+    return "http://localhost:8081";
+  }
+  const proto = window.location.protocol;
+  const host = String(window.location.hostname || "").toLowerCase();
+  if (proto === "https:" || proto === "http:") {
+    if (host === "localhost" || host === "127.0.0.1") {
+      return "http://localhost:8081";
+    }
+    return window.location.origin;
+  }
+  return PUBLIC_PRODUCTION_API_FALLBACK;
+})();
 
 const defaults = {
   title: "VibeCart | Africa-Europe-Asia Trade Bridge Marketplace",
@@ -60,10 +72,14 @@ function normalizeApiBase(input) {
 }
 
 function getApiBase() {
-  const fromStorage = localStorage.getItem(API_BASE_KEY);
-  const selected = normalizeApiBase(window.__VIBECART_API_BASE_URL__ || fromStorage || DEFAULT_API_BASE);
   const isProdPage = /^https?:$/i.test(window.location.protocol) && !/localhost|127\.0\.0\.1/i.test(window.location.host);
-  if (isProdPage && /localhost|127\.0\.0\.1/i.test(selected)) {
+  let fromStorage = localStorage.getItem(API_BASE_KEY);
+  if (isProdPage && fromStorage && /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(fromStorage)) {
+    localStorage.removeItem(API_BASE_KEY);
+    fromStorage = null;
+  }
+  const selected = normalizeApiBase(window.__VIBECART_API_BASE_URL__ || fromStorage || DEFAULT_API_BASE);
+  if (isProdPage && /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(selected)) {
     return normalizeApiBase(window.location.origin);
   }
   return selected;
@@ -1102,7 +1118,13 @@ async function unlockPanel() {
   try {
     await unlockPanelInner();
   } catch (error) {
-    setStatus(`Login failed: ${error?.message || String(error)}. If this persists, clear site data for this page or fix API Base URL.`);
+    const msg = String(error?.message || error || "");
+    const refused = /ECONNREFUSED|Failed to fetch|NetworkError|load failed/i.test(msg);
+    setStatus(
+      refused
+        ? `Login failed: ${msg}. Clear a bad API base in site data, leave API Base URL empty on Netlify, or set ${PUBLIC_PRODUCTION_API_FALLBACK}.`
+        : `Login failed: ${msg}. If this persists, clear site data for this page or fix API Base URL.`
+    );
   }
 }
 
@@ -1132,8 +1154,12 @@ async function unlockPanelInner() {
       })
     });
   } catch (error) {
+    const msg = String(error?.message || error || "network error");
+    const refused = /ECONNREFUSED|Failed to fetch|NetworkError|load failed/i.test(msg);
     setStatus(
-      `Login failed: ${error.message || "network error"}. Try leaving API Base URL empty (same site /api) or redeploy the backend.`
+      refused
+        ? `Login failed: cannot reach API (${msg}). On Netlify leave API Base URL empty (uses this site’s /api), or set ${PUBLIC_PRODUCTION_API_FALLBACK}. For local dev run: npm start (port 8081).`
+        : `Login failed: ${msg}. Try leaving API Base URL empty (same site /api) or redeploy the backend.`
     );
     return;
   }
@@ -1422,7 +1448,10 @@ function bindClick(id, handler) {
 updateMessageBadge().catch(() => {});
 
 bindClick("unlockBtn", () => {
-  unlockPanel().catch(() => setStatus("Authentication error."));
+  unlockPanel().catch((error) => {
+    const msg = String(error?.message || error || "Authentication error.");
+    setStatus(/ECONNREFUSED|Failed to fetch|NetworkError/i.test(msg) ? `${msg} — check API Base URL (empty = site /api on Netlify).` : msg);
+  });
 });
 bindClick("saveSettings", () => {
   saveSettings().catch((error) => {
@@ -1506,7 +1535,11 @@ bindClick("updateOwnerPayoutStatus", () => {
 
 // Global fail-safe: if any direct listener failed to bind, this still handles button clicks.
 const clickHandlers = {
-  unlockBtn: () => unlockPanel().catch(() => setStatus("Authentication error.")),
+  unlockBtn: () =>
+    unlockPanel().catch((error) => {
+      const msg = String(error?.message || error || "Authentication error.");
+      setStatus(/ECONNREFUSED|Failed to fetch|NetworkError/i.test(msg) ? `${msg} — check API Base URL.` : msg);
+    }),
   saveSettings: () =>
     saveSettings().catch((error) => {
       setStatus(`Save failed: ${error?.message || String(error)}`);

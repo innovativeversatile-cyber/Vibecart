@@ -5,7 +5,10 @@
   "description": "VibeCart web + owner auth API",
   "main": "owner-auth-api.js",
   "scripts": {
-    "start": "node owner-auth-api.js"
+    "start": "node owner-auth-api.js",
+    "health:api": "node -e \"fetch('https://api.vibe-cart.com/api/health').then(r=>r.text().then(t=>console.log('api.vibe-cart.com',r.status,t.slice(0,120)))).catch(e=>{console.error('health:api',e.message||e);process.exit(1);})\"",
+    "health:site": "node -e \"fetch('https://vibe-cart.com/api/health').then(r=>r.text().then(t=>console.log('vibe-cart.com proxy',r.status,t.slice(0,120)))).catch(e=>{console.error(e);process.exit(1);})\"",
+    "health": "node -e \"const u='https://vibe-cart.com/api/health';fetch(u).then(r=>r.text().then(t=>console.log('OK',u,r.status,t.slice(0,100)))).catch(e=>{console.error(e);process.exit(1);})\""
   },
   "engines": {
     "node": ">=20.0.0"

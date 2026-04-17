@@ -45,10 +45,18 @@
         const API_BASE_KEY = "vibecart-api-base-url";
         const MESSAGE_CENTER_KEY = "vibecart-admin-message-center-v1";
         const LEGACY_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
-        const DEFAULT_API_BASE =
-          typeof window !== "undefined" && /^https?:$/i.test(window.location.protocol)
-            ? window.location.origin
-            : "http://localhost:8081";
+        const PUBLIC_PRODUCTION_API_FALLBACK = "https://api.vibe-cart.com";
+        const DEFAULT_API_BASE = (function () {
+          const proto = window.location.protocol;
+          const host = String(window.location.hostname || "").toLowerCase();
+          if (proto === "https:" || proto === "http:") {
+            if (host === "localhost" || host === "127.0.0.1") {
+              return "http://localhost:8081";
+            }
+            return window.location.origin;
+          }
+          return PUBLIC_PRODUCTION_API_FALLBACK;
+        })();
         const list = document.getElementById("msgList");
         const input = document.getElementById("msgInput");
         const type = document.getElementById("msgType");
@@ -93,15 +101,22 @@
         }
 
         function normalizeApiBase(input) {
-          const value = String(input || "").trim().replace(/\/+$/, "");
+          let value = String(input || "").trim().replace(/\/+$/, "");
+          if (/\/api$/i.test(value)) {
+            value = value.replace(/\/api$/i, "");
+          }
           return value || DEFAULT_API_BASE;
         }
 
         function getApiBase() {
-          const fromStorage = localStorage.getItem(API_BASE_KEY);
-          const selected = normalizeApiBase(window.__VIBECART_API_BASE_URL__ || fromStorage || DEFAULT_API_BASE);
           const isProdPage = /^https?:$/i.test(window.location.protocol) && !/localhost|127\.0\.0\.1/i.test(window.location.host);
-          if (isProdPage && /localhost|127\.0\.0\.1/i.test(selected)) {
+          let fromStorage = localStorage.getItem(API_BASE_KEY);
+          if (isProdPage && fromStorage && /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(fromStorage)) {
+            localStorage.removeItem(API_BASE_KEY);
+            fromStorage = null;
+          }
+          const selected = normalizeApiBase(window.__VIBECART_API_BASE_URL__ || fromStorage || DEFAULT_API_BASE);
+          if (isProdPage && /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(selected)) {
             return normalizeApiBase(window.location.origin);
           }
           return selected;

@@ -52,6 +52,13 @@ async function main() {
 
 main().catch((error) => {
   // eslint-disable-next-line no-console
+  if (String(error.code || "") === "ECONNREFUSED" || /ECONNREFUSED/i.test(String(error.message || ""))) {
+    console.error(
+      "DROP_REWARD_PUBLIC_FK_FAILED: cannot reach MySQL (ECONNREFUSED). Set DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME to your Railway database and run this script from a network that allows MySQL (often Railway shell or VPN), not from a random laptop without DB access."
+    );
+    process.exit(1);
+    return;
+  }
   console.error("DROP_REWARD_PUBLIC_FK_FAILED", error.message || error);
   process.exit(1);
 });
