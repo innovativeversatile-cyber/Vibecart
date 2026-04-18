@@ -4,9 +4,9 @@ Use this checklist to move from local demo to production safely.
 
 ## 1) Domain and Hosting
 
-- Production domain: **`vibe-cart.com`** (apex) and API subdomain **`api.vibe-cart.com`** on Railway.
+- Production site: **`vibe-cart.com`** (Netlify). The API is reached as **`https://vibe-cart.com/api/*`** (same-origin in the browser); Netlify rewrites those requests to your **Railway** service URL configured in `netlify.toml` (see top-of-file comment — replace `…up.railway.app` if yours differs).
 - Netlify uses **`deploy-web/`** as the publish folder (`netlify.toml`). After local edits, commit and push so Netlify rebuilds.
-- Point DNS **`api.vibe-cart.com`** (CNAME) to Railway and attach that hostname on the Railway service; `netlify.toml` proxies `/api/*` to `https://api.vibe-cart.com/api/:splat`.
+- Optional later: add DNS **`api.vibe-cart.com`** (CNAME) to Railway for a direct API hostname; until then, do not rely on `api.vibe-cart.com` in the static site.
 - Step-by-step DNS placeholders: see `dns/vibe-cart-records.txt` (you still paste real targets from Netlify + Railway).
 - Logo-by-email: set `BRAND_LOGO_EMAIL_ENABLED=true` on Railway when SMTP is configured; site section **Email me the VibeCart logo** calls `POST /api/public/brand/email-logo`.
 - Deploy static frontend files to production hosting:
@@ -37,19 +37,21 @@ Use this checklist to move from local demo to production safely.
 - Import `schema.sql`.
 - Enable automated backups (daily + retention policy).
 - Confirm least-privilege DB permissions (no root user in app runtime).
+- **Railway MySQL with an existing volume:** changing `MYSQL_ROOT_PASSWORD` in Railway Variables does **not** rewrite passwords already stored in the data directory. If the built-in DB UI and your app both get `Access denied`, connect with any client that still knows the **real** current password and run `ALTER USER 'root'@'%' ...` / `'root'@'localhost' ...`, then align Railway Variables + app `DB_PASSWORD` to match. See Railway’s note: [Changing `MYSQL_ROOT_PASSWORD` and other `MYSQL` variables](https://help.railway.com/questions/changing-mysql-root-password-and-other-m-1797dff9). If nothing can authenticate, recovery is a new volume/restore backup (data loss without a dump).
 
 ## 4) Domain URLs in the repo
 
-Defaults target **`https://vibe-cart.com`** (site) and **`https://api.vibe-cart.com`** (API). If you use `www` or another hostname, update:
+Defaults target **`https://vibe-cart.com`** for both the web app and **API calls** (`/api/...` on the same host via Netlify proxy). If you use `www` or another hostname, update:
 
 - `index.html` / `deploy-web/index.html`: `canonical`, `og:url`, `alternate hreflang`, JSON-LD `url`
 - `robots.txt`, `sitemap.xml` (and `deploy-web/` copies)
-- `mobile-app/app.json`: `expo.extra.vibecartBaseUrl`, `expo.extra.vibecartApiBaseUrl`
+- `mobile-app/app.json`: `expo.extra.vibecartBaseUrl`, `expo.extra.vibecartApiBaseUrl` (both should match your public site origin so `/api` works)
+- `netlify.toml`: proxy `to =` must stay aligned with your live Railway API URL
 
 ## 5) Admin API Connection
 
 - Open `admin.html`.
-- Set **Backend API Base URL** to your production API URL (`https://api.vibe-cart.com`).
+- Set **Backend API Base URL** to your public site origin (`https://vibe-cart.com`) so owner calls use the same `/api` path as visitors, or paste your raw Railway `https://…up.railway.app` base if you test off-Netlify.
 - Login and verify:
   - owner auth works
   - trust profiles load

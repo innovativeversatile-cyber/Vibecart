@@ -8,7 +8,7 @@ const REVENUE_SETTINGS_KEY = "vibecart-revenue-settings";
 const API_BASE_KEY = "vibecart-api-base-url";
 const MESSAGE_CENTER_KEY = "vibecart-admin-message-center-v1";
 const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
-const PUBLIC_PRODUCTION_API_FALLBACK = "https://api.vibe-cart.com";
+const PUBLIC_PRODUCTION_API_FALLBACK = "https://vibe-cart.com";
 const DEFAULT_API_BASE = (() => {
   if (typeof window === "undefined") {
     return "http://localhost:8081";
@@ -1248,8 +1248,8 @@ async function saveSettings() {
     });
     const endpoints = [
       `${getApiBase()}/api/owner/site-settings/upsert`,
-      "https://api.vibe-cart.com/api/owner/site-settings/upsert"
-    ];
+      `${PUBLIC_PRODUCTION_API_FALLBACK}/api/owner/site-settings/upsert`
+    ].filter((url, idx, arr) => arr.indexOf(url) === idx);
     let saved = false;
     let lastCode = "UNKNOWN_ERROR";
     let lastMessage = "";

@@ -8,3 +8,7 @@ setup-reminder.cmd
 
 # Node dependencies
 node_modules/
+
+# Local secrets (never commit)
+.env
+.env.local

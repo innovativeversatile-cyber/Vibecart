@@ -16,6 +16,7 @@
     "eas:submit": "eas submit --profile production --latest"
   },
   "dependencies": {
+    "@expo/vector-icons": "~14.0.4",
     "@react-native-async-storage/async-storage": "~2.1.0",
     "expo": "~52.0.0",
     "expo-constants": "~17.0.0",

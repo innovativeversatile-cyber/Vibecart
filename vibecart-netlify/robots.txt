@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Do not index owner tools (still use strong access control on these URLs).
+Disallow: /admin.html
+Disallow: /admin-app.html
+
+Sitemap: https://vibe-cart.com/sitemap.xml

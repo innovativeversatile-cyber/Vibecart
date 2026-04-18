@@ -1,0 +1,24 @@
+{
+  "name": "VibeCart",
+  "short_name": "VibeCart",
+  "description": "Secure Africa-Europe-Asia marketplace for buyers and sellers.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#120a1a",
+  "theme_color": "#120a1a",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

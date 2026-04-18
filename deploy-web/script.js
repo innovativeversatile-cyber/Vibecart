@@ -57,6 +57,7 @@ const refreshInsurance = document.getElementById("refreshInsurance");
 const queueInsuranceTips = document.getElementById("queueInsuranceTips");
 const wellbeingTips = document.getElementById("wellbeingTips");
 const trustCards = document.getElementById("trustCards");
+const marketLivePulse = document.getElementById("marketLivePulse");
 const rewardTier = document.getElementById("rewardTier");
 const rewardPoints = document.getElementById("rewardPoints");
 const rewardStreak = document.getElementById("rewardStreak");
@@ -278,13 +279,33 @@ function getProductsForPath(path) {
 
 const DEMO_BRIDGE_SHOPS = {
   "from-europe": [
-    { name: "Lublin Campus Deals", origin: "PL", href: "#shops", line: "Europe → Africa lane — seed live listings to replace this tile." },
-    { name: "Warsaw Campus Deals", origin: "PL", href: "#shops", line: "Campus picks in Regional shop folders above." },
+    {
+      name: "Lublin Campus Deals",
+      origin: "PL",
+      href: "./shops-europe.html",
+      line: "Open the Europe folder page — bubble tiles, then Trade bridge for live VibeCart listings."
+    },
+    {
+      name: "Warsaw Campus Deals",
+      origin: "PL",
+      href: "./shops-europe.html",
+      line: "Same lane page — use Trade bridge when you want Poland → Africa checkout paths."
+    },
     { name: "Berlin & Lyon (live)", origin: "DE / FR", href: "#market", line: "Browse the demo grid below when the live API is quiet." },
-    { name: "EU national retailers", origin: "EU", href: "#shops", line: "Allegro, Zalando, Amazon DE, UK high-street tiles in folders." }
+    {
+      name: "EU national retailers",
+      origin: "EU",
+      href: "./shops-europe.html",
+      line: "Continental retailers live on the Europe lane page; external bubbles still open in a new tab."
+    }
   ],
   "from-africa": [
-    { name: "Mama Africa lane", origin: "AFR", href: "#shops", line: "ZA, KE, NG, ZW & more — curated tiles in Regional shop folders." },
+    {
+      name: "Mama Africa lane",
+      origin: "AFR",
+      href: "./shops-mama-africa.html",
+      line: "Dedicated Mama Africa page — Zimbabwe row + bubble tiles; Trade bridge for cross-border checkout."
+    },
     { name: "Takealot (South Africa)", origin: "ZA", href: "https://www.takealot.com", line: "External marketplace — high national traffic.", external: true },
     { name: "Jumia South Africa", origin: "ZA", href: "https://www.jumia.co.za", line: "External storefront on the Africa → Europe story.", external: true },
     { name: "Seed live shops", origin: "—", href: "#market", line: "Add African-origin products in Railway DB to populate live tiles." }
@@ -410,6 +431,38 @@ function setBridgePath(path) {
   filterProducts(categoryFilter ? categoryFilter.value : "All");
 }
 
+function updateMarketLivePulse(totalCount) {
+  if (!marketLivePulse) {
+    return;
+  }
+  if (!totalCount || totalCount <= 0) {
+    marketLivePulse.hidden = true;
+    marketLivePulse.textContent = "";
+    return;
+  }
+  marketLivePulse.hidden = false;
+  marketLivePulse.textContent = `Live sync · ${totalCount} listings merged from both bridge paths`;
+}
+
+function maybeCelebrateLiveCatalog(totalCount) {
+  if (totalCount < 4) {
+    return;
+  }
+  try {
+    if (sessionStorage.getItem("vibecart-live-burst") === "1") {
+      return;
+    }
+    sessionStorage.setItem("vibecart-live-burst", "1");
+  } catch {
+    return;
+  }
+  const layer = document.createElement("div");
+  layer.className = "vc-live-burst";
+  layer.setAttribute("aria-hidden", "true");
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 1300);
+}
+
 async function initializeBridgePaths() {
   if (buyerDestinationSelect && buyerDestinationSelect.dataset.boundBuyerDestination !== "1") {
     buyerDestinationSelect.dataset.boundBuyerDestination = "1";
@@ -430,10 +483,21 @@ async function initializeBridgePaths() {
       });
     });
   }
+  let liveLoadCount = 0;
   try {
     liveMarketplaceCache = await fetchLiveMarketplaceProducts();
+    liveLoadCount = liveMarketplaceCache.length;
   } catch {
     liveMarketplaceCache = [];
+  }
+  updateMarketLivePulse(liveLoadCount);
+  if (liveLoadCount > 0) {
+    maybeCelebrateLiveCatalog(liveLoadCount);
+    try {
+      window.dispatchEvent(new CustomEvent("vibecart-live-catalog", { detail: { count: liveLoadCount } }));
+    } catch {
+      /* ignore */
+    }
   }
   setBridgePath(activeBridgePath);
   document.querySelectorAll("[data-bridge-hop]").forEach((link) => {
@@ -1359,7 +1423,11 @@ function currentUiLocale() {
   if (!i18n) {
     return "en";
   }
-  return i18n.pick(i18n.getStored() || navigator.language || "en");
+  const raw = i18n.getStored();
+  if (!raw) {
+    return "en";
+  }
+  return i18n.pick(raw);
 }
 
 function getAISuggestions() {
@@ -1643,7 +1711,7 @@ function maybeShowLocaleInferenceOffer() {
     return;
   }
   const storedRaw = i18n.getStored();
-  const active = storedRaw ? i18n.pick(storedRaw) : i18n.pick(navigator.language || "en");
+  const active = storedRaw ? i18n.pick(storedRaw) : "en";
   if (active === inferred) {
     return;
   }
@@ -1684,7 +1752,7 @@ function initLocaleAndPersonaDeck() {
   if (i18n) {
     let stored = i18n.getStored();
     if (!stored) {
-      stored = i18n.pick(navigator.language || "en");
+      stored = "en";
     }
     if (siteLanguage) {
       if ([...siteLanguage.options].some((o) => o.value === stored)) {

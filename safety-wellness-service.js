@@ -123,11 +123,42 @@ async function logHealthCheckin(db, payload) {
   return { ok: true, healthCheckinId: result.insertId };
 }
 
+async function upsertWearableCoachPrefs(db, payload) {
+  const userId = Number(payload.userId || 0);
+  ensure(userId, "Missing userId.");
+  const vendorRaw = String(payload.wearableVendor || "none").slice(0, 40);
+  const vendorDb = vendorRaw === "none" ? null : vendorRaw;
+  const dailyDigest = payload.dailyDigest ? 1 : 0;
+  const detailedMetrics = payload.detailedMetrics ? 1 : 0;
+  const [existing] = await db.execute(
+    `SELECT user_id FROM ai_coach_profiles WHERE user_id = ? LIMIT 1`,
+    [userId]
+  );
+  if (!existing.length) {
+    await db.execute(
+      `INSERT INTO ai_coach_profiles (
+        user_id, coach_focus, medication_tracking_enabled,
+        wearable_vendor, wearable_daily_digest, wearable_detailed_metrics
+      ) VALUES (?, 'general_fitness', 0, ?, ?, ?)`,
+      [userId, vendorDb, dailyDigest, detailedMetrics]
+    );
+  } else {
+    await db.execute(
+      `UPDATE ai_coach_profiles
+       SET wearable_vendor = ?, wearable_daily_digest = ?, wearable_detailed_metrics = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = ?`,
+      [vendorDb, dailyDigest, detailedMetrics, userId]
+    );
+  }
+  return { ok: true, userId };
+}
+
 async function getCoachDashboard(db, payload) {
   const userId = Number(payload.userId || 0);
   ensure(userId, "Missing userId.");
   const [profileRows] = await db.execute(
-    `SELECT user_id, coach_focus, goal_notes, baseline_weight_kg, target_weight_kg, daily_activity_goal, medication_tracking_enabled, health_risk_notes
+    `SELECT user_id, coach_focus, goal_notes, baseline_weight_kg, target_weight_kg, daily_activity_goal, medication_tracking_enabled,
+            wearable_vendor, wearable_daily_digest, wearable_detailed_metrics, health_risk_notes
      FROM ai_coach_profiles
      WHERE user_id = ?
      LIMIT 1`,
@@ -254,6 +285,7 @@ module.exports = {
   evaluateChatRisk,
   logChatSafetyEvent,
   upsertCoachProfile,
+  upsertWearableCoachPrefs,
   addMedicationSchedule,
   logHealthCheckin,
   getCoachDashboard,

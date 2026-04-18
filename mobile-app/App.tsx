@@ -1,13 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Platform, SafeAreaView, StatusBar, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { WebView } from "react-native-webview";
 import type { WebView as WebViewType } from "react-native-webview";
 
 const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
+const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
+
+const INJECT_MOBILE_CLASS = `(function(){try{document.documentElement.classList.add('vc-mobile-app');document.documentElement.style.setProperty('--vc-mobile-tab-h','62px');}catch(e){}})();true;`;
 
 async function getOrCreateInstallId(): Promise<string> {
   const existing = await AsyncStorage.getItem(INSTALL_STORAGE_KEY);
@@ -56,7 +71,6 @@ function isAllowedUrl(url: string, allowedHost: string): boolean {
   }
 }
 
-/** Bust CDN/browser caches so the WebView loads the same deploy-web bundle as the live site after you ship updates. */
 function withWebCacheTag(url: string, tag: string | undefined): string {
   if (!tag) {
     return url;
@@ -70,12 +84,17 @@ function withWebCacheTag(url: string, tag: string | undefined): string {
   }
 }
 
+type DockKey = "home" | "shops" | "bridge" | "market" | "more";
+
 export default function App(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
   const [initialUrl, setInitialUrl] = useState<string | null>(null);
   const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
+  const [disclaimerPeek, setDisclaimerPeek] = useState(false);
   const webViewRef = useRef<WebViewType>(null);
+  const pulse = useRef(new Animated.Value(0)).current;
+  const splashOp = useRef(new Animated.Value(1)).current;
 
   const baseUrl = useMemo(() => {
     const fromConfig = Constants.expoConfig?.extra?.vibecartBaseUrl;
@@ -102,6 +121,39 @@ export default function App(): JSX.Element {
     const raw = initialUrl || baseUrl;
     return withWebCacheTag(raw, webCacheTag);
   }, [initialUrl, baseUrl, webCacheTag]);
+
+  useEffect(() => {
+    AsyncStorage.getItem(DISCLAIMER_STORAGE_KEY)
+      .then((v) => {
+        if (v === "1") {
+          setAcceptedDisclaimer(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true
+        })
+      ])
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+    };
+  }, [pulse]);
 
   useEffect(() => {
     Notifications.setNotificationHandler({
@@ -163,6 +215,31 @@ export default function App(): JSX.Element {
     return () => sub.remove();
   }, [allowedHost, baseUrl]);
 
+  const navigateDock = (key: DockKey) => {
+    const root = baseUrl.replace(/\/$/, "");
+    const map: Record<DockKey, string> = {
+      home: `${root}/`,
+      shops: `${root}/#shops`,
+      bridge: `${root}/#bridge-routes`,
+      market: `${root}/#market`,
+      more: `${root}/#settings-hub`
+    };
+    const target = map[key];
+    webViewRef.current?.injectJavaScript(`window.location.href = ${JSON.stringify(target)}; true;`);
+  };
+
+  const scale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.92, 1.08]
+  });
+
+  const opacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.65, 1]
+  });
+
+  const bottomPad = Platform.OS === "ios" ? 26 : 14;
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" />
@@ -177,18 +254,43 @@ export default function App(): JSX.Element {
         setSupportMultipleWindows={false}
         originWhitelist={["https://*"]}
         allowsBackForwardNavigationGestures
-        onLoadEnd={() => setIsLoading(false)}
+        injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
+        onLoadEnd={() => {
+          void getOrCreateInstallId().then((id) => {
+            webViewRef.current?.injectJavaScript(
+              `(function(){try{window.__VC_INSTALL_ID__=${JSON.stringify(id)};}catch(e){}})();true;`
+            );
+          });
+          Animated.timing(splashOp, {
+            toValue: 0,
+            duration: 560,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true
+          }).start(() => {
+            setIsLoading(false);
+          });
+        }}
         onError={(event) => {
+          splashOp.stopAnimation();
+          splashOp.setValue(0);
           setIsLoading(false);
           setErrorText(event.nativeEvent.description || "Could not load VibeCart.");
         }}
         onShouldStartLoadWithRequest={(request) => isAllowedUrl(request.url, allowedHost)}
       />
       {isLoading && (
-        <View style={styles.overlay}>
-          <ActivityIndicator color="#6d7dff" size="large" />
-          <Text style={styles.label}>Opening VibeCart securely...</Text>
-        </View>
+        <Animated.View style={[styles.splash, { opacity: splashOp }]}>
+          <Animated.View style={{ transform: [{ scale }], opacity }}>
+            <View style={styles.markOuter}>
+              <View style={styles.markInner}>
+                <Text style={styles.markLetter}>V</Text>
+              </View>
+            </View>
+          </Animated.View>
+          <Text style={styles.splashTitle}>VibeCart</Text>
+          <Text style={styles.splashSub}>Cross-border marketplace</Text>
+          <ActivityIndicator color="#e8a317" size="small" style={{ marginTop: 18 }} />
+        </Animated.View>
       )}
       {!!errorText && (
         <View style={styles.errorBox}>
@@ -196,28 +298,67 @@ export default function App(): JSX.Element {
           <Text style={styles.errorText}>{errorText}</Text>
         </View>
       )}
-      <View style={styles.disclaimerBox}>
-        <Text style={styles.disclaimerText}>
-          Disclaimer: VibeCart uses strong protection controls, but no platform can eliminate all risk.
-          Users must follow local laws and platform terms.
-        </Text>
-      </View>
+      {acceptedDisclaimer && (
+        <Pressable
+          style={[styles.disclaimerChip, { bottom: 62 + bottomPad }]}
+          onPress={() => setDisclaimerPeek((v) => !v)}
+        >
+          <Text style={styles.disclaimerChipText}>{disclaimerPeek ? "Hide legal note" : "Legal · risk note"}</Text>
+        </Pressable>
+      )}
+      {disclaimerPeek && acceptedDisclaimer && (
+        <View style={[styles.disclaimerPop, { bottom: 102 + bottomPad }]}>
+          <Text style={styles.disclaimerPopText}>
+            VibeCart uses strong protection controls, but no platform can eliminate all risk. Follow local laws and
+            platform terms.
+          </Text>
+        </View>
+      )}
       {!acceptedDisclaimer && (
         <View style={styles.acceptanceOverlay}>
           <View style={styles.acceptanceCard}>
-            <Text style={styles.acceptanceTitle}>Before You Continue</Text>
+            <Text style={styles.acceptanceTitle}>Welcome in</Text>
+            <Text style={styles.acceptanceLead}>
+              After this pulse fades you land on a calmer, folder-first home — with a dock and an on-device VibeCoach
+              for tips.
+            </Text>
             <Text style={styles.acceptanceText}>
               I understand and accept the VibeCart risk disclaimer and legal-use policy.
             </Text>
-            <Text
-              style={styles.acceptanceButton}
+            <Pressable
+              style={({ pressed }) => [styles.acceptanceButton, pressed && { opacity: 0.88 }]}
               onPress={() => {
                 setAcceptedDisclaimer(true);
+                AsyncStorage.setItem(DISCLAIMER_STORAGE_KEY, "1").catch(() => {});
               }}
             >
-              I Accept
-            </Text>
+              <Text style={styles.acceptanceButtonLabel}>Enter VibeCart</Text>
+            </Pressable>
           </View>
+        </View>
+      )}
+      {acceptedDisclaimer && !isLoading && (
+        <View style={[styles.dock, { paddingBottom: bottomPad }]}>
+          <Pressable style={styles.dockBtn} onPress={() => navigateDock("home")}>
+            <Ionicons name="home-outline" size={22} color="#f6f2ff" />
+            <Text style={styles.dockLabel}>Home</Text>
+          </Pressable>
+          <Pressable style={styles.dockBtn} onPress={() => navigateDock("shops")}>
+            <Ionicons name="folder-outline" size={22} color="#f6f2ff" />
+            <Text style={styles.dockLabel}>Folders</Text>
+          </Pressable>
+          <Pressable style={styles.dockBtn} onPress={() => navigateDock("bridge")}>
+            <Ionicons name="git-network-outline" size={22} color="#f6f2ff" />
+            <Text style={styles.dockLabel}>Bridge</Text>
+          </Pressable>
+          <Pressable style={styles.dockBtn} onPress={() => navigateDock("market")}>
+            <Ionicons name="storefront-outline" size={22} color="#f6f2ff" />
+            <Text style={styles.dockLabel}>Market</Text>
+          </Pressable>
+          <Pressable style={styles.dockBtn} onPress={() => navigateDock("more")}>
+            <Ionicons name="menu-outline" size={22} color="#f6f2ff" />
+            <Text style={styles.dockLabel}>More</Text>
+          </Pressable>
         </View>
       )}
     </SafeAreaView>
@@ -227,13 +368,13 @@ export default function App(): JSX.Element {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#070b17"
+    backgroundColor: "#07040f"
   },
   webview: {
     flex: 1,
-    backgroundColor: "#070b17"
+    backgroundColor: "#07040f"
   },
-  overlay: {
+  splash: {
     position: "absolute",
     top: 0,
     right: 0,
@@ -241,15 +382,47 @@ const styles = StyleSheet.create({
     left: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(7, 11, 23, 0.9)"
+    backgroundColor: "#07040f"
   },
-  label: {
-    marginTop: 12,
-    color: "#e9edff"
+  markOuter: {
+    width: 112,
+    height: 112,
+    borderRadius: 36,
+    padding: 3,
+    backgroundColor: "rgba(232,163,23,0.35)"
+  },
+  markInner: {
+    flex: 1,
+    borderRadius: 33,
+    backgroundColor: "#12081c",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)"
+  },
+  markLetter: {
+    fontSize: 52,
+    fontWeight: "900",
+    color: "#e8a317",
+    letterSpacing: -2
+  },
+  splashTitle: {
+    marginTop: 22,
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#f8f4ff",
+    letterSpacing: 1.2
+  },
+  splashSub: {
+    marginTop: 6,
+    fontSize: 13,
+    color: "#b9b4d6",
+    letterSpacing: 2,
+    textTransform: "uppercase"
   },
   errorBox: {
     position: "absolute",
-    bottom: 24,
+    bottom: 96,
     left: 16,
     right: 16,
     backgroundColor: "#141d34",
@@ -266,19 +439,34 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#a8b0d0"
   },
-  disclaimerBox: {
+  disclaimerChip: {
+    position: "absolute",
+    right: 12,
+    zIndex: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(18,12,32,0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(232,163,23,0.35)"
+  },
+  disclaimerChipText: {
+    color: "#e8dcc8",
+    fontSize: 11,
+    fontWeight: "700"
+  },
+  disclaimerPop: {
     position: "absolute",
     left: 12,
     right: 12,
-    bottom: 8,
-    backgroundColor: "rgba(13, 20, 39, 0.95)",
-    borderColor: "#2a3459",
+    zIndex: 39,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(13,20,39,0.96)",
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8
+    borderColor: "#2a3459"
   },
-  disclaimerText: {
+  disclaimerPopText: {
     color: "#a8b0d0",
     fontSize: 11,
     lineHeight: 16
@@ -289,37 +477,76 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: "rgba(7, 11, 23, 0.92)",
+    backgroundColor: "rgba(4,2,12,0.94)",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16
+    padding: 18,
+    zIndex: 50
   },
   acceptanceCard: {
     width: "100%",
     maxWidth: 420,
-    borderColor: "#2a3459",
+    borderColor: "rgba(232,163,23,0.35)",
     borderWidth: 1,
-    borderRadius: 14,
-    backgroundColor: "#0f1730",
-    padding: 14
+    borderRadius: 20,
+    backgroundColor: "#0c0818",
+    padding: 18
   },
   acceptanceTitle: {
-    color: "#e9edff",
-    fontWeight: "700",
-    fontSize: 16,
+    color: "#fff6ec",
+    fontWeight: "800",
+    fontSize: 22,
     marginBottom: 8
+  },
+  acceptanceLead: {
+    color: "#c9c2e8",
+    marginBottom: 12,
+    lineHeight: 22,
+    fontSize: 14
   },
   acceptanceText: {
     color: "#a8b0d0",
-    marginBottom: 12,
-    lineHeight: 20
+    marginBottom: 16,
+    lineHeight: 20,
+    fontSize: 13
   },
   acceptanceButton: {
-    color: "#0c1328",
-    backgroundColor: "#6d7dff",
-    textAlign: "center",
+    backgroundColor: "#e8a317",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center"
+  },
+  acceptanceButtonLabel: {
+    color: "#1a0a08",
+    fontWeight: "800",
+    fontSize: 16
+  },
+  dock: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    backgroundColor: "rgba(8,4,18,0.94)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(232,163,23,0.28)",
+    zIndex: 45
+  },
+  dockBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 4
+  },
+  dockLabel: {
+    marginTop: 2,
+    fontSize: 9,
     fontWeight: "700",
-    borderRadius: 10,
-    paddingVertical: 10
+    color: "#dcd4ff",
+    letterSpacing: 0.6,
+    textTransform: "uppercase"
   }
 });

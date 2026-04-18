@@ -34,6 +34,31 @@ async function registerMobileInstallPush(db, payload) {
   return { ok: true };
 }
 
+/**
+ * Anonymous UX / improvement notes from the mobile WebView shell (VibeCoach).
+ * Optional install_id when the native app chooses to send it later.
+ */
+async function recordMobileAppFeedback(db, payload) {
+  const body = String(payload.body || "").trim();
+  if (body.length < 4 || body.length > 2000) {
+    throw new Error("Feedback text must be between 4 and 2000 characters.");
+  }
+  const installId = payload.installId ? String(payload.installId).trim().slice(0, 64) : null;
+  const locale = payload.locale ? String(payload.locale).trim().slice(0, 20) : null;
+  const appVersion = payload.appVersion ? String(payload.appVersion).trim().slice(0, 50) : null;
+  const pageUrl = payload.pageUrl ? String(payload.pageUrl).trim().slice(0, 512) : null;
+  const userAgent = payload.userAgent ? String(payload.userAgent).trim().slice(0, 400) : null;
+  const clientIp = payload.clientIp ? String(payload.clientIp).trim().slice(0, 64) : null;
+
+  await db.execute(
+    `INSERT INTO mobile_app_feedback (install_id, body, locale, app_version, page_url, user_agent, client_ip)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [installId, body, locale, appVersion, pageUrl, userAgent, clientIp]
+  );
+
+  return { ok: true };
+}
+
 async function registerDeviceToken(db, payload) {
   const { userId, platform, pushToken, appVersion, locale } = payload;
   if (!userId || !platform || !pushToken) {
@@ -159,6 +184,7 @@ async function sendOrderUpdateNotifications(db, payload) {
 
 module.exports = {
   registerMobileInstallPush,
+  recordMobileAppFeedback,
   registerDeviceToken,
   sendOrderUpdateNotifications
 };

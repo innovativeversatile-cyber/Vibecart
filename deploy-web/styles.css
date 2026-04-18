@@ -938,6 +938,103 @@ body.luxe-instant.luxe-ready .section {
   box-shadow: 0 12px 40px rgba(232, 163, 23, 0.08);
 }
 
+.vc-market-live-pulse {
+  margin: 0.15rem 0 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(120, 255, 210, 0.95);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.vc-market-live-pulse::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #fff, rgba(120, 255, 210, 0.95));
+  box-shadow: 0 0 0 0 rgba(120, 255, 210, 0.55);
+  animation: vcLiveDot 1.6s ease-out infinite;
+}
+
+@keyframes vcLiveDot {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(120, 255, 210, 0.45);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(120, 255, 210, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(120, 255, 210, 0);
+  }
+}
+
+.product-grid .product {
+  position: relative;
+  isolation: isolate;
+}
+
+.product-grid .product::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.09) 48%,
+    transparent 62%
+  );
+  transition: opacity 220ms ease;
+  z-index: 2;
+}
+
+.product-grid .product:hover::after {
+  opacity: 1;
+  animation: vcCardShine 1.8s ease-in-out infinite;
+}
+
+@keyframes vcCardShine {
+  0% {
+    transform: translateX(-18%);
+  }
+  100% {
+    transform: translateX(18%);
+  }
+}
+
+.vc-live-burst {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9996;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 120, 200, 0.18), transparent 52%),
+    radial-gradient(circle at 20% 70%, rgba(120, 200, 255, 0.12), transparent 45%);
+  animation: vcLiveBurstFade 1.25s ease-out forwards;
+}
+
+@keyframes vcLiveBurstFade {
+  0% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
 .card h3,
 .product h3 {
   margin: 0.7rem 0;
@@ -968,6 +1065,178 @@ body.luxe-instant.luxe-ready .section {
   letter-spacing: 0.04em;
   margin: 0 0 0.5rem;
   color: rgba(244, 247, 255, 0.95);
+}
+
+.shop-folder-landing {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 0.5rem;
+}
+
+.shop-folder-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 168px;
+  padding: 1.1rem 1.15rem 1.15rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, 0.12), rgba(12, 10, 22, 0.92));
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.35);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.shop-folder-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(232, 163, 23, 0.45);
+  box-shadow: 0 20px 52px rgba(232, 163, 23, 0.12);
+}
+
+.shop-folder-card-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 247, 255, 0.72);
+}
+
+.shop-folder-card-title {
+  margin: 0;
+  font-size: 1.28rem;
+  letter-spacing: 0.02em;
+}
+
+.shop-folder-card p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.shop-folder-card--europe {
+  border-color: rgba(87, 170, 255, 0.4);
+}
+
+.shop-folder-card--mama-africa {
+  border-color: rgba(45, 155, 106, 0.5);
+}
+
+.shop-folder-card--asia {
+  border-color: rgba(255, 145, 120, 0.48);
+}
+
+.shop-folder-card--scents {
+  border-color: rgba(200, 140, 255, 0.48);
+}
+
+.shop-folder-card--global {
+  border-color: rgba(120, 200, 255, 0.45);
+}
+
+.shops-lane-page {
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(120% 80% at 50% 0%, rgba(232, 163, 23, 0.08), #0c0814 55%);
+}
+
+.shops-lane-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(180deg, rgba(26, 15, 36, 0.96), rgba(18, 10, 26, 0.9));
+  border-bottom: 1px solid rgba(232, 163, 23, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.shops-lane-main {
+  max-width: min(1180px, 94vw);
+  margin: 1rem auto 2.5rem;
+}
+
+.shops-lane-title {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+}
+
+.shops-lane-intro {
+  max-width: 48rem;
+  margin-bottom: 1rem;
+}
+
+.vc-logistics-lane {
+  max-width: 52rem;
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 200, 120, 0.22);
+  background: linear-gradient(135deg, rgba(40, 24, 8, 0.55), rgba(12, 10, 22, 0.75));
+}
+
+.vc-logistics-lane__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.vc-logistics-lane__list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(245, 240, 255, 0.88);
+}
+
+.vc-logistics-lane__list li + li {
+  margin-top: 0.35rem;
+}
+
+.shop-bubble-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 0.75rem 0.85rem;
+}
+
+@media (min-width: 720px) {
+  .shop-bubble-grid {
+    grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+  }
+}
+
+.shop-bubble-grid .shop {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 118px;
+  padding: 0.85rem 0.9rem;
+  border-radius: 999px 22px 22px 999px;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
+}
+
+.shop-bubble-grid .shop h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.shop-bubble-grid .shop p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.shop-bubble-subhead {
+  grid-column: 1 / -1;
+  margin: 0.5rem 0 0.15rem;
 }
 
 .shop-folders {
@@ -1851,6 +2120,10 @@ body.admin-surface .section {
     gap: 0.55rem;
   }
 
+  .market-header .vc-market-live-pulse {
+    grid-column: 1 / -1;
+  }
+
   .market-header label,
   .market-header select {
     width: 100%;
@@ -1912,4 +2185,200 @@ body.admin-surface .section {
   body {
     padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+/* —— VibeCart native app (WebView): class `vc-mobile-app` on <html> —— */
+html.vc-mobile-app {
+  --vc-mobile-tab-h: 62px;
+}
+
+html.vc-mobile-app .mobile-quick-nav {
+  display: none !important;
+}
+
+html.vc-mobile-app body.vc-mobile-shell {
+  padding-bottom: calc(var(--vc-mobile-tab-h) + env(safe-area-inset-bottom, 0px) + 12px);
+  scroll-padding-bottom: calc(var(--vc-mobile-tab-h) + 24px);
+}
+
+html.vc-mobile-app .hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(232, 163, 23, 0.22);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+html.vc-mobile-app .vc-mobile-hero-aurora {
+  pointer-events: none;
+  position: absolute;
+  inset: -40% -20%;
+  background: conic-gradient(
+    from 200deg,
+    rgba(232, 163, 23, 0.35),
+    rgba(45, 155, 106, 0.25),
+    rgba(120, 90, 255, 0.3),
+    rgba(232, 163, 23, 0.35)
+  );
+  opacity: 0.55;
+  filter: blur(42px);
+  animation: vcMobileAurora 14s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+html.vc-mobile-app .hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes vcMobileAurora {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: rotate(40deg) scale(1.08);
+    opacity: 0.65;
+  }
+}
+
+html.vc-mobile-app .hero-copy h1 {
+  font-size: clamp(1.55rem, 6vw, 2.1rem);
+  text-shadow: 0 0 40px rgba(232, 163, 23, 0.15);
+}
+
+html.vc-mobile-app .section {
+  margin: 1.1rem auto;
+  border-radius: 18px;
+}
+
+html.vc-mobile-app .shop-folder-landing {
+  gap: 0.85rem;
+}
+
+html.vc-mobile-app .shop-folder-card {
+  min-height: 152px;
+}
+
+html.vc-mobile-app .topbar {
+  border-radius: 0 0 16px 16px;
+}
+
+.vc-mobile-ai {
+  position: fixed;
+  right: 10px;
+  bottom: calc(var(--vc-mobile-tab-h) + env(safe-area-inset-bottom, 0px) + 10px);
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.vc-mobile-ai__orb {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 163, 23, 0.45);
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.35), rgba(45, 155, 106, 0.35), rgba(26, 12, 40, 0.95));
+  box-shadow: 0 10px 30px rgba(232, 163, 23, 0.25);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+
+.vc-mobile-ai__label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #1a0a08;
+}
+
+.vc-mobile-ai__pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid rgba(232, 163, 23, 0.35);
+  animation: vcMobileAiPulse 2.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes vcMobileAiPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.vc-mobile-ai__panel {
+  width: min(92vw, 320px);
+  border-radius: 16px;
+  border: 1px solid rgba(232, 163, 23, 0.28);
+  background: rgba(12, 8, 22, 0.96);
+  padding: 0.85rem 0.9rem 1rem;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+.vc-mobile-ai__panel[hidden] {
+  display: none !important;
+}
+
+.vc-mobile-ai__head {
+  margin-bottom: 0.45rem;
+}
+
+.vc-mobile-ai__head strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.vc-mobile-ai__sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.vc-mobile-ai__tip {
+  margin: 0 0 0.65rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: #f4f7ff;
+}
+
+.vc-mobile-ai__lab {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+}
+
+.vc-mobile-ai__ta {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 6, 16, 0.9);
+  color: var(--text);
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  margin-bottom: 0.45rem;
+  resize: none;
+}
+
+.vc-mobile-ai__save {
+  width: 100%;
+  margin-bottom: 0.35rem;
+}
+
+.vc-mobile-ai__saved {
+  margin: 0;
+  font-size: 0.75rem;
 }

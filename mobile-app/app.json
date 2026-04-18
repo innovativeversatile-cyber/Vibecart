@@ -2,7 +2,7 @@
   "expo": {
     "name": "VibeCart",
     "slug": "vibecart-mobile",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "scheme": "vibecart",
     "userInterfaceStyle": "dark",
@@ -34,8 +34,8 @@
     ],
     "extra": {
       "vibecartBaseUrl": "https://vibe-cart.com",
-      "vibecartApiBaseUrl": "https://api.vibe-cart.com",
-      "vibecartWebCacheTag": "v1-0-2-signature-security-pass"
+      "vibecartApiBaseUrl": "https://vibe-cart.com",
+      "vibecartWebCacheTag": "v1-0-3-mobile-shell-dazzle"
     }
   }
 }

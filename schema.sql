@@ -104,6 +104,20 @@ CREATE TABLE mobile_push_installs (
   INDEX idx_mobile_push_install_updated (updated_at)
 );
 
+CREATE TABLE mobile_app_feedback (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  install_id VARCHAR(64) NULL,
+  body VARCHAR(2000) NOT NULL,
+  locale VARCHAR(20) NULL,
+  app_version VARCHAR(50) NULL,
+  page_url VARCHAR(512) NULL,
+  user_agent VARCHAR(400) NULL,
+  client_ip VARCHAR(64) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mobile_app_feedback_created (created_at),
+  INDEX idx_mobile_app_feedback_install (install_id)
+);
+
 CREATE TABLE notification_events (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
@@ -594,6 +608,9 @@ CREATE TABLE ai_coach_profiles (
   target_weight_kg DECIMAL(6,2) NULL,
   daily_activity_goal VARCHAR(180) NULL,
   medication_tracking_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  wearable_vendor VARCHAR(40) NULL,
+  wearable_daily_digest TINYINT(1) NOT NULL DEFAULT 0,
+  wearable_detailed_metrics TINYINT(1) NOT NULL DEFAULT 0,
   health_risk_notes VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

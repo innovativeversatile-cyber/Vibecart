@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global brands · VibeCart</title>
+  <meta name="robots" content="noindex,follow" />
+  <link rel="stylesheet" href="./styles.css?v=20260421lang5" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html#shops">← Regional folders</a>
+    <a class="btn btn-primary" href="./index.html#bridge-routes">Trade bridge</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Global brands</h1>
+    <p class="note shops-lane-intro">Mainstream fashion, tech, marketplaces, and resale — worldwide.</p>
+    <div class="shop-bubble-grid">
+              <a href="https://www.shein.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>SHEIN</h3>
+                <p>Trending fashion and lifestyle drops.</p>
+              </a>
+              <a href="https://www.zara.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Zara</h3>
+                <p>International fashion collections.</p>
+              </a>
+              <a href="https://www.nike.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Nike</h3>
+                <p>Sportswear and performance gear.</p>
+              </a>
+              <a href="https://www.apple.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Apple</h3>
+                <p>Official devices and accessories.</p>
+              </a>
+              <a href="https://www.amazon.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Amazon</h3>
+                <p>Global online marketplace.</p>
+              </a>
+              <a href="https://www.ebay.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>eBay</h3>
+                <p>Auctions, resale, and collectors.</p>
+              </a>
+              <a href="https://www.etsy.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Etsy</h3>
+                <p>Handmade, vintage, and artisan items.</p>
+              </a>
+              <a href="https://www.depop.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Depop</h3>
+                <p>Youth-focused fashion resale and vintage.</p>
+              </a>
+              <a href="https://www.vinted.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Vinted</h3>
+                <p>Popular secondhand fashion and vintage marketplace.</p>
+              </a>
+              <a href="https://www.vestiairecollective.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Vestiaire Collective</h3>
+                <p>Pre-owned luxury and vintage fashion.</p>
+              </a>
+              <a href="https://www.grailed.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Grailed</h3>
+                <p>Streetwear, designer, and vintage menswear.</p>
+              </a>
+              <a href="https://poshmark.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Poshmark</h3>
+                <p>Popular secondhand fashion marketplace.</p>
+              </a>
+              <a href="https://www.thredup.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>thredUP</h3>
+                <p>Large online thrift and vintage selection.</p>
+              </a>
+    </div>
+  </main>
+  <script>
+(function () {
+  var key = "vibecart-bridge-path";
+  document.querySelectorAll("[data-bridge-hop]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var path = link.getAttribute("data-bridge-hop");
+      if (!path) return;
+      try { localStorage.setItem(key, path); } catch (e) {}
+    });
+  });
+})();
+  </script>
+</body>
+</html>

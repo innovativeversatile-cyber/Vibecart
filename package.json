@@ -6,15 +6,22 @@
   "main": "owner-auth-api.js",
   "scripts": {
     "start": "node owner-auth-api.js",
-    "health:api": "node -e \"fetch('https://api.vibe-cart.com/api/health').then(r=>r.text().then(t=>console.log('api.vibe-cart.com',r.status,t.slice(0,120)))).catch(e=>{console.error('health:api',e.message||e);process.exit(1);})\"",
+    "db:ensure-mobile-feedback": "node scripts/ensure-mobile-app-feedback-table.js",
+    "db:ensure-mobile-feedback:railway": "npx --yes @railway/cli run -- npm run db:ensure-mobile-feedback",
+    "db:apply-schema": "node scripts/apply-schema.js",
+    "db:seed": "node scripts/seed-demo.js",
+    "db:drop-all-tables": "node scripts/drop-all-tables.js",
+    "health:api": "node -e \"fetch('https://vibe-cart.com/api/health').then(r=>r.text().then(t=>console.log('vibe-cart.com/api (proxied)',r.status,t.slice(0,120)))).catch(e=>{console.error('health:api',e.message||e);process.exit(1);})\"",
     "health:site": "node -e \"fetch('https://vibe-cart.com/api/health').then(r=>r.text().then(t=>console.log('vibe-cart.com proxy',r.status,t.slice(0,120)))).catch(e=>{console.error(e);process.exit(1);})\"",
     "health": "node -e \"const u='https://vibe-cart.com/api/health';fetch(u).then(r=>r.text().then(t=>console.log('OK',u,r.status,t.slice(0,100)))).catch(e=>{console.error(e);process.exit(1);})\"",
-    "test:syntax": "node -e \"require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});\""
+    "test:syntax": "node -e \"require('child_process').execSync('node --check db-env.js',{stdio:'inherit'});require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/apply-schema.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/seed-demo.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});\""
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
+    "lenis": "^1.1.18",
     "mysql2": "^3.15.2",
     "nodemailer": "^8.0.5",
     "stripe": "^22.0.2"

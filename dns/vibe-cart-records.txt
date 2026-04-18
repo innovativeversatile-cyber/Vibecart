@@ -12,7 +12,8 @@
 #   Type: CNAME    Name: www    Target: <your-site>.netlify.app   (Netlify shows this)
 #
 # --- 2) API (Railway) ---
-# In Railway: your Node service → Settings → Networking → Custom domain → api.vibe-cart.com
+# Netlify already proxies https://vibe-cart.com/api/* → Railway using netlify.toml (no api subdomain required).
+# Optional custom API host: In Railway → your Node service → Networking → Custom domain → api.vibe-cart.com
 # Railway will show a target hostname, often like:  xxxxx.up.railway.app
 #
 #   Type: CNAME    Name: api    Target: <copy from Railway dashboard>

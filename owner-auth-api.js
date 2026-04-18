@@ -1,16 +1,20 @@
 "use strict";
 
+require("dotenv").config();
+
 const fs = require("fs/promises");
 const fsSync = require("fs");
 const path = require("path");
 const http = require("http");
 const crypto = require("crypto");
 const mysql = require("mysql2/promise");
+const { resolveMysqlConfig } = require("./db-env");
 const nodemailer = require("nodemailer");
 const Stripe = require("stripe");
 const { ownerLogin, hashSecret, sha256 } = require("./owner-auth-service");
 const {
   registerMobileInstallPush,
+  recordMobileAppFeedback,
   registerDeviceToken,
   sendOrderUpdateNotifications
 } = require("./push-notification-service");
@@ -64,6 +68,7 @@ const {
 const {
   logChatSafetyEvent,
   upsertCoachProfile,
+  upsertWearableCoachPrefs,
   addMedicationSchedule,
   logHealthCheckin,
   getCoachDashboard,
@@ -110,13 +115,12 @@ const {
 } = require("./payment-service");
 
 const PORT = Number(process.env.PORT || 8081);
-// Railway MySQL plugin often exposes MYSQLHOST / MYSQLDATABASE; map if DB_* unset.
-const DB_HOST = process.env.DB_HOST || process.env.MYSQLHOST || process.env.MYSQL_HOST || "127.0.0.1";
-const DB_PORT = Number(process.env.DB_PORT || process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306);
-const DB_USER = process.env.DB_USER || process.env.MYSQLUSER || process.env.MYSQL_USER || "root";
-const DB_PASSWORD =
-  process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD || process.env.MYSQL_PASSWORD || "";
-const DB_NAME = process.env.DB_NAME || process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || "vibecart";
+const _db = resolveMysqlConfig();
+const DB_HOST = _db.host;
+const DB_PORT = _db.port;
+const DB_USER = _db.user;
+const DB_PASSWORD = _db.password;
+const DB_NAME = _db.database;
 const CRON_SECRET = String(process.env.CRON_SECRET || "");
 const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "").trim().toLowerCase();
 const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
@@ -152,13 +156,45 @@ const AI_AUTOPILOT_ENABLED = (() => {
 const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
 const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
 
+const _mysqlPublicRaw = process.env.MYSQL_PUBLIC_URL;
+if (_mysqlPublicRaw && String(_mysqlPublicRaw).includes("${{")) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "MYSQL_PUBLIC_URL contains ${{...}} (Railway UI syntax). Node does not expand that in .env — using discrete DB_* / MYSQL* vars instead. Expect DB errors until you paste a literal mysql:// URL or fix Railway env."
+  );
+}
+
+const _dbSslRaw = String(process.env.DB_SSL || "").trim().toLowerCase();
+const _useMysqlSsl =
+  _dbSslRaw === "true" ||
+  _dbSslRaw === "1" ||
+  /\.rlwy\.net$/i.test(DB_HOST) ||
+  /\.railway\.app$/i.test(DB_HOST);
+
+if (/\.rlwy\.net$/i.test(DB_HOST)) {
+  const hasRailMysqlCreds =
+    Boolean(String(process.env.MYSQLUSER || "").trim()) ||
+    Boolean(String(process.env.MYSQLPASSWORD || "").trim()) ||
+    Boolean(String(process.env.MYSQL_ROOT_PASSWORD || "").trim()) ||
+    Boolean(String(process.env.MYSQL_PUBLIC_URL || "").trim()) ||
+    Boolean(String(process.env.DB_PASSWORD || "").trim());
+  if (!hasRailMysqlCreds) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[vibecart] DB_HOST is Railway public MySQL (*.rlwy.net) but MYSQLUSER / MYSQLPASSWORD / MYSQL_ROOT_PASSWORD / MYSQL_PUBLIC_URL are unset in .env.\n" +
+        "  Railway almost never accepts a random DB_PASSWORD as root. Open Railway → MySQL → Variables and copy MYSQLUSER + MYSQLPASSWORD (or MYSQL_ROOT_PASSWORD), or paste the full mysql:// URL as MYSQL_PUBLIC_URL."
+    );
+  }
+}
+
 const pool = mysql.createPool({
   host: DB_HOST,
   port: DB_PORT,
   user: DB_USER,
   password: DB_PASSWORD,
   database: DB_NAME,
-  connectionLimit: 10
+  connectionLimit: 10,
+  ...(_useMysqlSsl ? { ssl: { rejectUnauthorized: false } } : {})
 });
 
 const ipHits = new Map();
@@ -1168,6 +1204,38 @@ async function handlePublicMobilePushRegister(req, res) {
   }
 }
 
+async function handlePublicMobileFeedback(req, res) {
+  const ip = getIp(req);
+  try {
+    const body = await readJson(req);
+    const text = String(body.text || body.feedback || body.body || "").trim();
+    if (text.length < 4 || text.length > 2000) {
+      return sendJson(res, 400, { ok: false, code: "INVALID_FEEDBACK_TEXT" });
+    }
+    const installId = body.installId ? String(body.installId).trim().slice(0, 64) : null;
+    const locale = body.locale ? String(body.locale).trim().slice(0, 20) : null;
+    const appVersion = body.appVersion ? String(body.appVersion).trim().slice(0, 50) : null;
+    const pageUrl = body.pageUrl ? String(body.pageUrl).trim().slice(0, 512) : null;
+    const userAgent = req.headers["user-agent"] ? String(req.headers["user-agent"]).slice(0, 400) : null;
+    await recordMobileAppFeedback(pool, {
+      body: text,
+      installId: installId && installId.length >= 4 ? installId : null,
+      locale,
+      appVersion,
+      pageUrl,
+      userAgent,
+      clientIp: ip
+    });
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MOBILE_FEEDBACK_STORE_FAILED",
+      message: String(error.message || error)
+    });
+  }
+}
+
 async function handlePushOrderUpdate(req, res) {
   const body = await readJson(req);
   const token = String(body.authToken || "");
@@ -1612,6 +1680,12 @@ async function handlePublicMedicationSchedule(req, res) {
 async function handlePublicHealthCheckin(req, res) {
   const body = await readJson(req);
   const result = await logHealthCheckin(pool, body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicWearableCoachPrefs(req, res) {
+  const body = await readJson(req);
+  const result = await upsertWearableCoachPrefs(pool, body || {});
   return sendJson(res, 200, result);
 }
 
@@ -2552,6 +2626,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/mobile/push/register") {
       return await handlePublicMobilePushRegister(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/public/mobile/feedback") {
+      return await handlePublicMobileFeedback(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/brand/email-logo") {
       return await handlePublicBrandEmailLogo(req, res, ip);
     }
@@ -2566,6 +2643,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/coach/checkin/add") {
       return await handlePublicHealthCheckin(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/coach/wearable/prefs") {
+      return await handlePublicWearableCoachPrefs(req, res);
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/platform-risk/scoreboard")) {
       return await handlePublicPlatformRiskScoreboard(req, res);
