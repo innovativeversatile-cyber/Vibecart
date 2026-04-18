@@ -50,8 +50,8 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./vendor/lenis.css?v=20260419signature1" />
-    <link rel="stylesheet" href="./styles.css?v=20260419signature1" />
+    <link rel="stylesheet" href="./vendor/lenis.css?v=20260419orbit1" />
+    <link rel="stylesheet" href="./styles.css?v=20260419orbit1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,7 +81,7 @@
       }
     </script>
   </head>
-  <body data-site-revision="deploy-20260419-signature1">
+  <body data-site-revision="deploy-20260419-orbit1">
     <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
       <div class="cinematic-intro-card">
         <div class="cinematic-logo-stack">
@@ -93,6 +93,7 @@
         <p class="cinematic-intro-flair" id="cinematicIntroFlair">Warming up the vibe engines…</p>
       </div>
     </div>
+    <div id="vcVipRibbon" class="vc-vip-ribbon hidden" aria-hidden="true"><span>VIP lane</span></div>
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">V</span>
@@ -339,44 +340,54 @@
         <h2>Regional shop folders</h2>
         <p id="vibePassportBadge" class="vibe-passport-badge" aria-live="polite"></p>
         <p id="vibeAuraLine" class="vibe-aura-line" aria-live="polite"></p>
+        <p id="vibeRouteFortune" class="vibe-route-fortune" aria-live="polite"></p>
         <p class="note regional-folders-kicker" role="group" aria-label="Regions covered by these folders">
-          <span class="region-chip">Europe</span>
-          <span class="region-chip">Mama Africa</span>
-          <span class="region-chip">Asia</span>
-          <span class="region-chip">Scents</span>
-          <span class="region-chip">Global brands</span>
+          <span class="region-chip" data-vc-chip-order="1">Europe</span>
+          <span class="region-chip" data-vc-chip-order="2">Mama Africa</span>
+          <span class="region-chip" data-vc-chip-order="3">Asia</span>
+          <span class="region-chip" data-vc-chip-order="4">Scents</span>
+          <span class="region-chip" data-vc-chip-order="5">Global brands</span>
         </p>
         <p class="note bridge-shop-intro">
           Each lane opens its own page with bubble tiles (not one long list). VibeCart lane cards still jump to
           <a href="#bridge-routes">Trade Bridge &amp; Live Marketplace</a>; external bubbles open in a new tab.
         </p>
         <p class="shop-folder-scroll-hint" aria-hidden="true">Swipe the five regional folders sideways — Europe, Mama Africa, Asia, Scents, Global.</p>
-        <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes">
-          <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html">
-            <span class="shop-folder-card-eyebrow">Open folder</span>
-            <h3 class="shop-folder-card-title">Europe</h3>
-            <p>Continental EU, United Kingdom, and Ireland — campus routes plus national retailers.</p>
-          </a>
-          <a class="shop-folder-card shop-folder-card--mama-africa" href="./shops-mama-africa.html">
-            <span class="shop-folder-card-eyebrow">Open folder</span>
-            <h3 class="shop-folder-card-title">Mama Africa</h3>
-            <p>ZA, KE, NG, ZW, and more — includes a Zimbabwe row on the lane page.</p>
-          </a>
-          <a class="shop-folder-card shop-folder-card--asia" href="./shops-asia.html">
-            <span class="shop-folder-card-eyebrow">Open folder</span>
-            <h3 class="shop-folder-card-title">Asia &amp; Gulf</h3>
-            <p>India, SEA, Japan, Korea, and the China cluster — plus Dubai bridge entry.</p>
-          </a>
-          <a class="shop-folder-card shop-folder-card--scents" href="./shops-scents.html">
-            <span class="shop-folder-card-eyebrow">Open folder</span>
-            <h3 class="shop-folder-card-title">Scents</h3>
-            <p>Perfume, cologne, niche fragrance, and prestige beauty retailers worldwide.</p>
-          </a>
-          <a class="shop-folder-card shop-folder-card--global" href="./shops-global.html">
-            <span class="shop-folder-card-eyebrow">Open folder</span>
-            <h3 class="shop-folder-card-title">Global brands</h3>
-            <p>Mainstream fashion, tech, marketplaces, and vintage / resale picks.</p>
-          </a>
+        <div class="shop-folder-experience">
+          <svg
+            class="shop-folder-constellation"
+            id="shopFolderConstellation"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            focusable="false"
+          ></svg>
+          <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes">
+            <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html" data-vc-region="europe">
+              <span class="shop-folder-card-eyebrow">Open folder</span>
+              <h3 class="shop-folder-card-title">Europe</h3>
+              <p>Continental EU, United Kingdom, and Ireland — campus routes plus national retailers.</p>
+            </a>
+            <a class="shop-folder-card shop-folder-card--mama-africa" href="./shops-mama-africa.html" data-vc-region="mama-africa">
+              <span class="shop-folder-card-eyebrow">Open folder</span>
+              <h3 class="shop-folder-card-title">Mama Africa</h3>
+              <p>ZA, KE, NG, ZW, and more — includes a Zimbabwe row on the lane page.</p>
+            </a>
+            <a class="shop-folder-card shop-folder-card--asia" href="./shops-asia.html" data-vc-region="asia">
+              <span class="shop-folder-card-eyebrow">Open folder</span>
+              <h3 class="shop-folder-card-title">Asia &amp; Gulf</h3>
+              <p>India, SEA, Japan, Korea, and the China cluster — plus Dubai bridge entry.</p>
+            </a>
+            <a class="shop-folder-card shop-folder-card--scents" href="./shops-scents.html" data-vc-region="scents">
+              <span class="shop-folder-card-eyebrow">Open folder</span>
+              <h3 class="shop-folder-card-title">Scents</h3>
+              <p>Perfume, cologne, niche fragrance, and prestige beauty retailers worldwide.</p>
+            </a>
+            <a class="shop-folder-card shop-folder-card--global" href="./shops-global.html" data-vc-region="global">
+              <span class="shop-folder-card-eyebrow">Open folder</span>
+              <h3 class="shop-folder-card-title">Global brands</h3>
+              <p>Mainstream fashion, tech, marketplaces, and vintage / resale picks.</p>
+            </a>
+          </div>
         </div>
         <div id="vibePassportBurstLayer" class="vibe-passport-burst-layer" aria-hidden="true"></div>
       </section>
@@ -929,15 +940,15 @@
       </div>
     </div>
 
-    <script src="./i18n.js?v=20260419signature1"></script>
-    <script src="./vendor/lenis.min.js?v=20260419signature1"></script>
-    <script src="./script.js?v=20260419signature1"></script>
-    <script src="./mobile-app-shell.js?v=20260419signature1" defer></script>
+    <script src="./i18n.js?v=20260419orbit1"></script>
+    <script src="./vendor/lenis.min.js?v=20260419orbit1"></script>
+    <script src="./script.js?v=20260419orbit1"></script>
+    <script src="./mobile-app-shell.js?v=20260419orbit1" defer></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./service-worker.js?v=20260419signature1", { updateViaCache: "none" })
+            .register("./service-worker.js?v=20260419orbit1", { updateViaCache: "none" })
             .then((reg) => reg.update())
             .catch(() => {});
         });

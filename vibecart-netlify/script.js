@@ -165,6 +165,393 @@ const BRIDGE_PATH_KEY = "vibecart-bridge-path";
 const BUYER_DESTINATION_KEY = "vibecart-buyer-destination";
 const VIBE_PASSPORT_KEY = "vibecart-vibe-passport";
 const VIBE_GOLDEN_STAMP_KEY = "vibecart-vibe-golden-stamp";
+const VIBE_VIP_KEY = "vibecart-vibe-vip-v1";
+
+function hashVcDailySeed(input) {
+  let h = 2166136261;
+  const s = String(input || "");
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h >>> 0);
+}
+
+function getVcRegionKeyFromCard(card) {
+  const raw = String(card?.getAttribute("data-vc-region") || "").trim();
+  if (raw) {
+    return raw;
+  }
+  const href = String(card?.getAttribute("href") || "");
+  if (href.includes("mama-africa")) {
+    return "mama-africa";
+  }
+  if (href.includes("europe")) {
+    return "europe";
+  }
+  if (href.includes("asia")) {
+    return "asia";
+  }
+  if (href.includes("scents")) {
+    return "scents";
+  }
+  if (href.includes("global")) {
+    return "global";
+  }
+  return "europe";
+}
+
+function pickDailyFortune(regionKey, chronoBand) {
+  const band = String(chronoBand || "day");
+  const pool = ROUTE_FORTUNE_TABLE[regionKey]?.[band] || ROUTE_FORTUNE_TABLE.europe[band] || ROUTE_FORTUNE_TABLE.europe.day;
+  const d = new Date();
+  const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const idx = hashVcDailySeed(`${dateKey}|${regionKey}|${band}`) % pool.length;
+  return pool[idx];
+}
+
+const ROUTE_FORTUNE_TABLE = {
+  europe: {
+    dawn: [
+      "Today's whisper: a crisp EU morning favors careful listings — polish your photos before the rush.",
+      "Route luck: UK–EU lanes feel cooperative at dawn; message sellers early.",
+      "Dawn fortune: small bundles across borders compound faster than single heavy carts."
+    ],
+    day: [
+      "Midday momentum: continental demand peaks for practical gear and study essentials.",
+      "Day route: transparency in shipping estimates converts browsers in the EU cluster.",
+      "Bright-hour tip: cross-list one hero SKU in two EU countries to read the spread."
+    ],
+    dusk: [
+      "Dusk signal: sentimental buys tick up — lifestyle and gifts love golden hour.",
+      "Evening fortune: Irish and UK readers reward clear return windows.",
+      "Sunset route: pair fashion with books for warmer average carts."
+    ],
+    night: [
+      "Night oracle: patient buyers hunt rare electronics; detail your condition notes.",
+      "Late route: neon-hour window-shoppers want trust badges and escrow cues.",
+      "Moonlit lane: niche fragrances find curious clicks after dark."
+    ]
+  },
+  "mama-africa": {
+    dawn: [
+      "Dawn over Mama Africa: campus pickups and tracked couriers build first-order trust.",
+      "Early route: Nairobi–Joburg curiosity is high — answer chats within minutes.",
+      "Sunrise fortune: bundle beauty with books for playful cart chemistry."
+    ],
+    day: [
+      "Daylight bridge: ZA and NG lanes reward honest duty notes on cross-border SKUs.",
+      "Afternoon luck: highlight warranty clarity on electronics above local norms.",
+      "Solar route: student cities love hybrid delivery (pickup + courier)."
+    ],
+    dusk: [
+      "Dusk rhythm: family shoppers scan home goods — show scale in photos.",
+      "Golden hour: Ghana and Kenya clicks favor sellers who localize policy footers.",
+      "Evening tide: seasonal fashion moves faster with modeled shots."
+    ],
+    night: [
+      "Night pulse: insomniac collectors watch vintage tech — list quirks proudly.",
+      "Late bridge: discreet chat tone wins insurance add-ons on valuable parcels.",
+      "Starlight: cross-lane curiosity spikes for Gulf-bridge teasers."
+    ]
+  },
+  asia: {
+    dawn: [
+      "Dawn monsoon calm: SEA early birds compare shipping tiers — show all options.",
+      "Morning route: Dubai bridge keywords lift when you mention tracked air.",
+      "First light: Japan–Korea authenticity cues matter for collectibles."
+    ],
+    day: [
+      "Day heat: Gulf and India traffic loves concise duty estimates.",
+      "Midday fortune: cross-border beauty needs ingredient clarity.",
+      "Solar lane: China cluster shoppers reward fast seller response times."
+    ],
+    dusk: [
+      "Dusk haze: impulse gifts rise — pair scents with stationery.",
+      "Twilight: Middle East evening scrollers favor bilingual titles.",
+      "Sunset: Korea gaming accessories spike when bundles include cables."
+    ],
+    night: [
+      "Night market energy: niche tools and hobby parts shine after hours.",
+      "Moon route: insure electronics parcels boldly; night buyers read fine print.",
+      "Late tide: Dubai window shoppers want delivery date ranges, not vague weeks."
+    ]
+  },
+  scents: {
+    dawn: [
+      "Dawn mist: light florals and clean citruses win the first scroll of the day.",
+      "Morning aura: note pyramids in descriptions reduce sample-to-cart hesitation.",
+      "Sunrise scent luck: travel sprays outperform heavy bottles at dawn."
+    ],
+    day: [
+      "Day bloom: niche houses convert when batch codes are photographed.",
+      "Afternoon spritz: duos (wash + perfume) lift average order value.",
+      "Bright hour: cooling aquatics trend in warm regions — tag climate hints."
+    ],
+    dusk: [
+      "Dusk velvet: ambers and woods feel cinematic — lean into story copy.",
+      "Golden hour: discovery sets beat single SKUs for hesitant buyers.",
+      "Sunset musk: gift wrap toggles nudge premium conversions."
+    ],
+    night: [
+      "Night oud: collectors read longevity notes — be specific, not poetic only.",
+      "Moonlit musk: limited runs should show fill levels and storage.",
+      "Late bloom: cross-region buyers compare VAT — state inclusive/exclusive clearly."
+    ]
+  },
+  global: {
+    dawn: [
+      "Dawn brands: flagship SKUs with crisp UPC data surface better in search.",
+      "Early global lane: vintage picks need era tags and flaw photos.",
+      "Sunrise: marketplace power sellers win with bundle SKUs."
+    ],
+    day: [
+      "Day mainstream: free returns messaging lifts fashion conversion.",
+      "Afternoon: tech SKUs need serial policy clarity for global buyers.",
+      "Solar: omnichannel hints (pickup vs ship) reduce cart anxiety."
+    ],
+    dusk: [
+      "Dusk resale: authenticity cards move luxury accessories faster.",
+      "Twilight global: seasonal palettes shift — tag hemisphere.",
+      "Evening: limited drops should show countdown integrity."
+    ],
+    night: [
+      "Night global: insomniac pros compare seller ratings across regions.",
+      "Moon brands: warranty localization wins on electronics.",
+      "Late lane: transparent repair history sells refurbished tech."
+    ]
+  }
+};
+
+function unlockVibeVip(reason, opts) {
+  const announce = !opts || opts.announce !== false;
+  const was = localStorage.getItem(VIBE_VIP_KEY) === "1";
+  localStorage.setItem(VIBE_VIP_KEY, "1");
+  document.body.classList.add("vc-vip-mode");
+  const ribbon = document.getElementById("vcVipRibbon");
+  if (ribbon) {
+    ribbon.classList.remove("hidden");
+  }
+  if (expressCheckoutStatus && !was && announce) {
+    const tag = reason ? ` (${reason})` : "";
+    expressCheckoutStatus.textContent = `VIP lane unlocked${tag} — constellation glow and calmer chrome.`;
+  }
+}
+
+function restoreVibeVip() {
+  if (localStorage.getItem(VIBE_VIP_KEY) !== "1") {
+    return;
+  }
+  document.body.classList.add("vc-vip-mode");
+  const ribbon = document.getElementById("vcVipRibbon");
+  if (ribbon) {
+    ribbon.classList.remove("hidden");
+  }
+}
+
+function initVibeVipSecrets() {
+  restoreVibeVip();
+  const mark = document.querySelector(".brand-mark");
+  const tapWindowMs = 2600;
+  let brandTaps = [];
+  if (mark) {
+    mark.addEventListener("click", () => {
+      const now = Date.now();
+      brandTaps = brandTaps.filter((t) => now - t < tapWindowMs);
+      brandTaps.push(now);
+      if (brandTaps.length >= 5) {
+        brandTaps = [];
+        if (localStorage.getItem(VIBE_VIP_KEY) !== "1") {
+          unlockVibeVip("brand rhythm");
+        }
+      }
+    });
+  }
+  const chips = Array.from(document.querySelectorAll(".region-chip[data-vc-chip-order]"));
+  let seq = 0;
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const want = seq + 1;
+      const got = Number(chip.getAttribute("data-vc-chip-order") || "0");
+      if (got === 1) {
+        seq = 1;
+      } else if (got === want) {
+        seq = want;
+      } else {
+        seq = 0;
+        return;
+      }
+      if (seq >= 5 && localStorage.getItem(VIBE_VIP_KEY) !== "1") {
+        seq = 0;
+        unlockVibeVip("region constellation");
+      }
+    });
+  });
+}
+
+function initShopFolderConstellation() {
+  const wrap = document.querySelector(".shop-folder-experience");
+  const svg = document.getElementById("shopFolderConstellation");
+  const row = document.querySelector(".shop-folder-landing");
+  if (!wrap || !svg || !row) {
+    return;
+  }
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) {
+    return;
+  }
+  const cards = Array.from(row.querySelectorAll(".shop-folder-card"));
+  if (!cards.length) {
+    return;
+  }
+  let hovered = null;
+  let touchTimer = 0;
+  let leaveTimer = 0;
+
+  const sizeSvg = () => {
+    const w = Math.max(1, wrap.clientWidth);
+    const h = Math.max(1, wrap.clientHeight);
+    svg.setAttribute("width", String(w));
+    svg.setAttribute("height", String(h));
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  };
+
+  const draw = () => {
+    sizeSvg();
+    while (svg.firstChild) {
+      svg.removeChild(svg.firstChild);
+    }
+    if (!hovered) {
+      return;
+    }
+    const idx = cards.indexOf(hovered);
+    if (idx < 0) {
+      return;
+    }
+    const wrapRect = wrap.getBoundingClientRect();
+    const centerOf = (el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        x: r.left + r.width * 0.5 - wrapRect.left,
+        y: r.top + r.height * 0.5 - wrapRect.top
+      };
+    };
+    const from = centerOf(hovered);
+    const neighbors = [idx - 1, idx + 1].filter((i) => i >= 0 && i < cards.length);
+    neighbors.forEach((j) => {
+      const to = centerOf(cards[j]);
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", String(from.x));
+      line.setAttribute("y1", String(from.y));
+      line.setAttribute("x2", String(to.x));
+      line.setAttribute("y2", String(to.y));
+      line.setAttribute("class", "shop-folder-constellation-line");
+      svg.appendChild(line);
+    });
+    [from, ...neighbors.map((j) => centerOf(cards[j]))].forEach((pt) => {
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      c.setAttribute("cx", String(pt.x));
+      c.setAttribute("cy", String(pt.y));
+      c.setAttribute("r", "3.2");
+      c.setAttribute("class", "shop-folder-constellation-node");
+      svg.appendChild(c);
+    });
+  };
+
+  const setHover = (card) => {
+    if (leaveTimer) {
+      window.clearTimeout(leaveTimer);
+      leaveTimer = 0;
+    }
+    hovered = card;
+    draw();
+  };
+
+  cards.forEach((card) => {
+    card.addEventListener(
+      "pointerenter",
+      () => {
+        setHover(card);
+      },
+      { passive: true }
+    );
+    card.addEventListener(
+      "pointerleave",
+      () => {
+        if (hovered !== card) {
+          return;
+        }
+        if (leaveTimer) {
+          window.clearTimeout(leaveTimer);
+        }
+        leaveTimer = window.setTimeout(() => {
+          leaveTimer = 0;
+          if (hovered === card) {
+            hovered = null;
+            draw();
+          }
+        }, 45);
+      },
+      { passive: true }
+    );
+    card.addEventListener(
+      "touchstart",
+      () => {
+        setHover(card);
+        if (touchTimer) {
+          window.clearTimeout(touchTimer);
+        }
+        touchTimer = window.setTimeout(() => {
+          hovered = null;
+          draw();
+        }, 900);
+      },
+      { passive: true }
+    );
+  });
+  row.addEventListener("scroll", draw, { passive: true });
+  window.addEventListener("resize", draw, { passive: true });
+  draw();
+}
+
+function initDailyRouteFortune() {
+  const el = document.getElementById("vibeRouteFortune");
+  if (!el) {
+    return;
+  }
+  const row = document.querySelector(".shop-folder-landing");
+  const cards = row ? Array.from(row.querySelectorAll(".shop-folder-card")) : [];
+  const chrono = () => String(document.body.getAttribute("data-vc-chronotope") || "day");
+  const renderForCard = (card) => {
+    const region = getVcRegionKeyFromCard(card);
+    el.textContent = pickDailyFortune(region, chrono());
+  };
+  const renderDefault = () => {
+    const band = chrono();
+    const d = new Date();
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const general = ROUTE_FORTUNE_TABLE.europe[band] || ROUTE_FORTUNE_TABLE.europe.day;
+    const idx = hashVcDailySeed(`${dateKey}|orbit|${band}`) % general.length;
+    el.textContent = `Daily route oracle · ${general[idx]} Hover a folder for a lane-specific reading.`;
+  };
+  renderDefault();
+  cards.forEach((card) => {
+    card.addEventListener(
+      "pointerenter",
+      () => renderForCard(card),
+      { passive: true }
+    );
+    card.addEventListener(
+      "focus",
+      () => renderForCard(card)
+    );
+    card.addEventListener(
+      "touchstart",
+      () => renderForCard(card),
+      { passive: true }
+    );
+  });
+}
 let activeBridgePath = localStorage.getItem(BRIDGE_PATH_KEY) || "from-europe";
 let liveMarketplaceCache = [];
 
@@ -620,7 +1007,6 @@ function initVibePassport() {
   }
   let count = Number(localStorage.getItem(VIBE_PASSPORT_KEY) || "0");
   let goldenShown = localStorage.getItem(VIBE_GOLDEN_STAMP_KEY) === "1";
-  const chrono = String(document.body.getAttribute("data-vc-chronotope") || "day");
   const auraLines = {
     dawn: [
       "Dawn aura: quiet ambition, soft gold routes, first-mover energy.",
@@ -639,14 +1025,17 @@ function initVibePassport() {
       "Night aura: secret-market energy without the chaos."
     ]
   };
+  const livingTier = (n) => (n >= 40 ? 4 : n >= 20 ? 3 : n >= 8 ? 2 : 1);
   const renderBadge = () => {
     const rank = count >= 40 ? "Legend" : count >= 20 ? "Pro" : count >= 8 ? "Explorer" : "Rookie";
-    badge.textContent = `Vibe Passport: ${count} stamp${count === 1 ? "" : "s"} · ${rank}`;
+    const tier = livingTier(count);
+    badge.textContent = `Vibe Passport: ${count} stamp${count === 1 ? "" : "s"} · ${rank} · living tier ${tier}`;
   };
   const renderAura = () => {
     if (!aura) {
       return;
     }
+    const chrono = String(document.body.getAttribute("data-vc-chronotope") || "day");
     const lines = auraLines[chrono] || auraLines.day;
     aura.textContent = lines[count % lines.length];
   };
@@ -667,7 +1056,8 @@ function initVibePassport() {
         return;
       }
       const stamp = document.createElement("div");
-      stamp.className = "vibe-passport-stamp";
+      const tier = livingTier(count);
+      stamp.className = `vibe-passport-stamp vibe-passport-stamp--tier-${tier} vibe-passport-stamp--alive`;
       const title = card.querySelector(".shop-folder-card-title");
       const label = title ? String(title.textContent || "").trim().toUpperCase() : "ROUTE";
       const isGoldenStamp = !goldenShown && count >= 5 && Math.random() < 0.22;
@@ -680,7 +1070,8 @@ function initVibePassport() {
         ? `${label} · GOLD ROUTE`
         : `${label} · VC-${(count % 1000).toString().padStart(3, "0")}`;
       burstLayer.appendChild(stamp);
-      setTimeout(() => stamp.remove(), 1450);
+      const hangMs = tier >= 3 ? 1680 : tier >= 2 ? 1560 : 1450;
+      setTimeout(() => stamp.remove(), hangMs);
     });
   });
 }
@@ -895,8 +1286,11 @@ function startVoiceCommandMode() {
 function revealHiddenPhrase() {
   const code = [75, 117, 100, 97, 32, 107, 119, 97, 105, 115, 104, 101];
   const phrase = String.fromCharCode(...code);
+  const wasVip = localStorage.getItem(VIBE_VIP_KEY) === "1";
+  unlockVibeVip("name cipher", { announce: false });
   if (expressCheckoutStatus) {
-    expressCheckoutStatus.textContent = `Secret unlocked: ${phrase}`;
+    const vipNote = !wasVip ? " · VIP lane opened." : "";
+    expressCheckoutStatus.textContent = `Secret unlocked: ${phrase}${vipNote}`;
   }
 }
 
@@ -1447,6 +1841,9 @@ initializeBridgePaths().catch(() => {});
 initCinematicIntro();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
+initShopFolderConstellation();
+initDailyRouteFortune();
+initVibeVipSecrets();
 initVibePassport();
 initVibeFlowMotion();
 initHeroCanvasFx();

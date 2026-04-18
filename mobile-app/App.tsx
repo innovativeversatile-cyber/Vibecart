@@ -368,7 +368,7 @@ export default function App(): JSX.Element {
             </Animated.View>
           </View>
           <Text style={styles.resumePulseTitle}>VibeCart</Text>
-          <Text style={styles.resumePulseSub}>Still pulsing. Still fabulous.</Text>
+          <Text style={styles.resumePulseSub}>Constellation trails awake again.</Text>
         </View>
       )}
       {isLoading && (
@@ -390,7 +390,7 @@ export default function App(): JSX.Element {
             </Animated.View>
           </View>
           <Text style={styles.splashTitle}>VibeCart</Text>
-          <Text style={styles.splashSub}>Cart physics warming up…</Text>
+          <Text style={styles.splashSub}>Mapping orbit lanes to the live marketplace…</Text>
           <ActivityIndicator color="#e8a317" size="small" style={{ marginTop: 18 }} />
         </Animated.View>
       )}
