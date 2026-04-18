@@ -536,16 +536,39 @@ function initCinematicIntro() {
   } catch {
     /* ignore */
   }
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    intro.remove();
-    return;
+  const flair = document.getElementById("cinematicIntroFlair");
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let flairTimer = null;
+  if (reduceMotion) {
+    intro.classList.add("cinematic-intro--soft");
+    if (flair) {
+      flair.textContent = "Opening smooth — reduced motion on.";
+    }
+  } else {
+    const messages = [
+      "Warming up the vibe engines…",
+      "Routing optimism across borders…",
+      "Teaching pixels to strut a little…",
+      "Cart physics: engaged.",
+    ];
+    let tick = 0;
+    if (flair && messages.length) {
+      flairTimer = window.setInterval(() => {
+        tick = (tick + 1) % messages.length;
+        flair.textContent = messages[tick];
+      }, 780);
+    }
   }
   intro.classList.add("is-visible");
+  const holdMs = reduceMotion ? 2100 : 3200;
   const hide = () => {
+    if (flairTimer) {
+      window.clearInterval(flairTimer);
+    }
     intro.classList.add("is-hidden");
     setTimeout(() => intro.remove(), 520);
   };
-  setTimeout(hide, 1900);
+  setTimeout(hide, holdMs);
 }
 
 function initConnectivityBanner() {

@@ -100,6 +100,7 @@ export default function App(): JSX.Element {
   const splashOp = useRef(new Animated.Value(1)).current;
   const appStateRef = useRef(AppState.currentState);
   const resumePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const splashStartRef = useRef(Date.now());
 
   const baseUrl = useMemo(() => {
     const fromConfig = Constants.expoConfig?.extra?.vibecartBaseUrl;
@@ -154,7 +155,7 @@ export default function App(): JSX.Element {
         resumePulseTimer.current = setTimeout(() => {
           setResumePulseVisible(false);
           resumePulseTimer.current = null;
-        }, 1300);
+        }, 1800);
       }
     });
     return () => {
@@ -263,12 +264,22 @@ export default function App(): JSX.Element {
 
   const scale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.92, 1.08]
+    outputRange: [0.9, 1.12]
   });
 
   const opacity = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.65, 1]
+    outputRange: [0.72, 1]
+  });
+
+  const ringScale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.42]
+  });
+
+  const ringOpacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.55, 0.12]
   });
 
   const bottomPad = Platform.OS === "ios" ? 26 : 14;
@@ -279,6 +290,10 @@ export default function App(): JSX.Element {
     splashOp.setValue(1);
     setWebViewKey((n) => n + 1);
   };
+
+  useEffect(() => {
+    splashStartRef.current = Date.now();
+  }, [webViewKey]);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -312,14 +327,19 @@ export default function App(): JSX.Element {
               `(function(){try{window.__VC_INSTALL_ID__=${JSON.stringify(id)};}catch(e){}})();true;`
             );
           });
-          Animated.timing(splashOp, {
-            toValue: 0,
-            duration: 560,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true
-          }).start(() => {
-            setIsLoading(false);
-          });
+          const minSplashMs = 2800;
+          const elapsed = Date.now() - splashStartRef.current;
+          const wait = Math.max(0, minSplashMs - elapsed);
+          setTimeout(() => {
+            Animated.timing(splashOp, {
+              toValue: 0,
+              duration: 640,
+              easing: Easing.out(Easing.cubic),
+              useNativeDriver: true
+            }).start(() => {
+              setIsLoading(false);
+            });
+          }, wait);
         }}
         onError={(event) => {
           splashOp.stopAnimation();
@@ -331,27 +351,46 @@ export default function App(): JSX.Element {
       />
       {resumePulseVisible && (
         <View pointerEvents="none" style={styles.resumePulseLayer}>
-          <Animated.View style={{ transform: [{ scale }], opacity }}>
-            <View style={styles.markOuter}>
-              <View style={styles.markInner}>
-                <Text style={styles.markLetter}>V</Text>
+          <View style={styles.splashMarkWrap}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.splashRing,
+                { opacity: ringOpacity, transform: [{ scale: ringScale }] }
+              ]}
+            />
+            <Animated.View style={{ transform: [{ scale }], opacity }}>
+              <View style={styles.markOuter}>
+                <View style={styles.markInner}>
+                  <Text style={styles.markLetter}>V</Text>
+                </View>
               </View>
-            </View>
-          </Animated.View>
+            </Animated.View>
+          </View>
           <Text style={styles.resumePulseTitle}>VibeCart</Text>
+          <Text style={styles.resumePulseSub}>Still pulsing. Still fabulous.</Text>
         </View>
       )}
       {isLoading && (
         <Animated.View style={[styles.splash, { opacity: splashOp }]}>
-          <Animated.View style={{ transform: [{ scale }], opacity }}>
-            <View style={styles.markOuter}>
-              <View style={styles.markInner}>
-                <Text style={styles.markLetter}>V</Text>
+          <View style={styles.splashMarkWrap}>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.splashRing,
+                { opacity: ringOpacity, transform: [{ scale: ringScale }] }
+              ]}
+            />
+            <Animated.View style={{ transform: [{ scale }], opacity }}>
+              <View style={styles.markOuter}>
+                <View style={styles.markInner}>
+                  <Text style={styles.markLetter}>V</Text>
+                </View>
               </View>
-            </View>
-          </Animated.View>
+            </Animated.View>
+          </View>
           <Text style={styles.splashTitle}>VibeCart</Text>
-          <Text style={styles.splashSub}>Cross-border marketplace</Text>
+          <Text style={styles.splashSub}>Cart physics warming up…</Text>
           <ActivityIndicator color="#e8a317" size="small" style={{ marginTop: 18 }} />
         </Animated.View>
       )}
@@ -481,6 +520,28 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#f8f4ff",
     letterSpacing: 1
+  },
+  resumePulseSub: {
+    marginTop: 6,
+    fontSize: 13,
+    fontStyle: "italic",
+    color: "#c9b8e8",
+    letterSpacing: 0.3
+  },
+  splashMarkWrap: {
+    position: "relative",
+    width: 140,
+    height: 140,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  splashRing: {
+    position: "absolute",
+    width: 132,
+    height: 132,
+    borderRadius: 66,
+    borderWidth: 2,
+    borderColor: "rgba(232,163,23,0.45)"
   },
   markOuter: {
     width: 112,
