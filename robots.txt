@@ -4,5 +4,7 @@ Allow: /
 # Do not index owner tools (still use strong access control on these URLs).
 Disallow: /admin.html
 Disallow: /admin-app.html
+Disallow: /admin-messages.html
+Disallow: /owner-access-kuda-portal.html
 
 Sitemap: https://vibe-cart.com/sitemap.xml

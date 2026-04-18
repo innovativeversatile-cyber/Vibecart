@@ -94,6 +94,7 @@ export default function App(): JSX.Element {
   const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [disclaimerPeek, setDisclaimerPeek] = useState(false);
   const [resumePulseVisible, setResumePulseVisible] = useState(false);
+  const [webViewKey, setWebViewKey] = useState(0);
   const webViewRef = useRef<WebViewType>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const splashOp = useRef(new Animated.Value(1)).current;
@@ -272,10 +273,18 @@ export default function App(): JSX.Element {
 
   const bottomPad = Platform.OS === "ios" ? 26 : 14;
 
+  const hardReloadWebView = () => {
+    setErrorText("");
+    setIsLoading(true);
+    splashOp.setValue(1);
+    setWebViewKey((n) => n + 1);
+  };
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="light-content" />
       <WebView
+        key={webViewKey}
         ref={webViewRef}
         source={{ uri: entryUrl }}
         style={styles.webview}
@@ -286,7 +295,17 @@ export default function App(): JSX.Element {
         setSupportMultipleWindows={false}
         originWhitelist={["https://*"]}
         allowsBackForwardNavigationGestures
+        pullToRefreshEnabled={Platform.OS === "ios"}
+        thirdPartyCookiesEnabled
+        androidLayerType="hardware"
+        mediaPlaybackRequiresUserAction={true}
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
+        onLoadStart={() => {
+          setErrorText("");
+        }}
+        onContentProcessDidTerminate={() => {
+          webViewRef.current?.reload();
+        }}
         onLoadEnd={() => {
           void getOrCreateInstallId().then((id) => {
             webViewRef.current?.injectJavaScript(
@@ -340,7 +359,23 @@ export default function App(): JSX.Element {
         <View style={styles.errorBox}>
           <Text style={styles.errorTitle}>Connection Issue</Text>
           <Text style={styles.errorText}>{errorText}</Text>
+          <Pressable
+            style={({ pressed }) => [styles.errorRetryBtn, pressed && { opacity: 0.88 }]}
+            onPress={hardReloadWebView}
+          >
+            <Text style={styles.errorRetryLabel}>Retry</Text>
+          </Pressable>
         </View>
+      )}
+      {acceptedDisclaimer && !isLoading && Platform.OS === "android" && (
+        <Pressable
+          style={({ pressed }) => [styles.refreshFab, pressed && { opacity: 0.85 }]}
+          onPress={() => webViewRef.current?.reload()}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh VibeCart"
+        >
+          <Ionicons name="refresh-outline" size={22} color="#f8f4ff" />
+        </Pressable>
       )}
       {acceptedDisclaimer && (
         <Pressable
@@ -501,6 +536,33 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: "#a8b0d0"
+  },
+  errorRetryBtn: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+    backgroundColor: "#e8a317",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10
+  },
+  errorRetryLabel: {
+    color: "#1a0a08",
+    fontWeight: "800",
+    fontSize: 14
+  },
+  refreshFab: {
+    position: "absolute",
+    top: 52,
+    right: 12,
+    zIndex: 32,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(18,12,32,0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(232,163,23,0.4)"
   },
   disclaimerChip: {
     position: "absolute",

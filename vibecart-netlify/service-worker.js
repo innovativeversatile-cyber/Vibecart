@@ -1,7 +1,14 @@
 // Bump CACHE_NAME whenever you need all clients to drop old cached assets.
-const CACHE_NAME = "vibecart-pwa-v20260418master1";
+const CACHE_NAME = "vibecart-pwa-v20260418offline2";
 // Precache only small static assets — do NOT precache index.html/CSS/JS or updates never show.
-const OFFLINE_URLS = ["./manifest.json", "./icon.svg", "./icon-maskable.svg", "./policy.html"];
+const OFFLINE_URLS = [
+  "./manifest.json",
+  "./icon.svg",
+  "./icon-maskable.svg",
+  "./policy.html",
+  "./terms.html",
+  "./privacy.html"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

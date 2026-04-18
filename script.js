@@ -527,6 +527,15 @@ function initCinematicIntro() {
   if (!intro) {
     return;
   }
+  try {
+    const params = new URLSearchParams(window.location.search || "");
+    if (params.get("instant") === "1") {
+      intro.remove();
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     intro.remove();
     return;
@@ -537,6 +546,43 @@ function initCinematicIntro() {
     setTimeout(() => intro.remove(), 520);
   };
   setTimeout(hide, 1900);
+}
+
+function initConnectivityBanner() {
+  const el = document.getElementById("vcConnectivityBanner");
+  if (!el) {
+    return;
+  }
+  const paint = () => {
+    if (!navigator.onLine) {
+      el.classList.remove("hidden");
+      el.textContent =
+        "You are offline. Legal pages may still open from cache; cart, checkout, and live listings need a connection.";
+    } else {
+      el.classList.add("hidden");
+      el.textContent = "";
+    }
+  };
+  window.addEventListener("online", paint);
+  window.addEventListener("offline", paint);
+  paint();
+}
+
+function initShopFolderKeyboardNav() {
+  const row = document.querySelector(".shop-folder-landing");
+  if (!row) {
+    return;
+  }
+  row.setAttribute("tabindex", "0");
+  row.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      row.scrollBy({ left: Math.min(row.clientWidth * 0.88, 320), behavior: "smooth" });
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      row.scrollBy({ left: -Math.min(row.clientWidth * 0.88, 320), behavior: "smooth" });
+    }
+  });
 }
 
 function initVibeFlowMotion() {
@@ -1299,6 +1345,8 @@ initMobileQuickNav();
 wireOneClickBuy();
 initializeBridgePaths().catch(() => {});
 initCinematicIntro();
+initConnectivityBanner();
+initShopFolderKeyboardNav();
 initVibeFlowMotion();
 initHeroCanvasFx();
 
@@ -2602,23 +2650,27 @@ localStorage.setItem(ONBOARDING_KEY, "1");
   if (mqReduce.matches) {
     return;
   }
-  document.documentElement.classList.add("vc-cursor-glow");
-  let glowRaf = 0;
-  document.documentElement.addEventListener(
-    "pointermove",
-    (e) => {
-      const x = (e.clientX / Math.max(window.innerWidth, 1)) * 100;
-      const y = (e.clientY / Math.max(window.innerHeight, 1)) * 100;
-      cancelAnimationFrame(glowRaf);
-      glowRaf = requestAnimationFrame(() => {
-        document.documentElement.style.setProperty("--vc-cx", `${x.toFixed(2)}%`);
-        document.documentElement.style.setProperty("--vc-cy", `${y.toFixed(2)}%`);
-      });
-    },
-    { passive: true }
-  );
+  const reduceMotion =
+    window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduceMotion) {
+    document.documentElement.classList.add("vc-cursor-glow");
+    let glowRaf = 0;
+    document.documentElement.addEventListener(
+      "pointermove",
+      (e) => {
+        const x = (e.clientX / Math.max(window.innerWidth, 1)) * 100;
+        const y = (e.clientY / Math.max(window.innerHeight, 1)) * 100;
+        cancelAnimationFrame(glowRaf);
+        glowRaf = requestAnimationFrame(() => {
+          document.documentElement.style.setProperty("--vc-cx", `${x.toFixed(2)}%`);
+          document.documentElement.style.setProperty("--vc-cy", `${y.toFixed(2)}%`);
+        });
+      },
+      { passive: true }
+    );
+  }
 
-  if (typeof window.Lenis !== "function") {
+  if (reduceMotion || typeof window.Lenis !== "function") {
     return;
   }
   try {

@@ -13,6 +13,19 @@
 3. After deploy, open **URL Inspection**, submit `https://vibe-cart.com/` and **Request indexing** when you ship meaningful changes.
 4. Confirm **Sitemaps** → add `https://vibe-cart.com/sitemap.xml` (shop lane URLs are included in `deploy-web/sitemap.xml`).
 5. Rich results: homepage ships **WebSite** + **Organization** JSON-LD, Open Graph + Twitter cards, `robots` + `canonical`, and dimensioned hero imagery for stable previews.
+6. **`sitemap.xml`** lists every public indexable HTML URL with **`<lastmod>`** for crawlers. **`robots.txt`** blocks admin and sensitive portals from indexing.
+
+## UX / product mitigations (web + app)
+
+| Disadvantage | Mitigation shipped in repo |
+|--------------|----------------------------|
+| Web: no clear offline signal | Fixed **connectivity banner** + service worker precaches **policy / terms / privacy** for basic offline reading. |
+| Web: smooth-scroll CPU cost | **Lenis** and cursor-glow run only when **not** `prefers-reduced-motion: reduce`. |
+| Web: intro blocks power users | **`?instant=1`** skips the cinematic intro; reduced motion still skips it. |
+| Web: horizontal folders hard to use with keyboard | **Arrow Left/Right** scroll the shop-folder row when it has focus (`tabindex="0"`). |
+| App: WebView feels stale vs native | **iOS pull-to-refresh** on the WebView; **Android floating refresh**; **Retry** after errors; **hard remount** key on retry; **auto-reload** on iOS web process termination. |
+| App: session / checkout cookie edge cases | **`thirdPartyCookiesEnabled`** + **hardware** Android layer for smoother compositing. |
+| App: autoplay noise / data | **`mediaPlaybackRequiresUserAction={true}`**. |
 
 ## Phone app
 
