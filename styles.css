@@ -1074,6 +1074,22 @@ body.luxe-instant.luxe-ready .section {
   mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent);
 }
 
+.vibe-passport-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.45rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  background: linear-gradient(130deg, rgba(232, 163, 23, 0.18), rgba(45, 155, 106, 0.18));
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 244, 230, 0.95);
+}
+
 .region-chip {
   flex: 0 0 auto;
   padding: 0.38rem 0.85rem;
@@ -1119,6 +1135,50 @@ body.luxe-instant.luxe-ready .section {
   font-size: 0.78rem;
   letter-spacing: 0.04em;
   color: rgba(200, 206, 230, 0.82);
+}
+
+.vibe-passport-burst-layer {
+  position: relative;
+  min-height: 0;
+  pointer-events: none;
+}
+
+.vibe-passport-stamp {
+  position: absolute;
+  right: clamp(8px, 2.4vw, 16px);
+  top: -14px;
+  transform: rotate(-9deg) scale(0.88);
+  transform-origin: center;
+  padding: 0.34rem 0.62rem;
+  border-radius: 8px;
+  border: 2px solid rgba(232, 163, 23, 0.78);
+  background: rgba(24, 10, 6, 0.86);
+  color: #ffd98a;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  animation: vibeStampPop 1.35s cubic-bezier(0.18, 0.88, 0.26, 1) forwards;
+}
+
+@keyframes vibeStampPop {
+  0% {
+    opacity: 0;
+    transform: rotate(-15deg) scale(0.64);
+  }
+  22% {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1.06);
+  }
+  72% {
+    opacity: 1;
+    transform: rotate(-7deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-6deg) translateY(-10px) scale(0.96);
+  }
 }
 
 .shop-folder-card {

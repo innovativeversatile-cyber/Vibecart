@@ -163,6 +163,7 @@ const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "
 const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
 const BRIDGE_PATH_KEY = "vibecart-bridge-path";
 const BUYER_DESTINATION_KEY = "vibecart-buyer-destination";
+const VIBE_PASSPORT_KEY = "vibecart-vibe-passport";
 let activeBridgePath = localStorage.getItem(BRIDGE_PATH_KEY) || "from-europe";
 let liveMarketplaceCache = [];
 
@@ -605,6 +606,43 @@ function initShopFolderKeyboardNav() {
       event.preventDefault();
       row.scrollBy({ left: -Math.min(row.clientWidth * 0.88, 320), behavior: "smooth" });
     }
+  });
+}
+
+function initVibePassport() {
+  const cards = Array.from(document.querySelectorAll(".shop-folder-card"));
+  const badge = document.getElementById("vibePassportBadge");
+  const burstLayer = document.getElementById("vibePassportBurstLayer");
+  if (!cards.length || !badge) {
+    return;
+  }
+  let count = Number(localStorage.getItem(VIBE_PASSPORT_KEY) || "0");
+  const renderBadge = () => {
+    const rank = count >= 40 ? "Legend" : count >= 20 ? "Pro" : count >= 8 ? "Explorer" : "Rookie";
+    badge.textContent = `Vibe Passport: ${count} stamp${count === 1 ? "" : "s"} · ${rank}`;
+  };
+  renderBadge();
+
+  cards.forEach((card) => {
+    if (card.dataset.vibePassportBound === "1") {
+      return;
+    }
+    card.dataset.vibePassportBound = "1";
+    card.addEventListener("click", () => {
+      count += 1;
+      localStorage.setItem(VIBE_PASSPORT_KEY, String(count));
+      renderBadge();
+      if (!burstLayer) {
+        return;
+      }
+      const stamp = document.createElement("div");
+      stamp.className = "vibe-passport-stamp";
+      const title = card.querySelector(".shop-folder-card-title");
+      const label = title ? String(title.textContent || "").trim().toUpperCase() : "ROUTE";
+      stamp.textContent = `${label} · VC-${(count % 1000).toString().padStart(3, "0")}`;
+      burstLayer.appendChild(stamp);
+      setTimeout(() => stamp.remove(), 1450);
+    });
   });
 }
 
@@ -1370,6 +1408,7 @@ initializeBridgePaths().catch(() => {});
 initCinematicIntro();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
+initVibePassport();
 initVibeFlowMotion();
 initHeroCanvasFx();
 

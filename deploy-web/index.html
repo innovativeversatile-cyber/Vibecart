@@ -50,8 +50,8 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./vendor/lenis.css?v=20260419pulsev1" />
-    <link rel="stylesheet" href="./styles.css?v=20260419pulsev1" />
+    <link rel="stylesheet" href="./vendor/lenis.css?v=20260419passport1" />
+    <link rel="stylesheet" href="./styles.css?v=20260419passport1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,7 +81,7 @@
       }
     </script>
   </head>
-  <body data-site-revision="deploy-20260419-pulse">
+  <body data-site-revision="deploy-20260419-passport1">
     <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
       <div class="cinematic-intro-card">
         <div class="cinematic-logo-stack">
@@ -337,6 +337,7 @@
 
       <section id="shops" class="section alt">
         <h2>Regional shop folders</h2>
+        <p id="vibePassportBadge" class="vibe-passport-badge" aria-live="polite"></p>
         <p class="note regional-folders-kicker" role="group" aria-label="Regions covered by these folders">
           <span class="region-chip">Europe</span>
           <span class="region-chip">Mama Africa</span>
@@ -376,6 +377,7 @@
             <p>Mainstream fashion, tech, marketplaces, and vintage / resale picks.</p>
           </a>
         </div>
+        <div id="vibePassportBurstLayer" class="vibe-passport-burst-layer" aria-hidden="true"></div>
       </section>
       <section id="bridge-routes" class="section">
         <h2 id="bridgeTitle">Africa-Europe-Asia Trade Bridge</h2>
@@ -926,15 +928,15 @@
       </div>
     </div>
 
-    <script src="./i18n.js?v=20260419pulsev1"></script>
-    <script src="./vendor/lenis.min.js?v=20260419pulsev1"></script>
-    <script src="./script.js?v=20260419pulsev1"></script>
-    <script src="./mobile-app-shell.js?v=20260419pulsev1" defer></script>
+    <script src="./i18n.js?v=20260419passport1"></script>
+    <script src="./vendor/lenis.min.js?v=20260419passport1"></script>
+    <script src="./script.js?v=20260419passport1"></script>
+    <script src="./mobile-app-shell.js?v=20260419passport1" defer></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./service-worker.js?v=20260419pulsev1", { updateViaCache: "none" })
+            .register("./service-worker.js?v=20260419passport1", { updateViaCache: "none" })
             .then((reg) => reg.update())
             .catch(() => {});
         });

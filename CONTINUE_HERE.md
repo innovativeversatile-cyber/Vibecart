@@ -5,6 +5,7 @@
 - **Home:** [https://vibe-cart.com/](https://vibe-cart.com/)
 - **Health (via Netlify `/api` proxy):** [https://vibe-cart.com/api/health](https://vibe-cart.com/api/health)
 - **Owner admin (if deployed):** [https://vibe-cart.com/admin.html](https://vibe-cart.com/admin.html)
+- **Reminder after every deploy:** do one **hard refresh** (or open once with `?instant=1`) if UI looks cached.
 
 ## Google Search Console (verifiable)
 
