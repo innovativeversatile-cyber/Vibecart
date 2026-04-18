@@ -164,6 +164,7 @@ const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "
 const BRIDGE_PATH_KEY = "vibecart-bridge-path";
 const BUYER_DESTINATION_KEY = "vibecart-buyer-destination";
 const VIBE_PASSPORT_KEY = "vibecart-vibe-passport";
+const VIBE_GOLDEN_STAMP_KEY = "vibecart-vibe-golden-stamp";
 let activeBridgePath = localStorage.getItem(BRIDGE_PATH_KEY) || "from-europe";
 let liveMarketplaceCache = [];
 
@@ -612,16 +613,45 @@ function initShopFolderKeyboardNav() {
 function initVibePassport() {
   const cards = Array.from(document.querySelectorAll(".shop-folder-card"));
   const badge = document.getElementById("vibePassportBadge");
+  const aura = document.getElementById("vibeAuraLine");
   const burstLayer = document.getElementById("vibePassportBurstLayer");
   if (!cards.length || !badge) {
     return;
   }
   let count = Number(localStorage.getItem(VIBE_PASSPORT_KEY) || "0");
+  let goldenShown = localStorage.getItem(VIBE_GOLDEN_STAMP_KEY) === "1";
+  const chrono = String(document.body.getAttribute("data-vc-chronotope") || "day");
+  const auraLines = {
+    dawn: [
+      "Dawn aura: quiet ambition, soft gold routes, first-mover energy.",
+      "Dawn aura: early clicks tend to feel luckier here."
+    ],
+    day: [
+      "Day aura: bold trade light, clean momentum, no hesitation.",
+      "Day aura: practical brilliance with a little swagger."
+    ],
+    dusk: [
+      "Dusk aura: richer glow, deeper contrast, smoother folder hunting.",
+      "Dusk aura: perfect hour for emotional browsing and brave carts."
+    ],
+    night: [
+      "Night aura: neon confidence, collector mood, quiet power.",
+      "Night aura: secret-market energy without the chaos."
+    ]
+  };
   const renderBadge = () => {
     const rank = count >= 40 ? "Legend" : count >= 20 ? "Pro" : count >= 8 ? "Explorer" : "Rookie";
     badge.textContent = `Vibe Passport: ${count} stamp${count === 1 ? "" : "s"} · ${rank}`;
   };
+  const renderAura = () => {
+    if (!aura) {
+      return;
+    }
+    const lines = auraLines[chrono] || auraLines.day;
+    aura.textContent = lines[count % lines.length];
+  };
   renderBadge();
+  renderAura();
 
   cards.forEach((card) => {
     if (card.dataset.vibePassportBound === "1") {
@@ -632,6 +662,7 @@ function initVibePassport() {
       count += 1;
       localStorage.setItem(VIBE_PASSPORT_KEY, String(count));
       renderBadge();
+      renderAura();
       if (!burstLayer) {
         return;
       }
@@ -639,7 +670,15 @@ function initVibePassport() {
       stamp.className = "vibe-passport-stamp";
       const title = card.querySelector(".shop-folder-card-title");
       const label = title ? String(title.textContent || "").trim().toUpperCase() : "ROUTE";
-      stamp.textContent = `${label} · VC-${(count % 1000).toString().padStart(3, "0")}`;
+      const isGoldenStamp = !goldenShown && count >= 5 && Math.random() < 0.22;
+      if (isGoldenStamp) {
+        goldenShown = true;
+        localStorage.setItem(VIBE_GOLDEN_STAMP_KEY, "1");
+        stamp.classList.add("vibe-passport-stamp--gold");
+      }
+      stamp.textContent = isGoldenStamp
+        ? `${label} · GOLD ROUTE`
+        : `${label} · VC-${(count % 1000).toString().padStart(3, "0")}`;
       burstLayer.appendChild(stamp);
       setTimeout(() => stamp.remove(), 1450);
     });
