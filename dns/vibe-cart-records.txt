@@ -1,5 +1,8 @@
 # DNS records for vibe-cart.com
-# Paste at your DNS host (where you bought the domain). Values in <angle brackets> come from Netlify / Railway — they are NOT guessable here.
+# Paste at your DNS host (GoDaddy: portfolio → vibe-cart.com → DNS / nameservers as applicable).
+# Values in <angle brackets> come from Netlify / Railway — they are NOT guessable here.
+#
+# Netlify site slug in this repo’s handoff: **vibecart-marketplace** (see Netlify URL below).
 #
 # --- 1) Website (Netlify) ---
 # In Netlify: Site settings → Domain management → Add custom domain → vibe-cart.com

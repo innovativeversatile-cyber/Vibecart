@@ -1,5 +1,8 @@
-# Public API: proxied from this site as /api/* → your Railway Node service (avoids DNS on api.* until you add it).
-# Replace the hostname below with Railway → your API service → Settings → Networking → public URL (…up.railway.app).
+# Public API: proxied from this site as /api/* → your Railway **Node/web** service (not MySQL).
+# In Railway open your **project**, select the service that runs `npm start` / owner-auth-api.js, then
+# Settings → Networking → public URL (…up.railway.app) and paste ONLY that host below.
+# Project reference: https://railway.com/project/1521e97a-cf77-4f42-9c97-a60d32cbdbf7
+# If /api/health returns 404 "Application not found", this hostname is wrong or that Railway service is gone.
 [build]
   publish = "deploy-web"
 

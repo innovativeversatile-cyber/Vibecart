@@ -41,9 +41,20 @@ App config: `mobile-app/app.json` → `expo.extra.vibecartBaseUrl` / `vibecartAp
 ## Infra notes (recent)
 
 - **`api.vibe-cart.com`:** DNS was missing (NXDOMAIN). Site + app should use **`https://vibe-cart.com/api/...`** until you add a CNAME for `api`.
-- **Netlify → API:** `netlify.toml` proxies `/api/*` to Railway. **Confirm** the `…up.railway.app` host matches a **live** Railway service. If `GET /api/health` returns **404 Application not found**, the proxy target is wrong or the Railway app is deleted — fix the URL in `netlify.toml` and redeploy Railway.
+- **Netlify → API:** `netlify.toml` proxies `/api/*` to Railway. **Confirm** the `…up.railway.app` host matches a **live Node API service** (the process that serves `/api/health`), not a MySQL plugin hostname. If `GET /api/health` returns **404 Application not found**, update the `to =` URL in `netlify.toml`, commit, push, and let Netlify rebuild.
 - **HTTPS:** Netlify serves TLS for the site; `netlify.toml` adds **`Strict-Transport-Security`** for browsers that see this host over HTTPS.
 - **Demo DB seed:** `npm run db:seed` — demo emails `@vibecart.local`, password `DemoPass123!` (staging only).
+- **Verify from your machine:** `npm run health:proxy` — prints status for **direct Railway** and **https://vibe-cart.com/api/health**.
+
+## Your dashboards (sign-in required)
+
+Automations here **cannot** log into Netlify, Railway, or GoDaddy for you. Use these links while signed in, then follow the bullets:
+
+- **Netlify deploys (site: vibecart-marketplace):** [Netlify → vibecart-marketplace → Deploys](https://app.netlify.com/projects/vibecart-marketplace/deploys) — confirm production is **Published** for branch `main`, and **Domain management** lists `vibe-cart.com` with HTTPS valid.
+- **Railway (project + services):** [Railway project](https://railway.com/project/1521e97a-cf77-4f42-9c97-a60d32cbdbf7) — open the **web/API service** (not only the **Database** view). Copy that service’s **public HTTPS URL** into `netlify.toml` → push → Netlify redeploys.
+- **GoDaddy (domain):** [GoDaddy portfolio → vibe-cart.com settings](https://dcc.godaddy.com/control/portfolio/vibe-cart.com/settings?ventureId=723511eb-cd57-4f9a-8ffe-46191f95cfb7&ua_placement=shared_header) — align DNS with what Netlify shows for the apex/`www` (see `dns/vibe-cart-records.txt`).
+
+**Common mistake:** a Railway URL whose path ends in **`/database`** is the **data** service UI, not the public HTTP URL of your API. The API hostname must come from the **Node** service card → **Networking**.
 
 ## Save your work (git)
 
