@@ -397,7 +397,7 @@ function initShopFolderConstellation() {
     return;
   }
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduceMotion) {
+  if (reduceMotion || vcShouldReduceScrollEffects()) {
     return;
   }
   const cards = Array.from(row.querySelectorAll(".shop-folder-card"));
@@ -910,6 +910,22 @@ function filterProducts(value) {
   });
 }
 
+function vcShouldReduceScrollEffects() {
+  try {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return true;
+    }
+    if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+      return true;
+    }
+    if (Number(navigator.maxTouchPoints || 0) > 0 && window.innerWidth < 1024) {
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
 
 function initCinematicIntro() {
   const intro = document.getElementById("cinematicIntro");
@@ -925,35 +941,13 @@ function initCinematicIntro() {
   } catch {
     /* ignore */
   }
-  const flair = document.getElementById("cinematicIntroFlair");
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  let flairTimer = null;
   if (reduceMotion) {
     intro.classList.add("cinematic-intro--soft");
-    if (flair) {
-      flair.textContent = "Opening smooth — reduced motion on.";
-    }
-  } else {
-    const messages = [
-      "Warming up the vibe engines…",
-      "Routing optimism across borders…",
-      "Teaching pixels to strut a little…",
-      "Cart physics: engaged.",
-    ];
-    let tick = 0;
-    if (flair && messages.length) {
-      flairTimer = window.setInterval(() => {
-        tick = (tick + 1) % messages.length;
-        flair.textContent = messages[tick];
-      }, 780);
-    }
   }
   intro.classList.add("is-visible");
-  const holdMs = reduceMotion ? 2100 : 3200;
+  const holdMs = reduceMotion ? 1400 : 2200;
   const hide = () => {
-    if (flairTimer) {
-      window.clearInterval(flairTimer);
-    }
     intro.classList.add("is-hidden");
     setTimeout(() => intro.remove(), 520);
   };
@@ -1086,6 +1080,7 @@ function initVibeFlowMotion() {
   let longPressTimer = null;
   let neonArmed = false;
   const cards = Array.from(track.querySelectorAll("[data-diagonal-layer]"));
+  const lightMotion = vcShouldReduceScrollEffects();
 
   track.addEventListener(
     "wheel",
@@ -1098,9 +1093,24 @@ function initVibeFlowMotion() {
     { passive: false }
   );
 
+  const resetDiagonalStyles = () => {
+    cards.forEach((card) => {
+      card.style.transform = "";
+      card.style.opacity = "";
+      card.style.filter = "";
+    });
+  };
+
+  let diagRaf = 0;
   const applyDiagonal = () => {
+    if (lightMotion || !cards.length) {
+      return;
+    }
     const viewportMid = window.innerHeight * 0.5;
     const trackRect = track.getBoundingClientRect();
+    if (trackRect.bottom < 0 || trackRect.top > window.innerHeight) {
+      return;
+    }
     const lensCenterX = trackRect.left + trackRect.width * 0.5;
     const lensRange = Math.max(trackRect.width * 0.42, 1);
     cards.forEach((card) => {
@@ -1120,9 +1130,23 @@ function initVibeFlowMotion() {
     });
   };
 
-  window.addEventListener("scroll", applyDiagonal, { passive: true });
-  track.addEventListener("scroll", applyDiagonal, { passive: true });
-  applyDiagonal();
+  const scheduleDiagonal = () => {
+    if (lightMotion) {
+      return;
+    }
+    cancelAnimationFrame(diagRaf);
+    diagRaf = requestAnimationFrame(() => {
+      applyDiagonal();
+    });
+  };
+
+  if (lightMotion) {
+    resetDiagonalStyles();
+  } else {
+    window.addEventListener("scroll", scheduleDiagonal, { passive: true });
+    track.addEventListener("scroll", scheduleDiagonal, { passive: true });
+    scheduleDiagonal();
+  }
 
   const activateNeonMode = () => {
     document.body.classList.add("night-neon");
@@ -1187,6 +1211,10 @@ function initVibeFlowMotion() {
 function initHeroCanvasFx() {
   const canvas = document.getElementById("heroCanvasFx");
   if (!canvas) {
+    return;
+  }
+  if (vcShouldReduceScrollEffects()) {
+    canvas.classList.add("hero-canvas-fx--off");
     return;
   }
   const ctx = canvas.getContext("2d");
@@ -1651,6 +1679,9 @@ function initHeroParallaxDepth() {
   if (!hero || !copy) {
     return;
   }
+  if (vcShouldReduceScrollEffects()) {
+    return;
+  }
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return;
   }
@@ -1725,11 +1756,14 @@ function initLuxuryMotion() {
         node.classList.add("is-visible");
       }
     });
-  }, 3200);
+  }, 2600);
 }
 
 function initBrandSignatureMotion() {
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  if (vcShouldReduceScrollEffects()) {
     return;
   }
   const hero = document.querySelector(".hero");
@@ -3150,7 +3184,13 @@ localStorage.setItem(ONBOARDING_KEY, "1");
   }
   const reduceMotion =
     window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduceMotion) {
+  const lightScroll = vcShouldReduceScrollEffects();
+  const allowCursorGlow =
+    !reduceMotion &&
+    !lightScroll &&
+    window.matchMedia &&
+    window.matchMedia("(pointer: fine) and (hover: hover)").matches;
+  if (allowCursorGlow) {
     document.documentElement.classList.add("vc-cursor-glow");
     let glowRaf = 0;
     document.documentElement.addEventListener(
@@ -3168,12 +3208,12 @@ localStorage.setItem(ONBOARDING_KEY, "1");
     );
   }
 
-  if (reduceMotion || typeof window.Lenis !== "function") {
+  if (reduceMotion || lightScroll || typeof window.Lenis !== "function") {
     return;
   }
   try {
     const lenis = new window.Lenis({
-      lerp: 0.11,
+      lerp: 0.2,
       smoothWheel: true,
     });
     function onLenisFrame(time) {

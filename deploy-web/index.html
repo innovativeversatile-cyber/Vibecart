@@ -50,8 +50,8 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./vendor/lenis.css?v=20260419orbit1" />
-    <link rel="stylesheet" href="./styles.css?v=20260419orbit1" />
+    <link rel="stylesheet" href="./vendor/lenis.css?v=20260420smooth1" />
+    <link rel="stylesheet" href="./styles.css?v=20260420smooth1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,7 +81,7 @@
       }
     </script>
   </head>
-  <body data-site-revision="deploy-20260419-orbit1">
+  <body data-site-revision="deploy-20260420-smooth1">
     <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
       <div class="cinematic-intro-card">
         <div class="cinematic-logo-stack">
@@ -89,8 +89,6 @@
           <span class="cinematic-ring cinematic-ring--mid" aria-hidden="true"></span>
           <div class="cinematic-logo-pulse"><span class="cinematic-logo-letter">V</span></div>
         </div>
-        <p class="cinematic-intro-text">VibeCart</p>
-        <p class="cinematic-intro-flair" id="cinematicIntroFlair">Warming up the vibe engines…</p>
       </div>
     </div>
     <div id="vcVipRibbon" class="vc-vip-ribbon hidden" aria-hidden="true"><span>VIP lane</span></div>
@@ -940,15 +938,15 @@
       </div>
     </div>
 
-    <script src="./i18n.js?v=20260419orbit1"></script>
-    <script src="./vendor/lenis.min.js?v=20260419orbit1"></script>
-    <script src="./script.js?v=20260419orbit1"></script>
-    <script src="./mobile-app-shell.js?v=20260419orbit1" defer></script>
+    <script src="./i18n.js?v=20260420smooth1"></script>
+    <script src="./vendor/lenis.min.js?v=20260420smooth1"></script>
+    <script src="./script.js?v=20260420smooth1"></script>
+    <script src="./mobile-app-shell.js?v=20260420smooth1" defer></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./service-worker.js?v=20260419orbit1", { updateViaCache: "none" })
+            .register("./service-worker.js?v=20260420smooth1", { updateViaCache: "none" })
             .then((reg) => reg.update())
             .catch(() => {});
         });

@@ -5,7 +5,6 @@ import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   AppState,
   Easing,
@@ -264,7 +263,7 @@ export default function App(): JSX.Element {
 
   const scale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.9, 1.12]
+    outputRange: [0.94, 1.06]
   });
 
   const opacity = pulse.interpolate({
@@ -313,6 +312,7 @@ export default function App(): JSX.Element {
         pullToRefreshEnabled={Platform.OS === "ios"}
         thirdPartyCookiesEnabled
         androidLayerType="hardware"
+        textZoom={100}
         mediaPlaybackRequiresUserAction={true}
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
         onLoadStart={() => {
@@ -327,13 +327,13 @@ export default function App(): JSX.Element {
               `(function(){try{window.__VC_INSTALL_ID__=${JSON.stringify(id)};}catch(e){}})();true;`
             );
           });
-          const minSplashMs = 2800;
+          const minSplashMs = 900;
           const elapsed = Date.now() - splashStartRef.current;
           const wait = Math.max(0, minSplashMs - elapsed);
           setTimeout(() => {
             Animated.timing(splashOp, {
               toValue: 0,
-              duration: 640,
+              duration: 420,
               easing: Easing.out(Easing.cubic),
               useNativeDriver: true
             }).start(() => {
@@ -367,8 +367,6 @@ export default function App(): JSX.Element {
               </View>
             </Animated.View>
           </View>
-          <Text style={styles.resumePulseTitle}>VibeCart</Text>
-          <Text style={styles.resumePulseSub}>Constellation trails awake again.</Text>
         </View>
       )}
       {isLoading && (
@@ -389,9 +387,6 @@ export default function App(): JSX.Element {
               </View>
             </Animated.View>
           </View>
-          <Text style={styles.splashTitle}>VibeCart</Text>
-          <Text style={styles.splashSub}>Mapping orbit lanes to the live marketplace…</Text>
-          <ActivityIndicator color="#e8a317" size="small" style={{ marginTop: 18 }} />
         </Animated.View>
       )}
       {!!errorText && (
@@ -514,45 +509,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(7, 4, 15, 0.88)"
   },
-  resumePulseTitle: {
-    marginTop: 18,
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#f8f4ff",
-    letterSpacing: 1
-  },
-  resumePulseSub: {
-    marginTop: 6,
-    fontSize: 13,
-    fontStyle: "italic",
-    color: "#c9b8e8",
-    letterSpacing: 0.3
-  },
   splashMarkWrap: {
     position: "relative",
-    width: 140,
-    height: 140,
+    width: 96,
+    height: 96,
     alignItems: "center",
     justifyContent: "center"
   },
   splashRing: {
     position: "absolute",
-    width: 132,
-    height: 132,
-    borderRadius: 66,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     borderWidth: 2,
     borderColor: "rgba(232,163,23,0.45)"
   },
   markOuter: {
-    width: 112,
-    height: 112,
-    borderRadius: 36,
-    padding: 3,
+    width: 76,
+    height: 76,
+    borderRadius: 26,
+    padding: 2,
     backgroundColor: "rgba(232,163,23,0.35)"
   },
   markInner: {
     flex: 1,
-    borderRadius: 33,
+    borderRadius: 24,
     backgroundColor: "#12081c",
     alignItems: "center",
     justifyContent: "center",
@@ -560,24 +541,10 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)"
   },
   markLetter: {
-    fontSize: 52,
+    fontSize: 36,
     fontWeight: "900",
     color: "#e8a317",
-    letterSpacing: -2
-  },
-  splashTitle: {
-    marginTop: 22,
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#f8f4ff",
-    letterSpacing: 1.2
-  },
-  splashSub: {
-    marginTop: 6,
-    fontSize: 13,
-    color: "#b9b4d6",
-    letterSpacing: 2,
-    textTransform: "uppercase"
+    letterSpacing: -1
   },
   errorBox: {
     position: "absolute",
