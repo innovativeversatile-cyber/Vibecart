@@ -7,6 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
+  AppState,
   Easing,
   Platform,
   Pressable,
@@ -92,9 +93,12 @@ export default function App(): JSX.Element {
   const [initialUrl, setInitialUrl] = useState<string | null>(null);
   const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [disclaimerPeek, setDisclaimerPeek] = useState(false);
+  const [resumePulseVisible, setResumePulseVisible] = useState(false);
   const webViewRef = useRef<WebViewType>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const splashOp = useRef(new Animated.Value(1)).current;
+  const appStateRef = useRef(AppState.currentState);
+  const resumePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const baseUrl = useMemo(() => {
     const fromConfig = Constants.expoConfig?.extra?.vibecartBaseUrl;
@@ -131,6 +135,34 @@ export default function App(): JSX.Element {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (next) => {
+      const prev = appStateRef.current;
+      appStateRef.current = next;
+      if (
+        acceptedDisclaimer &&
+        !isLoading &&
+        (prev === "background" || prev === "inactive") &&
+        next === "active"
+      ) {
+        if (resumePulseTimer.current) {
+          clearTimeout(resumePulseTimer.current);
+        }
+        setResumePulseVisible(true);
+        resumePulseTimer.current = setTimeout(() => {
+          setResumePulseVisible(false);
+          resumePulseTimer.current = null;
+        }, 1300);
+      }
+    });
+    return () => {
+      sub.remove();
+      if (resumePulseTimer.current) {
+        clearTimeout(resumePulseTimer.current);
+      }
+    };
+  }, [acceptedDisclaimer, isLoading]);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -278,6 +310,18 @@ export default function App(): JSX.Element {
         }}
         onShouldStartLoadWithRequest={(request) => isAllowedUrl(request.url, allowedHost)}
       />
+      {resumePulseVisible && (
+        <View pointerEvents="none" style={styles.resumePulseLayer}>
+          <Animated.View style={{ transform: [{ scale }], opacity }}>
+            <View style={styles.markOuter}>
+              <View style={styles.markInner}>
+                <Text style={styles.markLetter}>V</Text>
+              </View>
+            </View>
+          </Animated.View>
+          <Text style={styles.resumePulseTitle}>VibeCart</Text>
+        </View>
+      )}
       {isLoading && (
         <Animated.View style={[styles.splash, { opacity: splashOp }]}>
           <Animated.View style={{ transform: [{ scale }], opacity }}>
@@ -380,9 +424,28 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
+    zIndex: 30,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#07040f"
+  },
+  resumePulseLayer: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(7, 4, 15, 0.88)"
+  },
+  resumePulseTitle: {
+    marginTop: 18,
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#f8f4ff",
+    letterSpacing: 1
   },
   markOuter: {
     width: 112,

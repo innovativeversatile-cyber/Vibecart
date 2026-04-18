@@ -16,8 +16,7 @@ Last focus: **more languages** (Shona, Ndebele, Xhosa, Chinese, Korean, Hindi, O
 
 ## Not done / optional next session
 
-- **Mirror** the same banner + options + `maybeShowLocaleInferenceOffer` + CSS into **`vibecart-netlify/`** if that build is still in use.
-- **Root `vibecart/index.html`** may still lack the topbar language UI; confirm which entrypoint you deploy before duplicating markup.
+- **Mirroring:** `deploy-web/`, repo root, and **`vibecart-netlify/`** are kept in sync for locale banner + shop lanes + scripts (copy from `deploy-web/` when editing).
 - **Copy depth:** only strings wired through `data-i18n` / i18n tables are translated; long prose may still be English until keys are added.
 
 ## Git

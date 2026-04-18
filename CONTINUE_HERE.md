@@ -6,6 +6,14 @@
 - **Health (via Netlify `/api` proxy):** [https://vibe-cart.com/api/health](https://vibe-cart.com/api/health)
 - **Owner admin (if deployed):** [https://vibe-cart.com/admin.html](https://vibe-cart.com/admin.html)
 
+## Google Search Console (verifiable)
+
+1. In [Google Search Console](https://search.google.com/search-console), add property **URL prefix** `https://vibe-cart.com/`.
+2. Use **HTML file** or **DNS** verification (Netlify supports TXT on the domain).
+3. After deploy, open **URL Inspection**, submit `https://vibe-cart.com/` and **Request indexing** when you ship meaningful changes.
+4. Confirm **Sitemaps** → add `https://vibe-cart.com/sitemap.xml` (shop lane URLs are included in `deploy-web/sitemap.xml`).
+5. Rich results: homepage ships **WebSite** + **Organization** JSON-LD, Open Graph + Twitter cards, `robots` + `canonical`, and dimensioned hero imagery for stable previews.
+
 ## Phone app
 
 The native shell is in `mobile-app/` (Expo). **Store links are not checked into this repo** — add them here after you publish:
@@ -15,10 +23,13 @@ The native shell is in `mobile-app/` (Expo). **Store links are not checked into 
 
 App config: `mobile-app/app.json` → `expo.extra.vibecartBaseUrl` / `vibecartApiBaseUrl` → **`https://vibe-cart.com`** (same-origin `/api`).
 
+**Android Play format:** EAS profile `production` uses **`buildType: "app-bundle"`** (AAB). `expo-build-properties` pins **compile/target SDK 35** (adjust in `app.json` when Expo bumps defaults).
+
 ## Infra notes (recent)
 
 - **`api.vibe-cart.com`:** DNS was missing (NXDOMAIN). Site + app should use **`https://vibe-cart.com/api/...`** until you add a CNAME for `api`.
-- **Netlify → API:** `netlify.toml` proxies `/api/*` to Railway. **Confirm** the `…up.railway.app` host in that file matches your Railway API service.
+- **Netlify → API:** `netlify.toml` proxies `/api/*` to Railway. **Confirm** the `…up.railway.app` host matches a **live** Railway service. If `GET /api/health` returns **404 Application not found**, the proxy target is wrong or the Railway app is deleted — fix the URL in `netlify.toml` and redeploy Railway.
+- **HTTPS:** Netlify serves TLS for the site; `netlify.toml` adds **`Strict-Transport-Security`** for browsers that see this host over HTTPS.
 - **Demo DB seed:** `npm run db:seed` — demo emails `@vibecart.local`, password `DemoPass123!` (staging only).
 
 ## Save your work (git)

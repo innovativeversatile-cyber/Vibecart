@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <!-- API base omitted: use same-origin /api (Netlify proxy → Railway). Override with meta vibecart-api-base if needed. -->
     <title>VibeCart | Africa-Europe-Asia Trade Bridge Marketplace</title>
     <meta
@@ -10,8 +10,9 @@
       content="VibeCart is a secure Africa-Europe-Asia bridge marketplace, helping users buy and sell legal goods across Africa, Europe, Dubai, and wider Asia with protected payments and reliable delivery."
     />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="googlebot" content="index, follow" />
+    <meta name="format-detection" content="telephone=no" />
     <meta property="og:title" content="VibeCart | Africa-Europe-Asia Marketplace Bridge" />
     <meta
       property="og:description"
@@ -19,7 +20,18 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://vibe-cart.com/" />
-    <meta property="og:image" content="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80" />
+    <meta
+      property="og:image"
+      content="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&h=630&q=80"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Colourful global marketplace goods representing VibeCart cross-border trade" />
+    <meta
+      name="twitter:image"
+      content="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&h=630&q=80"
+    />
+    <meta name="twitter:image:alt" content="Colourful global marketplace goods representing VibeCart cross-border trade" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VibeCart | Africa-Europe-Asia Marketplace Bridge" />
     <meta name="twitter:description" content="Buy and sell legal products between Africa, Europe, Dubai, and Asia with secure payments and trusted delivery routes." />
@@ -33,22 +45,43 @@
     <link rel="alternate" hreflang="en" href="https://vibe-cart.com/" />
     <link rel="alternate" hreflang="x-default" href="https://vibe-cart.com/" />
     <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+    <link rel="dns-prefetch" href="https://vibe-cart.com" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./vendor/lenis.css?v=20260421lang5" />
-    <link rel="stylesheet" href="./styles.css?v=20260418seedpulse" />
+    <link rel="stylesheet" href="./vendor/lenis.css?v=20260418master1" />
+    <link rel="stylesheet" href="./styles.css?v=20260418master1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "VibeCart",
         "url": "https://vibe-cart.com/",
-        "description": "Secure legal marketplace bridge connecting buyers and sellers across Africa, Europe, Dubai, and Asia with trusted payments and delivery."
+        "description": "Secure legal marketplace bridge connecting buyers and sellers across Africa, Europe, Dubai, and Asia with trusted payments and delivery.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "VibeCart",
+          "url": "https://vibe-cart.com/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://vibe-cart.com/icon.svg"
+          }
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "VibeCart",
+        "url": "https://vibe-cart.com/",
+        "logo": "https://vibe-cart.com/icon.svg",
+        "description": "Cross-border marketplace for legal goods between Africa, Europe, Dubai, and Asia with verified sellers and secure checkout."
       }
     </script>
   </head>
-  <body data-site-revision="deploy-20260418-sw-nav">
+  <body data-site-revision="deploy-20260418-master1">
     <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
       <div class="cinematic-intro-card">
         <div class="cinematic-logo-pulse">V</div>
@@ -144,7 +177,11 @@
         </div>
         <div class="hero-image">
           <img
-            src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80"
+            src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&h=800&q=80"
+            width="1200"
+            height="800"
+            decoding="async"
+            fetchpriority="high"
             alt="Colourful artisan crafts and textiles at a market"
           />
         </div>
@@ -245,19 +282,47 @@
         <h2>Popular Categories</h2>
         <div class="grid cards">
           <a class="card" href="#market" data-filter="Electronics">
-            <img src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80" alt="Electronics products" />
+            <img
+              src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Electronics products"
+            />
             <h3>Electronics</h3>
           </a>
           <a class="card" href="#market" data-filter="Fashion">
-            <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&q=80" alt="Fashion products" />
+            <img
+              src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Fashion products"
+            />
             <h3>Fashion</h3>
           </a>
           <a class="card" href="#market" data-filter="Books">
-            <img src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&q=80" alt="Books and learning materials" />
+            <img
+              src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Books and learning materials"
+            />
             <h3>Books</h3>
           </a>
           <a class="card" href="#market" data-filter="Gaming">
-            <img src="https://images.unsplash.com/photo-1486401899868-0e435ed85128?auto=format&fit=crop&w=900&q=80" alt="Gaming accessories" />
+            <img
+              src="https://images.unsplash.com/photo-1486401899868-0e435ed85128?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Gaming accessories"
+            />
             <h3>Gaming</h3>
           </a>
         </div>
@@ -273,6 +338,7 @@
           Each lane opens its own page with bubble tiles (not one long list). VibeCart lane cards still jump to
           <a href="#bridge-routes">Trade Bridge &amp; Live Marketplace</a>; external bubbles open in a new tab.
         </p>
+        <p class="shop-folder-scroll-hint" aria-hidden="true">Swipe the five regional folders sideways — Europe, Mama Africa, Asia, Scents, Global.</p>
         <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes">
           <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html">
             <span class="shop-folder-card-eyebrow">Open folder</span>
@@ -345,28 +411,56 @@
         </p>
         <div id="products" class="grid product-grid">
           <article class="product" data-category="Electronics">
-            <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80" alt="Smartphone" />
+            <img
+              src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Smartphone"
+            />
             <h3>Premium Smartphone</h3>
             <p class="price">EUR 280</p>
             <p>Ships from Poland</p>
             <button class="btn btn-primary buy-now-btn" data-title="Premium Smartphone" data-price="280">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Fashion">
-            <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80" alt="Streetwear hoodie" />
+            <img
+              src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Streetwear hoodie"
+            />
             <h3>Streetwear Hoodie</h3>
             <p class="price">EUR 45</p>
             <p>Ships from Germany</p>
             <button class="btn btn-primary buy-now-btn" data-title="Streetwear Hoodie" data-price="45">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Books">
-            <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&q=80" alt="University textbooks" />
+            <img
+              src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="University textbooks"
+            />
             <h3>University Textbook Set</h3>
             <p class="price">EUR 34</p>
             <p>Ships from Poland</p>
             <button class="btn btn-primary buy-now-btn" data-title="University Textbook Set" data-price="34">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Gaming">
-            <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=900&q=80" alt="Gaming controller" />
+            <img
+              src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=900&h=600&q=75"
+              width="900"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              alt="Gaming controller"
+            />
             <h3>Gaming Controller Pro</h3>
             <p class="price">EUR 52</p>
             <p>Ships from France</p>
@@ -822,15 +916,15 @@
       </div>
     </div>
 
-    <script src="./i18n.js?v=20260421lang5"></script>
-    <script src="./vendor/lenis.min.js?v=20260421lang5"></script>
-    <script src="./script.js?v=20260421lang5"></script>
-    <script src="./mobile-app-shell.js?v=20260421lang5" defer></script>
+    <script src="./i18n.js?v=20260418master1"></script>
+    <script src="./vendor/lenis.min.js?v=20260418master1"></script>
+    <script src="./script.js?v=20260418master1"></script>
+    <script src="./mobile-app-shell.js?v=20260418master1" defer></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./service-worker.js?v=20260421lang5", { updateViaCache: "none" })
+            .register("./service-worker.js?v=20260418master1", { updateViaCache: "none" })
             .then((reg) => reg.update())
             .catch(() => {});
         });

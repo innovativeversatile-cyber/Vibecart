@@ -153,7 +153,6 @@ const QUICK_BUY_TOKEN_KEY = "vibecart-quick-buy-token";
 const QUICK_BUY_EMAIL_KEY = "vibecart-quick-buy-email";
 const QUICK_BUY_PASSWORD_KEY = "vibecart-quick-buy-password";
 const WEARABLE_PREF_KEY = "vibecart-wearable-prefs";
-const CINEMATIC_INTRO_KEY = "vibecart-cinematic-intro-v1";
 const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
 let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
@@ -528,17 +527,16 @@ function initCinematicIntro() {
   if (!intro) {
     return;
   }
-  if (localStorage.getItem(CINEMATIC_INTRO_KEY) === "1") {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     intro.remove();
     return;
   }
   intro.classList.add("is-visible");
   const hide = () => {
     intro.classList.add("is-hidden");
-    localStorage.setItem(CINEMATIC_INTRO_KEY, "1");
     setTimeout(() => intro.remove(), 520);
   };
-  setTimeout(hide, 2100);
+  setTimeout(hide, 1900);
 }
 
 function initVibeFlowMotion() {
