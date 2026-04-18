@@ -37,7 +37,7 @@ git push -u origin main
    - `DB_NAME` (usually `vibecart`)
 5. Deploy.
 6. Copy your Railway public URL, for example:
-   - `https://vibecart-api-production.up.railway.app`
+   - `https://vibecart-production.up.railway.app`
 
 ### API health check
 

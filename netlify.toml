@@ -34,6 +34,6 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://vibecart-api-production.up.railway.app/api/:splat"
+  to = "https://vibecart-production.up.railway.app/api/:splat"
   status = 200
   force = true

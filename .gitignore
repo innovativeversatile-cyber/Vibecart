@@ -3,8 +3,9 @@ run-health-reminder-cron.ps1
 setup-health-reminder-task.ps1
 setup-reminder.cmd
 
-# Local Netlify folder
-.netlify
+# Local Netlify CLI state (anywhere in repo)
+**/.netlify/
+.netlify/
 
 # Node dependencies
 node_modules/
