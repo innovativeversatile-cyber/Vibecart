@@ -41,7 +41,7 @@ App config: `mobile-app/app.json` → `expo.extra.vibecartBaseUrl` / `vibecartAp
 ## Infra notes (recent)
 
 - **`api.vibe-cart.com`:** DNS was missing (NXDOMAIN). Site + app should use **`https://vibe-cart.com/api/...`** until you add a CNAME for `api`.
-- **Netlify → API:** `netlify.toml` proxies `/api/*` to Railway. **Confirm** the `…up.railway.app` host matches a **live Node API service** (the process that serves `/api/health`), not a MySQL plugin hostname. If `GET /api/health` returns **404 Application not found**, update the `to =` URL in `netlify.toml`, commit, push, and let Netlify rebuild.
+- **Netlify → API:** fixed. `netlify.toml` now proxies `/api/*` to **`https://vibecart-production.up.railway.app/api/:splat`**, and both direct Railway health and **`https://vibe-cart.com/api/health`** return **200**.
 - **HTTPS:** Netlify serves TLS for the site; `netlify.toml` adds **`Strict-Transport-Security`** for browsers that see this host over HTTPS.
 - **Demo DB seed:** `npm run db:seed` — demo emails `@vibecart.local`, password `DemoPass123!` (staging only).
 - **Verify from your machine:** `npm run health:proxy` — prints status for **direct Railway** and **https://vibe-cart.com/api/health**.
