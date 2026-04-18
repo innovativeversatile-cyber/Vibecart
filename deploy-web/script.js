@@ -42,6 +42,7 @@ const returnWindowInfo = document.getElementById("returnWindowInfo");
 const installAppBtn = document.getElementById("installAppBtn");
 const expressCheckoutStatus = document.getElementById("expressCheckoutStatus");
 const interactionMode = document.getElementById("interactionMode");
+const siteLanguage = document.getElementById("siteLanguage");
 const aiAssistantSection = document.getElementById("ai-assistant");
 const communicationSection = document.getElementById("communication");
 const trackingSection = document.getElementById("tracking");
@@ -90,14 +91,67 @@ const healthCheckinNotes = document.getElementById("healthCheckinNotes");
 const addHealthCheckinBtn = document.getElementById("addHealthCheckin");
 const refreshCoachDashboardBtn = document.getElementById("refreshCoachDashboard");
 const coachDashboard = document.getElementById("coachDashboard");
+const wearableVendor = document.getElementById("wearableVendor");
+const wearableDailyDigest = document.getElementById("wearableDailyDigest");
+const wearableDetailedMetrics = document.getElementById("wearableDetailedMetrics");
+const saveWearablePrefsBtn = document.getElementById("saveWearablePrefs");
+const syncWearableDemoBtn = document.getElementById("syncWearableDemo");
+const wearableLinkStatus = document.getElementById("wearableLinkStatus");
 const SETTINGS_KEY = "vibecart-site-settings";
 const INTERACTION_MODE_KEY = "vibecart-interaction-mode";
+const AI_PERSONA_KEY = "vibecart-ai-persona";
+
+const RADAR_HINTS = {
+  en: [
+    "Cross-list one hero SKU in both Europe and Mama Africa lanes to test demand elasticity.",
+    "Pair student pickup (campus) with tracked courier for higher trust scores on first orders.",
+    "Bundle beauty + books in a themed cart campaign — composite AOV often beats single-category pushes.",
+    "Surface insurance add-on at checkout for electronics above EUR 150 — fewer dispute losses.",
+    "Localize policy footers per destination country; conversion lifts when legal text matches reader language."
+  ],
+  pl: [
+    "Wystaw jeden hitowy SKU jednocześnie w Europie i Mama Africa, żeby zmierzyć popyt.",
+    "Połącz odbiór kampusowy z kurierem śledzonym przy pierwszych zamówieniach.",
+    "Zestaw kampanii kosmetyki + książki — wyższy koszyk niż pojedyncze kategorie.",
+    "Dodaj ubezpieczenie przy elektronice >150 EUR — mniej strat przy sporach.",
+    "Stopki polityk per kraj docelowy — wyższa konwersja, gdy język prawa = język czytelnika."
+  ],
+  fr: [
+    "Lister un SKU phare Europe + Mama Africa pour tester l’élasticité.",
+    "Coupler retrait campus + colis suivi pour les premières commandes.",
+    "Campagne panier beauté + livres — panier moyen souvent plus haut.",
+    "Assurance à checkout >150 EUR électronique — moins de litiges.",
+    "Pieds de page juridiques localisés — meilleure conversion."
+  ],
+  pt: [
+    "Publique um SKU herói na Europa e Mama Africa para testar procura.",
+    "Combine recolha no campus com courier rastreado nas primeiras encomendas.",
+    "Campanha carrinho beleza + livros — ticket médio costuma subir.",
+    "Seguro no checkout para eletrónica >150 EUR — menos disputas.",
+    "Rodapés legais por país — mais conversão quando o idioma coincide."
+  ],
+  sw: [
+    "Weka bidhaa moja mashuhuri Ulaya na Mama Africa upime mahitaji.",
+    "Changanya pickup chuo na uwasilishaji unaofuatiliwa kwa agizo la kwanza.",
+    "Kampeni ya cart ya urembo + vitabu — thamani ya wastani inaweza kupanda.",
+    "Bima kwenye checkout kwa elektroniki >150 EUR — migogoro midogo.",
+    "Vijedwali vya sera kwa nchi — mabadiliko makubwa wakati lugha inalingana."
+  ],
+  ar: [
+    "اعرض SKU واحدًا بارزًا في أوروبا و«ماما أفريكا» لقياس الطلب.",
+    "اجمع الاستلام الجامعي مع تتبع الشحن للطلبات الأولى.",
+    "حملة سلة: تجميل + كتب — غالبًا يرتفع متوسط قيمة الطلب.",
+    "تأمين عند الدفع للإلكترونيات فوق 150 يورو — نزاعات أقل.",
+    "تذييلات سياسات حسب البلد — تحسين التحويل عند تطابق اللغة."
+  ]
+};
 const REWARD_KEY = "vibecart-reward-profile";
 const ONBOARDING_KEY = "vibecart-onboarding-done";
 const SELLER_ONBOARDED_KEY = "vibecart-seller-onboarded-count";
 const QUICK_BUY_TOKEN_KEY = "vibecart-quick-buy-token";
 const QUICK_BUY_EMAIL_KEY = "vibecart-quick-buy-email";
 const QUICK_BUY_PASSWORD_KEY = "vibecart-quick-buy-password";
+const WEARABLE_PREF_KEY = "vibecart-wearable-prefs";
 const CINEMATIC_INTRO_KEY = "vibecart-cinematic-intro-v1";
 const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
 let pendingDisclaimerAction = null;
@@ -1300,6 +1354,14 @@ function scoreProduct(product, preference) {
   return score;
 }
 
+function currentUiLocale() {
+  const i18n = window.VibeCartI18n;
+  if (!i18n) {
+    return "en";
+  }
+  return i18n.pick(i18n.getStored() || navigator.language || "en");
+}
+
 function getAISuggestions() {
   if (!aiResult || !aiSuggest || !aiNeed || !aiBudget || !aiCategory) {
     return;
@@ -1316,9 +1378,14 @@ function getAISuggestions() {
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
 
+  const L = currentUiLocale();
+  const i18n = window.VibeCartI18n;
+  const noMatch =
+    i18n && typeof i18n.t === "function"
+      ? i18n.t(L, "ai.noMatch")
+      : "No exact match yet. Try increasing budget or selecting 'Any' category for better suggestions.";
   if (!ranked.length || ranked[0].score <= 0) {
-    aiResult.textContent =
-      "No exact match yet. Try increasing budget or selecting 'Any' category for better suggestions.";
+    aiResult.textContent = noMatch;
     return;
   }
 
@@ -1326,7 +1393,14 @@ function getAISuggestions() {
     (item, idx) =>
       `${idx + 1}. ${item.title} - EUR ${item.price} (${item.category}) | ${item.shipping}`
   );
-  aiResult.textContent = `Top AI picks for you: ${lines.join(" || ")}`;
+  const persona = localStorage.getItem(AI_PERSONA_KEY) || "efficient";
+  const effPrefix =
+    i18n && typeof i18n.t === "function" ? i18n.t(L, "ai.resultEffPrefix") : "Ranked matches";
+  const funPrefix =
+    i18n && typeof i18n.t === "function" ? i18n.t(L, "ai.resultFunPrefix") : "Vibe-ranked picks";
+  const prefix = persona === "fun" ? funPrefix : effPrefix;
+  const joiner = persona === "fun" ? " ✦ " : " | ";
+  aiResult.textContent = `${prefix}: ${lines.join(joiner)}`;
 }
 
 if (aiSuggest) {
@@ -1539,6 +1613,123 @@ function initializeInteractionMode() {
 }
 
 initializeInteractionMode();
+
+function renderOpportunityRadar() {
+  const ul = document.getElementById("vcOpportunityRadar");
+  if (!ul) {
+    return;
+  }
+  const lang = currentUiLocale();
+  const lines = RADAR_HINTS[lang] || RADAR_HINTS.en;
+  ul.innerHTML = "";
+  lines.forEach((text) => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    ul.appendChild(li);
+  });
+}
+
+function maybeShowLocaleInferenceOffer() {
+  const i18n = window.VibeCartI18n;
+  const banner = document.getElementById("localeSuggestBanner");
+  const textEl = document.getElementById("localeSuggestText");
+  const applyBtn = document.getElementById("localeSuggestApply");
+  const dismissBtn = document.getElementById("localeSuggestDismiss");
+  if (!i18n || !banner || !textEl || !applyBtn || !dismissBtn) {
+    return;
+  }
+  const inferred = i18n.inferLocaleFromEnvironment();
+  if (!inferred || inferred === "en") {
+    return;
+  }
+  const storedRaw = i18n.getStored();
+  const active = storedRaw ? i18n.pick(storedRaw) : i18n.pick(navigator.language || "en");
+  if (active === inferred) {
+    return;
+  }
+  try {
+    if (localStorage.getItem("vibecart-locale-offer-dismiss") === inferred) {
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
+  const ui = storedRaw ? i18n.pick(storedRaw) : "en";
+  const hook = i18n.suggestHookFor(inferred);
+  const cap = i18n.t(ui, "lang.aiOfferCaption") || i18n.t("en", "lang.aiOfferCaption");
+  textEl.textContent = `${hook} ${cap}`;
+  applyBtn.textContent = i18n.t(ui, "lang.aiOfferSwitch") || i18n.t("en", "lang.aiOfferSwitch");
+  dismissBtn.textContent = i18n.t(ui, "lang.aiOfferDismiss") || i18n.t("en", "lang.aiOfferDismiss");
+  banner.classList.remove("hidden");
+  applyBtn.onclick = () => {
+    i18n.setStored(inferred);
+    if (siteLanguage && [...siteLanguage.options].some((o) => o.value === inferred)) {
+      siteLanguage.value = inferred;
+    }
+    banner.classList.add("hidden");
+    renderOpportunityRadar();
+  };
+  dismissBtn.onclick = () => {
+    try {
+      localStorage.setItem("vibecart-locale-offer-dismiss", inferred);
+    } catch {
+      /* ignore */
+    }
+    banner.classList.add("hidden");
+  };
+}
+
+function initLocaleAndPersonaDeck() {
+  const i18n = window.VibeCartI18n;
+  if (i18n) {
+    let stored = i18n.getStored();
+    if (!stored) {
+      stored = i18n.pick(navigator.language || "en");
+    }
+    if (siteLanguage) {
+      if ([...siteLanguage.options].some((o) => o.value === stored)) {
+        siteLanguage.value = stored;
+      }
+      siteLanguage.addEventListener("change", () => {
+        i18n.setStored(siteLanguage.value);
+        renderOpportunityRadar();
+      });
+    }
+    i18n.apply(stored || "en");
+    maybeShowLocaleInferenceOffer();
+  }
+
+  const funBtn = document.getElementById("vcPersonaFun");
+  const effBtn = document.getElementById("vcPersonaEff");
+  const persona = localStorage.getItem(AI_PERSONA_KEY) || "efficient";
+
+  function paintPersonaButtons(active) {
+    if (!funBtn || !effBtn) {
+      return;
+    }
+    const isFun = active === "fun";
+    funBtn.setAttribute("aria-pressed", isFun ? "true" : "false");
+    effBtn.setAttribute("aria-pressed", isFun ? "false" : "true");
+    funBtn.classList.toggle("btn-primary", isFun);
+    funBtn.classList.toggle("btn-secondary", !isFun);
+    effBtn.classList.toggle("btn-primary", !isFun);
+    effBtn.classList.toggle("btn-secondary", isFun);
+  }
+
+  paintPersonaButtons(persona);
+  funBtn?.addEventListener("click", () => {
+    localStorage.setItem(AI_PERSONA_KEY, "fun");
+    paintPersonaButtons("fun");
+  });
+  effBtn?.addEventListener("click", () => {
+    localStorage.setItem(AI_PERSONA_KEY, "efficient");
+    paintPersonaButtons("efficient");
+  });
+
+  renderOpportunityRadar();
+}
+
+initLocaleAndPersonaDeck();
 
 const demoAds = [
   {
@@ -1903,15 +2094,162 @@ async function addHealthCheckin() {
     : "Could not save health check-in right now.";
 }
 
+function readWearablePrefs() {
+  try {
+    const raw = localStorage.getItem(WEARABLE_PREF_KEY);
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function wearableVendorLabel(value) {
+  const map = {
+    none: "not linked",
+    apple_watch: "Apple Watch",
+    wear_os: "Wear OS",
+    samsung_galaxy: "Samsung Galaxy Watch",
+    garmin: "Garmin",
+    fitbit: "Fitbit / Pixel Watch",
+    polar: "Polar",
+    whoop: "Whoop / Oura",
+    other: "other device"
+  };
+  return map[value] || value || "not linked";
+}
+
+function formatWearableSummaryLine() {
+  const prefs = readWearablePrefs();
+  if (!prefs || prefs.vendor === "none" || !prefs.vendor) {
+    return "Wearable: not configured on this browser.";
+  }
+  const digest = prefs.dailyDigest ? "daily digest on" : "daily digest off";
+  const detail = prefs.detailedMetrics ? "HRV/sleep stages when allowed" : "basic metrics only";
+  return `Wearable: ${wearableVendorLabel(prefs.vendor)} | ${digest} | ${detail}`;
+}
+
+function loadWearablePrefsIntoForm() {
+  const prefs = readWearablePrefs();
+  if (!prefs) {
+    return;
+  }
+  if (wearableVendor && prefs.vendor) {
+    wearableVendor.value = prefs.vendor;
+  }
+  if (wearableDailyDigest && typeof prefs.dailyDigest === "boolean") {
+    wearableDailyDigest.checked = prefs.dailyDigest;
+  }
+  if (wearableDetailedMetrics && typeof prefs.detailedMetrics === "boolean") {
+    wearableDetailedMetrics.checked = prefs.detailedMetrics;
+  }
+  if (wearableLinkStatus) {
+    wearableLinkStatus.textContent = `Saved on this device: ${formatWearableSummaryLine()}`;
+  }
+}
+
+async function saveWearablePreferences() {
+  const prefs = {
+    vendor: wearableVendor ? String(wearableVendor.value || "none") : "none",
+    dailyDigest: wearableDailyDigest ? Boolean(wearableDailyDigest.checked) : true,
+    detailedMetrics: wearableDetailedMetrics ? Boolean(wearableDetailedMetrics.checked) : false,
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    localStorage.setItem(WEARABLE_PREF_KEY, JSON.stringify(prefs));
+  } catch {
+    if (wearableLinkStatus) {
+      wearableLinkStatus.textContent = "Could not save wearable preferences in this browser.";
+    }
+    return;
+  }
+  if (wearableLinkStatus) {
+    wearableLinkStatus.textContent = `Saved on this device. ${formatWearableSummaryLine()} — open the mobile app to complete HealthKit / Health Connect pairing.`;
+  }
+  try {
+    const response = await fetch("/api/public/coach/wearable/prefs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: getPublicUserId(),
+        wearableVendor: prefs.vendor,
+        dailyDigest: prefs.dailyDigest,
+        detailedMetrics: prefs.detailedMetrics
+      })
+    });
+    if (response.ok) {
+      const result = await response.json();
+      if (result && result.ok && wearableLinkStatus) {
+        wearableLinkStatus.textContent += " Server acknowledged wearable preferences.";
+      }
+    }
+  } catch {
+    /* optional API not deployed */
+  }
+}
+
+async function logWearableDemoCheckin() {
+  const prefs = readWearablePrefs();
+  if (!prefs || prefs.vendor === "none" || !prefs.vendor) {
+    if (wearableLinkStatus) {
+      wearableLinkStatus.textContent = "Choose a watch family and save preferences before demo sync.";
+    }
+    return;
+  }
+  if (!coachDashboard) {
+    return;
+  }
+  const demoSteps = 7200 + Math.floor(Math.random() * 4200);
+  const demoSleep = prefs.detailedMetrics ? "6h58 REM" : "6h58";
+  const demoActive = 38 + Math.floor(Math.random() * 35);
+  const tag = (wearableVendorLabel(prefs.vendor) || "watch").slice(0, 10);
+  let metricValue = `W:${tag} ${demoSteps}st ${demoActive}m ${demoSleep}`;
+  if (prefs.detailedMetrics) {
+    metricValue += " rHR58";
+  }
+  if (metricValue.length > 118) {
+    metricValue = metricValue.slice(0, 118);
+  }
+  const payload = {
+    userId: getPublicUserId(),
+    checkinType: "activity",
+    metricValue,
+    notes: "Demo wearable sync from web."
+  };
+  try {
+    const response = await fetch("/api/public/coach/checkin/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    if (wearableLinkStatus) {
+      wearableLinkStatus.textContent = result.ok
+        ? "Demo sync logged to your coach check-ins. Refresh the coach dashboard to see it."
+        : "Demo sync could not reach the coach API — preference is still saved locally.";
+    }
+    if (result.ok) {
+      await refreshCoachDashboard();
+    }
+  } catch {
+    if (wearableLinkStatus) {
+      wearableLinkStatus.textContent = "Network error during demo sync. Preferences remain saved locally.";
+    }
+  }
+}
+
 async function refreshCoachDashboard() {
   if (!coachDashboard) {
     return;
   }
+  const wearableLine = formatWearableSummaryLine();
   try {
     const response = await fetch(`/api/public/coach/dashboard?userId=${encodeURIComponent(getPublicUserId())}`);
     const payload = await response.json();
     if (!payload || !payload.ok) {
-      coachDashboard.textContent = "Coach dashboard is not available right now.";
+      coachDashboard.textContent = `Coach dashboard is not available right now. ${wearableLine}`;
       return;
     }
     const profile = payload.profile || {};
@@ -1923,10 +2261,14 @@ async function refreshCoachDashboard() {
     const checkinText = checkins.length
       ? checkins.slice(0, 3).map((item) => `${item.checkin_type}: ${item.metric_value || "n/a"}`).join(" | ")
       : "No recent check-ins yet.";
+    let wearOut = wearableLine;
+    if (profile.wearable_vendor) {
+      wearOut += ` | Server: ${profile.wearable_vendor} digest=${Number(profile.wearable_daily_digest) === 1 ? "on" : "off"}`;
+    }
     coachDashboard.textContent =
-      `Focus: ${profile.coach_focus || "not set"} | Goal: ${profile.goal_notes || "not set"} || Medications: ${medText} || Recent check-ins: ${checkinText}`;
+      `Focus: ${profile.coach_focus || "not set"} | Goal: ${profile.goal_notes || "not set"} || Medications: ${medText} || Recent check-ins: ${checkinText} || ${wearOut}`;
   } catch {
-    coachDashboard.textContent = "Coach dashboard request failed. Please try again.";
+    coachDashboard.textContent = `Coach dashboard request failed. Please try again. ${wearableLine}`;
   }
 }
 
@@ -1942,6 +2284,13 @@ if (addHealthCheckinBtn) {
 if (refreshCoachDashboardBtn) {
   refreshCoachDashboardBtn.addEventListener("click", refreshCoachDashboard);
 }
+if (saveWearablePrefsBtn) {
+  saveWearablePrefsBtn.addEventListener("click", saveWearablePreferences);
+}
+if (syncWearableDemoBtn) {
+  syncWearableDemoBtn.addEventListener("click", logWearableDemoCheckin);
+}
+loadWearablePrefsIntoForm();
 refreshCoachDashboard();
 
 const trustEntities = [
@@ -2181,3 +2530,74 @@ loadTrustCards();
 loadRewardProfile();
 wireMarketActionButtons();
 localStorage.setItem(ONBOARDING_KEY, "1");
+
+(function initPremiumMotion() {
+  const mqReduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  if (mqReduce.matches) {
+    return;
+  }
+  document.documentElement.classList.add("vc-cursor-glow");
+  let glowRaf = 0;
+  document.documentElement.addEventListener(
+    "pointermove",
+    (e) => {
+      const x = (e.clientX / Math.max(window.innerWidth, 1)) * 100;
+      const y = (e.clientY / Math.max(window.innerHeight, 1)) * 100;
+      cancelAnimationFrame(glowRaf);
+      glowRaf = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty("--vc-cx", `${x.toFixed(2)}%`);
+        document.documentElement.style.setProperty("--vc-cy", `${y.toFixed(2)}%`);
+      });
+    },
+    { passive: true }
+  );
+
+  if (typeof window.Lenis !== "function") {
+    return;
+  }
+  try {
+    const lenis = new window.Lenis({
+      lerp: 0.11,
+      smoothWheel: true,
+    });
+    function onLenisFrame(time) {
+      lenis.raf(time);
+      requestAnimationFrame(onLenisFrame);
+    }
+    requestAnimationFrame(onLenisFrame);
+    window.__vibecartLenis = lenis;
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      const href = anchor.getAttribute("href");
+      if (!href || href.length < 2 || href === "#") {
+        return;
+      }
+      const id = href.slice(1);
+      if (!id || id.includes(":")) {
+        return;
+      }
+      if (anchor.dataset.vcLenisAnchor === "1") {
+        return;
+      }
+      anchor.dataset.vcLenisAnchor = "1";
+      anchor.addEventListener("click", (event) => {
+        const target = document.getElementById(id);
+        if (!target) {
+          return;
+        }
+        event.preventDefault();
+        lenis.scrollTo(target, { offset: -88 });
+      });
+    });
+    const hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      const jump = document.getElementById(hash.slice(1));
+      if (jump) {
+        requestAnimationFrame(() => {
+          lenis.scrollTo(jump, { offset: -88 });
+        });
+      }
+    }
+  } catch {
+    /* ignore smooth scroll init failures */
+  }
+})();

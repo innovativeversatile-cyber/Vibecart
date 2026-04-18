@@ -35,7 +35,8 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./styles.css?v=20260420alive1" />
+    <link rel="stylesheet" href="./vendor/lenis.css?v=20260421lang1" />
+    <link rel="stylesheet" href="./styles.css?v=20260421lang1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -58,18 +59,48 @@
         <span class="brand-mark">V</span>
         <span class="brand-name">VibeCart</span>
       </div>
-      <nav class="nav-links">
-        <a href="#categories">Categories</a>
-        <a href="#shops">Regional shops</a>
-        <a href="#market">Hot Picks</a>
-        <a href="#rewards">Rewards</a>
-        <a href="#insurance">Insurance</a>
-        <a href="#security">Security</a>
-        <a href="#settings-hub" class="nav-settings">Settings</a>
-        <a href="#seller-growth-ai">Seller Boost</a>
-        <a href="#sell" class="cta-small">Start Selling</a>
-      </nav>
+      <div class="topbar-rest">
+        <nav class="nav-links" aria-label="Primary">
+          <a href="#categories" data-i18n="nav.categories">Categories</a>
+          <a href="#shops" data-i18n="nav.shops">Regional shops</a>
+          <a href="#market" data-i18n="nav.hot">Hot Picks</a>
+          <a href="#rewards" data-i18n="nav.rewards">Rewards</a>
+          <a href="#insurance" data-i18n="nav.insurance">Insurance</a>
+          <a href="#security" data-i18n="nav.security">Security</a>
+          <a href="#settings-hub" class="nav-settings" data-i18n="nav.settings">Settings</a>
+          <a href="#seller-growth-ai" data-i18n="nav.sellerBoost">Seller Boost</a>
+          <a href="#sell" class="cta-small" data-i18n="nav.sell">Start Selling</a>
+        </nav>
+        <div class="topbar-lang">
+          <label for="siteLanguage" data-i18n="lang.label">Language</label>
+          <select id="siteLanguage" aria-label="Site language">
+            <option value="en">English</option>
+            <option value="other">Other → English UI</option>
+            <option value="pl">Polski</option>
+            <option value="fr">Français</option>
+            <option value="pt">Português</option>
+            <option value="sw">Kiswahili</option>
+            <option value="sn">ChiShona</option>
+            <option value="nd">isiNdebele</option>
+            <option value="xh">isiXhosa</option>
+            <option value="zh">中文 (简体)</option>
+            <option value="ko">한국어</option>
+            <option value="hi">हिन्दी (India)</option>
+            <option value="ar">العربية</option>
+          </select>
+        </div>
+      </div>
     </header>
+
+    <div id="localeSuggestBanner" class="locale-suggest-banner hidden" role="region" aria-label="Suggested language">
+      <div class="locale-suggest-inner">
+        <p id="localeSuggestText" class="locale-suggest-text"></p>
+        <div class="locale-suggest-actions">
+          <button type="button" id="localeSuggestApply" class="btn btn-primary">Switch language</button>
+          <button type="button" id="localeSuggestDismiss" class="btn btn-secondary">No thanks</button>
+        </div>
+      </div>
+    </div>
 
     <main>
       <div class="page-group page-group--discover" aria-label="Discover and shop">
@@ -81,8 +112,8 @@
           <span class="bg-orb bg-orb-c"></span>
         </div>
         <div class="hero-copy">
-          <p id="heroBadge" class="badge">Africa-Europe-Asia Trade Bridge</p>
-          <h1 id="heroTitle">Discover bold finds. Buy fast. Sell globally.</h1>
+          <p id="heroBadge" class="badge" data-i18n="hero.badge">Africa-Europe-Asia Trade Bridge</p>
+          <h1 id="heroTitle" data-i18n="hero.title">Discover bold finds. Buy fast. Sell globally.</h1>
           <p id="heroSubtitle">
             <span id="regionHeadline">VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.</span>
             Discover offers from Poland and Europe, with routes to South Africa,
@@ -946,10 +977,10 @@
       </section>
 
       <section id="ai-assistant" class="section alt">
-        <h2>AI Shopping Assistant</h2>
-        <p>
-          Need help choosing? Tell the assistant your budget, category, and what you need.
-          It will suggest suitable products instantly.
+        <h2 data-i18n="ai.title">AI Shopping Assistant</h2>
+        <p data-i18n="ai.lead">
+          Need help choosing? Tell the assistant your budget, category, and what you need. It ranks live listings on this
+          page — not a remote model.
         </p>
         <div class="ai-grid">
           <label for="aiNeed">What do you need?</label>
@@ -967,9 +998,50 @@
             <option value="Gaming">Gaming</option>
           </select>
 
-          <button id="aiSuggest" class="btn btn-primary">Get AI Suggestions</button>
+          <button id="aiSuggest" type="button" class="btn btn-primary" data-i18n="ai.suggest">Get AI suggestions</button>
         </div>
         <div id="aiResult" class="ai-result" aria-live="polite"></div>
+      </section>
+
+      <section id="vc-ai-orbit" class="section alt vc-ai-orbit" aria-labelledby="vc-orbit-title">
+        <h2 id="vc-orbit-title" data-i18n="orbit.title">Signal deck: dual AI + policy rails</h2>
+        <p class="note" data-i18n="orbit.lead">
+          Pick a tone for on-page tips. Heavy lifting still runs through your APIs, humans, and policy — nothing here
+          auto-installs software or bypasses review.
+        </p>
+        <div class="vc-orbit-grid">
+          <div class="vc-orbit-card">
+            <p class="note" data-i18n="orbit.personaHint">
+              Persona changes suggestion wording only. Checkout, legality, and payouts stay in your normal flows.
+            </p>
+            <button type="button" class="btn btn-primary" id="vcPersonaFun" aria-pressed="false" data-i18n="orbit.personaFun">
+              Fun AI (Aura)
+            </button>
+          </div>
+          <div class="vc-orbit-card">
+            <p class="note" data-i18n="orbit.personaHint">
+              Persona changes suggestion wording only. Checkout, legality, and payouts stay in your normal flows.
+            </p>
+            <button type="button" class="btn btn-secondary" id="vcPersonaEff" aria-pressed="true" data-i18n="orbit.personaEff">
+              Efficient AI (Ops)
+            </button>
+          </div>
+        </div>
+        <div class="vc-legal-copilot alt">
+          <h3 data-i18n="orbit.legalTitle">Law-safe copilot (rules, not magic)</h3>
+          <p data-i18n="orbit.legalBody">
+            Automated checks use jurisdiction tables, category bans, and risk prompts. Unclear cases go to manual
+            review. This is compliance assistance — not legal advice and not autonomous enforcement.
+          </p>
+        </div>
+        <div class="vc-radar">
+          <h3 data-i18n="orbit.radarTitle">Market radar (signals)</h3>
+          <p class="note" data-i18n="orbit.radarLead">
+            Heuristic hints from your region and language choice — use them in your growth plan; they do not deploy code
+            or open stores for you.
+          </p>
+          <ul id="vcOpportunityRadar" class="vc-radar-list" aria-live="polite"></ul>
+        </div>
       </section>
       </div>
 
@@ -1108,6 +1180,41 @@
           <button id="saveCoachProfile" class="btn btn-primary">Save AI Coach Profile</button>
         </div>
 
+        <div class="wearable-panel alt" style="margin-top: 1.15rem">
+          <h3>Smartwatch &amp; wearable link</h3>
+          <p class="note">
+            Connect a fitness watch or band so <strong>steps, active minutes, and sleep summaries</strong> can flow into
+            your coach as daily check-ins. Full pairing and background sync use the
+            <strong>VibeCart mobile app</strong> (HealthKit on iOS, Health Connect / OEM bridges on Android). This panel
+            stores your preferences for that path and shows status on the web.
+          </p>
+          <div class="ai-grid wearable-ai-grid">
+            <label for="wearableVendor">Watch or band family</label>
+            <select id="wearableVendor">
+              <option value="none">Not linked yet</option>
+              <option value="apple_watch">Apple Watch (HealthKit)</option>
+              <option value="wear_os">Wear OS by Google</option>
+              <option value="samsung_galaxy">Samsung Galaxy Watch</option>
+              <option value="garmin">Garmin</option>
+              <option value="fitbit">Fitbit / Google Pixel Watch</option>
+              <option value="polar">Polar</option>
+              <option value="whoop">Whoop / Oura (ring)</option>
+              <option value="other">Other BLE / ANT+ device</option>
+            </select>
+            <label class="wearable-check-row">
+              <input type="checkbox" id="wearableDailyDigest" checked />
+              <span>Send a <strong>full daily summary</strong> into the coach when the app syncs (steps, energy, sleep).</span>
+            </label>
+            <label class="wearable-check-row">
+              <input type="checkbox" id="wearableDetailedMetrics" />
+              <span>When supported, include <strong>resting heart rate</strong> and <strong>sleep stages</strong> in digests (requires extra consent in the app).</span>
+            </label>
+            <button type="button" id="saveWearablePrefs" class="btn btn-primary">Save wearable preferences</button>
+            <button type="button" id="syncWearableDemo" class="btn btn-secondary">Log demo sync to coach</button>
+          </div>
+          <div id="wearableLinkStatus" class="ai-result" aria-live="polite"></div>
+        </div>
+
         <div class="ai-grid" style="margin-top: 1rem;">
           <label for="medicationName">Medication Name</label>
           <input id="medicationName" type="text" placeholder="Medication name" />
@@ -1218,12 +1325,14 @@
       </div>
     </div>
 
-    <script src="./script.js?v=20260420alive1"></script>
+    <script src="./i18n.js?v=20260421lang1"></script>
+    <script src="./vendor/lenis.min.js?v=20260421lang1"></script>
+    <script src="./script.js?v=20260421lang1"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./service-worker.js?v=20260420alive1", { updateViaCache: "none" })
+            .register("./service-worker.js?v=20260421lang1", { updateViaCache: "none" })
             .then((reg) => reg.update())
             .catch(() => {});
         });
