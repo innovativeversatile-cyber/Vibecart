@@ -2,7 +2,7 @@
   "expo": {
     "name": "VibeCart",
     "slug": "vibecart-mobile",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "scheme": "vibecart",
     "userInterfaceStyle": "dark",
@@ -16,6 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vibecart.mobile",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSUserNotificationUsageDescription": "VibeCart uses notifications for order updates, messages, and security alerts."
       }
     },
@@ -31,6 +32,8 @@
     },
     "plugins": [
       "expo-notifications",
+      "expo-asset",
+      "expo-font",
       [
         "expo-build-properties",
         {
@@ -46,7 +49,10 @@
     "extra": {
       "vibecartBaseUrl": "https://vibe-cart.com",
       "vibecartApiBaseUrl": "https://vibe-cart.com",
-      "vibecartWebCacheTag": "v1-0-8-smooth-splash"
+      "vibecartWebCacheTag": "v1-0-9-webview-viewport",
+      "eas": {
+        "projectId": "c2e55852-2892-4eeb-a6f7-6034e1df8b45"
+      }
     }
   }
 }

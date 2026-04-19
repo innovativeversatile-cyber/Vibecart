@@ -20,7 +20,15 @@ function readEasProjectId() {
   }
 }
 
-const projectId = process.env.EAS_PROJECT_ID || readEasProjectId();
+const projectId =
+  process.env.EAS_PROJECT_ID ||
+  readEasProjectId() ||
+  (appJson.expo.extra &&
+    appJson.expo.extra.eas &&
+    typeof appJson.expo.extra.eas.projectId === "string" &&
+    appJson.expo.extra.eas.projectId.trim()) ||
+  undefined;
+
 const extra = { ...(appJson.expo.extra || {}) };
 
 if (projectId) {
@@ -35,9 +43,27 @@ if (apiFromEnv) {
   extra.vibecartApiBaseUrl = extra.vibecartApiBaseUrl.replace(/\/$/, "");
 }
 
+// EAS Update (expo-updates): required when eas.json build profiles use `channel`.
+// Dynamic app.config.js cannot be auto-patched by the CLI — see https://expo.fyi/eas-update-config
+const easProjectIdForUpdates = extra.eas && typeof extra.eas.projectId === "string" ? extra.eas.projectId.trim() : "";
+
 module.exports = {
   expo: {
     ...appJson.expo,
-    extra
+    extra,
+    // Explicit merge so EAS CLI sees this without patching app.config.js (dynamic config).
+    ios: {
+      ...appJson.expo.ios,
+      infoPlist: {
+        ...(appJson.expo.ios && appJson.expo.ios.infoPlist ? appJson.expo.ios.infoPlist : {}),
+        ITSAppUsesNonExemptEncryption: false
+      }
+    },
+    ...(easProjectIdForUpdates
+      ? {
+          updates: { url: `https://u.expo.dev/${easProjectIdForUpdates}` },
+          runtimeVersion: { policy: "appVersion" }
+        }
+      : {})
   }
 };

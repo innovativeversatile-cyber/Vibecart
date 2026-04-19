@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
+import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -21,8 +22,101 @@ import type { WebView as WebViewType } from "react-native-webview";
 
 const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
 const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
+const DOCK_COACH_DISMISSED_KEY = "vibecart.dock.coach.dismissed.v1";
 
-const INJECT_MOBILE_CLASS = `(function(){try{document.documentElement.classList.add('vc-mobile-app');document.documentElement.style.setProperty('--vc-mobile-tab-h','62px');}catch(e){}})();true;`;
+const INJECT_MOBILE_CLASS = `(function(){try{document.documentElement.classList.add('vc-mobile-app');document.documentElement.style.setProperty('--vc-mobile-tab-h','62px');var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
+
+/**
+ * Hash + scroll intelligence: dock follows the section actually in view (IntersectionObserver),
+ * with hash/deep-link as bootstrap. Feels "alive" while scrolling — not just URL string matching.
+ */
+const INJECT_HASH_SYNC = `(function(){
+  try {
+    var RN = typeof window !== "undefined" && window.ReactNativeWebView;
+    if (!RN || !RN.postMessage) return true;
+    var last = "";
+    var debounce = 0;
+    function send(k) {
+      if (!k || k === last) return;
+      last = k;
+      try {
+        RN.postMessage(JSON.stringify({ vcDock: k, src: "vc" }));
+      } catch (e) {}
+    }
+    function dockFromHash() {
+      var h = (location.hash || "").replace(/^#/, "").split("&")[0].split("?")[0];
+      if (!h) return "home";
+      if (h === "shops") return "shops";
+      if (h === "bridge-routes") return "bridge";
+      if (h === "market") return "market";
+      if (h === "settings-hub" || h === "account-access") return "more";
+      if (h === "sell" || h.indexOf("seller") === 0) return "more";
+      if (h === "rewards") return "market";
+      if (h === "categories") return "home";
+      if (h === "insurance" || h === "buyer-advantages" || h === "tracking") return "home";
+      return "home";
+    }
+    function wireScrollSpy() {
+      var latest = new Map();
+      var map = [];
+      var hero = document.querySelector("main .hero");
+      if (hero) map.push({ el: hero, k: "home" });
+      [["shops","shops"],["bridge-routes","bridge"],["market","market"],["account-access","more"],["settings-hub","more"],["sell","more"],["rewards","market"],["categories","home"]].forEach(function (row) {
+        var el = document.getElementById(row[0]);
+        if (el) map.push({ el: el, k: row[1] });
+      });
+      if (!map.length) return;
+      function pick() {
+        var scores = { home: 0, shops: 0, bridge: 0, market: 0, more: 0 };
+        latest.forEach(function (r, el) {
+          var k = el.getAttribute("data-vc-track");
+          if (k) scores[k] = Math.max(scores[k] || 0, r);
+        });
+        var bestK = "home", bestV = -1;
+        Object.keys(scores).forEach(function (k) {
+          if (scores[k] > bestV) { bestV = scores[k]; bestK = k; }
+        });
+        if (bestV < 0.04) {
+          send(dockFromHash());
+          return;
+        }
+        send(bestK);
+      }
+      function schedule() {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(pick, 120);
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          latest.set(en.target, en.intersectionRatio);
+        });
+        schedule();
+      }, { root: null, rootMargin: "-14% 0px -32% 0px", threshold: [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.45, 0.6, 0.75, 1] });
+      map.forEach(function (m) {
+        try {
+          m.el.setAttribute("data-vc-track", m.k);
+          obs.observe(m.el);
+        } catch (e) {}
+      });
+    }
+    send(dockFromHash());
+    window.addEventListener("hashchange", function () {
+      send(dockFromHash());
+    }, false);
+    window.addEventListener("popstate", function () {
+      send(dockFromHash());
+    }, false);
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden) send(dockFromHash());
+    });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", wireScrollSpy);
+    } else {
+      wireScrollSpy();
+    }
+  } catch (e) {}
+  return true;
+})();`;
 
 async function getOrCreateInstallId(): Promise<string> {
   const existing = await AsyncStorage.getItem(INSTALL_STORAGE_KEY);
@@ -86,6 +180,21 @@ function withWebCacheTag(url: string, tag: string | undefined): string {
 
 type DockKey = "home" | "shops" | "bridge" | "market" | "more";
 
+const DOCK_KEYS: DockKey[] = ["home", "shops", "bridge", "market", "more"];
+
+function parseVcDockMessage(data: string): DockKey | null {
+  try {
+    const o = JSON.parse(data) as { vcDock?: string };
+    const k = String(o.vcDock || "");
+    if (DOCK_KEYS.includes(k as DockKey)) {
+      return k as DockKey;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
 export default function App(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -94,6 +203,8 @@ export default function App(): JSX.Element {
   const [disclaimerPeek, setDisclaimerPeek] = useState(false);
   const [resumePulseVisible, setResumePulseVisible] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
+  const [dockActive, setDockActive] = useState<DockKey>("home");
+  const [dockCoachVisible, setDockCoachVisible] = useState(false);
   const webViewRef = useRef<WebViewType>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const splashOp = useRef(new Animated.Value(1)).current;
@@ -136,6 +247,30 @@ export default function App(): JSX.Element {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!acceptedDisclaimer) {
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    AsyncStorage.getItem(DOCK_COACH_DISMISSED_KEY)
+      .then((v) => {
+        if (v === "1") {
+          return;
+        }
+        setDockCoachVisible(true);
+        timer = setTimeout(() => {
+          setDockCoachVisible(false);
+          AsyncStorage.setItem(DOCK_COACH_DISMISSED_KEY, "1").catch(() => {});
+        }, 10000);
+      })
+      .catch(() => {});
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [acceptedDisclaimer]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
@@ -249,13 +384,15 @@ export default function App(): JSX.Element {
   }, [allowedHost, baseUrl]);
 
   const navigateDock = (key: DockKey) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    setDockActive(key);
     const root = baseUrl.replace(/\/$/, "");
     const map: Record<DockKey, string> = {
       home: `${root}/`,
       shops: `${root}/#shops`,
       bridge: `${root}/#bridge-routes`,
       market: `${root}/#market`,
-      more: `${root}/#settings-hub`
+      more: `${root}/#account-access`
     };
     const target = map[key];
     webViewRef.current?.injectJavaScript(`window.location.href = ${JSON.stringify(target)}; true;`);
@@ -263,22 +400,22 @@ export default function App(): JSX.Element {
 
   const scale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.94, 1.06]
+    outputRange: [0.9, 1.12]
   });
 
   const opacity = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.72, 1]
+    outputRange: [0.68, 1]
   });
 
   const ringScale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.42]
+    outputRange: [1, 1.58]
   });
 
   const ringOpacity = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.55, 0.12]
+    outputRange: [0.62, 0.08]
   });
 
   const bottomPad = Platform.OS === "ios" ? 26 : 14;
@@ -312,9 +449,19 @@ export default function App(): JSX.Element {
         pullToRefreshEnabled={Platform.OS === "ios"}
         thirdPartyCookiesEnabled
         androidLayerType="hardware"
+        mixedContentMode="never"
         textZoom={100}
+        scalesPageToFit={false}
+        overScrollMode="never"
         mediaPlaybackRequiresUserAction={true}
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
+        injectedJavaScript={INJECT_HASH_SYNC}
+        onMessage={(ev: { nativeEvent: { data: string } }) => {
+          const next = parseVcDockMessage(ev.nativeEvent.data);
+          if (next) {
+            setDockActive(next);
+          }
+        }}
         onLoadStart={() => {
           setErrorText("");
         }}
@@ -413,14 +560,17 @@ export default function App(): JSX.Element {
       )}
       {acceptedDisclaimer && (
         <Pressable
-          style={[styles.disclaimerChip, { bottom: 62 + bottomPad }]}
+          style={[
+            styles.disclaimerChip,
+            { bottom: (dockCoachVisible ? 118 : 62) + bottomPad }
+          ]}
           onPress={() => setDisclaimerPeek((v) => !v)}
         >
           <Text style={styles.disclaimerChipText}>{disclaimerPeek ? "Hide legal note" : "Legal · risk note"}</Text>
         </Pressable>
       )}
       {disclaimerPeek && acceptedDisclaimer && (
-        <View style={[styles.disclaimerPop, { bottom: 102 + bottomPad }]}>
+        <View style={[styles.disclaimerPop, { bottom: (dockCoachVisible ? 158 : 102) + bottomPad }]}>
           <Text style={styles.disclaimerPopText}>
             VibeCart uses strong protection controls, but no platform can eliminate all risk. Follow local laws and
             platform terms.
@@ -441,6 +591,7 @@ export default function App(): JSX.Element {
             <Pressable
               style={({ pressed }) => [styles.acceptanceButton, pressed && { opacity: 0.88 }]}
               onPress={() => {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
                 setAcceptedDisclaimer(true);
                 AsyncStorage.setItem(DISCLAIMER_STORAGE_KEY, "1").catch(() => {});
               }}
@@ -451,27 +602,79 @@ export default function App(): JSX.Element {
         </View>
       )}
       {acceptedDisclaimer && !isLoading && (
-        <View style={[styles.dock, { paddingBottom: bottomPad }]}>
-          <Pressable style={styles.dockBtn} onPress={() => navigateDock("home")}>
-            <Ionicons name="home-outline" size={22} color="#f6f2ff" />
-            <Text style={styles.dockLabel}>Home</Text>
-          </Pressable>
-          <Pressable style={styles.dockBtn} onPress={() => navigateDock("shops")}>
-            <Ionicons name="folder-outline" size={22} color="#f6f2ff" />
-            <Text style={styles.dockLabel}>Folders</Text>
-          </Pressable>
-          <Pressable style={styles.dockBtn} onPress={() => navigateDock("bridge")}>
-            <Ionicons name="git-network-outline" size={22} color="#f6f2ff" />
-            <Text style={styles.dockLabel}>Bridge</Text>
-          </Pressable>
-          <Pressable style={styles.dockBtn} onPress={() => navigateDock("market")}>
-            <Ionicons name="storefront-outline" size={22} color="#f6f2ff" />
-            <Text style={styles.dockLabel}>Market</Text>
-          </Pressable>
-          <Pressable style={styles.dockBtn} onPress={() => navigateDock("more")}>
-            <Ionicons name="menu-outline" size={22} color="#f6f2ff" />
-            <Text style={styles.dockLabel}>More</Text>
-          </Pressable>
+        <View style={[styles.dockShell, { paddingBottom: bottomPad }]}>
+          {dockCoachVisible ? (
+            <View style={styles.dockCoach}>
+              <Text style={styles.dockCoachText}>Pick a lane — the marketplace moves with you.</Text>
+            </View>
+          ) : null}
+          <View style={styles.dock}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Home"
+              style={({ pressed }) => [styles.dockBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateDock("home")}
+            >
+              <Ionicons
+                name="home-outline"
+                size={24}
+                color={dockActive === "home" ? "#e8a317" : "#7d6f9a"}
+              />
+              <Text style={[styles.dockLabel, dockActive === "home" && styles.dockLabelActive]}>Home</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Regional shops"
+              style={({ pressed }) => [styles.dockBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateDock("shops")}
+            >
+              <Ionicons
+                name="folder-outline"
+                size={24}
+                color={dockActive === "shops" ? "#e8a317" : "#7d6f9a"}
+              />
+              <Text style={[styles.dockLabel, dockActive === "shops" && styles.dockLabelActive]}>Lanes</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Trade bridge"
+              style={({ pressed }) => [styles.dockBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateDock("bridge")}
+            >
+              <Ionicons
+                name="git-network-outline"
+                size={24}
+                color={dockActive === "bridge" ? "#e8a317" : "#7d6f9a"}
+              />
+              <Text style={[styles.dockLabel, dockActive === "bridge" && styles.dockLabelActive]}>Bridge</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Market"
+              style={({ pressed }) => [styles.dockBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateDock("market")}
+            >
+              <Ionicons
+                name="storefront-outline"
+                size={24}
+                color={dockActive === "market" ? "#e8a317" : "#7d6f9a"}
+              />
+              <Text style={[styles.dockLabel, dockActive === "market" && styles.dockLabelActive]}>Picks</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Account and hub"
+              style={({ pressed }) => [styles.dockBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateDock("more")}
+            >
+              <Ionicons
+                name="menu-outline"
+                size={24}
+                color={dockActive === "more" ? "#e8a317" : "#7d6f9a"}
+              />
+              <Text style={[styles.dockLabel, dockActive === "more" && styles.dockLabelActive]}>Hub</Text>
+            </Pressable>
+          </View>
         </View>
       )}
     </SafeAreaView>
@@ -674,32 +877,67 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 16
   },
-  dock: {
+  dockShell: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 45
+  },
+  dockCoach: {
+    paddingHorizontal: 14,
+    paddingTop: 6,
+    paddingBottom: 4,
+    alignItems: "center",
+    backgroundColor: "rgba(6, 3, 14, 0.55)"
+  },
+  dockCoachText: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: "#9a8fb8",
+    textAlign: "center",
+    fontWeight: "600",
+    letterSpacing: 0.2
+  },
+  dock: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 6,
-    paddingTop: 6,
-    backgroundColor: "rgba(8,4,18,0.94)",
+    alignItems: "stretch",
+    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingBottom: 4,
+    backgroundColor: "rgba(10, 6, 22, 0.92)",
     borderTopWidth: 1,
-    borderTopColor: "rgba(232,163,23,0.28)",
-    zIndex: 45
+    borderTopColor: "rgba(232, 163, 23, 0.14)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 12
+      },
+      android: { elevation: 12 }
+    })
   },
   dockBtn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 52,
     paddingVertical: 4
   },
+  dockBtnPressed: {
+    opacity: 0.88
+  },
   dockLabel: {
-    marginTop: 2,
+    marginTop: 3,
     fontSize: 9,
     fontWeight: "700",
-    color: "#dcd4ff",
-    letterSpacing: 0.6,
+    color: "#6e6288",
+    letterSpacing: 0.5,
     textTransform: "uppercase"
+  },
+  dockLabelActive: {
+    color: "#e8dcc8"
   }
 });
