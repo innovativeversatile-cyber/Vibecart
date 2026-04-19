@@ -16,7 +16,8 @@
     "health": "node -e \"const u='https://vibe-cart.com/api/health';fetch(u).then(r=>r.text().then(t=>console.log('OK',u,r.status,t.slice(0,100)))).catch(e=>{console.error(e);process.exit(1);})\"",
     "health:proxy": "node scripts/check-api-proxy.mjs",
     "health:dns": "node scripts/diagnose-vibe-cart-dns.mjs",
-    "test:syntax": "node -e \"require('child_process').execSync('node --check db-env.js',{stdio:'inherit'});require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/apply-schema.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/seed-demo.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/diagnose-vibe-cart-dns.mjs',{stdio:'inherit'});\""
+    "smoke:full": "node scripts/run-full-smoke.mjs",
+    "test:syntax": "node -e \"require('child_process').execSync('node --check db-env.js',{stdio:'inherit'});require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/apply-schema.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/seed-demo.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/diagnose-vibe-cart-dns.mjs',{stdio:'inherit'});require('child_process').execSync('node --check scripts/run-full-smoke.mjs',{stdio:'inherit'});\""
   },
   "engines": {
     "node": ">=20.0.0"

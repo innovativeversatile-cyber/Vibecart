@@ -200,7 +200,8 @@ const pool = mysql.createPool({
 const ipHits = new Map();
 const loginHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
-const RATE_MAX = 30;
+/** Mutating requests only (GET/HEAD/OPTIONS are not counted). */
+const RATE_MAX = 60;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
 const PUBLIC_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -325,7 +326,11 @@ async function logDisclaimerAcceptance(req, payload) {
   return { ok: true };
 }
 
-function isRateLimited(ip) {
+function isRateLimited(ip, method) {
+  const m = String(method || "GET").toUpperCase();
+  if (m === "GET" || m === "HEAD" || m === "OPTIONS") {
+    return false;
+  }
   const now = Date.now();
   const item = ipHits.get(ip) || { count: 0, start: now };
   if (now - item.start > RATE_WINDOW_MS) {
@@ -2586,7 +2591,7 @@ const server = http.createServer(async (req, res) => {
       if (isLogoEmailIpLimited(ip)) {
         return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
       }
-    } else if (!isStripeWebhook && isRateLimited(ip)) {
+    } else if (!isStripeWebhook && isRateLimited(ip, req.method)) {
       return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
     }
 

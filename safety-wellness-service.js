@@ -12,7 +12,14 @@ const SCAM_RULES = [
   { key: "gift card", weight: 25 },
   { key: "crypto only", weight: 25 },
   { key: "wire transfer", weight: 30 },
-  { key: "urgent payment", weight: 20 }
+  { key: "urgent payment", weight: 20 },
+  { key: "send money first", weight: 32 },
+  { key: "fake listing", weight: 30 },
+  { key: "item does not exist", weight: 28 },
+  { key: "product does not exist", weight: 28 },
+  { key: "no stock but pay", weight: 26 },
+  { key: "guaranteed profit", weight: 22 },
+  { key: "warehouse clearance unlimited", weight: 18 }
 ];
 
 function evaluateChatRisk(messageText) {
@@ -38,12 +45,20 @@ async function logChatSafetyEvent(db, payload) {
   const { conversationId, senderUserId, messageText } = payload;
   ensure(messageText, "Missing messageText.");
   const evaluation = evaluateChatRisk(messageText);
+  const convId = conversationId ? Number(conversationId) : 0;
+  if (!convId) {
+    return { ok: true, logged: false, skipReason: "no_conversation_id", ...evaluation };
+  }
+  const [convRows] = await db.execute(`SELECT id FROM conversations WHERE id = ? LIMIT 1`, [convId]);
+  if (!convRows || !convRows[0]) {
+    return { ok: true, logged: false, skipReason: "unknown_conversation", ...evaluation };
+  }
   await db.execute(
     `INSERT INTO chat_safety_events (
       conversation_id, sender_user_id, risk_level, risk_score, matched_rules, message_excerpt
     ) VALUES (?, ?, ?, ?, ?, ?)`,
     [
-      conversationId ? Number(conversationId) : null,
+      convId,
       senderUserId ? Number(senderUserId) : null,
       evaluation.riskLevel,
       evaluation.riskScore,
@@ -51,7 +66,7 @@ async function logChatSafetyEvent(db, payload) {
       String(messageText).slice(0, 255)
     ]
   );
-  return { ok: true, ...evaluation };
+  return { ok: true, logged: true, ...evaluation };
 }
 
 async function upsertCoachProfile(db, payload) {
