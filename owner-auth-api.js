@@ -1712,6 +1712,37 @@ async function handleOwnerCoachMetrics(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function handleOwnerPublicUserStats(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    const [totalRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users`);
+    const [buyerRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users WHERE LOWER(role) = 'buyer'`);
+    const [sellerRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users WHERE LOWER(role) = 'seller'`);
+    const [quickRows] = await pool.execute(
+      `SELECT COUNT(*) AS n FROM users WHERE email LIKE ?`,
+      ["quickbuyer%@vibecart.local"]
+    );
+    const total = Number(totalRows[0]?.n || 0);
+    const buyers = Number(buyerRows[0]?.n || 0);
+    const sellers = Number(sellerRows[0]?.n || 0);
+    const quickCheckoutSessions = Number(quickRows[0]?.n || 0);
+    const passportApprox = Math.max(0, total - quickCheckoutSessions);
+    return sendJson(res, 200, {
+      ok: true,
+      total,
+      buyers,
+      sellers,
+      quickCheckoutSessions,
+      passportApprox
+    });
+  } catch {
+    return sendJson(res, 500, { ok: false, code: "PUBLIC_USER_STATS_FAILED" });
+  }
+}
+
 async function handleHealthDailyCron(req, res) {
   const cronHeader = String(req.headers["x-cron-token"] || "");
   if (!CRON_SECRET || cronHeader !== CRON_SECRET) {
@@ -2744,6 +2775,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/site-settings/upsert") {
       return await handleOwnerSiteSettingsUpsert(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/public-users/stats") {
+      return await handleOwnerPublicUserStats(req, res);
     }
     if (req.method === "POST" && pathname === "/api/owner/messages/list") {
       return await handleOwnerMessageCenterList(req, res);

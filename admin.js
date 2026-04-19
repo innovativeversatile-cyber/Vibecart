@@ -1,5 +1,14 @@
 "use strict";
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const STORAGE_KEY = "vibecart-site-settings";
 const AUTH_SESSION_KEY = "vibecart-owner-api-session";
 const AI_LINK_KEY = "vibecart-ai-link";
@@ -8,6 +17,7 @@ const REVENUE_SETTINGS_KEY = "vibecart-revenue-settings";
 const API_BASE_KEY = "vibecart-api-base-url";
 const MESSAGE_CENTER_KEY = "vibecart-admin-message-center-v1";
 const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
+/** When admin is opened as file:// or odd schemes, localhost:8081 causes ECONNREFUSED if no local API. */
 const PUBLIC_PRODUCTION_API_FALLBACK = "https://vibe-cart.com";
 const DEFAULT_API_BASE = (() => {
   if (typeof window === "undefined") {
@@ -63,6 +73,7 @@ async function fetchCloudSettings() {
 
 function normalizeApiBase(input) {
   let value = String(input || "").trim().replace(/\/+$/, "");
+  // Avoid .../api/api/owner/... when callers paste host + /api
   if (/\/api$/i.test(value)) {
     value = value.replace(/\/api$/i, "");
   }
@@ -121,7 +132,7 @@ function appendPulseItem(text) {
   }
 }
 
-function updateOwnerCommandDeck(statusText, saveSettings) {
+function updateOwnerCommandDeck(statusText) {
   const statusNode = document.getElementById("cmdStatus");
   const apiNode = document.getElementById("cmdApi");
   const syncNode = document.getElementById("cmdSync");
@@ -435,37 +446,6 @@ function getCoachMetricsFallback() {
   };
 }
 
-function getRiskDashboardFallback() {
-  return {
-    summary: {
-      avgTrustScore: 88.4,
-      highSafetyEvents30d: 1,
-      mediumSafetyEvents30d: 6,
-      deliveryReliability30d: 96.2
-    },
-    byFocus: [
-      { riskFocus: "trust_safety", eventCount: 7, totalDelta: -2 },
-      { riskFocus: "logistics", eventCount: 4, totalDelta: 3 },
-      { riskFocus: "payments", eventCount: 2, totalDelta: 1 }
-    ],
-    trends: {
-      sevenDay: [
-        { day: "Mon", events: 1 },
-        { day: "Tue", events: 2 },
-        { day: "Wed", events: 1 },
-        { day: "Thu", events: 0 },
-        { day: "Fri", events: 2 }
-      ],
-      thirtyDay: [
-        { day: "W1", events: 6 },
-        { day: "W2", events: 5 },
-        { day: "W3", events: 4 },
-        { day: "W4", events: 3 }
-      ]
-    }
-  };
-}
-
 function getAiOpsFallback() {
   return {
     items: [
@@ -508,6 +488,106 @@ function getAiRecommendationsFallback() {
       }
     ]
   };
+}
+
+function renderAiOpsQueue(items) {
+  const container = document.getElementById("aiOpsQueueList");
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = "<div class='msg msg-buyer'>No AI operations queued yet.</div>";
+    return;
+  }
+  container.innerHTML = "";
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    row.textContent =
+      `op#${item.id} | ${item.operation_type} | risk=${item.risk_level} | mode=${item.execution_mode} | status=${item.status} | ${item.summary_text}`;
+    row.addEventListener("click", () => {
+      const idNode = document.getElementById("aiOpId");
+      const decisionNode = document.getElementById("aiOpDecision");
+      const notesNode = document.getElementById("aiOpOwnerNotes");
+      if (idNode) {
+        idNode.value = String(item.id || "");
+      }
+      if (decisionNode) {
+        decisionNode.value = ["approved", "rejected", "manual_hold", "executed"].includes(String(item.status))
+          ? String(item.status)
+          : "manual_hold";
+      }
+      if (notesNode) {
+        notesNode.value = String(item.owner_notes || "");
+      }
+    });
+    container.appendChild(row);
+  });
+}
+
+async function refreshAiOps() {
+  let payload;
+  try {
+    payload = await authedPost("/api/ai-ops/list", {});
+  } catch {
+    payload = getAiOpsFallback();
+    setStatus("AI operations loaded in smart fallback mode.");
+  }
+  renderAiOpsQueue(payload.items || []);
+  if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
+    setStatus("AI operations queue refreshed.");
+  }
+}
+
+async function generateAiOpsRecommendationsFromPanel() {
+  let payload;
+  let fallbackMode = false;
+  try {
+    payload = await authedPost("/api/ai-ops/recommendations", {});
+  } catch {
+    payload = getAiRecommendationsFallback();
+    fallbackMode = true;
+  }
+  const box = document.getElementById("aiOpsRecommendationsBox");
+  if (box) {
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    box.textContent = items.map((item) => `${item.operationType}: ${item.recommendationText}`).join(" | ") || "No recommendations.";
+  }
+  if (!fallbackMode) {
+    for (const item of payload.items || []) {
+      await authedPost("/api/ai-ops/create", {
+        operationType: item.operationType,
+        summaryText: item.summaryText,
+        recommendationText: item.recommendationText,
+        riskLevel: item.riskLevel,
+        executionMode: item.executionMode
+      });
+    }
+  }
+  if (fallbackMode) {
+    renderAiOpsQueue(getAiOpsFallback().items || []);
+    setStatus("AI recommendations generated in smart fallback mode.");
+    return;
+  }
+  await refreshAiOps();
+  setStatus("AI operations recommendations generated and queued for owner review.");
+}
+
+async function decideAiOpFromPanel() {
+  const operationId = Number(document.getElementById("aiOpId")?.value || "0");
+  const decision = String(document.getElementById("aiOpDecision")?.value || "manual_hold");
+  const ownerNotes = String(document.getElementById("aiOpOwnerNotes")?.value || "").trim();
+  if (!operationId) {
+    setStatus("Enter a valid AI operation ID.");
+    return;
+  }
+  await authedPost("/api/ai-ops/decide", {
+    operationId,
+    decision,
+    ownerNotes
+  });
+  setStatus(`AI operation #${operationId} updated to ${decision}.`);
+  await refreshAiOps();
 }
 
 async function seedRevenueProducts() {
@@ -661,6 +741,19 @@ async function refreshOwnerRevenueDashboard() {
   setStatus("Owner revenue dashboard refreshed. Seller tax remains seller liability.");
 }
 
+async function refreshPublicUserStats() {
+  const payload = await authedPost("/api/owner/public-users/stats", {});
+  const totalEl = document.getElementById("kpiPublicUsersTotal");
+  const subEl = document.getElementById("kpiPublicUsersBreakdown");
+  if (totalEl) {
+    totalEl.textContent = String(payload.total ?? 0);
+  }
+  if (subEl) {
+    subEl.textContent =
+      `~${payload.passportApprox ?? 0} non-quick · ${payload.buyers ?? 0} buyers · ${payload.sellers ?? 0} sellers · ${payload.quickCheckoutSessions ?? 0} quick-checkout`;
+  }
+}
+
 async function requestOwnerPayoutFromPanel() {
   const amount = Number(document.getElementById("ownerPayoutAmount")?.value || "0");
   const destinationLabel = String(document.getElementById("ownerPayoutDestination")?.value || "").trim();
@@ -807,300 +900,6 @@ async function refreshCoachMetrics() {
   if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
     setStatus("AI coach metrics refreshed.");
   }
-}
-
-function renderRiskDashboard(payload) {
-  const summaryNode = document.getElementById("riskDashboardSummary");
-  const byFocusNode = document.getElementById("riskDashboardByFocus");
-  const trendsNode = document.getElementById("riskDashboardTrends");
-  if (!summaryNode || !byFocusNode || !trendsNode) {
-    return;
-  }
-  const summary = payload?.summary || {};
-  summaryNode.textContent =
-    `Avg trust score: ${Number(summary.avgTrustScore || 0).toFixed(1)} | ` +
-    `High safety events (30d): ${Number(summary.highSafetyEvents30d || 0)} | ` +
-    `Medium safety events (30d): ${Number(summary.mediumSafetyEvents30d || 0)} | ` +
-    `Delivery reliability (30d): ${Number(summary.deliveryReliability30d || 0).toFixed(2)}%`;
-  updateKpiStrip({
-    trustScore: Number(summary.avgTrustScore || 0),
-    riskEvents30d: Number(summary.highSafetyEvents30d || 0) + Number(summary.mediumSafetyEvents30d || 0)
-  });
-
-  const byFocus = Array.isArray(payload?.byFocus) ? payload.byFocus : [];
-  if (!byFocus.length) {
-    byFocusNode.innerHTML = "<div class='msg msg-buyer'>No risk action history yet.</div>";
-  } else {
-    byFocusNode.innerHTML = "";
-    byFocus.forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "msg msg-buyer";
-      row.textContent = `${item.riskFocus} | events=${item.eventCount} | score_delta=${item.totalDelta}`;
-      byFocusNode.appendChild(row);
-    });
-  }
-
-  const seven = Array.isArray(payload?.trends?.sevenDay) ? payload.trends.sevenDay : [];
-  const thirty = Array.isArray(payload?.trends?.thirtyDay) ? payload.trends.thirtyDay : [];
-  trendsNode.innerHTML = "";
-  const sevenNode = document.createElement("div");
-  sevenNode.className = "msg msg-buyer";
-  sevenNode.textContent = `7-day trend: ${seven.map((x) => `${x.day}:${x.events}`).join(" | ") || "no events"}`;
-  trendsNode.appendChild(sevenNode);
-  const thirtyNode = document.createElement("div");
-  thirtyNode.className = "msg msg-buyer";
-  thirtyNode.textContent = `30-day trend: ${thirty.map((x) => `${x.day}:${x.events}`).join(" | ") || "no events"}`;
-  trendsNode.appendChild(thirtyNode);
-}
-
-async function refreshRiskDashboard() {
-  let payload;
-  try {
-    payload = await authedPost("/api/risk/owner-dashboard", {});
-  } catch {
-    payload = getRiskDashboardFallback();
-    setStatus("Platform risk dashboard loaded in smart fallback mode.");
-  }
-  renderRiskDashboard(payload);
-  if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
-    setStatus("Platform risk dashboard refreshed.");
-  }
-}
-
-function renderBarterReviewList(items) {
-  const container = document.getElementById("barterReviewList");
-  if (!container) {
-    return;
-  }
-  if (!Array.isArray(items) || items.length === 0) {
-    container.innerHTML = "<div class='msg msg-buyer'>No barter match reviews yet.</div>";
-    return;
-  }
-  container.innerHTML = "";
-  items.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "msg msg-buyer";
-    row.textContent =
-      `match#${item.match_id} | source=${item.source_offer_id} | candidate=${item.candidate_offer_id} | ` +
-      `score=${item.match_score} | status=${item.review_status} | notes=${item.owner_notes || "n/a"}`;
-    row.addEventListener("click", () => {
-      const matchIdNode = document.getElementById("barterMatchId");
-      const decisionNode = document.getElementById("barterDecision");
-      const notesNode = document.getElementById("barterOwnerNotes");
-      if (matchIdNode) {
-        matchIdNode.value = String(item.match_id || "");
-      }
-      if (decisionNode) {
-        decisionNode.value = ["owner_approved", "owner_rejected", "manual_hold"].includes(String(item.review_status))
-          ? String(item.review_status)
-          : "manual_hold";
-      }
-      if (notesNode) {
-        notesNode.value = String(item.owner_notes || "");
-      }
-    });
-    container.appendChild(row);
-  });
-}
-
-async function refreshBarterReviews() {
-  const payload = await authedPost("/api/barter/match/review/list", {
-    status: "",
-    limit: 50
-  });
-  renderBarterReviewList(payload.items || []);
-  setStatus("Barter match reviews refreshed.");
-}
-
-async function decideBarterMatchFromPanel() {
-  const matchId = Number(document.getElementById("barterMatchId")?.value || "0");
-  const decision = String(document.getElementById("barterDecision")?.value || "manual_hold");
-  const ownerNotes = String(document.getElementById("barterOwnerNotes")?.value || "").trim();
-  if (!matchId) {
-    setStatus("Enter a valid barter match ID.");
-    return;
-  }
-  await authedPost("/api/barter/match/review/decide", {
-    matchId,
-    decision,
-    ownerNotes
-  });
-  setStatus(`Barter match #${matchId} updated to ${decision}.`);
-  await refreshBarterReviews();
-}
-
-async function suspendBarterUserFromPanel() {
-  const userId = Number(document.getElementById("barterSuspendUserId")?.value || "0");
-  const reason = String(document.getElementById("barterSuspendReason")?.value || "").trim();
-  if (!userId || !reason) {
-    setStatus("User ID and suspension reason are required.");
-    return;
-  }
-  await authedPost("/api/barter/account/suspend", {
-    userId,
-    reason,
-    days: 14
-  });
-  setStatus(`Barter account for user #${userId} suspended.`);
-}
-
-function renderCrowdfundingReviewList(items) {
-  const container = document.getElementById("crowdfundingReviewList");
-  if (!container) {
-    return;
-  }
-  if (!Array.isArray(items) || items.length === 0) {
-    container.innerHTML = "<div class='msg msg-buyer'>No crowdfunding campaigns yet.</div>";
-    return;
-  }
-  container.innerHTML = "";
-  items.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "msg msg-buyer";
-    row.textContent =
-      `campaign#${item.id} | ${item.title} | raised=${item.raised_amount}/${item.target_amount} ${item.currency} | ` +
-      `type=${item.funding_type} | status=${item.status}`;
-    row.addEventListener("click", () => {
-      const idNode = document.getElementById("crowdfundingCampaignId");
-      const decisionNode = document.getElementById("crowdfundingDecision");
-      const notesNode = document.getElementById("crowdfundingOwnerNotes");
-      if (idNode) {
-        idNode.value = String(item.id || "");
-      }
-      if (decisionNode) {
-        decisionNode.value = ["approved", "rejected", "manual_hold"].includes(String(item.status))
-          ? String(item.status)
-          : "manual_hold";
-      }
-      if (notesNode) {
-        notesNode.value = String(item.owner_notes || "");
-      }
-    });
-    container.appendChild(row);
-  });
-}
-
-async function refreshCrowdfunding() {
-  const payload = await authedPost("/api/crowdfunding/review/list", { status: "" });
-  renderCrowdfundingReviewList(payload.items || []);
-  setStatus("Crowdfunding campaigns refreshed.");
-}
-
-async function decideCrowdfundingFromPanel() {
-  const campaignId = Number(document.getElementById("crowdfundingCampaignId")?.value || "0");
-  const decision = String(document.getElementById("crowdfundingDecision")?.value || "manual_hold");
-  const ownerNotes = String(document.getElementById("crowdfundingOwnerNotes")?.value || "").trim();
-  if (!campaignId) {
-    setStatus("Enter a valid crowdfunding campaign ID.");
-    return;
-  }
-  await authedPost("/api/crowdfunding/review/decide", {
-    campaignId,
-    decision,
-    ownerNotes
-  });
-  setStatus(`Crowdfunding campaign #${campaignId} updated to ${decision}.`);
-  await refreshCrowdfunding();
-}
-
-function renderAiOpsQueue(items) {
-  const container = document.getElementById("aiOpsQueueList");
-  if (!container) {
-    return;
-  }
-  if (!Array.isArray(items) || items.length === 0) {
-    container.innerHTML = "<div class='msg msg-buyer'>No AI operations queued yet.</div>";
-    return;
-  }
-  container.innerHTML = "";
-  items.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "msg msg-buyer";
-    row.textContent =
-      `op#${item.id} | ${item.operation_type} | risk=${item.risk_level} | mode=${item.execution_mode} | status=${item.status} | ${item.summary_text}`;
-    row.addEventListener("click", () => {
-      const idNode = document.getElementById("aiOpId");
-      const decisionNode = document.getElementById("aiOpDecision");
-      const notesNode = document.getElementById("aiOpOwnerNotes");
-      if (idNode) {
-        idNode.value = String(item.id || "");
-      }
-      if (decisionNode) {
-        decisionNode.value = ["approved", "rejected", "manual_hold", "executed"].includes(String(item.status))
-          ? String(item.status)
-          : "manual_hold";
-      }
-      if (notesNode) {
-        notesNode.value = String(item.owner_notes || "");
-      }
-    });
-    container.appendChild(row);
-  });
-}
-
-async function refreshAiOps() {
-  let payload;
-  try {
-    payload = await authedPost("/api/ai-ops/list", {});
-  } catch {
-    payload = getAiOpsFallback();
-    setStatus("AI operations loaded in smart fallback mode.");
-  }
-  renderAiOpsQueue(payload.items || []);
-  if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
-    setStatus("AI operations queue refreshed.");
-  }
-}
-
-async function generateAiOpsRecommendationsFromPanel() {
-  let payload;
-  let fallbackMode = false;
-  try {
-    payload = await authedPost("/api/ai-ops/recommendations", {});
-  } catch {
-    payload = getAiRecommendationsFallback();
-    fallbackMode = true;
-  }
-  const box = document.getElementById("aiOpsRecommendationsBox");
-  if (box) {
-    const items = Array.isArray(payload.items) ? payload.items : [];
-    box.textContent = items.map((item) => `${item.operationType}: ${item.recommendationText}`).join(" | ") || "No recommendations.";
-  }
-  if (!fallbackMode) {
-    for (const item of payload.items || []) {
-      await authedPost("/api/ai-ops/create", {
-        operationType: item.operationType,
-        summaryText: item.summaryText,
-        recommendationText: item.recommendationText,
-        riskLevel: item.riskLevel,
-        executionMode: item.executionMode
-      });
-    }
-  }
-  if (fallbackMode) {
-    renderAiOpsQueue(getAiOpsFallback().items || []);
-    setStatus("AI recommendations generated in smart fallback mode.");
-    return;
-  }
-  await refreshAiOps();
-  setStatus("AI operations recommendations generated and queued for owner review.");
-}
-
-async function decideAiOpFromPanel() {
-  const operationId = Number(document.getElementById("aiOpId")?.value || "0");
-  const decision = String(document.getElementById("aiOpDecision")?.value || "manual_hold");
-  const ownerNotes = String(document.getElementById("aiOpOwnerNotes")?.value || "").trim();
-  if (!operationId) {
-    setStatus("Enter a valid AI operation ID.");
-    return;
-  }
-  await authedPost("/api/ai-ops/decide", {
-    operationId,
-    decision,
-    ownerNotes
-  });
-  setStatus(`AI operation #${operationId} updated to ${decision}.`);
-  await refreshAiOps();
 }
 
 function renderInsuranceJurisdictions(items) {
@@ -1338,6 +1137,20 @@ function resetSettings() {
 }
 
 async function unlockPanel() {
+  try {
+    await unlockPanelInner();
+  } catch (error) {
+    const msg = String(error?.message || error || "");
+    const refused = /ECONNREFUSED|Failed to fetch|NetworkError|load failed/i.test(msg);
+    setStatus(
+      refused
+        ? `Login failed: ${msg}. Clear a bad API base in site data, leave API Base URL empty on Netlify, or set ${PUBLIC_PRODUCTION_API_FALLBACK}.`
+        : `Login failed: ${msg}. If this persists, clear site data for this page or fix API Base URL.`
+    );
+  }
+}
+
+async function unlockPanelInner() {
   const usernameInput = document.getElementById("ownerUsername").value.trim().toLowerCase();
   const passInput = document.getElementById("ownerCode").value.trim();
   const phraseInput = document.getElementById("ownerPhrase").value.trim();
@@ -1363,14 +1176,12 @@ async function unlockPanel() {
       })
     });
   } catch (error) {
+    const msg = String(error?.message || error || "network error");
+    const refused = /ECONNREFUSED|Failed to fetch|NetworkError|load failed/i.test(msg);
     setStatus(
-      (() => {
-        const msg = String(error?.message || error || "network error");
-        const refused = /ECONNREFUSED|Failed to fetch|NetworkError|load failed/i.test(msg);
-        return refused
-          ? `Login failed: cannot reach API (${msg}). On Netlify leave API Base URL empty (uses this site’s /api), or set ${PUBLIC_PRODUCTION_API_FALLBACK}. For local dev run: npm start (port 8081).`
-          : `Login failed: ${msg}. Try leaving API Base URL empty (same site /api) or redeploy the backend.`;
-      })()
+      refused
+        ? `Login failed: cannot reach API (${msg}). On Netlify leave API Base URL empty (uses this site’s /api), or set ${PUBLIC_PRODUCTION_API_FALLBACK}. For local dev run: npm start (port 8081).`
+        : `Login failed: ${msg}. Try leaving API Base URL empty (same site /api) or redeploy the backend.`
     );
     return;
   }
@@ -1412,9 +1223,7 @@ async function unlockPanel() {
   softRefresh(refreshChatSafetyEvents, "Chat safety events").catch(() => {});
   softRefresh(refreshCoachMetrics, "Coach metrics").catch(() => {});
   softRefresh(refreshOwnerRevenueDashboard, "Revenue dashboard").catch(() => {});
-  softRefresh(refreshRiskDashboard, "Risk dashboard").catch(() => {});
-  softRefresh(refreshBarterReviews, "Barter reviews").catch(() => {});
-  softRefresh(refreshCrowdfunding, "Crowdfunding").catch(() => {});
+  softRefresh(refreshPublicUserStats, "Public user stats").catch(() => {});
   softRefresh(refreshAiOps, "AI operations").catch(() => {});
 }
 
@@ -1574,7 +1383,7 @@ function renderAiSuggestionsFeed() {
   items.forEach((item) => {
     const row = document.createElement("div");
     row.className = "msg msg-buyer";
-    row.innerHTML = `<strong>${item.status.toUpperCase()}</strong> - ${item.text}`;
+    row.innerHTML = `<strong>${escapeHtml(String(item.status || "").toUpperCase())}</strong> - ${escapeHtml(item.text)}`;
     row.addEventListener("click", () => {
       const nextStatus =
         item.status === "todo" ? "in_progress" : item.status === "in_progress" ? "done" : "todo";
@@ -1645,10 +1454,7 @@ function initializeOwnerSecurity() {
     refreshChatSafetyEvents().catch(() => {});
     refreshCoachMetrics().catch(() => {});
     refreshOwnerRevenueDashboard().catch(() => {});
-    refreshRiskDashboard().catch(() => {});
-    refreshBarterReviews().catch(() => {});
-    refreshCrowdfunding().catch(() => {});
-    refreshAiOps().catch(() => {});
+    refreshPublicUserStats().catch(() => {});
     return;
   }
   clearSession();
@@ -1732,24 +1538,6 @@ bindClick("refreshChatSafetyEvents", () => {
 bindClick("refreshCoachMetrics", () => {
   refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`));
 });
-bindClick("refreshRiskDashboard", () => {
-  refreshRiskDashboard().catch((error) => setStatus(`Risk dashboard refresh failed: ${error.message}`));
-});
-bindClick("refreshBarterReviews", () => {
-  refreshBarterReviews().catch((error) => setStatus(`Barter review refresh failed: ${error.message}`));
-});
-bindClick("decideBarterMatch", () => {
-  decideBarterMatchFromPanel().catch((error) => setStatus(`Barter match decision failed: ${error.message}`));
-});
-bindClick("suspendBarterUser", () => {
-  suspendBarterUserFromPanel().catch((error) => setStatus(`Barter suspension failed: ${error.message}`));
-});
-bindClick("refreshCrowdfunding", () => {
-  refreshCrowdfunding().catch((error) => setStatus(`Crowdfunding refresh failed: ${error.message}`));
-});
-bindClick("decideCrowdfunding", () => {
-  decideCrowdfundingFromPanel().catch((error) => setStatus(`Crowdfunding decision failed: ${error.message}`));
-});
 bindClick("refreshAiOps", () => {
   refreshAiOps().catch((error) => setStatus(`AI ops refresh failed: ${error.message}`));
 });
@@ -1810,18 +1598,14 @@ const clickHandlers = {
   refreshChatSafetyEvents: () =>
     refreshChatSafetyEvents().catch((error) => setStatus(`Chat safety refresh failed: ${error.message}`)),
   refreshCoachMetrics: () => refreshCoachMetrics().catch((error) => setStatus(`Coach metrics refresh failed: ${error.message}`)),
-  refreshRiskDashboard: () => refreshRiskDashboard().catch((error) => setStatus(`Risk dashboard refresh failed: ${error.message}`)),
-  refreshBarterReviews: () => refreshBarterReviews().catch((error) => setStatus(`Barter review refresh failed: ${error.message}`)),
-  decideBarterMatch: () => decideBarterMatchFromPanel().catch((error) => setStatus(`Barter match decision failed: ${error.message}`)),
-  suspendBarterUser: () => suspendBarterUserFromPanel().catch((error) => setStatus(`Barter suspension failed: ${error.message}`)),
-  refreshCrowdfunding: () => refreshCrowdfunding().catch((error) => setStatus(`Crowdfunding refresh failed: ${error.message}`)),
-  decideCrowdfunding: () => decideCrowdfundingFromPanel().catch((error) => setStatus(`Crowdfunding decision failed: ${error.message}`)),
   refreshAiOps: () => refreshAiOps().catch((error) => setStatus(`AI ops refresh failed: ${error.message}`)),
   generateAiOpsRecommendations: () =>
     generateAiOpsRecommendationsFromPanel().catch((error) => setStatus(`AI ops recommendation failed: ${error.message}`)),
   decideAiOp: () => decideAiOpFromPanel().catch((error) => setStatus(`AI op decision failed: ${error.message}`)),
   refreshOwnerRevenueDashboard: () =>
     refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`)),
+  refreshPublicUserStats: () =>
+    refreshPublicUserStats().catch((error) => setStatus(`Account counts refresh failed: ${error.message}`)),
   requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),
   updateOwnerPayoutStatus: () =>
     updateOwnerPayoutStatusFromPanel().catch((error) => setStatus(`Payout status update failed: ${error.message}`))

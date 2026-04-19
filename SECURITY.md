@@ -58,6 +58,12 @@ This checklist is mandatory before production launch.
 - Apply step-up verification for high-risk orders and account actions.
 - Keep a formal Terms of Service with indemnity and unlawful-use clauses reviewed by legal counsel.
 
+## Storefront (static site) hardening
+
+- **Do not persist buyer passwords or long-lived auth tokens in `localStorage`.** The public “quick buy” demo keeps only a **session-scoped** bearer token in `sessionStorage`; generated passwords are never written to storage.
+- Treat all API-sourced strings as untrusted when building HTML; use strict escaping so XSS cannot ride on product, shop, insurance, or trust payloads.
+- **AI is assistive, not autonomous:** ranking, safety hints, and copy suggestions may run in the product, but **payouts, policy changes, legal exposure, and privileged admin actions stay owner-controlled** on the server. Do not wire client-side or agent “full autonomy” over money or enforcement.
+
 ## Legal Compliance Controls
 
 - Keep a maintained legal rule matrix (`jurisdiction_rules`) for target markets.

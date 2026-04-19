@@ -1,5 +1,14 @@
 "use strict";
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const STORAGE_KEY = "vibecart-site-settings";
 const AUTH_SESSION_KEY = "vibecart-owner-api-session";
 const AI_LINK_KEY = "vibecart-ai-link";
@@ -732,6 +741,19 @@ async function refreshOwnerRevenueDashboard() {
   setStatus("Owner revenue dashboard refreshed. Seller tax remains seller liability.");
 }
 
+async function refreshPublicUserStats() {
+  const payload = await authedPost("/api/owner/public-users/stats", {});
+  const totalEl = document.getElementById("kpiPublicUsersTotal");
+  const subEl = document.getElementById("kpiPublicUsersBreakdown");
+  if (totalEl) {
+    totalEl.textContent = String(payload.total ?? 0);
+  }
+  if (subEl) {
+    subEl.textContent =
+      `~${payload.passportApprox ?? 0} non-quick · ${payload.buyers ?? 0} buyers · ${payload.sellers ?? 0} sellers · ${payload.quickCheckoutSessions ?? 0} quick-checkout`;
+  }
+}
+
 async function requestOwnerPayoutFromPanel() {
   const amount = Number(document.getElementById("ownerPayoutAmount")?.value || "0");
   const destinationLabel = String(document.getElementById("ownerPayoutDestination")?.value || "").trim();
@@ -1201,6 +1223,7 @@ async function unlockPanelInner() {
   softRefresh(refreshChatSafetyEvents, "Chat safety events").catch(() => {});
   softRefresh(refreshCoachMetrics, "Coach metrics").catch(() => {});
   softRefresh(refreshOwnerRevenueDashboard, "Revenue dashboard").catch(() => {});
+  softRefresh(refreshPublicUserStats, "Public user stats").catch(() => {});
   softRefresh(refreshAiOps, "AI operations").catch(() => {});
 }
 
@@ -1360,7 +1383,7 @@ function renderAiSuggestionsFeed() {
   items.forEach((item) => {
     const row = document.createElement("div");
     row.className = "msg msg-buyer";
-    row.innerHTML = `<strong>${item.status.toUpperCase()}</strong> - ${item.text}`;
+    row.innerHTML = `<strong>${escapeHtml(String(item.status || "").toUpperCase())}</strong> - ${escapeHtml(item.text)}`;
     row.addEventListener("click", () => {
       const nextStatus =
         item.status === "todo" ? "in_progress" : item.status === "in_progress" ? "done" : "todo";
@@ -1431,6 +1454,7 @@ function initializeOwnerSecurity() {
     refreshChatSafetyEvents().catch(() => {});
     refreshCoachMetrics().catch(() => {});
     refreshOwnerRevenueDashboard().catch(() => {});
+    refreshPublicUserStats().catch(() => {});
     return;
   }
   clearSession();
@@ -1580,6 +1604,8 @@ const clickHandlers = {
   decideAiOp: () => decideAiOpFromPanel().catch((error) => setStatus(`AI op decision failed: ${error.message}`)),
   refreshOwnerRevenueDashboard: () =>
     refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`)),
+  refreshPublicUserStats: () =>
+    refreshPublicUserStats().catch((error) => setStatus(`Account counts refresh failed: ${error.message}`)),
   requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),
   updateOwnerPayoutStatus: () =>
     updateOwnerPayoutStatusFromPanel().catch((error) => setStatus(`Payout status update failed: ${error.message}`))

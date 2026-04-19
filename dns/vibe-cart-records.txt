@@ -4,6 +4,22 @@
 #
 # Netlify site slug in this repo’s handoff: **vibecart-marketplace** (see Netlify URL below).
 #
+# --- 0) If https://vibe-cart.com/ is 404 but https://vibecart-marketplace.netlify.app/ works ---
+# Your domain may still use GoDaddy nameservers (ns35/ns36.domaincontrol.com). Netlify already
+# hosts the correct zone, but the world will not see it until the registrar delegates DNS to Netlify.
+#
+# Fix (recommended): GoDaddy → vibe-cart.com → Nameservers → I'll use my own nameservers → Custom,
+# then paste **all four** values Netlify shows for this domain (as of 2026-04-19 the zone used):
+#   dns1.p01.nsone.net
+#   dns2.p01.nsone.net
+#   dns3.p01.nsone.net
+#   dns4.p01.nsone.net
+# Re-check: npm run health:dns (NS should list nsone.net; HTTPS apex should return 200).
+#
+# Fix (alternate — keep GoDaddy DNS): do NOT use the nameservers above; instead at GoDaddy DNS
+# delete wrong apex A records (e.g. 15.197.x.x / 3.33.x.x), add Netlify apex A/ALIAS per Netlify UI,
+# and CNAME www → vibecart-marketplace.netlify.app. You must mirror any TXT/CNAME Netlify needs (api, etc.).
+#
 # --- 1) Website (Netlify) ---
 # In Netlify: Site settings → Domain management → Add custom domain → vibe-cart.com
 # Netlify will show either:

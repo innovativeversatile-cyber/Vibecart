@@ -3,8 +3,10 @@
 # Settings → Networking → public URL (…up.railway.app) and paste ONLY that host below.
 # Project reference: https://railway.com/project/1521e97a-cf77-4f42-9c97-a60d32cbdbf7
 # If /api/health returns 404 "Application not found", this hostname is wrong or that Railway service is gone.
+# Explicit no-op build: avoids long default Node installs when Netlify detects root package.json.
 [build]
   publish = "deploy-web"
+  command = "exit 0"
 
 [[headers]]
   for = "/*"
@@ -14,6 +16,8 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    # Tighten over time (hashes for JSON-LD, drop unsafe-inline on script-src once hashed). Service worker registration is in script.js (no inline handlers).
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://vibecart-production.up.railway.app https://*.up.railway.app https://vibe-cart.com https://*.netlify.app https://images.unsplash.com; worker-src 'self'; manifest-src 'self'; media-src 'self' https:"
 
 # Avoid stale HTML after deploys (CSS/JS use ?v= cache-bust in markup).
 [[headers]]

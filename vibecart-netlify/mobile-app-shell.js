@@ -150,29 +150,37 @@
   }
 
   function boot() {
-    if (!document.documentElement.classList.contains("vc-mobile-app")) {
+    const root = document.documentElement;
+    const isApp = root.classList.contains("vc-mobile-app");
+    const isPhone = root.classList.contains("vc-phone");
+    if (!isApp && !isPhone) {
       return;
     }
-    document.body.classList.add("vc-mobile-shell");
-    ensureAiCoach();
-    enhanceHero();
-    window.addEventListener(
-      "vibecart-live-catalog",
-      (ev) => {
-        const n = Number(ev && ev.detail && ev.detail.count);
-        if (!Number.isFinite(n) || n <= 0) {
-          return;
-        }
-        try {
-          if (typeof navigator !== "undefined" && navigator.vibrate) {
-            navigator.vibrate([12, 36, 16]);
+    if (isApp) {
+      document.body.classList.add("vc-mobile-shell");
+      ensureAiCoach();
+      window.addEventListener(
+        "vibecart-live-catalog",
+        (ev) => {
+          const n = Number(ev && ev.detail && ev.detail.count);
+          if (!Number.isFinite(n) || n <= 0) {
+            return;
           }
-        } catch {
-          /* ignore */
-        }
-      },
-      { passive: true }
-    );
+          try {
+            if (typeof navigator !== "undefined" && navigator.vibrate) {
+              navigator.vibrate([12, 36, 16]);
+            }
+          } catch {
+            /* ignore */
+          }
+        },
+        { passive: true }
+      );
+    }
+    if (isApp || isPhone) {
+      enhanceHero();
+      document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+    }
   }
 
   if (document.readyState === "loading") {
