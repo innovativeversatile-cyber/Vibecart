@@ -17,9 +17,6 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "env": {
-        "NODE_ENV": "production"
-      },
       "android": {
         "buildType": "apk"
       }
@@ -27,9 +24,6 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
-      "env": {
-        "NODE_ENV": "production"
-      },
       "android": {
         "buildType": "app-bundle"
       }
