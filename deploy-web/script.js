@@ -57,6 +57,17 @@ const refreshInsurance = document.getElementById("refreshInsurance");
 const queueInsuranceTips = document.getElementById("queueInsuranceTips");
 const wellbeingTips = document.getElementById("wellbeingTips");
 const trustCards = document.getElementById("trustCards");
+const trustSnapshotMeta = document.getElementById("trustSnapshotMeta");
+const vcJurisdictionLine = document.getElementById("vcJurisdictionLine");
+const vcJurisdictionExplain = document.getElementById("vcJurisdictionExplain");
+const vcJurisdictionPanel = document.getElementById("vcJurisdictionPanel");
+const vcPersonaHint = document.getElementById("vcPersonaHint");
+const vcUiSoundToggle = document.getElementById("vcUiSoundToggle");
+const vcRitualToggle = document.getElementById("vcRitualToggle");
+const vcSkipReceiptToggle = document.getElementById("vcSkipReceiptToggle");
+const vcSignatureRitual = document.getElementById("vcSignatureRitual");
+const vcRitualDismiss = document.getElementById("vcRitualDismiss");
+const vcLaneNoteDate = document.getElementById("vcLaneNoteDate");
 const marketLivePulse = document.getElementById("marketLivePulse");
 const rewardTier = document.getElementById("rewardTier");
 const rewardPoints = document.getElementById("rewardPoints");
@@ -101,6 +112,14 @@ const wearableLinkStatus = document.getElementById("wearableLinkStatus");
 const SETTINGS_KEY = "vibecart-site-settings";
 const INTERACTION_MODE_KEY = "vibecart-interaction-mode";
 const AI_PERSONA_KEY = "vibecart-ai-persona";
+const PERSONA_PATH_KEY = "vibecart-path-persona";
+const UI_SOUND_KEY = "vibecart-ui-sound";
+const RITUAL_ENABLED_KEY = "vibecart-ritual-enabled";
+const RITUAL_SESSION_KEY = "vibecart-session-ritual-shown";
+const BRIDGE_PASSPORT_STAMP_KEY = "vibecart-bridge-passport-stamp-v1";
+const LISTING_HEALTH_KEY = "vibecart-listing-health-v1";
+const SERENDIPITY_SESSION_KEY = "vibecart-serendipity-idx-v1";
+const SKIP_RECEIPT_REHEARSAL_KEY = "vibecart-skip-receipt-rehearsal";
 
 const RADAR_HINTS = {
   en: [
@@ -158,6 +177,8 @@ let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
 let disclaimerWatchdogTimer = null;
 const PUBLIC_USER_KEY = "vibecart-public-user-id";
+const PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
+const PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
 const easterKeyBuffer = [];
 const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "TZ", "UG", "RW", "BW", "ZM"]);
 const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
@@ -176,6 +197,63 @@ function hashVcDailySeed(input) {
   }
   return Math.abs(h >>> 0);
 }
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function safeUrlHref(href) {
+  const s = String(href || "").trim();
+  const lower = s.toLowerCase();
+  if (!s || lower.startsWith("javascript:") || lower.startsWith("data:") || lower.startsWith("vbscript:")) {
+    return "#";
+  }
+  return s;
+}
+
+(() => {
+  try {
+    localStorage.removeItem(QUICK_BUY_EMAIL_KEY);
+    localStorage.removeItem(QUICK_BUY_PASSWORD_KEY);
+    const legacyToken = localStorage.getItem(QUICK_BUY_TOKEN_KEY);
+    if (legacyToken) {
+      sessionStorage.setItem(QUICK_BUY_TOKEN_KEY, legacyToken);
+      localStorage.removeItem(QUICK_BUY_TOKEN_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+})();
+
+(function initVcPhoneClass() {
+  function apply() {
+    try {
+      const narrow = window.matchMedia("(max-width: 900px)").matches;
+      const coarse = window.matchMedia("(pointer: coarse)").matches;
+      document.documentElement.classList.toggle("vc-phone", narrow || coarse);
+    } catch {
+      /* ignore */
+    }
+  }
+  apply();
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    window.addEventListener("resize", apply, { passive: true });
+    const mq1 = window.matchMedia("(max-width: 900px)");
+    const mq2 = window.matchMedia("(pointer: coarse)");
+    if (typeof mq1.addEventListener === "function") {
+      mq1.addEventListener("change", apply);
+      mq2.addEventListener("change", apply);
+    } else if (typeof mq1.addListener === "function") {
+      mq1.addListener(apply);
+      mq2.addListener(apply);
+    }
+  }
+})();
 
 function getVcRegionKeyFromCard(card) {
   const raw = String(card?.getAttribute("data-vc-region") || "").trim();
@@ -622,6 +700,543 @@ function updateBuyerDestinationHint() {
   } else {
     buyerDestinationHint.textContent = "Checkout defaults: Africa buyer (country ZA), express Africa lane shipping.";
   }
+  updateJurisdictionStrip();
+}
+
+function updateJurisdictionStrip() {
+  if (!vcJurisdictionLine) {
+    return;
+  }
+  const route = getPathLabel(activeBridgePath);
+  const buyer = getBuyerDestinationLabel();
+  const langHint = (navigator.language || "en").slice(0, 5);
+  vcJurisdictionLine.textContent = `Viewing: ${route} · ${buyer} · browser ${langHint}. Estimates are bands, not customs quotes.`;
+  updateLaneWeatherQuiet();
+}
+
+function updateLaneWeatherQuiet() {
+  const wEl = document.getElementById("vcLaneWeather");
+  const qEl = document.getElementById("vcQuietHoursNote");
+  if (!wEl) {
+    return;
+  }
+  const hour = new Date().getHours();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  const shortTz = tz.includes("/") ? tz.split("/").slice(-2).join("/") : tz;
+  let band = "night";
+  if (hour >= 5 && hour < 12) {
+    band = "dawn";
+  } else if (hour >= 12 && hour < 17) {
+    band = "day";
+  } else if (hour >= 17 && hour < 21) {
+    band = "dusk";
+  }
+  const bandLabel = band === "dawn" ? "Dawn" : band === "day" ? "Day" : band === "dusk" ? "Dusk" : "Night";
+  wEl.textContent = `Lane weather: ${bandLabel} rhythm · ${shortTz || "your zone"}`;
+  if (qEl) {
+    const quiet = hour >= 22 || hour < 7;
+    qEl.classList.toggle("hidden", !quiet);
+    qEl.textContent = quiet ? "Quiet hours: messages may read slower until morning." : "";
+  }
+}
+
+function initJurisdictionStripUi() {
+  if (vcJurisdictionExplain && vcJurisdictionPanel) {
+    vcJurisdictionExplain.addEventListener("click", () => {
+      const open = vcJurisdictionPanel.classList.toggle("hidden");
+      vcJurisdictionExplain.setAttribute("aria-expanded", open ? "false" : "true");
+    });
+    vcJurisdictionExplain.setAttribute("aria-expanded", "false");
+    vcJurisdictionExplain.setAttribute("aria-controls", "vcJurisdictionPanel");
+  }
+  updateJurisdictionStrip();
+}
+
+function initHeroHueDrift() {
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const tick = () => {
+    const y = window.scrollY || 0;
+    const span = Math.min(520, Math.max(240, window.innerHeight * 0.6));
+    const t = Math.max(0, Math.min(1, y / span));
+    document.documentElement.style.setProperty("--vc-hero-hue", `${(t * 22).toFixed(2)}deg`);
+  };
+  window.addEventListener("scroll", tick, { passive: true });
+  tick();
+}
+
+function playUiSoftChime() {
+  try {
+    if (localStorage.getItem(UI_SOUND_KEY) !== "1") {
+      return;
+    }
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) {
+      return;
+    }
+    const ctx = new Ctx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = 880;
+    g.gain.value = 0.0001;
+    o.connect(g);
+    g.connect(ctx.destination);
+    const now = ctx.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.07, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+    o.start(now);
+    o.stop(now + 0.18);
+  } catch {
+    /* ignore */
+  }
+}
+
+function initShopFolderUiSound() {
+  document.body.addEventListener(
+    "click",
+    (event) => {
+      const link = event.target && event.target.closest ? event.target.closest("a.shop-folder-card") : null;
+      if (!link) {
+        return;
+      }
+      playUiSoftChime();
+    },
+    true
+  );
+}
+
+function personaHintKey(persona) {
+  if (persona === "buyer") {
+    return "pathChooser.hintBuyer";
+  }
+  if (persona === "seller") {
+    return "pathChooser.hintSeller";
+  }
+  return "pathChooser.hintCurious";
+}
+
+function applyPersonaHint(persona) {
+  if (!vcPersonaHint) {
+    return;
+  }
+  const i18n = window.VibeCartI18n;
+  const key = personaHintKey(persona);
+  const text = i18n && i18n.t ? i18n.t(currentUiLocale(), key) : "";
+  vcPersonaHint.textContent = text || "";
+  vcPersonaHint.hidden = !text;
+}
+
+function initPathPersonaChooser() {
+  document.querySelectorAll("[data-vc-persona]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const persona = btn.getAttribute("data-vc-persona") || "curious";
+      try {
+        localStorage.setItem(PERSONA_PATH_KEY, persona);
+      } catch {
+        /* ignore */
+      }
+      applyPersonaHint(persona);
+      const target =
+        persona === "buyer"
+          ? "#market"
+          : persona === "seller"
+            ? "#sell"
+            : "#bridge-routes";
+      const el = document.querySelector(target);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+  try {
+    const saved = localStorage.getItem(PERSONA_PATH_KEY);
+    if (saved === "buyer" || saved === "seller" || saved === "curious") {
+      applyPersonaHint(saved);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function initLaneNoteDate() {
+  if (!vcLaneNoteDate) {
+    return;
+  }
+  const d = new Date();
+  vcLaneNoteDate.setAttribute("datetime", d.toISOString().slice(0, 10));
+  vcLaneNoteDate.textContent = d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function initUiSoundAndRitualSettings() {
+  try {
+    if (vcUiSoundToggle) {
+      vcUiSoundToggle.checked = localStorage.getItem(UI_SOUND_KEY) === "1";
+      vcUiSoundToggle.addEventListener("change", () => {
+        localStorage.setItem(UI_SOUND_KEY, vcUiSoundToggle.checked ? "1" : "0");
+      });
+    }
+    if (vcRitualToggle) {
+      vcRitualToggle.checked = localStorage.getItem(RITUAL_ENABLED_KEY) !== "0";
+      vcRitualToggle.addEventListener("change", () => {
+        localStorage.setItem(RITUAL_ENABLED_KEY, vcRitualToggle.checked ? "1" : "0");
+      });
+    }
+    if (vcSkipReceiptToggle) {
+      vcSkipReceiptToggle.checked = localStorage.getItem(SKIP_RECEIPT_REHEARSAL_KEY) === "1";
+      vcSkipReceiptToggle.addEventListener("change", () => {
+        localStorage.setItem(SKIP_RECEIPT_REHEARSAL_KEY, vcSkipReceiptToggle.checked ? "1" : "0");
+      });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function hideSignatureRitual() {
+  if (!vcSignatureRitual) {
+    return;
+  }
+  vcSignatureRitual.classList.add("hidden");
+  vcSignatureRitual.setAttribute("aria-hidden", "true");
+  try {
+    sessionStorage.setItem(RITUAL_SESSION_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+function showSignatureRitual() {
+  if (!vcSignatureRitual) {
+    return;
+  }
+  vcSignatureRitual.classList.remove("hidden");
+  vcSignatureRitual.setAttribute("aria-hidden", "false");
+  vcRitualDismiss?.focus();
+  window.setTimeout(() => hideSignatureRitual(), 5200);
+}
+
+function initSignatureRitual() {
+  if (!vcSignatureRitual || !vcRitualDismiss) {
+    return;
+  }
+  vcRitualDismiss.addEventListener("click", () => hideSignatureRitual());
+  vcSignatureRitual.addEventListener("click", (e) => {
+    if (e.target === vcSignatureRitual) {
+      hideSignatureRitual();
+    }
+  });
+  const marketEl = document.getElementById("market");
+  if (!marketEl || typeof IntersectionObserver !== "function") {
+    return;
+  }
+  let armed = true;
+  const obs = new IntersectionObserver(
+    (entries) => {
+      if (!armed) {
+        return;
+      }
+      entries.forEach((en) => {
+        if (!en.isIntersecting || en.intersectionRatio < 0.12) {
+          return;
+        }
+        try {
+          if (localStorage.getItem(RITUAL_ENABLED_KEY) === "0") {
+            return;
+          }
+          if (sessionStorage.getItem(RITUAL_SESSION_KEY) === "1") {
+            return;
+          }
+          if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            sessionStorage.setItem(RITUAL_SESSION_KEY, "1");
+            return;
+          }
+        } catch {
+          return;
+        }
+        armed = false;
+        showSignatureRitual();
+        obs.disconnect();
+      });
+    },
+    { threshold: [0, 0.12, 0.25] }
+  );
+  obs.observe(marketEl);
+}
+
+function initVibecartLanePack() {
+  initJurisdictionStripUi();
+  initHeroHueDrift();
+  initShopFolderUiSound();
+  initPathPersonaChooser();
+  initLaneNoteDate();
+  initUiSoundAndRitualSettings();
+  initSignatureRitual();
+  initVcExperiencePack();
+}
+
+const SERENDIPITY_POOL = [
+  {
+    title: "Book + gadget bundle curiosity",
+    sub: "Pair light SKUs — friendlier cross-border carts than one heavy item.",
+    href: "#market"
+  },
+  {
+    title: "Scent lane detour",
+    sub: "Niche fragrance rewards patient buyers; check category rules for your country.",
+    href: "./shops-scents.html"
+  },
+  {
+    title: "Campus pickup fantasy",
+    sub: "When the lane allows pickup, state it clearly — buyers love honest handoffs.",
+    href: "#seller-growth-ai"
+  },
+  {
+    title: "Transparency first",
+    sub: "Scan the snapshot cards — ranges are normal in bridge trade.",
+    href: "#public-transparency"
+  },
+  {
+    title: "Mama Africa row",
+    sub: "Zimbabwe bubble tiles and regional rhythm — browse the folder.",
+    href: "./shops-mama-africa.html"
+  }
+];
+
+function initVcExperiencePack() {
+  initSerendipityLane();
+  initReceiptRehearsalFlow();
+  initPassportStampDisplay();
+  initListingHealthMeter();
+}
+
+function initSerendipityLane() {
+  const host = document.getElementById("vcSerendipityLane");
+  if (!host) {
+    return;
+  }
+  let idx = 0;
+  try {
+    const raw = sessionStorage.getItem(SERENDIPITY_SESSION_KEY);
+    if (raw !== null && raw !== "") {
+      idx = Number(raw) % SERENDIPITY_POOL.length;
+    } else {
+      idx = Math.floor(Math.random() * SERENDIPITY_POOL.length);
+      sessionStorage.setItem(SERENDIPITY_SESSION_KEY, String(idx));
+    }
+  } catch {
+    idx = Math.floor(Math.random() * SERENDIPITY_POOL.length);
+  }
+  const pick = SERENDIPITY_POOL[idx];
+  host.innerHTML = `<p class="vc-serendipity-eyebrow">Serendipity lane</p><p class="vc-serendipity-title">${escapeHtml(pick.title)}</p><p class="vc-serendipity-sub">${escapeHtml(pick.sub)}</p><a class="btn btn-secondary" href="${safeUrlHref(pick.href)}">Try this angle</a>`;
+  host.hidden = false;
+}
+
+let pendingReceiptCheckoutTitle = null;
+
+function getMismatchWarningText() {
+  const loc = (navigator.language || "").toLowerCase();
+  const dest = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
+  const eu = loc.startsWith("pl") || loc.startsWith("de") || loc.startsWith("fr") || loc.startsWith("nl");
+  if (eu && dest === "africa") {
+    return "Your browser locale looks EU while checkout is set to Africa buyer — confirm card and delivery country.";
+  }
+  if (!eu && dest === "europe") {
+    return "Checkout is set to Europe buyer — confirm your card and shipping country match.";
+  }
+  return "";
+}
+
+function openReceiptRehearsal(btn) {
+  try {
+    if (localStorage.getItem(SKIP_RECEIPT_REHEARSAL_KEY) === "1") {
+      runLiveOneClickCheckoutWithExtras(String(btn.getAttribute("data-title") || "Selected item"));
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
+  const modal = document.getElementById("vcReceiptRehearsal");
+  if (!modal) {
+    runLiveOneClickCheckoutWithExtras(String(btn.getAttribute("data-title") || "Selected item"));
+    return;
+  }
+  pendingReceiptCheckoutTitle = String(btn.getAttribute("data-title") || "Selected item");
+  const price = String(btn.getAttribute("data-price") || "—");
+  const rItem = document.getElementById("vcReceiptItem");
+  const rPrice = document.getElementById("vcReceiptPrice");
+  const rRoute = document.getElementById("vcReceiptRoute");
+  const rBuyer = document.getElementById("vcReceiptBuyer");
+  const rShip = document.getElementById("vcReceiptShip");
+  if (rItem) {
+    rItem.textContent = pendingReceiptCheckoutTitle;
+  }
+  if (rPrice) {
+    rPrice.textContent = price === "—" ? price : `EUR ${price}`;
+  }
+  if (rRoute) {
+    rRoute.textContent = getPathLabel(activeBridgePath);
+  }
+  if (rBuyer) {
+    rBuyer.textContent = `${getBuyerDestinationLabel()} · ${getBuyerCountryCode()}`;
+  }
+  if (rShip) {
+    rShip.textContent = getBuyerShippingMethod();
+  }
+  const mm = document.getElementById("vcMismatchGuard");
+  const warn = getMismatchWarningText();
+  if (mm) {
+    if (warn) {
+      mm.textContent = warn;
+      mm.classList.remove("hidden");
+    } else {
+      mm.textContent = "";
+      mm.classList.add("hidden");
+    }
+  }
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeReceiptRehearsal() {
+  const modal = document.getElementById("vcReceiptRehearsal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+  }
+  pendingReceiptCheckoutTitle = null;
+}
+
+function initReceiptRehearsalFlow() {
+  const modal = document.getElementById("vcReceiptRehearsal");
+  const cancel = document.getElementById("vcReceiptCancel");
+  const confirm = document.getElementById("vcReceiptConfirm");
+  if (!modal) {
+    return;
+  }
+  cancel?.addEventListener("click", () => closeReceiptRehearsal());
+  confirm?.addEventListener("click", () => {
+    const title = pendingReceiptCheckoutTitle;
+    closeReceiptRehearsal();
+    if (title) {
+      runLiveOneClickCheckoutWithExtras(title);
+    }
+  });
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeReceiptRehearsal();
+    }
+  });
+}
+
+async function runLiveOneClickCheckoutWithExtras(itemTitle) {
+  if (expressCheckoutStatus) {
+    expressCheckoutStatus.textContent = "Creating live order and loading tracking...";
+  }
+  try {
+    await runLiveOneClickCheckout(itemTitle);
+    showSealedToast();
+    maybeAwardPassportStamp();
+  } catch (error) {
+    if (expressCheckoutStatus) {
+      expressCheckoutStatus.textContent = `Checkout failed: ${String(error.message || error)}`;
+    }
+  }
+}
+
+function showSealedToast() {
+  const el = document.getElementById("vcSealedToast");
+  if (!el) {
+    return;
+  }
+  el.textContent = authT("sealed.word") || "Sealed.";
+  el.classList.add("vc-sealed-toast--show");
+  if (navigator.vibrate) {
+    try {
+      navigator.vibrate(10);
+    } catch {
+      /* ignore */
+    }
+  }
+  window.clearTimeout(showSealedToast._t);
+  showSealedToast._t = window.setTimeout(() => {
+    el.classList.remove("vc-sealed-toast--show");
+  }, 2200);
+}
+
+function maybeAwardPassportStamp() {
+  try {
+    if (localStorage.getItem(BRIDGE_PASSPORT_STAMP_KEY)) {
+      return;
+    }
+    localStorage.setItem(BRIDGE_PASSPORT_STAMP_KEY, new Date().toISOString().slice(0, 10));
+    paintPassportStamp();
+  } catch {
+    /* ignore */
+  }
+}
+
+function paintPassportStamp() {
+  const el = document.getElementById("vcBridgePassportStamp");
+  if (!el) {
+    return;
+  }
+  el.classList.remove("hidden");
+}
+
+function initPassportStampDisplay() {
+  try {
+    if (localStorage.getItem(BRIDGE_PASSPORT_STAMP_KEY)) {
+      paintPassportStamp();
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function initListingHealthMeter() {
+  const root = document.getElementById("vcListingHealth");
+  if (!root) {
+    return;
+  }
+  let state = {};
+  try {
+    state = JSON.parse(localStorage.getItem(LISTING_HEALTH_KEY) || "{}");
+  } catch {
+    state = {};
+  }
+  const keys = ["photos", "shipping", "policy"];
+  const apply = () => {
+    let n = 0;
+    keys.forEach((k) => {
+      const cb = root.querySelector(`input[data-vc-lh-key="${k}"]`);
+      if (cb) {
+        cb.checked = Boolean(state[k]);
+        if (state[k]) {
+          n += 1;
+        }
+      }
+    });
+    root.querySelectorAll(".vc-lh-bar").forEach((bar, i) => {
+      bar.classList.toggle("is-on", i < n);
+    });
+    try {
+      localStorage.setItem(LISTING_HEALTH_KEY, JSON.stringify(state));
+    } catch {
+      /* ignore */
+    }
+  };
+  root.querySelectorAll("input[data-vc-lh-key]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      const k = cb.getAttribute("data-vc-lh-key");
+      if (k) {
+        state[k] = cb.checked;
+      }
+      apply();
+    });
+  });
+  apply();
 }
 
 function applyBuyerDestinationDefaultForPath(path) {
@@ -723,12 +1338,13 @@ function renderBridgePathShops(pathProducts, path) {
     demos.forEach((row) => {
       const node = document.createElement("article");
       node.className = "shop";
-      const safeName = String(row.name || "Shop").replace(/</g, "&lt;");
-      const safeLine = String(row.line || "").replace(/</g, "&lt;");
-      const safeOrigin = String(row.origin || "").replace(/</g, "&lt;");
+      const safeName = escapeHtml(row.name || "Shop");
+      const safeLine = escapeHtml(row.line || "");
+      const safeOrigin = escapeHtml(row.origin || "");
       const ext = row.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+      const href = safeUrlHref(row.href);
       node.innerHTML = `
-        <a href="${String(row.href)}"${ext}><h3>${safeName}</h3></a>
+        <a href="${escapeHtml(href)}"${ext}><h3>${safeName}</h3></a>
         <p class="note">${safeOrigin}</p>
         <p>${safeLine}</p>
       `;
@@ -741,9 +1357,9 @@ function renderBridgePathShops(pathProducts, path) {
     const node = document.createElement("article");
     node.className = "shop";
     node.innerHTML = `
-      <h3>${shop.shopName}</h3>
-      <p>Origin: ${shop.originCountry}</p>
-      <p>${shop.count} live product${shop.count === 1 ? "" : "s"} on this path.</p>
+      <h3>${escapeHtml(shop.shopName)}</h3>
+      <p>Origin: ${escapeHtml(shop.originCountry)}</p>
+      <p>${escapeHtml(shop.count)} live product${shop.count === 1 ? "" : "s"} on this path.</p>
     `;
     bridgeShops.appendChild(node);
   });
@@ -775,11 +1391,15 @@ function renderBridgePathProducts(pathProducts) {
     const node = document.createElement("article");
     node.className = "product";
     node.setAttribute("data-category", category);
+    const title = String(item.title || "Live Product");
+    const currency = String(item.currency || "EUR");
+    const shopName = String(item.shopName || "Unknown Shop");
+    const origin = String(item.originCountry || "").toUpperCase();
     node.innerHTML = `
-      <h3>${String(item.title || "Live Product")}</h3>
-      <p class="price">${String(item.currency || "EUR")} ${Number(item.basePrice || 0).toFixed(2)}</p>
-      <p>Shop: ${String(item.shopName || "Unknown Shop")} | Ships from ${String(item.originCountry || "").toUpperCase()}</p>
-      <button class="btn btn-primary buy-now-btn" data-title="${String(item.title || "").replace(/"/g, "&quot;")}" data-price="${Number(item.basePrice || 0)}">Buy in 1 Click</button>
+      <h3>${escapeHtml(title)}</h3>
+      <p class="price">${escapeHtml(currency)} ${escapeHtml(Number(item.basePrice || 0).toFixed(2))}</p>
+      <p>Shop: ${escapeHtml(shopName)} | Ships from ${escapeHtml(origin)}</p>
+      <button class="btn btn-primary buy-now-btn" data-title="${escapeHtml(title)}" data-price="${Number(item.basePrice || 0)}">Buy in 1 Click</button>
     `;
     productsGrid.appendChild(node);
   });
@@ -927,10 +1547,104 @@ function vcShouldReduceScrollEffects() {
   return false;
 }
 
+function vcIntroSkipVisualViewportBinding() {
+  try {
+    /* RN WebView + many Android WebViews: vv.width/height are wrong vs layout; overlay clips until user zooms. */
+    if (typeof window !== "undefined" && window.ReactNativeWebView) {
+      return true;
+    }
+    const ua = String(navigator.userAgent || "");
+    if (/Android/i.test(ua) && /\bwv\b/i.test(ua)) {
+      return true;
+    }
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+function bindVcIntroVisualViewport(intro) {
+  if (!intro || typeof window === "undefined") {
+    return () => {};
+  }
+  if (vcIntroSkipVisualViewportBinding()) {
+    return () => {};
+  }
+  const vv = window.visualViewport;
+  if (!vv) {
+    return () => {};
+  }
+  let ticking = false;
+  const apply = () => {
+    if (!intro.isConnected) {
+      return;
+    }
+    if (ticking) {
+      return;
+    }
+    ticking = true;
+    window.requestAnimationFrame(() => {
+      ticking = false;
+      if (!intro.isConnected) {
+        return;
+      }
+      intro.classList.add("vc-intro-vv-bound");
+      intro.style.top = `${vv.offsetTop}px`;
+      intro.style.left = `${vv.offsetLeft}px`;
+      intro.style.width = `${vv.width}px`;
+      intro.style.height = `${vv.height}px`;
+      intro.style.right = "auto";
+      intro.style.bottom = "auto";
+    });
+  };
+  apply();
+  vv.addEventListener("resize", apply, { passive: true });
+  vv.addEventListener("scroll", apply, { passive: true });
+  return () => {
+    vv.removeEventListener("resize", apply);
+    vv.removeEventListener("scroll", apply);
+    intro.classList.remove("vc-intro-vv-bound");
+    intro.style.removeProperty("top");
+    intro.style.removeProperty("left");
+    intro.style.removeProperty("width");
+    intro.style.removeProperty("height");
+    intro.style.removeProperty("right");
+    intro.style.removeProperty("bottom");
+  };
+}
+
+function initMobileWebLayoutGuards() {
+  try {
+    const app = document.documentElement.classList.contains("vc-mobile-app");
+    const narrow =
+      window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    if (!app && !narrow && !coarse) {
+      return;
+    }
+    document.documentElement.style.setProperty("width", "100%");
+    document.body.style.setProperty("width", "100%");
+    document.documentElement.style.setProperty("overflow-x", "hidden");
+    document.body.style.setProperty("overflow-x", "hidden");
+  } catch {
+    /* ignore */
+  }
+}
+
 function initCinematicIntro() {
   const intro = document.getElementById("cinematicIntro");
   if (!intro) {
     return;
+  }
+  try {
+    document.body.appendChild(intro);
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.scrollTo(0, 0);
+  } catch {
+    /* ignore */
   }
   try {
     const params = new URLSearchParams(window.location.search || "");
@@ -945,10 +1659,30 @@ function initCinematicIntro() {
   if (reduceMotion) {
     intro.classList.add("cinematic-intro--soft");
   }
-  intro.classList.add("is-visible");
-  const holdMs = reduceMotion ? 1400 : 2200;
+  const coarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  /* Touch / phone: longer hold + next frame so the overlay paints before the hide timer. */
+  const holdMs = reduceMotion ? 1600 : coarsePointer ? 3000 : 2200;
+  let unbindIntroVv = () => {};
+  const reveal = () => {
+    intro.classList.add("is-visible");
+    intro.setAttribute("aria-hidden", "false");
+    unbindIntroVv = bindVcIntroVisualViewport(intro);
+  };
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(reveal);
+    });
+  } else {
+    reveal();
+  }
   const hide = () => {
+    try {
+      unbindIntroVv();
+    } catch {
+      /* ignore */
+    }
     intro.classList.add("is-hidden");
+    intro.setAttribute("aria-hidden", "true");
     setTimeout(() => intro.remove(), 520);
   };
   setTimeout(hide, holdMs);
@@ -1237,7 +1971,7 @@ function initHeroCanvasFx() {
 
   const seed = () => {
     particles.length = 0;
-    const count = Math.max(14, Math.floor(width / 70));
+    const count = Math.max(10, Math.floor(width / 110));
     for (let i = 0; i < count; i += 1) {
       particles.push({
         x: Math.random() * width,
@@ -1250,7 +1984,13 @@ function initHeroCanvasFx() {
     }
   };
 
+  let frameSkip = 0;
   const frame = () => {
+    frameSkip += 1;
+    if (frameSkip % 2 === 0) {
+      requestAnimationFrame(frame);
+      return;
+    }
     ctx.clearRect(0, 0, width, height);
     const grad = ctx.createLinearGradient(0, 0, width, height);
     grad.addColorStop(0, "rgba(255,140,40,0.18)");
@@ -1335,36 +2075,425 @@ function wireOneClickBuy() {
         }
         return;
       }
-      const title = String(btn.getAttribute("data-title") || "Selected item");
-      if (expressCheckoutStatus) {
-        expressCheckoutStatus.textContent = "Creating live order and loading tracking...";
-      }
-      runLiveOneClickCheckout(title).catch((error) => {
-        if (expressCheckoutStatus) {
-          expressCheckoutStatus.textContent = `Checkout failed: ${String(error.message || error)}`;
-        }
-      });
+      openReceiptRehearsal(btn);
     });
   });
 }
 
-async function ensureQuickBuyerToken() {
-  const cached = String(localStorage.getItem(QUICK_BUY_TOKEN_KEY) || "");
-  if (cached) {
-    return cached;
+function getStoredPublicAuth() {
+  try {
+    const token = localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY);
+    const raw = localStorage.getItem(PUBLIC_AUTH_USER_KEY);
+    if (!token || !raw) {
+      return null;
+    }
+    const user = JSON.parse(raw);
+    if (!user || typeof user !== "object") {
+      return null;
+    }
+    return { token: String(token), user };
+  } catch {
+    return null;
   }
-  const email = String(localStorage.getItem(QUICK_BUY_EMAIL_KEY) || "");
-  const password = String(localStorage.getItem(QUICK_BUY_PASSWORD_KEY) || "");
-  if (email && password) {
-    const loginResponse = await fetch("/api/public/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, role: "buyer" })
+}
+
+function persistPublicAuth(token, user) {
+  try {
+    localStorage.setItem(PUBLIC_AUTH_TOKEN_KEY, String(token));
+    localStorage.setItem(PUBLIC_AUTH_USER_KEY, JSON.stringify(user));
+    if (user && Number(user.id) > 0) {
+      localStorage.setItem(PUBLIC_USER_KEY, String(user.id));
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearPublicAuth() {
+  try {
+    localStorage.removeItem(PUBLIC_AUTH_TOKEN_KEY);
+    localStorage.removeItem(PUBLIC_AUTH_USER_KEY);
+    localStorage.removeItem(PUBLIC_USER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+async function validatePublicSession(token) {
+  try {
+    const response = await fetch("/api/public/auth/session", {
+      headers: { Authorization: `Bearer ${token}` }
     });
-    const loginBody = await loginResponse.json();
-    if (loginResponse.ok && loginBody.ok && loginBody.token) {
-      localStorage.setItem(QUICK_BUY_TOKEN_KEY, String(loginBody.token));
-      return String(loginBody.token);
+    const body = await response.json().catch(() => ({}));
+    return Boolean(response.ok && body.ok && body.user);
+  } catch {
+    return false;
+  }
+}
+
+function authT(key) {
+  const i18n = window.VibeCartI18n;
+  const lang = typeof currentUiLocale === "function" ? currentUiLocale() : "en";
+  if (i18n && i18n.t) {
+    const v = i18n.t(lang, key);
+    if (v) {
+      return v;
+    }
+    return i18n.t("en", key) || "";
+  }
+  return "";
+}
+
+function scorePassword(pw) {
+  const s = String(pw || "");
+  let score = 0;
+  if (s.length >= 8) {
+    score += 1;
+  }
+  if (s.length >= 12) {
+    score += 1;
+  }
+  if (/[0-9]/.test(s)) {
+    score += 1;
+  }
+  if (/[^A-Za-z0-9]/.test(s)) {
+    score += 1;
+  }
+  if (/[A-Z]/.test(s) && /[a-z]/.test(s)) {
+    score += 1;
+  }
+  return Math.min(4, score);
+}
+
+function updatePasswordMeter() {
+  const input = document.getElementById("vcAuthPassword");
+  const meter = document.getElementById("vcAuthPwMeter");
+  if (!input || !meter) {
+    return;
+  }
+  const sc = scorePassword(input.value);
+  let key = "accountPassport.pwShort";
+  if (sc >= 3) {
+    key = "accountPassport.pwStrong";
+  } else if (sc >= 1) {
+    key = "accountPassport.pwFair";
+  }
+  meter.textContent = authT(key);
+}
+
+function paintAuthLoggedIn(user) {
+  const out = document.getElementById("vcAuthLoggedOut");
+  const inn = document.getElementById("vcAuthLoggedIn");
+  const welcome = document.getElementById("vcAuthWelcomeLine");
+  const meta = document.getElementById("vcAuthMetaLine");
+  if (out) {
+    out.classList.add("hidden");
+  }
+  if (inn) {
+    inn.classList.remove("hidden");
+  }
+  const name = String(user.fullName || user.email || "Traveler");
+  const email = String(user.email || "");
+  const roleRaw = String(user.role || "");
+  const roleLabel =
+    roleRaw === "seller" ? authT("accountPassport.roleSellerLabel") : authT("accountPassport.roleBuyerLabel");
+  const cc = String(user.countryCode || "");
+  if (welcome) {
+    const tpl = authT("accountPassport.welcome");
+    welcome.textContent = tpl ? tpl.replace("{name}", name) : `Welcome, ${name}`;
+  }
+  if (meta) {
+    const tpl = authT("accountPassport.meta");
+    meta.textContent = tpl
+      ? tpl.replace("{email}", email).replace("{role}", roleLabel).replace("{country}", cc)
+      : `${email} · ${roleLabel} · ${cc}`;
+  }
+}
+
+function paintAuthLoggedOut() {
+  const out = document.getElementById("vcAuthLoggedOut");
+  const inn = document.getElementById("vcAuthLoggedIn");
+  if (out) {
+    out.classList.remove("hidden");
+  }
+  if (inn) {
+    inn.classList.add("hidden");
+  }
+}
+
+function setAuthStatus(message) {
+  const el = document.getElementById("vcAuthStatus");
+  if (el) {
+    el.textContent = message || "";
+  }
+}
+
+async function refreshPublicSessionOnLoad() {
+  const auth = getStoredPublicAuth();
+  if (!auth || !auth.token) {
+    paintAuthLoggedOut();
+    return;
+  }
+  try {
+    const response = await fetch("/api/public/auth/session", {
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.ok || !body.user) {
+      clearPublicAuth();
+      paintAuthLoggedOut();
+      return;
+    }
+    persistPublicAuth(auth.token, body.user);
+    paintAuthLoggedIn(body.user);
+  } catch {
+    clearPublicAuth();
+    paintAuthLoggedOut();
+  }
+}
+
+function refreshAccountPassportLabels() {
+  const roleInput = document.getElementById("vcAuthRole");
+  const seller = String(roleInput?.value || "buyer") === "seller";
+  const roleLabel = document.getElementById("vcAuthRoleLabel");
+  const sellerNote = document.getElementById("vcAuthSellerNote");
+  const toggleRoleBtn = document.getElementById("vcAuthToggleRole");
+  const countryNote = document.getElementById("vcAuthCountryNote");
+  if (roleLabel) {
+    roleLabel.textContent = seller ? authT("accountPassport.roleSellerShort") : authT("accountPassport.roleBuyerShort");
+  }
+  if (sellerNote) {
+    sellerNote.classList.toggle("hidden", !seller);
+  }
+  if (toggleRoleBtn) {
+    toggleRoleBtn.textContent = seller
+      ? authT("accountPassport.switchToBuyer")
+      : authT("accountPassport.switchToSeller");
+  }
+  if (countryNote) {
+    countryNote.textContent = authT("accountPassport.countryAuto");
+  }
+}
+
+function initPublicAccountAuth() {
+  const panelCreate = document.getElementById("vcAuthPanelCreate");
+  const panelLogin = document.getElementById("vcAuthPanelLogin");
+  const linkToLogin = document.getElementById("vcAuthLinkToLogin");
+  const linkToCreate = document.getElementById("vcAuthLinkToCreate");
+  const formCreate = document.getElementById("vcAuthFormCreate");
+  const formLogin = document.getElementById("vcAuthFormLogin");
+  const roleInput = document.getElementById("vcAuthRole");
+  const country = document.getElementById("vcAuthCountry");
+  const pw = document.getElementById("vcAuthPassword");
+  const emailCreate = document.getElementById("vcAuthEmail");
+  const fullNameInput = document.getElementById("vcAuthFullName");
+  const btnCreate = document.getElementById("vcAuthSubmitCreate");
+  const btnLogin = document.getElementById("vcAuthSubmitLogin");
+  const btnLogout = document.getElementById("vcAuthLogout");
+  const toggleRoleBtn = document.getElementById("vcAuthToggleRole");
+
+  if (!panelCreate || !panelLogin) {
+    return;
+  }
+
+  function showCreate() {
+    panelCreate.classList.remove("hidden");
+    panelLogin.classList.add("hidden");
+    panelLogin.setAttribute("hidden", "hidden");
+  }
+
+  function showLogin() {
+    panelLogin.classList.remove("hidden");
+    panelCreate.classList.add("hidden");
+    panelLogin.removeAttribute("hidden");
+  }
+
+  linkToLogin?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showLogin();
+  });
+  linkToCreate?.addEventListener("click", (event) => {
+    event.preventDefault();
+    showCreate();
+  });
+
+  toggleRoleBtn?.addEventListener("click", () => {
+    const nowSeller = String(roleInput?.value || "buyer") === "seller";
+    if (roleInput) {
+      roleInput.value = nowSeller ? "buyer" : "seller";
+    }
+    refreshAccountPassportLabels();
+  });
+
+  if (country && typeof getBuyerCountryCode === "function") {
+    const code = getBuyerCountryCode();
+    if ([...country.options].some((o) => o.value === code)) {
+      country.value = code;
+    }
+  }
+  if (roleInput) {
+    roleInput.value = "buyer";
+  }
+  refreshAccountPassportLabels();
+
+  if (emailCreate && fullNameInput) {
+    emailCreate.addEventListener("blur", () => {
+      if (String(fullNameInput.value || "").trim().length >= 2) {
+        return;
+      }
+      const local = String(emailCreate.value || "").trim().split("@")[0];
+      if (local.length < 2) {
+        return;
+      }
+      const pretty = local.replace(/[._-]+/g, " ").replace(/\s+/g, " ").trim();
+      if (pretty.length >= 2) {
+        fullNameInput.value = pretty.charAt(0).toUpperCase() + pretty.slice(1);
+      }
+    });
+  }
+
+  if (pw) {
+    pw.addEventListener("input", updatePasswordMeter);
+  }
+
+  async function submitCreate(event) {
+    event.preventDefault();
+    setAuthStatus("");
+    const fullName = String(document.getElementById("vcAuthFullName")?.value || "").trim();
+    const email = String(document.getElementById("vcAuthEmail")?.value || "").trim().toLowerCase();
+    const password = String(document.getElementById("vcAuthPassword")?.value || "");
+    const role = String(roleInput?.value || "buyer");
+    const countryCode = String(country?.value || "ZA").toUpperCase();
+    if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
+      setAuthStatus(authT("accountPassport.errGeneric"));
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAuthStatus(authT("accountPassport.errGeneric"));
+      return;
+    }
+    if (btnCreate) {
+      btnCreate.disabled = true;
+    }
+    try {
+      const response = await fetch("/api/public/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role, fullName, countryCode })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.status === 409) {
+        setAuthStatus(authT("accountPassport.err409"));
+        showLogin();
+        const loginEmail = document.getElementById("vcAuthLoginEmail");
+        if (loginEmail) {
+          loginEmail.value = email;
+        }
+        return;
+      }
+      if (!response.ok || !body.ok || !body.token) {
+        setAuthStatus(authT("accountPassport.errGeneric"));
+        return;
+      }
+      persistPublicAuth(body.token, body.user);
+      paintAuthLoggedIn(body.user);
+      setAuthStatus("");
+    } catch {
+      setAuthStatus(authT("accountPassport.errGeneric"));
+    } finally {
+      if (btnCreate) {
+        btnCreate.disabled = false;
+      }
+    }
+  }
+
+  async function submitLogin(event) {
+    event.preventDefault();
+    setAuthStatus("");
+    const email = String(document.getElementById("vcAuthLoginEmail")?.value || "").trim().toLowerCase();
+    const password = String(document.getElementById("vcAuthLoginPassword")?.value || "");
+    if (!email || !password) {
+      setAuthStatus(authT("accountPassport.errGeneric"));
+      return;
+    }
+    if (btnLogin) {
+      btnLogin.disabled = true;
+    }
+    try {
+      const response = await fetch("/api/public/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        setAuthStatus(authT("accountPassport.err401"));
+        return;
+      }
+      if (response.status === 403) {
+        setAuthStatus(authT("accountPassport.err403"));
+        return;
+      }
+      if (!response.ok || !body.ok || !body.token) {
+        setAuthStatus(authT("accountPassport.errGeneric"));
+        return;
+      }
+      persistPublicAuth(body.token, body.user);
+      paintAuthLoggedIn(body.user);
+      setAuthStatus("");
+    } catch {
+      setAuthStatus(authT("accountPassport.errGeneric"));
+    } finally {
+      if (btnLogin) {
+        btnLogin.disabled = false;
+      }
+    }
+  }
+
+  formCreate?.addEventListener("submit", submitCreate);
+  formLogin?.addEventListener("submit", submitLogin);
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      const auth = getStoredPublicAuth();
+      if (auth && auth.token) {
+        try {
+          await fetch("/api/public/auth/logout", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${auth.token}` }
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+      clearPublicAuth();
+      paintAuthLoggedOut();
+      setAuthStatus(authT("accountPassport.signedOut"));
+    });
+  }
+
+  refreshPublicSessionOnLoad().catch(() => {});
+}
+
+async function ensureQuickBuyerToken() {
+  const auth = getStoredPublicAuth();
+  if (auth && auth.token && auth.user && auth.user.role === "buyer") {
+    const ok = await validatePublicSession(auth.token);
+    if (ok) {
+      return auth.token;
+    }
+    clearPublicAuth();
+  }
+  const cached = String(sessionStorage.getItem(QUICK_BUY_TOKEN_KEY) || "");
+  if (cached) {
+    const ok = await validatePublicSession(cached);
+    if (ok) {
+      return cached;
+    }
+    try {
+      sessionStorage.removeItem(QUICK_BUY_TOKEN_KEY);
+    } catch {
+      /* ignore */
     }
   }
   const generatedEmail = `quickbuyer+${Date.now()}@vibecart.local`;
@@ -1384,9 +2513,11 @@ async function ensureQuickBuyerToken() {
   if (!registerResponse.ok || !registerBody.ok || !registerBody.token) {
     throw new Error(registerBody.code || "BUYER_SESSION_FAILED");
   }
-  localStorage.setItem(QUICK_BUY_EMAIL_KEY, generatedEmail);
-  localStorage.setItem(QUICK_BUY_PASSWORD_KEY, generatedPassword);
-  localStorage.setItem(QUICK_BUY_TOKEN_KEY, String(registerBody.token));
+  try {
+    sessionStorage.setItem(QUICK_BUY_TOKEN_KEY, String(registerBody.token));
+  } catch {
+    /* sessionStorage blocked — caller must handle missing persistence */
+  }
   return String(registerBody.token);
 }
 
@@ -1881,6 +3012,9 @@ initVibeVipSecrets();
 initVibePassport();
 initVibeFlowMotion();
 initHeroCanvasFx();
+initShopSearch();
+initHeroChips();
+initBrandHomeLink();
 
 window.addEventListener("keydown", (event) => {
   easterKeyBuffer.push(String(event.key || "").toLowerCase());
@@ -2006,6 +3140,174 @@ function currentUiLocale() {
     return "en";
   }
   return i18n.pick(raw);
+}
+
+function applyGlobalVisualLayout(personaMode) {
+  const aura = personaMode === "fun";
+  document.body.classList.toggle("vc-layout-aura", aura);
+  document.body.classList.toggle("vc-layout-exclusive", !aura);
+  document.body.dataset.vcPersona = aura ? "aura" : "exclusive";
+}
+
+function syncShopSearchPlaceholder() {
+  const input = document.getElementById("shopSearchInput");
+  if (!input) {
+    return;
+  }
+  const i18n = window.VibeCartI18n;
+  const key = input.getAttribute("data-i18n-placeholder");
+  if (!i18n || !key) {
+    return;
+  }
+  const val = i18n.t(currentUiLocale(), key);
+  if (val) {
+    input.setAttribute("placeholder", val);
+  }
+}
+
+function initShopSearch() {
+  const form = document.getElementById("shopSearchForm");
+  const input = document.getElementById("shopSearchInput");
+  const status = document.getElementById("shopSearchStatus");
+  if (!form || !input) {
+    return;
+  }
+  const cards = () => Array.from(document.querySelectorAll("#shops .shop-folder-card"));
+  const applyFilter = () => {
+    const raw = String(input.value || "").trim().toLowerCase();
+    let n = 0;
+    cards().forEach((card) => {
+      const hay = `${card.textContent || ""} ${card.getAttribute("href") || ""} ${card.dataset.vcRegion || ""}`.toLowerCase();
+      const ok = !raw || hay.includes(raw);
+      card.style.display = ok ? "" : "none";
+      if (ok) {
+        n += 1;
+      }
+    });
+    if (status) {
+      const i18n = window.VibeCartI18n;
+      const lang = currentUiLocale();
+      if (!raw) {
+        status.textContent = i18n && i18n.t ? i18n.t(lang, "search.reset") : "All regional folders visible.";
+      } else if (n > 0) {
+        const tpl = i18n && i18n.t ? i18n.t(lang, "search.matchCount") : "{n} folders match.";
+        status.textContent = tpl.replace(/\{n\}/g, String(n));
+      } else {
+        status.textContent = i18n && i18n.t ? i18n.t(lang, "search.none") : "No matches — try another keyword.";
+      }
+    }
+  };
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    applyFilter();
+    document.getElementById("shops")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  input.addEventListener("input", applyFilter);
+  input.addEventListener("search", () => {
+    if (!String(input.value || "").trim()) {
+      applyFilter();
+    }
+  });
+  applyFilter();
+}
+
+function vcScrollToSelector(selector) {
+  const el = typeof selector === "string" ? document.querySelector(selector) : selector;
+  if (!el) {
+    return;
+  }
+  const lenis = window.__vibecartLenis;
+  try {
+    if (lenis && typeof lenis.scrollTo === "function") {
+      lenis.scrollTo(el, { offset: -88, duration: 0.85 });
+      return;
+    }
+  } catch {
+    /* ignore */
+  }
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function flashTargetSection(el) {
+  if (!el) {
+    return;
+  }
+  el.classList.remove("vc-target-flash");
+  void el.offsetWidth;
+  el.classList.add("vc-target-flash");
+  window.setTimeout(() => {
+    el.classList.remove("vc-target-flash");
+  }, 1250);
+}
+
+function initHeroChips() {
+  const strip = document.querySelector(".signature-strip--interactive");
+  if (!strip) {
+    return;
+  }
+  const hint = document.getElementById("heroChipHint");
+  const chips = strip.querySelectorAll(".hero-chip[data-hero-chip-target]");
+  const hintKeyFor = (kind) => {
+    if (kind === "checkout") {
+      return "hero.chipHintCheckout";
+    }
+    if (kind === "sellers") {
+      return "hero.chipHintSellers";
+    }
+    return "hero.chipHintDelivery";
+  };
+  const announce = (chip) => {
+    if (!hint) {
+      return;
+    }
+    const kind = String(chip.getAttribute("data-hero-chip") || "");
+    const key = hintKeyFor(kind);
+    const i18n = window.VibeCartI18n;
+    const L = currentUiLocale();
+    hint.textContent = i18n && typeof i18n.t === "function" ? i18n.t(L, key) : "";
+  };
+  chips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const sel = String(chip.getAttribute("data-hero-chip-target") || "");
+      const target = sel ? document.querySelector(sel) : null;
+      strip.querySelectorAll(".hero-chip").forEach((c) => c.classList.remove("hero-chip--active"));
+      chip.classList.add("hero-chip--active");
+      if (target) {
+        vcScrollToSelector(sel);
+        flashTargetSection(target);
+      }
+      announce(chip);
+    });
+  });
+  const refreshHintIfChipActive = () => {
+    const active = strip.querySelector(".hero-chip--active");
+    if (active) {
+      announce(active);
+    }
+  };
+  if (siteLanguage) {
+    siteLanguage.addEventListener("change", refreshHintIfChipActive);
+  }
+}
+
+function initBrandHomeLink() {
+  const link = document.getElementById("brandHomeLink");
+  if (!link) {
+    return;
+  }
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    const lenis = window.__vibecartLenis;
+    try {
+      if (lenis && typeof lenis.scrollTo === "function") {
+        lenis.scrollTo(0, { immediate: true });
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    window.scrollTo(0, 0);
+  });
 }
 
 function getAISuggestions() {
@@ -2314,6 +3616,7 @@ function maybeShowLocaleInferenceOffer() {
     }
     banner.classList.add("hidden");
     renderOpportunityRadar();
+    syncShopSearchPlaceholder();
   };
   dismissBtn.onclick = () => {
     try {
@@ -2339,9 +3642,29 @@ function initLocaleAndPersonaDeck() {
       siteLanguage.addEventListener("change", () => {
         i18n.setStored(siteLanguage.value);
         renderOpportunityRadar();
+        syncShopSearchPlaceholder();
+        try {
+          const p = localStorage.getItem(PERSONA_PATH_KEY);
+          if (p === "buyer" || p === "seller" || p === "curious") {
+            applyPersonaHint(p);
+          }
+        } catch {
+          /* ignore */
+        }
+        try {
+          const a = getStoredPublicAuth();
+          if (a && a.user) {
+            paintAuthLoggedIn(a.user);
+          }
+        } catch {
+          /* ignore */
+        }
+        updateJurisdictionStrip();
+        refreshAccountPassportLabels();
       });
     }
     i18n.apply(stored || "en");
+    syncShopSearchPlaceholder();
     maybeShowLocaleInferenceOffer();
   }
 
@@ -2360,16 +3683,36 @@ function initLocaleAndPersonaDeck() {
     funBtn.classList.toggle("btn-secondary", !isFun);
     effBtn.classList.toggle("btn-primary", !isFun);
     effBtn.classList.toggle("btn-secondary", isFun);
+    applyGlobalVisualLayout(active);
+    updatePersonaStatusBanner(active);
   }
 
-  paintPersonaButtons(persona);
+  function updatePersonaStatusBanner(active) {
+    const statusEl = document.getElementById("vcPersonaStatus");
+    if (!statusEl) {
+      return;
+    }
+    const i18n = window.VibeCartI18n;
+    const lang = currentUiLocale();
+    const key = active === "fun" ? "persona.status.aura" : "persona.status.exclusive";
+    const line = i18n && i18n.t ? i18n.t(lang, key) : "";
+    statusEl.textContent =
+      line ||
+      (active === "fun"
+        ? "Aura layout live — warm gradients, pulse mark, softer motion on phones."
+        : "Exclusive layout live — crisp grids, cooler contrast, faster visual rhythm.");
+  }
+
+  paintPersonaButtons(persona === "fun" ? "fun" : "efficient");
   funBtn?.addEventListener("click", () => {
     localStorage.setItem(AI_PERSONA_KEY, "fun");
     paintPersonaButtons("fun");
+    renderOpportunityRadar();
   });
   effBtn?.addEventListener("click", () => {
     localStorage.setItem(AI_PERSONA_KEY, "efficient");
     paintPersonaButtons("efficient");
+    renderOpportunityRadar();
   });
 
   renderOpportunityRadar();
@@ -2409,10 +3752,10 @@ function renderAdSlots() {
     node.className = "ad-card";
     node.innerHTML = `
       <span class="ad-badge">Sponsored</span>
-      <h3>${ad.brand}</h3>
-      <p><strong>${ad.title}</strong></p>
-      <p>${ad.body}</p>
-      <button class="btn btn-primary">${ad.cta}</button>
+      <h3>${escapeHtml(ad.brand)}</h3>
+      <p><strong>${escapeHtml(ad.title)}</strong></p>
+      <p>${escapeHtml(ad.body)}</p>
+      <button class="btn btn-primary">${escapeHtml(ad.cta)}</button>
     `;
     adSlots.appendChild(node);
   });
@@ -2470,10 +3813,10 @@ function renderInsurancePlans() {
     const node = document.createElement("article");
     node.className = "shop";
     node.innerHTML = `
-      <h3>${item.plan}</h3>
-      <p><strong>${item.provider}</strong> - ${item.type}</p>
-      <p class="price">${item.price}</p>
-      <p>${item.benefits}</p>
+      <h3>${escapeHtml(item.plan)}</h3>
+      <p><strong>${escapeHtml(item.provider)}</strong> - ${escapeHtml(item.type)}</p>
+      <p class="price">${escapeHtml(item.price)}</p>
+      <p>${escapeHtml(item.benefits)}</p>
       <button class="btn btn-primary insurance-action-btn">Request Plan Details</button>
     `;
     insurancePlans.appendChild(node);
@@ -2496,11 +3839,12 @@ async function loadPublicInsurancePlans() {
     payload.plans.slice(0, 6).forEach((plan) => {
       const node = document.createElement("article");
       node.className = "shop";
+      const summary = plan.summary_text || "Verified insurance plan for students and families.";
       node.innerHTML = `
-        <h3>${plan.plan_name}</h3>
-        <p><strong>${plan.provider_name}</strong> - ${plan.plan_type}</p>
-        <p class="price">${plan.currency} ${Number(plan.monthly_premium).toFixed(2)} / month</p>
-        <p>${plan.summary_text || "Verified insurance plan for students and families."}</p>
+        <h3>${escapeHtml(plan.plan_name)}</h3>
+        <p><strong>${escapeHtml(plan.provider_name)}</strong> - ${escapeHtml(plan.plan_type)}</p>
+        <p class="price">${escapeHtml(plan.currency)} ${escapeHtml(Number(plan.monthly_premium).toFixed(2))} / month</p>
+        <p>${escapeHtml(summary)}</p>
         <button class="btn btn-primary insurance-action-btn">Request Plan Details</button>
       `;
       insurancePlans.appendChild(node);
@@ -2953,14 +4297,34 @@ function renderTrustCards() {
   trustCards.innerHTML = "";
   trustEntities.forEach((item) => {
     const node = document.createElement("article");
-    node.className = "shop";
+    node.className = "shop trust-card-boring";
     node.innerHTML = `
-      <h3>${item.name}</h3>
-      <p><strong>${item.type}</strong> Trust Score: <span class="price">${item.score}/100</span></p>
-      <p>${item.note}</p>
+      <h3>${escapeHtml(item.name)}</h3>
+      <p><span class="price">${escapeHtml(String(item.type))}</span> · trust band ${escapeHtml(String(item.score))}/100 (illustrative)</p>
+      <p>${escapeHtml(item.note)}</p>
     `;
     trustCards.appendChild(node);
   });
+  updateTrustSnapshotMeta(false);
+}
+
+function updateTrustSnapshotMeta(fromLiveApi) {
+  if (!trustSnapshotMeta) {
+    return;
+  }
+  const i18n = window.VibeCartI18n;
+  const lang = typeof currentUiLocale === "function" ? currentUiLocale() : "en";
+  const time = new Date().toLocaleString();
+  if (i18n && i18n.t) {
+    const raw = i18n.t(lang, "transparency.updated") || i18n.t("en", "transparency.updated");
+    if (raw) {
+      trustSnapshotMeta.textContent = raw.replace("{time}", time);
+      return;
+    }
+  }
+  trustSnapshotMeta.textContent = fromLiveApi
+    ? `Loaded ${time} · live trust rows below.`
+    : `Loaded ${time} · illustrative rows until live data is available.`;
 }
 
 async function loadTrustCards() {
@@ -2977,14 +4341,21 @@ async function loadTrustCards() {
     trustCards.innerHTML = "";
     payload.items.slice(0, 6).forEach((item) => {
       const node = document.createElement("article");
-      node.className = "shop";
+      node.className = "shop trust-card-boring";
+      const et = String(item.entity_type || "").toUpperCase();
+      const eid = escapeHtml(item.entity_id);
+      const ts = escapeHtml(Number(item.trust_score).toFixed(1));
+      const dsr = escapeHtml(item.delivery_success_rate ?? "n/a");
+      const dr = escapeHtml(item.dispute_rate ?? "n/a");
+      const vs = escapeHtml(item.verification_score ?? "n/a");
       node.innerHTML = `
-        <h3>${String(item.entity_type).toUpperCase()} #${item.entity_id}</h3>
-        <p><strong>Trust Score:</strong> <span class="price">${Number(item.trust_score).toFixed(1)}/100</span></p>
-        <p>Delivery: ${item.delivery_success_rate ?? "n/a"} | Dispute: ${item.dispute_rate ?? "n/a"} | Verify: ${item.verification_score ?? "n/a"}</p>
+        <h3>${escapeHtml(et)} #${eid}</h3>
+        <p>Trust band <span class="price">${ts}/100</span> · delivery ${dsr} · disputes ${dr} · verify ${vs}</p>
+        <p>Snapshot — not a promise of future performance.</p>
       `;
       trustCards.appendChild(node);
     });
+    updateTrustSnapshotMeta(true);
   } catch {
     renderTrustCards();
   }
@@ -3172,6 +4543,9 @@ if (onboardingClose) {
   onboardingClose.addEventListener("click", closeOnboardingModal);
 }
 
+initMobileWebLayoutGuards();
+initVibecartLanePack();
+initPublicAccountAuth();
 loadTrustCards();
 loadRewardProfile();
 wireMarketActionButtons();
@@ -3213,8 +4587,9 @@ localStorage.setItem(ONBOARDING_KEY, "1");
   }
   try {
     const lenis = new window.Lenis({
-      lerp: 0.2,
+      lerp: 0.55,
       smoothWheel: true,
+      wheelMultiplier: 1.35
     });
     function onLenisFrame(time) {
       lenis.raf(time);
@@ -3256,4 +4631,16 @@ localStorage.setItem(ONBOARDING_KEY, "1");
   } catch {
     /* ignore smooth scroll init failures */
   }
+})();
+
+(function initVibecartServiceWorker() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./service-worker.js", { updateViaCache: "none" })
+      .then((reg) => reg.update())
+      .catch(() => {});
+  });
 })();

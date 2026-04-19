@@ -50,7 +50,7 @@
     "extra": {
       "vibecartBaseUrl": "https://vibe-cart.com",
       "vibecartApiBaseUrl": "https://vibe-cart.com",
-      "vibecartWebCacheTag": "v1-0-9-webview-viewport",
+      "vibecartWebCacheTag": "v1-0-9-cinematic-vvfix",
       "eas": {
         "projectId": "c2e55852-2892-4eeb-a6f7-6034e1df8b45"
       }

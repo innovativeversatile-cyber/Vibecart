@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
     <!-- API base omitted: use same-origin /api (Netlify proxy → Railway). Override with meta vibecart-api-base if needed. -->
     <title>VibeCart | Africa-Europe-Asia Trade Bridge Marketplace</title>
     <meta
@@ -50,8 +50,8 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
-    <link rel="stylesheet" href="./vendor/lenis.css?v=20260420smooth1" />
-    <link rel="stylesheet" href="./styles.css?v=20260420smooth1" />
+    <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
+    <link rel="stylesheet" href="./styles.css?v=20260419cinematic1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,7 +81,7 @@
       }
     </script>
   </head>
-  <body data-site-revision="deploy-20260420-smooth1">
+  <body class="vc-layout-exclusive" data-site-revision="deploy-20260419-lane-pack">
     <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
       <div class="cinematic-intro-card">
         <div class="cinematic-logo-stack">
@@ -92,10 +92,28 @@
       </div>
     </div>
     <div id="vcVipRibbon" class="vc-vip-ribbon hidden" aria-hidden="true"><span>VIP lane</span></div>
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">V</span>
-        <span class="brand-name">VibeCart</span>
+    <header class="topbar" id="siteTopbar">
+      <div class="topbar-primary">
+        <a class="brand" href="#" id="brandHomeLink" aria-label="VibeCart home">
+          <span class="brand-mark brand-mark--pulse" aria-hidden="true">V</span>
+          <span class="brand-name">VibeCart</span>
+        </a>
+        <form class="shop-search" id="shopSearchForm" role="search" aria-label="Search regional shops">
+          <label class="visually-hidden" for="shopSearchInput" data-i18n="search.label">Search shops</label>
+          <input
+            class="shop-search-input"
+            id="shopSearchInput"
+            name="q"
+            type="search"
+            inputmode="search"
+            autocomplete="off"
+            enterkeyhint="search"
+            maxlength="80"
+            data-i18n-placeholder="search.placeholder"
+            placeholder="Search Europe, Africa, Asia, scents…"
+          />
+          <button type="submit" class="btn btn-secondary shop-search-submit" data-i18n="search.submit">Find</button>
+        </form>
       </div>
       <div class="topbar-rest">
         <nav class="nav-links" aria-label="Primary">
@@ -104,7 +122,7 @@
           <a href="#market" data-i18n="nav.hot">Hot Picks</a>
           <a href="#rewards" data-i18n="nav.rewards">Rewards</a>
           <a href="#insurance" data-i18n="nav.insurance">Insurance</a>
-          <a href="#security" data-i18n="nav.security">Security</a>
+          <a href="#account-access" data-i18n="nav.account">Account</a>
           <a href="#settings-hub" class="nav-settings" data-i18n="nav.settings">Settings</a>
           <a href="#seller-growth-ai" data-i18n="nav.sellerBoost">Seller Boost</a>
           <a href="#sell" class="cta-small" data-i18n="nav.sell">Start Selling</a>
@@ -117,10 +135,15 @@
             <option value="pl">Polski</option>
             <option value="fr">Français</option>
             <option value="pt">Português</option>
-            <option value="sw">Kiswahili</option>
+            <option value="sw">Kiswahili (EAC / Tanzania)</option>
             <option value="sn">ChiShona</option>
             <option value="nd">isiNdebele</option>
             <option value="xh">isiXhosa</option>
+            <option value="zu">isiZulu</option>
+            <option value="pcm">Naija Pidgin (Nigeria)</option>
+            <option value="lg">Luganda (Uganda)</option>
+            <option value="tn">Setswana (Botswana)</option>
+            <option value="af">Afrikaans (Namibia)</option>
             <option value="zh">中文 (简体)</option>
             <option value="ko">한국어</option>
             <option value="hi">हिन्दी (India)</option>
@@ -142,9 +165,25 @@
 
     <div id="vcConnectivityBanner" class="vc-connectivity-banner hidden" role="status" aria-live="polite"></div>
 
+    <div id="vcJurisdictionStrip" class="vc-jurisdiction-strip" role="region" aria-label="Lane context">
+      <div class="vc-jurisdiction-strip-inner">
+        <p id="vcJurisdictionLine" class="vc-jurisdiction-line"></p>
+        <button type="button" id="vcJurisdictionExplain" class="btn btn-secondary vc-jurisdiction-explain" data-i18n="jurisdiction.explain">
+          Why this line?
+        </button>
+      </div>
+      <div class="vc-jurisdiction-meta-row" aria-label="Lane rhythm">
+        <p id="vcLaneWeather" class="vc-lane-weather"></p>
+        <p id="vcQuietHoursNote" class="vc-quiet-hours hidden"></p>
+      </div>
+      <div id="vcJurisdictionPanel" class="vc-jurisdiction-panel hidden">
+        <p id="vcJurisdictionPanelBody" data-i18n="jurisdiction.panel"></p>
+      </div>
+    </div>
+
     <main>
       <div class="page-group page-group--discover" aria-label="Discover and shop">
-      <section class="hero" data-vc-frag-k="K">
+      <section class="hero hero--hue-drift" data-vc-frag-k="K">
         <div class="hero-captivate-bg" aria-hidden="true">
           <canvas id="heroCanvasFx" class="hero-canvas-fx"></canvas>
           <span class="bg-orb bg-orb-a"></span>
@@ -175,11 +214,41 @@
             <span data-i18n="hero.trust2">Approved logistics</span>
             <span data-i18n="hero.trust3">AI-assisted safety checks</span>
           </div>
-          <div class="signature-strip" aria-label="VibeCart signature values">
-            <span data-i18n="hero.sig1">VC Signal</span>
-            <span data-i18n="hero.sig2">Route Aura</span>
-            <span data-i18n="hero.sig3">Trust Pulse</span>
+          <div
+            class="signature-strip signature-strip--interactive"
+            role="group"
+            aria-label="Shopping basics"
+            aria-describedby="heroChipHint"
+          >
+            <button
+              type="button"
+              class="hero-chip"
+              data-hero-chip="checkout"
+              data-hero-chip-target="#buyer-advantages"
+              data-i18n="hero.sig1"
+            >
+              Secure checkout
+            </button>
+            <button
+              type="button"
+              class="hero-chip"
+              data-hero-chip="sellers"
+              data-hero-chip-target="#shops"
+              data-i18n="hero.sig2"
+            >
+              Verified sellers
+            </button>
+            <button
+              type="button"
+              class="hero-chip"
+              data-hero-chip="delivery"
+              data-hero-chip-target="#tracking"
+              data-i18n="hero.sig3"
+            >
+              Tracked delivery
+            </button>
           </div>
+          <p id="heroChipHint" class="hero-chip-hint note" aria-live="polite"></p>
         </div>
         <div class="hero-image">
           <img
@@ -193,34 +262,40 @@
         </div>
       </section>
 
-      <section id="vibeFlowReel" class="section alt vibe-flow-section" data-vc-frag-n="n">
-        <h2 data-i18n="vibe.title">Vibe Motion Lane</h2>
-        <p data-i18n="vibe.lead">Swipe sideways, scroll diagonally, and watch the signal lens reveal hot zones.</p>
-        <div id="vibeFlowTrack" class="vibe-flow-track" aria-label="Horizontal vibe flow reel">
-          <article class="vibe-flow-card" data-diagonal-layer="1">
-            <h3 data-i18n="vibe.card1h">Street Drip</h3>
-            <p data-i18n="vibe.card1p">Fast-moving fashion drops for youth buyers.</p>
-          </article>
-          <article class="vibe-flow-card" data-diagonal-layer="2">
-            <h3 data-i18n="vibe.card2h">Tech Sparks</h3>
-            <p data-i18n="vibe.card2p">Unique gadgets with secure one-click checkout.</p>
-          </article>
-          <article class="vibe-flow-card" data-diagonal-layer="1">
-            <h3 data-i18n="vibe.card3h">Creator Finds</h3>
-            <p data-i18n="vibe.card3p">Handpicked products from upcoming sellers.</p>
-          </article>
-          <article class="vibe-flow-card" data-diagonal-layer="3">
-            <h3 data-i18n="vibe.card4h">Global Pulse</h3>
-            <p data-i18n="vibe.card4p">Trending cross-border picks routed smartly.</p>
-          </article>
-          <article class="vibe-flow-card" data-diagonal-layer="2">
-            <h3 data-i18n="vibe.card5h">Campus Heat</h3>
-            <p data-i18n="vibe.card5p">Student-loved deals built for speed and trust.</p>
-          </article>
+      <section id="vc-lane-entry" class="section vc-lane-entry alt">
+        <div class="vc-path-chooser" aria-labelledby="vcPathChooserTitle">
+          <h2 id="vcPathChooserTitle" data-i18n="pathChooser.title">You are here as</h2>
+          <p class="note" data-i18n="pathChooser.lead">
+            Pick a lane — we tune next steps. No chatbot, just structure.
+          </p>
+          <div class="hero-actions vc-path-buttons" role="group" aria-label="Visit intent">
+            <button type="button" class="btn btn-primary" data-vc-persona="buyer" data-i18n="pathChooser.buyer">Buyer</button>
+            <button type="button" class="btn btn-secondary" data-vc-persona="seller" data-i18n="pathChooser.seller">Seller</button>
+            <button type="button" class="btn btn-secondary" data-vc-persona="curious" data-i18n="pathChooser.curious">Browsing</button>
+          </div>
+          <p id="vcPersonaHint" class="note vc-persona-hint" hidden></p>
         </div>
-        <div class="lens-stage" aria-hidden="true">
-          <div id="signalLens" class="signal-lens"></div>
-        </div>
+        <article class="vc-weekly-lane-note" aria-labelledby="vcLaneNoteTitle">
+          <header class="vc-lane-note-header">
+            <span class="vc-lane-note-eyebrow" data-i18n="laneNote.eyebrow">Lane note</span>
+            <span aria-hidden="true"> · </span>
+            <time id="vcLaneNoteDate" datetime="2026-04-14">14 Apr 2026</time>
+          </header>
+          <div class="vc-lane-note-grid">
+            <div>
+              <strong data-i18n="laneNote.sellerTipLabel">Seller</strong>
+              <p id="vcLaneNoteSeller" data-i18n="laneNote.seller">
+                Lead with one clear origin and one realistic delivery band — buyers forgive ranges; they do not forgive fake precision.
+              </p>
+            </div>
+            <div>
+              <strong data-i18n="laneNote.buyerTipLabel">Buyer</strong>
+              <p id="vcLaneNoteBuyer" data-i18n="laneNote.buyer">
+                Before checkout, confirm category rules for your country. If something feels off, pause — humans review edge cases.
+              </p>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section id="market-fit" class="section" data-vc-frag-u="u">
@@ -250,7 +325,7 @@
           <p>Launch your first listing, test demand, and scale safely across Africa and Europe.</p>
           <div class="hero-actions">
             <a href="#sell" class="btn btn-primary">Start Selling on VibeCart</a>
-            <a href="#security" class="btn btn-secondary">See Security Controls</a>
+            <a href="#settings-security" class="btn btn-secondary">Security &amp; settings</a>
           </div>
         </div>
       </section>
@@ -336,6 +411,7 @@
 
       <section id="shops" class="section alt">
         <h2>Regional shop folders</h2>
+        <p id="shopSearchStatus" class="note shop-search-status" aria-live="polite"></p>
         <p id="vibePassportBadge" class="vibe-passport-badge" aria-live="polite"></p>
         <p id="vibeAuraLine" class="vibe-aura-line" aria-live="polite"></p>
         <p id="vibeRouteFortune" class="vibe-route-fortune" aria-live="polite"></p>
@@ -363,26 +439,31 @@
             <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html" data-vc-region="europe">
               <span class="shop-folder-card-eyebrow">Open folder</span>
               <h3 class="shop-folder-card-title">Europe</h3>
+              <p class="vc-origin-chip" data-i18n="originChip.europe">Origin line: EU hubs → bridge carts</p>
               <p>Continental EU, United Kingdom, and Ireland — campus routes plus national retailers.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--mama-africa" href="./shops-mama-africa.html" data-vc-region="mama-africa">
               <span class="shop-folder-card-eyebrow">Open folder</span>
               <h3 class="shop-folder-card-title">Mama Africa</h3>
+              <p class="vc-origin-chip" data-i18n="originChip.africa">Origin line: African makers &amp; importers</p>
               <p>ZA, KE, NG, ZW, and more — includes a Zimbabwe row on the lane page.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--asia" href="./shops-asia.html" data-vc-region="asia">
               <span class="shop-folder-card-eyebrow">Open folder</span>
               <h3 class="shop-folder-card-title">Asia &amp; Gulf</h3>
+              <p class="vc-origin-chip" data-i18n="originChip.asia">Origin line: Asia &amp; Gulf bridge nodes</p>
               <p>India, SEA, Japan, Korea, and the China cluster — plus Dubai bridge entry.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--scents" href="./shops-scents.html" data-vc-region="scents">
               <span class="shop-folder-card-eyebrow">Open folder</span>
               <h3 class="shop-folder-card-title">Scents</h3>
+              <p class="vc-origin-chip" data-i18n="originChip.scents">Origin line: niche &amp; prestige retailers</p>
               <p>Perfume, cologne, niche fragrance, and prestige beauty retailers worldwide.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--global" href="./shops-global.html" data-vc-region="global">
               <span class="shop-folder-card-eyebrow">Open folder</span>
               <h3 class="shop-folder-card-title">Global brands</h3>
+              <p class="vc-origin-chip" data-i18n="originChip.global">Origin line: mainstream &amp; resale mix</p>
               <p>Mainstream fashion, tech, marketplaces, and vintage / resale picks.</p>
             </a>
           </div>
@@ -403,6 +484,20 @@
         <p id="bridgePathStatus" class="note">
           Active path: From Europe to Africa. Products and shops are filtered to this route.
         </p>
+        <aside class="vc-bridge-truth" aria-labelledby="vcBridgeTruthTitle">
+          <h3 id="vcBridgeTruthTitle" data-i18n="bridgeTruth.title">Bridge truth (no fake precision)</h3>
+          <ul class="vc-bridge-truth-list">
+            <li data-i18n="bridgeTruth.li1">
+              Duty and tax estimates here are bands, not customs rulings — final charges depend on classification and local law.
+            </li>
+            <li data-i18n="bridgeTruth.li2">
+              Typical tracked delivery for many EU→Africa lanes falls in a 7–21 day window; remote handoffs can run longer.
+            </li>
+            <li data-i18n="bridgeTruth.li3">
+              Ambiguous or high-risk orders go to human review — automation flags, people decide.
+            </li>
+          </ul>
+        </aside>
         <div id="bridgeShops" class="grid shop-grid"></div>
       </section>
 
@@ -427,6 +522,7 @@
         <p id="buyerDestinationHint" class="note">
           Destination defaults switch automatically with the active bridge path.
         </p>
+        <aside id="vcSerendipityLane" class="vc-serendipity" aria-live="polite" hidden></aside>
         <p class="note">
           <input id="marketDisclaimerAck" type="checkbox" />
           I understand and accept the marketplace risk and legal responsibility disclaimer.
@@ -444,6 +540,7 @@
             <h3>Premium Smartphone</h3>
             <p class="price">EUR 280</p>
             <p>Ships from Poland</p>
+            <p class="vc-photo-promise"><span class="vc-photo-promise-mark" aria-hidden="true">✓</span> <span data-i18n="photoPromise.short">Photo = this listing’s unit</span></p>
             <button class="btn btn-primary buy-now-btn" data-title="Premium Smartphone" data-price="280">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Fashion">
@@ -458,6 +555,7 @@
             <h3>Streetwear Hoodie</h3>
             <p class="price">EUR 45</p>
             <p>Ships from Germany</p>
+            <p class="vc-photo-promise"><span class="vc-photo-promise-mark" aria-hidden="true">✓</span> <span data-i18n="photoPromise.short">Photo = this listing’s unit</span></p>
             <button class="btn btn-primary buy-now-btn" data-title="Streetwear Hoodie" data-price="45">Buy in 1 Click</button>
           </article>
           <article class="product" data-category="Books">
@@ -491,11 +589,27 @@
         </div>
         <p id="expressCheckoutStatus" class="note" aria-live="polite"></p>
       </section>
+
+      <section id="buyer-advantages" class="section alt buyer-advantages" aria-labelledby="buyer-adv-title">
+        <h2 id="buyer-adv-title" data-i18n="buyerAdv.title">Why buying on VibeCart is smoother</h2>
+        <p class="note" data-i18n="buyerAdv.lead">
+          Built for speed: one place for trusted checkout, delivery tracking, and clear policies — without turning the homepage into an internal tools dashboard.
+        </p>
+        <ul class="buyer-adv-list">
+          <li data-i18n="buyerAdv.li1">One-tap style checkout with buyer protections and fraud checks on high-risk orders.</li>
+          <li data-i18n="buyerAdv.li2">Live order tracking and return/refuse windows that mirror what you see in your account.</li>
+          <li data-i18n="buyerAdv.li3">AI shopping assistant (below) ranks listings on this page to match budget and category — you stay in control.</li>
+        </ul>
+      </section>
       </div>
 
       <div class="page-group page-group--grow" aria-label="Sell, promote, and smart tools">
-      <section id="sell" class="section alt">
-        <h2>Sell in 3 easy steps</h2>
+      <section id="sell" class="section alt seller-hub">
+        <p class="seller-hub-kicker" data-i18n="sellerHub.kicker">For sellers &amp; businesses</p>
+        <h2 data-i18n="sellerHub.title">Sell in 3 easy steps — then use the tools below</h2>
+        <p class="note" data-i18n="sellerHub.intro">
+          Scroll down on this same page for marketing, growth AI, and ads. Internal “signals” and policy rails are grouped here so everyday shoppers are not overwhelmed on the homepage.
+        </p>
         <div class="steps">
           <article>
             <h3>1. Upload</h3>
@@ -510,13 +624,85 @@
             <p>Choose courier options for buyer country routes.</p>
           </article>
         </div>
+
+        <div id="vcListingHealth" class="vc-listing-health" aria-labelledby="vcListingHealthTitle">
+          <h3 id="vcListingHealthTitle" data-i18n="listingHealth.title">Listing health</h3>
+          <p class="note" data-i18n="listingHealth.lead">Tick what is true — we never show a fake score, only completion.</p>
+          <div class="vc-listing-health-bars" role="img" aria-label="Completion meter">
+            <span class="vc-lh-bar" data-vc-lh="photos"></span>
+            <span class="vc-lh-bar" data-vc-lh="shipping"></span>
+            <span class="vc-lh-bar" data-vc-lh="policy"></span>
+          </div>
+          <label class="vc-lh-check"><input type="checkbox" id="vcLhPhotos" data-vc-lh-key="photos" /> <span data-i18n="listingHealth.photos">Hero photos + condition notes</span></label>
+          <label class="vc-lh-check"><input type="checkbox" id="vcLhShipping" data-vc-lh-key="shipping" /> <span data-i18n="listingHealth.shipping">Shipping band stated (range, not fake precision)</span></label>
+          <label class="vc-lh-check"><input type="checkbox" id="vcLhPolicy" data-vc-lh-key="policy" /> <span data-i18n="listingHealth.policy">Returns / customs reality acknowledged</span></label>
+        </div>
+
+        <details class="vc-bridge-faq">
+          <summary data-i18n="bridgeFaq.summary">Bridge FAQ snippets (copy-paste friendly)</summary>
+          <ul class="vc-bridge-faq-list">
+            <li data-i18n="bridgeFaq.q1">Customs: final duties depend on classification — we show bands, not rulings.</li>
+            <li data-i18n="bridgeFaq.q2">Timelines: tracked EU↔Africa often 7–21 days; remote handoffs can run longer.</li>
+            <li data-i18n="bridgeFaq.q3">Ambiguous orders go to human review — say so in your listing if edge-case.</li>
+          </ul>
+        </details>
+
+        <div class="seller-advantage-panel">
+          <h3 data-i18n="sellerAdv.title">What you unlock as a seller</h3>
+          <ul class="seller-adv-list">
+            <li data-i18n="sellerAdv.li1">Trust-forward storefronts with owner-reviewed controls on sensitive operations.</li>
+            <li data-i18n="sellerAdv.li2">AI growth workspace (counter + plan builder) to move from zero to ten verified sellers.</li>
+            <li data-i18n="sellerAdv.li3">Marketing tiles for drops, launches, and geo-targeted campaigns once you are live.</li>
+          </ul>
+        </div>
+
+        <div id="seller-ai-toolkit" class="vc-ai-orbit vc-ai-orbit--seller" aria-labelledby="vc-orbit-title">
+          <h2 id="vc-orbit-title" data-i18n="orbit.title">Seller AI toolkit</h2>
+          <p class="note" data-i18n="orbit.lead">
+            Aura turns on warm motion, glow, and playful spacing sitewide. Exclusive switches to a sharp, editorial layout
+            with cooler contrast — same marketplace, different energy. Checkout and legal flows do not change.
+          </p>
+          <p id="vcPersonaStatus" class="vc-persona-status" role="status" aria-live="polite"></p>
+          <div class="vc-orbit-grid">
+            <div class="vc-orbit-card">
+              <p class="note" data-i18n="orbit.personaHint">
+                Full Aura embrace: gradients, pulse logo, softer corners — tuned for phones first.
+              </p>
+              <button type="button" class="btn btn-primary" id="vcPersonaFun" aria-pressed="false" data-i18n="orbit.personaFun">
+                Aura
+              </button>
+            </div>
+            <div class="vc-orbit-card">
+              <p class="note" data-i18n="orbit.personaHintEff">
+                Exclusive layout: minimal chrome, crisp grids, faster visual rhythm on small screens.
+              </p>
+              <button type="button" class="btn btn-secondary" id="vcPersonaEff" aria-pressed="true" data-i18n="orbit.personaEff">
+                Exclusive
+              </button>
+            </div>
+          </div>
+          <div class="vc-legal-copilot alt">
+            <h3 data-i18n="orbit.legalTitle">Law-safe copilot (rules, not magic)</h3>
+            <p data-i18n="orbit.legalBody">
+              Automated checks use jurisdiction tables, category bans, and risk prompts. Unclear cases go to manual
+              review. This is compliance assistance — not legal advice and not autonomous enforcement.
+            </p>
+          </div>
+          <div class="vc-radar">
+            <h3 data-i18n="orbit.radarTitle">Route hints for your growth plan</h3>
+            <p class="note" data-i18n="orbit.radarLead">
+              Heuristic hints from your region and language choice — meant for sellers planning outreach, not shopper-facing promises.
+            </p>
+            <ul id="vcOpportunityRadar" class="vc-radar-list" aria-live="polite"></ul>
+          </div>
+        </div>
       </section>
 
       <section id="seller-marketing" class="section">
         <h2>Seller Marketing Tools</h2>
         <p>
-          Sellers can promote products, announce new arrivals, and run limited-time campaigns
-          to reach buyers faster across Africa, Europe, Dubai, and Asia.
+          Once your listings are live, use these tiles to promote drops, launches, and geo-targeted campaigns — all
+          tuned for cross-border buyers across Africa, Europe, Dubai, and Asia.
         </p>
         <div class="grid shop-grid">
           <article class="shop">
@@ -617,84 +803,9 @@
         <div id="aiResult" class="ai-result" aria-live="polite"></div>
       </section>
 
-      <section id="vc-ai-orbit" class="section alt vc-ai-orbit" aria-labelledby="vc-orbit-title">
-        <h2 id="vc-orbit-title" data-i18n="orbit.title">Signal deck: dual AI + policy rails</h2>
-        <p class="note" data-i18n="orbit.lead">
-          Pick a tone for on-page tips. Heavy lifting still runs through your APIs, humans, and policy — nothing here
-          auto-installs software or bypasses review.
-        </p>
-        <div class="vc-orbit-grid">
-          <div class="vc-orbit-card">
-            <p class="note" data-i18n="orbit.personaHint">
-              Persona changes suggestion wording only. Checkout, legality, and payouts stay in your normal flows.
-            </p>
-            <button type="button" class="btn btn-primary" id="vcPersonaFun" aria-pressed="false" data-i18n="orbit.personaFun">
-              Fun AI (Aura)
-            </button>
-          </div>
-          <div class="vc-orbit-card">
-            <p class="note" data-i18n="orbit.personaHint">
-              Persona changes suggestion wording only. Checkout, legality, and payouts stay in your normal flows.
-            </p>
-            <button type="button" class="btn btn-secondary" id="vcPersonaEff" aria-pressed="true" data-i18n="orbit.personaEff">
-              Efficient AI (Ops)
-            </button>
-          </div>
-        </div>
-        <div class="vc-legal-copilot alt">
-          <h3 data-i18n="orbit.legalTitle">Law-safe copilot (rules, not magic)</h3>
-          <p data-i18n="orbit.legalBody">
-            Automated checks use jurisdiction tables, category bans, and risk prompts. Unclear cases go to manual
-            review. This is compliance assistance — not legal advice and not autonomous enforcement.
-          </p>
-        </div>
-        <div class="vc-radar">
-          <h3 data-i18n="orbit.radarTitle">Market radar (signals)</h3>
-          <p class="note" data-i18n="orbit.radarLead">
-            Heuristic hints from your region and language choice — use them in your growth plan; they do not deploy code
-            or open stores for you.
-          </p>
-          <ul id="vcOpportunityRadar" class="vc-radar-list" aria-live="polite"></ul>
-        </div>
-      </section>
       </div>
 
       <div class="page-group page-group--assurance" aria-label="Safety, services, and compliance">
-      <section id="security" class="section">
-        <h2>Security First</h2>
-        <ul class="security-list">
-          <li>Owner-only admin with multi-factor authentication and hardware key support.</li>
-          <li>Country-aware fraud detection and transaction monitoring.</li>
-          <li>Buyer and seller protection with suspicious-activity checks, identity verification, and high-risk order review.</li>
-          <li>Escalation and dispute workflow with temporary account lock for suspected fraud.</li>
-          <li>Payments are routed only through vetted providers with encryption, 3D Secure, anti-fraud scoring, and tokenized transactions.</li>
-          <li>Delivery uses trusted logistics partners with tracking, delivery verification, and route risk controls.</li>
-          <li>Encrypted traffic (HTTPS), secure cookies, and strict security headers.</li>
-          <li>Role-based permissions and immutable audit logs.</li>
-          <li>Legal-only marketplace with moderation, reporting controls, and proactive listing removal for unlawful content.</li>
-        </ul>
-        <p>
-          The platform enforces strict rules, but users remain responsible for their own actions.
-          See the <a href="./policy.html">Marketplace Policy</a> and
-          <a href="./terms.html">Terms and Conditions</a> for legal responsibilities.
-        </p>
-        <p>
-          Compliance mode: listings and orders are screened against country/state/city rules.
-          If legality is unclear, the transaction is blocked or sent to manual review.
-        </p>
-      </section>
-      <section class="section alt">
-        <h2>Adaptive Market Interface</h2>
-        <p id="marketMode">
-          Market mode: Global default. The interface can localize messaging and visual style by audience region.
-        </p>
-        <label for="interactionMode">Choose your interaction style</label>
-        <select id="interactionMode">
-          <option value="guided">Guided (AI + helper tips)</option>
-          <option value="simple">Simple (minimal interface)</option>
-          <option value="pro">Pro (full marketplace controls)</option>
-        </select>
-      </section>
       <section id="communication" class="section">
         <h2>Buyer-Seller Communication Hub</h2>
         <p>
@@ -868,29 +979,198 @@
         </p>
       </section>
 
+      <section id="public-transparency" class="section">
+        <h2 data-i18n="transparency.title">Transparency snapshot</h2>
+        <p id="trustSnapshotMeta" class="note" data-i18n="transparency.meta">
+          Figures refresh when you load this page. Ranges are normal — exacts are rare in cross-border trade.
+        </p>
+        <p id="vcTrustRepeatLine" class="note vc-trust-repeat" data-i18n="trustRepeat.line">
+          Repeat-lane buyer rate: published when aggregate stats are available — we do not invent percentages.
+        </p>
+        <div id="trustCards" class="grid shop-grid trust-cards-boring"></div>
+      </section>
+
+      <section id="account-access" class="section alt vc-account-passport" aria-labelledby="vcAccountPassportTitle">
+        <div class="vc-passport-intro">
+          <h2 id="vcAccountPassportTitle" data-i18n="accountPassport.title">Lane passport</h2>
+          <p class="vc-passport-tagline" data-i18n="accountPassport.tagline">Create once. Shop or sell with the same secure session.</p>
+          <p class="note" data-i18n="accountPassport.honest">
+            Real email, real password — server-stored with salted hash. No social login theater; just a straight deal.
+          </p>
+          <p class="note account-passport-pay-note" data-i18n="accountPassport.paymentsNote">
+            Checkout uses Stripe when the server is configured. Blink Payment is not connected here yet.
+          </p>
+          <div id="vcBridgePassportStamp" class="vc-passport-stamp-display hidden" aria-live="polite">
+            <span class="vc-passport-stamp-visual" aria-hidden="true">✶</span>
+            <p class="vc-passport-stamp-text" data-i18n="passportStamp.earned">
+              Bridge passport stamp: earned after your first cross-border order on this device.
+            </p>
+          </div>
+        </div>
+
+        <div id="vcAuthLoggedIn" class="vc-passport-strip vc-passport-strip--active hidden" aria-live="polite">
+          <div class="vc-passport-strip-main">
+            <span class="vc-passport-strip-label" data-i18n="accountPassport.active">Signed in</span>
+            <p id="vcAuthWelcomeLine" class="vc-passport-strip-name"></p>
+            <p id="vcAuthMetaLine" class="vc-passport-strip-meta"></p>
+          </div>
+          <div class="vc-passport-strip-actions">
+            <button type="button" id="vcAuthLogout" class="btn btn-secondary" data-i18n="accountPassport.signOut">Sign out</button>
+          </div>
+        </div>
+
+        <div id="vcAuthLoggedOut" class="vc-passport-forms">
+          <div id="vcAuthPanelCreate" class="vc-passport-panel" role="region" aria-labelledby="vcAccountPassportTitle">
+            <p class="vc-passport-switch">
+              <span data-i18n="accountPassport.haveAccount">Already registered?</span>
+              <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToLogin" data-i18n="accountPassport.goLogin">Sign in</button>
+            </p>
+            <p class="note" data-i18n="accountPassport.createLeadFast">Three fields plus password — country defaults from your lane (edit if needed).</p>
+
+            <div class="vc-passport-role-inline">
+              <span data-i18n="accountPassport.signingUpAs">Signing up as</span>
+              <strong id="vcAuthRoleLabel">Buyer</strong>
+              <button type="button" class="btn btn-secondary vc-passport-toggle-role" id="vcAuthToggleRole" data-i18n="accountPassport.switchToSeller">
+                I want to sell
+              </button>
+            </div>
+            <p id="vcAuthSellerNote" class="note hidden" data-i18n="accountPassport.sellerNote"></p>
+            <input type="hidden" id="vcAuthRole" value="buyer" />
+
+            <form id="vcAuthFormCreate" class="vc-passport-form" autocomplete="on" novalidate>
+              <div class="ai-grid vc-passport-fields">
+                <label for="vcAuthEmail" data-i18n="accountPassport.email">Email</label>
+                <input id="vcAuthEmail" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
+
+                <label for="vcAuthPassword" data-i18n="accountPassport.password">Password (8+ characters)</label>
+                <input id="vcAuthPassword" name="password" type="password" autocomplete="new-password" minlength="8" required />
+                <p id="vcAuthPwMeter" class="vc-passport-pw-meter" aria-live="polite"></p>
+
+                <label for="vcAuthFullName" data-i18n="accountPassport.fullName">What should we call you?</label>
+                <input id="vcAuthFullName" name="name" type="text" autocomplete="name" maxlength="80" required placeholder="First name or nickname" />
+
+                <label for="vcAuthCountry" data-i18n="accountPassport.country">Country</label>
+                <select id="vcAuthCountry" name="country" aria-label="Country code">
+                  <option value="ZA">ZA — South Africa</option>
+                  <option value="PL">PL — Poland</option>
+                  <option value="DE">DE — Germany</option>
+                  <option value="FR">FR — France</option>
+                  <option value="GB">GB — United Kingdom</option>
+                  <option value="KE">KE — Kenya</option>
+                  <option value="NG">NG — Nigeria</option>
+                  <option value="ZW">ZW — Zimbabwe</option>
+                  <option value="NA">NA — Namibia</option>
+                  <option value="ET">ET — Ethiopia</option>
+                  <option value="TZ">TZ — Tanzania</option>
+                  <option value="UG">UG — Uganda</option>
+                  <option value="NL">NL — Netherlands</option>
+                  <option value="PT">PT — Portugal</option>
+                </select>
+                <p id="vcAuthCountryNote" class="note vc-passport-country-note"></p>
+              </div>
+              <button type="submit" id="vcAuthSubmitCreate" class="btn btn-primary" data-i18n="accountPassport.submitCreate">
+                Create account
+              </button>
+            </form>
+          </div>
+
+          <div id="vcAuthPanelLogin" class="vc-passport-panel hidden" role="region" hidden>
+            <p class="vc-passport-switch">
+              <span data-i18n="accountPassport.newHere">New here?</span>
+              <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToCreate" data-i18n="accountPassport.goCreate">Create account</button>
+            </p>
+            <p class="note" data-i18n="accountPassport.loginLead">Use the email and password from your passport.</p>
+            <form id="vcAuthFormLogin" class="vc-passport-form" autocomplete="on" novalidate>
+              <div class="ai-grid vc-passport-fields">
+                <label for="vcAuthLoginEmail" data-i18n="accountPassport.email">Email</label>
+                <input id="vcAuthLoginEmail" name="email" type="email" autocomplete="email" required />
+
+                <label for="vcAuthLoginPassword" data-i18n="accountPassport.password">Password</label>
+                <input id="vcAuthLoginPassword" name="password" type="password" autocomplete="current-password" required />
+              </div>
+              <button type="submit" id="vcAuthSubmitLogin" class="btn btn-primary" data-i18n="accountPassport.submitLogin">Sign in</button>
+            </form>
+          </div>
+
+          <p id="vcAuthStatus" class="note vc-auth-status" aria-live="assertive"></p>
+        </div>
+      </section>
+
       <section id="settings-hub" class="section settings-hub">
-        <h2>Settings & Legal</h2>
-        <p>Everything important in one clean place for trust, transparency, and account confidence.</p>
+        <h2 data-i18n="settingsHub.title">Settings &amp; legal</h2>
+        <p data-i18n="settingsHub.lead">Security, experience, and legal documents — kept off the homepage so shopping stays fast.</p>
         <div class="settings-grid">
           <article class="settings-card">
             <span class="vc-icon vc-icon-legal" aria-hidden="true"></span>
-            <h3>Legal Center</h3>
-            <p>Read platform terms, privacy controls, and marketplace policy before buying or selling.</p>
+            <h3 data-i18n="settingsHub.legalH">Legal center</h3>
+            <p data-i18n="settingsHub.legalP">Read platform terms, privacy controls, and marketplace policy before buying or selling.</p>
             <p class="settings-links">
-              <a href="./terms.html">Terms & Conditions</a>
+              <a href="./terms.html">Terms &amp; Conditions</a>
               <a href="./privacy.html">Privacy</a>
               <a href="./policy.html">Marketplace Policy</a>
             </p>
           </article>
           <article class="settings-card">
             <span class="vc-icon vc-icon-account" aria-hidden="true"></span>
-            <h3>Account Controls</h3>
-            <p>Use Account Access to switch between buyer and seller profiles securely.</p>
+            <h3 data-i18n="settingsHub.accountH">Account controls</h3>
+            <p data-i18n="settingsHub.accountP">Use Account Access to switch between buyer and seller profiles securely.</p>
             <p class="settings-links">
               <a href="#account-access">Open Account Access</a>
-              <a href="#security">Review Security</a>
+              <a href="#settings-security">Security overview</a>
             </p>
           </article>
+          <article class="settings-card settings-card--wide">
+            <span class="vc-icon vc-icon-account" aria-hidden="true"></span>
+            <h3 data-i18n="settingsHub.experienceH">Shop experience</h3>
+            <p id="marketMode" data-i18n="settingsHub.experienceMode">
+              Market mode: Global default. The interface can localize messaging and visual style by audience region.
+            </p>
+            <label for="interactionMode" data-i18n="settingsHub.experienceLabel">Choose your interaction style</label>
+            <select id="interactionMode" aria-label="Interaction style">
+              <option value="guided" data-i18n="settingsHub.modeGuided">Guided (AI + helper tips)</option>
+              <option value="simple" data-i18n="settingsHub.modeSimple">Simple (minimal interface)</option>
+              <option value="pro" data-i18n="settingsHub.modePro">Pro (full marketplace controls)</option>
+            </select>
+            <div class="settings-toggles">
+              <label class="settings-toggle">
+                <input id="vcUiSoundToggle" type="checkbox" />
+                <span data-i18n="settingsHub.uiSound">Subtle UI sound (one chime on folder open — off by default)</span>
+              </label>
+              <label class="settings-toggle">
+                <input id="vcRitualToggle" type="checkbox" checked />
+                <span data-i18n="settingsHub.calmMoment">Calm moment after browsing (one short screen per session — respects reduced motion)</span>
+              </label>
+              <label class="settings-toggle">
+                <input id="vcSkipReceiptToggle" type="checkbox" />
+                <span data-i18n="settingsHub.skipReceipt">Skip receipt rehearsal before one-click checkout (pro — off by default)</span>
+              </label>
+            </div>
+          </article>
+        </div>
+
+        <div id="settings-security" class="settings-security-block">
+          <h3 data-i18n="settingsHub.securityH">Security overview</h3>
+          <p class="note" data-i18n="settingsHub.securityLead">
+            The same protections apply sitewide — we only surface the detail here so the storefront stays lightweight.
+          </p>
+          <ul class="security-list security-list--settings">
+            <li data-i18n="settingsHub.sec1">Owner-only admin with multi-factor authentication and hardware key support.</li>
+            <li data-i18n="settingsHub.sec2">Country-aware fraud detection and transaction monitoring.</li>
+            <li data-i18n="settingsHub.sec3">Buyer and seller protection with suspicious-activity checks, identity verification, and high-risk order review.</li>
+            <li data-i18n="settingsHub.sec4">Escalation and dispute workflow with temporary account lock for suspected fraud.</li>
+            <li data-i18n="settingsHub.sec5">Payments are routed only through vetted providers with encryption, 3D Secure, anti-fraud scoring, and tokenized transactions.</li>
+            <li data-i18n="settingsHub.sec6">Delivery uses trusted logistics partners with tracking, delivery verification, and route risk controls.</li>
+            <li data-i18n="settingsHub.sec7">Encrypted traffic (HTTPS), secure cookies, and strict security headers.</li>
+            <li data-i18n="settingsHub.sec8">Role-based permissions and immutable audit logs.</li>
+            <li data-i18n="settingsHub.sec9">Legal-only marketplace with moderation, reporting controls, and proactive listing removal for unlawful content.</li>
+          </ul>
+          <p>
+            The platform enforces strict rules, but users remain responsible for their own actions. See the
+            <a href="./policy.html">Marketplace Policy</a> and <a href="./terms.html">Terms and Conditions</a> for legal responsibilities.
+          </p>
+          <p class="note" data-i18n="settingsHub.compliance">
+            Compliance mode: listings and orders are screened against country/state/city rules. If legality is unclear, the transaction is blocked or sent to manual review.
+          </p>
         </div>
       </section>
       </div>
@@ -913,12 +1193,12 @@
       <a href="#market" data-quick-target="market">Shop</a>
       <a href="#categories" data-quick-target="categories">Explore</a>
       <a href="#tracking" data-quick-target="tracking">Orders</a>
-      <a href="#settings-hub" data-quick-target="settings-hub">Account</a>
+      <a href="#account-access" data-quick-target="account-access">Account</a>
     </nav>
 
     <footer class="footer">
-      <p class="note build-id-note" data-build-id="20260418">
-        Site build: 20260418 · hard refresh once after deploy if layout looks old.
+      <p class="note build-id-note" data-build-id="20260422ux2">
+        Site build: 20260422ux2 · hard refresh once after deploy if layout looks old.
       </p>
       <p>VibeCart - Discover, trade, and grow your vibe globally.</p>
       <p>Contact: <a href="mailto:1vibe.cart@gmail.com">1vibe.cart@gmail.com</a></p>
@@ -938,19 +1218,45 @@
       </div>
     </div>
 
-    <script src="./i18n.js?v=20260420smooth1"></script>
-    <script src="./vendor/lenis.min.js?v=20260420smooth1"></script>
-    <script src="./script.js?v=20260420smooth1"></script>
-    <script src="./mobile-app-shell.js?v=20260420smooth1" defer></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./service-worker.js?v=20260420smooth1", { updateViaCache: "none" })
-            .then((reg) => reg.update())
-            .catch(() => {});
-        });
-      }
-    </script>
+    <div id="vcSignatureRitual" class="vc-signature-ritual hidden" role="dialog" aria-modal="true" aria-labelledby="vcRitualTitle" aria-hidden="true">
+      <div class="vc-signature-ritual-card">
+        <p id="vcRitualTitle" class="vc-signature-ritual-title" data-i18n="ritual.title">Lane saved.</p>
+        <p class="vc-signature-ritual-sub" data-i18n="ritual.sub">One slow breath. Tap OK when you are ready.</p>
+        <button type="button" class="btn btn-primary" id="vcRitualDismiss" data-i18n="ritual.ok">OK</button>
+      </div>
+    </div>
+
+    <div id="vcReceiptRehearsal" class="modal hidden vc-receipt-modal" role="dialog" aria-modal="true" aria-labelledby="vcReceiptTitle" aria-hidden="true">
+      <div class="modal-card vc-receipt-card">
+        <h3 id="vcReceiptTitle" data-i18n="receipt.title">Receipt rehearsal</h3>
+        <p class="note" data-i18n="receipt.lead">Plain language summary — not a tax invoice. Confirm before we place the order.</p>
+        <dl class="vc-receipt-dl">
+          <dt data-i18n="receipt.item">Item</dt>
+          <dd id="vcReceiptItem"></dd>
+          <dt data-i18n="receipt.price">Listed price</dt>
+          <dd id="vcReceiptPrice"></dd>
+          <dt data-i18n="receipt.lane">Active lane</dt>
+          <dd id="vcReceiptRoute"></dd>
+          <dt data-i18n="receipt.buyer">Buyer routing</dt>
+          <dd id="vcReceiptBuyer"></dd>
+          <dt data-i18n="receipt.ship">Shipping method</dt>
+          <dd id="vcReceiptShip"></dd>
+          <dt data-i18n="receipt.returns">Returns &amp; disputes</dt>
+          <dd data-i18n="receipt.returnsBody">Platform + seller policies apply; cross-border windows vary by category.</dd>
+        </dl>
+        <p id="vcMismatchGuard" class="vc-mismatch-guard hidden" role="alert"></p>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-secondary" id="vcReceiptCancel" data-i18n="receipt.cancel">Back</button>
+          <button type="button" class="btn btn-primary" id="vcReceiptConfirm" data-i18n="receipt.confirm">Place order</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="vcSealedToast" class="vc-sealed-toast" role="status" aria-live="polite" data-i18n="sealed.word">Sealed.</div>
+
+    <script src="./i18n.js?v=20260426uxpack2"></script>
+    <script src="./vendor/lenis.min.js?v=20260423phone1"></script>
+    <script src="./script.js?v=20260419cinematic1"></script>
+    <script src="./mobile-app-shell.js?v=20260423phone1" defer></script>
   </body>
 </html>
