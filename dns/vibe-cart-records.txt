@@ -11,6 +11,12 @@
 #   - An ALIAS/ANAME to a Netlify load balancer
 # Create exactly what Netlify displays for the apex.
 #
+# TROUBLESHOOT (timeouts / ERR_FAILED on https://vibe-cart.com/):
+# - If `vibecart-marketplace.netlify.app` loads but the apex does NOT, apex DNS is wrong.
+# - `apex-loadbalancer.netlify.com` currently resolves to A: 75.2.60.5 and 99.83.231.61 (verify in Netlify docs if they change).
+# - Wrong apex A records (example seen in the wild: 15.197.x.x, 3.33.x.x) will NOT answer HTTPS for your Netlify site — delete them in Netlify DNS (or your DNS host) and apply Netlify’s shown records again.
+# - Run from repo: npm run health:dns
+#
 # Optional www:
 #   Type: CNAME    Name: www    Target: <your-site>.netlify.app   (Netlify shows this)
 #

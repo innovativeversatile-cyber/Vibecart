@@ -42,10 +42,12 @@ App config: `mobile-app/app.json` → `expo.extra.vibecartBaseUrl` / `vibecartAp
 ## Infra notes (recent)
 
 - **`api.vibe-cart.com`:** DNS was missing (NXDOMAIN). Site + app should use **`https://vibe-cart.com/api/...`** until you add a CNAME for `api`.
-- **Netlify → API:** fixed. `netlify.toml` now proxies `/api/*` to **`https://vibecart-production.up.railway.app/api/:splat`**, and both direct Railway health and **`https://vibe-cart.com/api/health`** return **200**.
+- **Netlify → API:** `netlify.toml` proxies `/api/*` to **`https://vibecart-production.up.railway.app/api/:splat`**. Direct Railway **`/api/health`** should return **200** when the API is up.
+- **Custom domain timeouts (apex DNS wrong):** If **`https://vibecart-marketplace.netlify.app/`** works but **`https://vibe-cart.com/`** times out, the apex **`A` records for `vibe-cart.com` are not pointing at Netlify’s load balancer**. In **Netlify → Domains → DNS records** for `vibe-cart.com`, remove stray `A` records and add exactly what Netlify shows (prefer **ALIAS/ANAME → `apex-loadbalancer.netlify.com`**; otherwise doc fallback **`A` → `75.2.60.5`** and **`99.83.231.61`** — confirm current values in [Netlify external DNS](https://docs.netlify.com/manage/domains/configure-domains/configure-external-dns/)). Until fixed, use **`https://vibecart-marketplace.netlify.app/`** for the site and **`https://vibecart-marketplace.netlify.app/admin.html`** for admin (same deploy, different host).
+- **Diagnose:** `npm run health:dns` — compares apex DNS to load balancer + probes HTTPS.
 - **HTTPS:** Netlify serves TLS for the site; `netlify.toml` adds **`Strict-Transport-Security`** for browsers that see this host over HTTPS.
 - **Demo DB seed:** `npm run db:seed` — demo emails `@vibecart.local`, password `DemoPass123!` (staging only).
-- **Verify from your machine:** `npm run health:proxy` — prints status for **direct Railway** and **https://vibe-cart.com/api/health**.
+- **Verify API proxy:** `npm run health:proxy` — **direct Railway** vs **`https://vibe-cart.com/api/health`** (the latter fails until apex DNS answers).
 
 ## Your dashboards (sign-in required)
 
