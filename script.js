@@ -1623,9 +1623,21 @@ function initMobileWebLayoutGuards() {
       return;
     }
     document.documentElement.style.setProperty("width", "100%");
+    document.documentElement.style.setProperty("max-width", "100%");
     document.body.style.setProperty("width", "100%");
+    document.body.style.setProperty("max-width", "100%");
     document.documentElement.style.setProperty("overflow-x", "hidden");
     document.body.style.setProperty("overflow-x", "hidden");
+    const main = document.querySelector("main");
+    if (main) {
+      main.style.setProperty("max-width", "100%");
+      main.style.setProperty("width", "100%");
+    }
+    const footer = document.querySelector(".footer");
+    if (footer) {
+      footer.style.setProperty("max-width", "100%");
+      footer.style.setProperty("width", "100%");
+    }
   } catch {
     /* ignore */
   }
@@ -3003,6 +3015,7 @@ initBrandSignatureMotion();
 initMobileQuickNav();
 wireOneClickBuy();
 initializeBridgePaths().catch(() => {});
+initMobileWebLayoutGuards();
 initCinematicIntro();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
@@ -4543,7 +4556,6 @@ if (onboardingClose) {
   onboardingClose.addEventListener("click", closeOnboardingModal);
 }
 
-initMobileWebLayoutGuards();
 initVibecartLanePack();
 initPublicAccountAuth();
 loadTrustCards();

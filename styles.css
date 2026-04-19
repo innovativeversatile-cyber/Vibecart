@@ -2868,6 +2868,14 @@ html.vc-mobile-app body {
   overflow-x: hidden !important;
 }
 
+html.vc-mobile-app main,
+html.vc-mobile-app .footer {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 html.vc-mobile-app .mobile-quick-nav {
   display: none !important;
 }

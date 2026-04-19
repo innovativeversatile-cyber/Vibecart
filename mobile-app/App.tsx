@@ -24,7 +24,7 @@ const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
 const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
 const DOCK_COACH_DISMISSED_KEY = "vibecart.dock.coach.dismissed.v1";
 
-const INJECT_MOBILE_CLASS = `(function(){try{document.documentElement.classList.add('vc-mobile-app');document.documentElement.style.setProperty('--vc-mobile-tab-h','62px');var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
+const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','62px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='100%';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
 
 /**
  * Hash + scroll intelligence: dock follows the section actually in view (IntersectionObserver),
@@ -452,6 +452,14 @@ export default function App(): JSX.Element {
         mixedContentMode="never"
         textZoom={100}
         scalesPageToFit={false}
+        {...(Platform.OS === "android"
+          ? {
+              /* Prefer device-width layout in Android WebView (avoids desktop-scale strip + pinch to see hero). */
+              useWideViewPort: false,
+              setBuiltInZoomControls: false,
+              setDisplayZoomControls: false
+            }
+          : {})}
         overScrollMode="never"
         mediaPlaybackRequiresUserAction={true}
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
