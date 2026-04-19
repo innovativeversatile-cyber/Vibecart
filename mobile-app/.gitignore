@@ -3,6 +3,10 @@ node_modules/
 dist/
 web-build/
 
+# Native (EAS generates these; ignore accidental local prebuild)
+/android/
+/ios/
+
 # Native
 *.orig.*
 *.jks
