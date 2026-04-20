@@ -1935,30 +1935,54 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   max-width: 100% !important;
   height: 100% !important;
   min-height: 100dvh !important;
+  overflow: hidden;
+  contain: layout paint;
+}
+
+.vc-mobile-app .cinematic-intro-card {
+  max-width: min(88vw, 300px);
+  min-height: min(32vh, 200px);
 }
 
 .vc-mobile-app .cinematic-logo-stack {
-  width: clamp(140px, 44vw, 200px);
-  height: clamp(140px, 44vw, 200px);
+  width: clamp(108px, min(34vw, 36dvh), 168px);
+  height: clamp(108px, min(34vw, 36dvh), 168px);
 }
 
 .vc-mobile-app .cinematic-logo-pulse {
-  width: clamp(96px, 28vw, 132px);
-  height: clamp(96px, 28vw, 132px);
+  width: clamp(76px, min(22vw, 26dvh), 112px);
+  height: clamp(76px, min(22vw, 26dvh), 112px);
+  animation-name: vcMobileLogoPulse;
+  animation-duration: 1.65s;
 }
 
 .vc-mobile-app .cinematic-logo-letter {
-  font-size: clamp(2.35rem, 11vw, 3.25rem);
+  font-size: clamp(1.75rem, min(8vw, 9dvh), 2.55rem);
+  animation: vcMobileLogoWink 2.6s ease-in-out infinite;
+}
+
+@keyframes vcMobileLogoWink {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.02);
+  }
 }
 
 .vc-mobile-app .cinematic-ring--outer {
-  width: clamp(130px, 40vw, 188px);
-  height: clamp(130px, 40vw, 188px);
+  width: clamp(100px, min(30vw, 34dvh), 152px);
+  height: clamp(100px, min(30vw, 34dvh), 152px);
+  animation-name: vcMobileCinematicRingA;
+  animation-duration: 2.35s;
 }
 
 .vc-mobile-app .cinematic-ring--mid {
-  width: clamp(110px, 34vw, 164px);
-  height: clamp(110px, 34vw, 164px);
+  width: clamp(88px, min(26vw, 30dvh), 136px);
+  height: clamp(88px, min(26vw, 30dvh), 136px);
+  animation-name: vcMobileCinematicRingB;
+  animation-duration: 2.35s;
 }
 
 .cinematic-intro-card {
@@ -2128,6 +2152,50 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   }
 }
 
+/* Native WebView: gentler ring + logo pulse so expansion stays inside the screen */
+@keyframes vcMobileCinematicRingA {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.82;
+  }
+  70% {
+    transform: scale(1.03);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes vcMobileCinematicRingB {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.68;
+  }
+  75% {
+    transform: scale(1.02);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes vcMobileLogoPulse {
+  0% {
+    transform: scale(0.95) rotate(-1deg);
+    box-shadow: 0 0 0 0 rgba(232, 163, 23, 0.42);
+  }
+  50% {
+    transform: scale(1.02) rotate(0.35deg);
+    box-shadow: 0 0 0 9px rgba(232, 163, 23, 0);
+  }
+  100% {
+    transform: scale(0.98) rotate(0deg);
+    box-shadow: 0 0 0 0 rgba(232, 163, 23, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cinematic-logo-pulse {
     animation: none;
@@ -2141,6 +2209,13 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
 
   .cinematic-ring {
     animation: none !important;
+  }
+
+  .vc-mobile-app .cinematic-logo-pulse,
+  .vc-mobile-app .cinematic-logo-letter,
+  .vc-mobile-app .cinematic-ring {
+    animation: none !important;
+    transform: none;
   }
 }
 
@@ -2707,6 +2782,13 @@ body.admin-surface .section {
   padding: 1rem;
 }
 
+/* `.modal` comes after `.hidden` in this file — without this, `display:grid` wins and modals stay on-screen while "hidden". */
+.modal.hidden {
+  display: none !important;
+  pointer-events: none;
+  visibility: hidden;
+}
+
 .modal-card {
   width: min(540px, 96%);
   border-radius: 16px;
@@ -2939,6 +3021,45 @@ html.vc-mobile-app .section,
 html.vc-phone .section {
   margin: 1.1rem auto;
   border-radius: 18px;
+}
+
+/* In-app: sections ease in while scrolling — breaks the “one endless list” feel */
+html.vc-mobile-app main section {
+  --vc-reveal-d: 0ms;
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition:
+    opacity 0.55s ease,
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--vc-reveal-d);
+  will-change: opacity, transform;
+}
+
+html.vc-mobile-app main section.vc-revealed {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+html.vc-mobile-app .shop-folder-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.08s;
+}
+
+html.vc-mobile-app .hero-chip {
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+html.vc-mobile-app .hero-chip:active {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.vc-mobile-app main section {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 html.vc-mobile-app .shop-folder-landing,

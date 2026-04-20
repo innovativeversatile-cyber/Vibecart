@@ -1115,6 +1115,7 @@ function initReceiptRehearsalFlow() {
   if (!modal) {
     return;
   }
+  closeReceiptRehearsal();
   cancel?.addEventListener("click", () => closeReceiptRehearsal());
   confirm?.addEventListener("click", () => {
     const title = pendingReceiptCheckoutTitle;
@@ -1611,6 +1612,55 @@ function bindVcIntroVisualViewport(intro) {
     intro.style.removeProperty("right");
     intro.style.removeProperty("bottom");
   };
+}
+
+function initVcMobileAppFx() {
+  try {
+    if (!document.documentElement.classList.contains("vc-mobile-app")) {
+      return;
+    }
+    const main = document.querySelector("main");
+    if (!main) {
+      return;
+    }
+    main.classList.add("vc-mobile-feed");
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nodes = Array.from(main.querySelectorAll("section"));
+    if (!nodes.length) {
+      return;
+    }
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      nodes.forEach((el) => el.classList.add("vc-revealed"));
+      return;
+    }
+    const vh = window.innerHeight || 640;
+    nodes.forEach((el, i) => {
+      el.style.setProperty("--vc-reveal-d", `${Math.min(i, 14) * 42}ms`);
+      const top = el.getBoundingClientRect().top;
+      if (top < vh * 0.94) {
+        el.classList.add("vc-revealed");
+      }
+    });
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (!en.isIntersecting) {
+            return;
+          }
+          en.target.classList.add("vc-revealed");
+          io.unobserve(en.target);
+        });
+      },
+      { root: null, rootMargin: "0px 0px -5% 0px", threshold: [0, 0.07, 0.14] }
+    );
+    nodes.forEach((el) => {
+      if (!el.classList.contains("vc-revealed")) {
+        io.observe(el);
+      }
+    });
+  } catch {
+    /* ignore */
+  }
 }
 
 function initMobileWebLayoutGuards() {
@@ -3016,6 +3066,7 @@ initMobileQuickNav();
 wireOneClickBuy();
 initializeBridgePaths().catch(() => {});
 initMobileWebLayoutGuards();
+initVcMobileAppFx();
 initCinematicIntro();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
