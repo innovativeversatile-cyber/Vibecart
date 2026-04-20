@@ -400,17 +400,17 @@ export default function App(): JSX.Element {
 
   const scale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.9, 1.12]
+    outputRange: [0.94, 1.04]
   });
 
   const opacity = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.68, 1]
+    outputRange: [0.75, 1]
   });
 
   const ringScale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.58]
+    outputRange: [1, 1.28]
   });
 
   const ringOpacity = pulse.interpolate({

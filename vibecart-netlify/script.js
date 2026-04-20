@@ -1614,6 +1614,49 @@ function bindVcIntroVisualViewport(intro) {
   };
 }
 
+function initVcHorizontalRails() {
+  try {
+    const root = document.documentElement;
+    if (!root.classList.contains("vc-mobile-app") && !root.classList.contains("vc-phone")) {
+      return;
+    }
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const delayMs = root.classList.contains("vc-mobile-app") ? 3200 : 520;
+    window.setTimeout(() => {
+      try {
+        const rails = Array.from(document.querySelectorAll(".vc-mobile-rail:not(.vc-mobile-rail--chips)"));
+        rails.forEach((rail, idx) => {
+          if (reduceMotion || rail.dataset.vcRailHint === "1") {
+            return;
+          }
+          if (idx !== 0 || rail.scrollWidth <= rail.clientWidth + 8) {
+            return;
+          }
+          rail.dataset.vcRailHint = "1";
+          window.requestAnimationFrame(() => {
+            try {
+              rail.scrollBy({ left: 28, behavior: "smooth" });
+              window.setTimeout(() => {
+                try {
+                  rail.scrollBy({ left: -28, behavior: "smooth" });
+                } catch {
+                  /* ignore */
+                }
+              }, 720);
+            } catch {
+              /* ignore */
+            }
+          });
+        });
+      } catch {
+        /* ignore */
+      }
+    }, delayMs);
+  } catch {
+    /* ignore */
+  }
+}
+
 function initVcMobileAppFx() {
   try {
     if (!document.documentElement.classList.contains("vc-mobile-app")) {
@@ -3067,6 +3110,7 @@ wireOneClickBuy();
 initializeBridgePaths().catch(() => {});
 initMobileWebLayoutGuards();
 initVcMobileAppFx();
+initVcHorizontalRails();
 initCinematicIntro();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
