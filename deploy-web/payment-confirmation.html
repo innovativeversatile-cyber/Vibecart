@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Payment confirmation · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-primary" href="./checkout-details.html">Back to checkout</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Final payment confirmation</h1>
+    <p class="note">Thanks for your order. Payment is completed through Stripe secure checkout.</p>
+    <p class="note" id="paymentOrderLine">Order code will appear here.</p>
+    <div class="ai-result" id="paymentSummary" aria-live="polite"></div>
+    <div class="admin-grid" style="max-width:36rem; margin-top:0.8rem">
+      <label for="paymentMethodSelect">Choose payment option</label>
+      <select id="paymentMethodSelect">
+        <option value="">Select payment option</option>
+        <option value="card">Bank card (Visa/Mastercard)</option>
+        <option value="paypal">PayPal</option>
+        <option value="revolut">Revolut</option>
+        <option value="blik">BLIK</option>
+        <option value="apple-pay">Apple Pay</option>
+        <option value="google-pay">Google Pay</option>
+        <option value="mobile-money">Mobile money</option>
+        <option value="bank-transfer">Bank transfer</option>
+      </select>
+    </div>
+    <p class="hero-actions" style="margin-top:1rem">
+      <button class="btn btn-primary" id="paymentGatewayBtn" type="button">Continue to secure payment</button>
+    </p>
+    <p class="note" id="paymentDoneStatus" aria-live="polite"></p>
+  </main>
+  <script src="./payment-confirmation.js?v=20260420flowfix22" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

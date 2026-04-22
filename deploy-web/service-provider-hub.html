@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Provider Hub · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=provider-hub-1" />
+</head>
+<body>
+  <header class="shops-lane-topbar">
+    <a href="./index.html#beauty-booking" class="btn btn-secondary">Back</a>
+    <h1 class="shops-lane-title">Provider Booking Template</h1>
+  </header>
+  <main class="section">
+    <p class="note">Set your business details and prepayment route so clients pay before their date is secured.</p>
+    <div class="admin-grid">
+      <label for="spBusinessName">Business name</label>
+      <input id="spBusinessName" type="text" placeholder="Example: Papa Fresh Cuts" />
+      <label for="spServiceType">Main service</label>
+      <input id="spServiceType" type="text" placeholder="Barber / Nails / Makeup / Hair" />
+      <label for="spPaymentUrl">Payment link (required prepay route)</label>
+      <input id="spPaymentUrl" type="url" placeholder="https://yourpay.example/checkout" />
+      <label for="spDepositAmount">Deposit amount</label>
+      <input id="spDepositAmount" type="number" min="0" step="0.01" placeholder="10.00" />
+    </div>
+    <div class="hero-actions" style="margin-top:1rem;">
+      <button id="spSave" class="btn btn-primary" type="button">Save provider template</button>
+      <button id="spGenerate" class="btn btn-secondary" type="button">Generate booking checkout link</button>
+    </div>
+    <div id="spStatus" class="ai-result"></div>
+    <div id="spOutput" class="ai-result"></div>
+  </main>
+  <script>
+    (function () {
+      var KEY = "vibecart-service-provider-template";
+      var name = document.getElementById("spBusinessName");
+      var service = document.getElementById("spServiceType");
+      var pay = document.getElementById("spPaymentUrl");
+      var dep = document.getElementById("spDepositAmount");
+      var status = document.getElementById("spStatus");
+      var out = document.getElementById("spOutput");
+      var save = document.getElementById("spSave");
+      var gen = document.getElementById("spGenerate");
+      function read() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; } }
+      function write(v) { localStorage.setItem(KEY, JSON.stringify(v)); }
+      var current = read();
+      if (name) name.value = current.businessName || "";
+      if (service) service.value = current.serviceType || "";
+      if (pay) pay.value = current.paymentUrl || "";
+      if (dep) dep.value = current.depositAmount || "";
+      if (save) save.addEventListener("click", function () {
+        var payload = {
+          businessName: String(name.value || "").trim(),
+          serviceType: String(service.value || "").trim(),
+          paymentUrl: String(pay.value || "").trim(),
+          depositAmount: String(dep.value || "").trim()
+        };
+        write(payload);
+        if (status) status.textContent = "Provider template saved.";
+      });
+      if (gen) gen.addEventListener("click", function () {
+        var data = read();
+        if (!data.paymentUrl) {
+          if (status) status.textContent = "Add payment URL first.";
+          return;
+        }
+        var link = "./checkout-details.html?flow=service_booking&provider=" + encodeURIComponent(data.businessName || "Provider") +
+          "&service=" + encodeURIComponent(data.serviceType || "Service") +
+          "&deposit=" + encodeURIComponent(data.depositAmount || "0") +
+          "&payUrl=" + encodeURIComponent(data.paymentUrl);
+        if (out) out.innerHTML = "Share this booking payment route:<br/><a class='btn btn-primary' href='" + link + "'>" + link + "</a>";
+      });
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

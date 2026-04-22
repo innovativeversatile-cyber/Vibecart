@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guided buy · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./hot-picks.html">← <span data-page-i18n="hot.title">Hot picks</span></a>
+    <a class="btn btn-primary" id="buyJourneyTopCta" href="./live-market-shops.html?cat=All" data-page-i18n="buy.skip">Skip to marketplace</a>
+  </header>
+  <main class="section alt shops-lane-main vc-flow-shell" data-vc-flow-root="buy">
+    <h1 class="shops-lane-title" id="buyJourneyTitle" data-page-i18n="buy.title">Buy in a straight line</h1>
+    <p class="note" data-flow-step-label style="margin-top: 0" id="buyJourneyStepLabel" data-page-i18n="buy.step">Step 1 of 3</p>
+    <div class="vc-flow-progress-wrap" aria-hidden="true"><div class="vc-flow-progress-bar" data-flow-progress></div></div>
+
+    <div class="vc-flow-step-box" data-flow-step id="buyFlowStep1">
+      <h2 data-page-i18n="buy.s1.title">1 · Pick your lane</h2>
+      <p class="note" data-page-i18n="buy.s1.desc">Regional folders help you discover trusted external shops; checkout stays on the live marketplace.</p>
+      <p class="hero-actions">
+        <a class="btn btn-secondary" href="./regional-shops.html" data-page-i18n="buy.s1.cta">Open regional lanes</a>
+        <button type="button" class="btn btn-primary" data-flow-next data-page-i18n="common.continue">Continue</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden id="buyFlowStep2">
+      <h2 data-page-i18n="buy.s2.title">2 · Accept responsibility</h2>
+      <p class="note" data-page-i18n="buy.s2.desc">On the marketplace, tick the risk disclaimer once to unlock one-tap buy for this session.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <button type="button" class="btn btn-primary" data-flow-next data-page-i18n="common.continue">Continue</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden id="buyFlowStep3">
+      <h2 data-page-i18n="buy.s3.title">3 · Shop live listings</h2>
+      <p class="note" data-page-i18n="buy.s3.desc">You are routed to Hot Picks with buyer context until you finish or leave.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <a class="btn btn-primary" id="buyJourneyFinalCta" href="./live-market-shops.html?cat=All" data-flow-done data-page-i18n="buy.enter">Enter marketplace</a>
+      </p>
+    </div>
+  </main>
+  <script src="./page-i18n.js?v=20260426lang2"></script>
+  <script src="./flow-shell.js?v=20260419haptic1" defer></script>
+  <script src="./buy-journey.js?v=20260422buyfashion1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

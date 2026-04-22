@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+    <title>Lane passport · VibeCart</title>
+    <meta name="robots" content="noindex, follow" />
+    <meta name="theme-color" content="#120a1a" />
+    <link rel="stylesheet" href="./styles.css?v=20260422fashion1" />
+  </head>
+  <body class="vc-layout-exclusive vc-passport-page">
+    <header class="topbar" id="siteTopbar">
+      <div class="topbar-primary">
+        <a class="brand" href="./index.html" id="brandHomeLink" aria-label="VibeCart home">
+          <span class="brand-mark" aria-hidden="true">V</span>
+          <span class="brand-name">VibeCart</span>
+        </a>
+      </div>
+      <div class="topbar-rest">
+        <nav class="nav-links" aria-label="Passport">
+          <a class="nav-primary" href="./index.html">Home</a>
+          <a class="nav-primary" href="./account-hub.html">Account hub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section alt shops-lane-main" style="max-width: 720px; margin: 0 auto">
+      <p class="note" style="margin-bottom: 1rem">
+        <a href="./account-hub.html">← Account hub</a>
+        ·
+        <a href="./index.html">Browse home</a>
+      </p>
+
+      <section id="vcPassportBooklet" class="vc-passport-booklet" aria-labelledby="vcPassportBookletTitle">
+        <div class="vc-passport-booklet-header">
+          <h2 id="vcPassportBookletTitle" class="vc-passport-booklet-title">Your lane passport</h2>
+          <span class="vc-passport-booklet-stamp" aria-hidden="true">VC · live</span>
+        </div>
+        <div class="vc-passport-booklet-grid">
+          <div class="vc-passport-stat">
+            <strong data-vc-pass-stamps>0</strong>
+            <span>Route stamps</span>
+          </div>
+          <div class="vc-passport-stat">
+            <strong data-vc-pass-bought>0</strong>
+            <span>Joy buys (est.)</span>
+          </div>
+          <div class="vc-passport-stat">
+            <strong data-vc-pass-waiting>0</strong>
+            <span>In transit / waiting</span>
+          </div>
+          <div class="vc-passport-stat">
+            <strong data-vc-pass-insight>0</strong>
+            <span>Insight score</span>
+          </div>
+        </div>
+        <p class="vc-passport-booklet-foot">
+          Numbers blend rewards, folder stamps, and seller momentum on this device — a playful mirror until orders sync
+          from the server. Keep tapping regional folders on home to grow your stamp ribbon.
+        </p>
+      </section>
+
+      <section
+        id="account-access"
+        class="section alt vc-account-passport"
+        aria-labelledby="vcAccountPassportTitle"
+      >
+        <div class="vc-passport-intro">
+          <h2 id="vcAccountPassportTitle" data-i18n="accountPassport.title">Lane passport</h2>
+          <p class="vc-passport-tagline" data-i18n="accountPassport.tagline">Create once. Shop or sell with the same secure session.</p>
+          <p class="note" data-i18n="accountPassport.honest">
+            Real email, real password — server-stored with salted hash. No social login theater; just a straight deal.
+          </p>
+          <p class="note account-passport-pay-note" data-i18n="accountPassport.paymentsNote">
+            Checkout uses Stripe when the server is configured. Blink Payment is not connected here yet.
+          </p>
+          <div id="vcBridgePassportStamp" class="vc-passport-stamp-display hidden" aria-live="polite">
+            <span class="vc-passport-stamp-visual" aria-hidden="true">✶</span>
+            <p class="vc-passport-stamp-text" data-i18n="passportStamp.earned">
+              Bridge passport stamp: earned after your first cross-border order on this device.
+            </p>
+          </div>
+        </div>
+
+        <div id="vcAuthLoggedIn" class="vc-passport-strip vc-passport-strip--active hidden" aria-live="polite">
+          <div class="vc-passport-strip-main">
+            <span class="vc-passport-strip-label" data-i18n="accountPassport.active">Signed in</span>
+            <p id="vcAuthWelcomeLine" class="vc-passport-strip-name"></p>
+            <p id="vcAuthMetaLine" class="vc-passport-strip-meta"></p>
+          </div>
+          <div class="vc-passport-strip-actions">
+            <button type="button" id="vcAuthLogout" class="btn btn-secondary" data-i18n="accountPassport.signOut">Sign out</button>
+          </div>
+        </div>
+
+        <div id="vcAuthLoggedOut" class="vc-passport-forms">
+          <div id="vcAuthPanelCreate" class="vc-passport-panel" role="region" aria-labelledby="vcAccountPassportTitle">
+            <p class="vc-passport-switch">
+              <span data-i18n="accountPassport.haveAccount">Already registered?</span>
+              <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToLogin" data-i18n="accountPassport.goLogin">Sign in</button>
+            </p>
+            <p class="note" data-i18n="accountPassport.createLeadFast">Three fields plus password — country defaults from your lane (edit if needed).</p>
+
+            <div class="vc-passport-role-inline">
+              <span data-i18n="accountPassport.signingUpAs">Signing up as</span>
+              <strong id="vcAuthRoleLabel">Buyer</strong>
+              <div class="vc-passport-role-switch" role="group" aria-label="Account role switch">
+                <button type="button" class="btn btn-secondary vc-passport-role-option is-active" id="vcAuthRoleBuyer">Buyer</button>
+                <button type="button" class="btn btn-secondary vc-passport-role-option" id="vcAuthRoleSeller">Seller</button>
+              </div>
+            </div>
+            <p id="vcAuthSellerNote" class="note hidden" data-i18n="accountPassport.sellerNote"></p>
+            <input type="hidden" id="vcAuthRole" value="buyer" />
+
+            <form id="vcAuthFormCreate" class="vc-passport-form" autocomplete="on" novalidate>
+              <div class="ai-grid vc-passport-fields">
+                <label for="vcAuthEmail" data-i18n="accountPassport.email">Email</label>
+                <input id="vcAuthEmail" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
+
+                <label for="vcAuthPassword" data-i18n="accountPassport.password">Password (8+ characters)</label>
+                <input id="vcAuthPassword" name="password" type="password" autocomplete="new-password" minlength="8" required />
+                <p id="vcAuthPwMeter" class="vc-passport-pw-meter" aria-live="polite"></p>
+
+                <label for="vcAuthFullName" data-i18n="accountPassport.fullName">What should we call you?</label>
+                <input id="vcAuthFullName" name="name" type="text" autocomplete="name" maxlength="80" required placeholder="First name or nickname" />
+
+                <label for="vcAuthCountry" data-i18n="accountPassport.country">Country</label>
+                <select id="vcAuthCountry" name="country" aria-label="Country code">
+                  <option value="ZA">ZA — South Africa</option>
+                  <option value="PL">PL — Poland</option>
+                  <option value="DE">DE — Germany</option>
+                  <option value="FR">FR — France</option>
+                  <option value="GB">GB — United Kingdom</option>
+                  <option value="KE">KE — Kenya</option>
+                  <option value="NG">NG — Nigeria</option>
+                  <option value="ZW">ZW — Zimbabwe</option>
+                  <option value="NA">NA — Namibia</option>
+                  <option value="ET">ET — Ethiopia</option>
+                  <option value="TZ">TZ — Tanzania</option>
+                  <option value="UG">UG — Uganda</option>
+                  <option value="NL">NL — Netherlands</option>
+                  <option value="PT">PT — Portugal</option>
+                </select>
+                <p id="vcAuthCountryNote" class="note vc-passport-country-note"></p>
+              </div>
+              <button type="submit" id="vcAuthSubmitCreate" class="btn btn-primary" data-i18n="accountPassport.submitCreate">
+                Create account
+              </button>
+            </form>
+          </div>
+
+          <div id="vcAuthPanelLogin" class="vc-passport-panel hidden" role="region" hidden>
+            <p class="vc-passport-switch">
+              <span data-i18n="accountPassport.newHere">New here?</span>
+              <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToCreate" data-i18n="accountPassport.goCreate">Create account</button>
+            </p>
+            <p class="note" data-i18n="accountPassport.loginLead">Use the email and password from your passport.</p>
+            <form id="vcAuthFormLogin" class="vc-passport-form" autocomplete="on" novalidate>
+              <div class="ai-grid vc-passport-fields">
+                <label for="vcAuthLoginEmail" data-i18n="accountPassport.email">Email</label>
+                <input id="vcAuthLoginEmail" name="email" type="email" autocomplete="email" required />
+
+                <label for="vcAuthLoginPassword" data-i18n="accountPassport.password">Password</label>
+                <input id="vcAuthLoginPassword" name="password" type="password" autocomplete="current-password" required />
+              </div>
+              <button type="submit" id="vcAuthSubmitLogin" class="btn btn-primary" data-i18n="accountPassport.submitLogin">Sign in</button>
+            </form>
+          </div>
+
+          <p id="vcAuthStatus" class="note vc-auth-status" aria-live="assertive"></p>
+        </div>
+      </section>
+    </main>
+
+    <script src="./passport-booklet.js?v=20260422pass1" defer></script>
+    <script src="./i18n.js?v=20260426langhotfix6"></script>
+    <script src="./script.js?v=20260421navpass1" defer></script>
+    <script src="./script-safe.js?v=20260426flowfix28"></script>
+  </body>
+</html>

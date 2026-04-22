@@ -51,7 +51,7 @@
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
-    <link rel="stylesheet" href="./styles.css?v=20260420rails1" />
+    <link rel="stylesheet" href="./styles.css?v=20260422fashion1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,7 +81,7 @@
       }
     </script>
   </head>
-  <body class="vc-layout-exclusive" data-site-revision="deploy-20260419-lane-pack">
+  <body class="vc-layout-exclusive vc-wow-mode" data-site-revision="deploy-20260426-no-receipt-legacy">
     <div id="cinematicIntro" class="cinematic-intro" aria-hidden="true">
       <div class="cinematic-intro-card">
         <div class="cinematic-logo-stack">
@@ -94,8 +94,8 @@
     <div id="vcVipRibbon" class="vc-vip-ribbon hidden" aria-hidden="true"><span>VIP lane</span></div>
     <header class="topbar" id="siteTopbar">
       <div class="topbar-primary">
-        <a class="brand" href="#" id="brandHomeLink" aria-label="VibeCart home">
-          <span class="brand-mark brand-mark--pulse" aria-hidden="true">V</span>
+        <a class="brand" href="./index.html" id="brandHomeLink" aria-label="VibeCart home">
+          <span class="brand-mark" aria-hidden="true">V</span>
           <span class="brand-name">VibeCart</span>
         </a>
         <form class="shop-search" id="shopSearchForm" role="search" aria-label="Search regional shops">
@@ -117,15 +117,30 @@
       </div>
       <div class="topbar-rest">
         <nav class="nav-links" aria-label="Primary">
-          <a href="#categories" data-i18n="nav.categories">Categories</a>
-          <a href="#shops" data-i18n="nav.shops">Regional shops</a>
-          <a href="#market" data-i18n="nav.hot">Hot Picks</a>
-          <a href="#rewards" data-i18n="nav.rewards">Rewards</a>
-          <a href="#insurance" data-i18n="nav.insurance">Insurance</a>
-          <a href="#account-access" data-i18n="nav.account">Account</a>
-          <a href="#settings-hub" class="nav-settings" data-i18n="nav.settings">Settings</a>
-          <a href="#seller-growth-ai" data-i18n="nav.sellerBoost">Seller Boost</a>
-          <a href="#sell" class="cta-small" data-i18n="nav.sell">Start Selling</a>
+          <a class="nav-primary" href="./browse-categories.html" data-i18n="nav.categories">Categories</a>
+          <a class="nav-primary" href="./regional-shops.html" data-i18n="nav.shops">Regional shops</a>
+          <a class="nav-primary" href="./wellbeing.html" data-i18n="nav.wellbeing">Health coach</a>
+          <a class="nav-primary" href="./account-hub.html" data-i18n="nav.account">Account</a>
+
+          <a class="nav-extra" href="./hot-picks.html" data-i18n="nav.hot">Hot Picks</a>
+          <a class="nav-extra" href="./rewards-hub.html" data-i18n="nav.rewards">Rewards</a>
+          <a class="nav-extra" href="./insurance.html" data-i18n="nav.insurance">Insurance</a>
+          <a class="nav-extra nav-settings" href="./legal-settings.html" data-i18n="nav.settings">Settings</a>
+          <a class="nav-extra" href="./seller-boost.html" data-i18n="nav.sellerBoost">Seller Boost</a>
+          <a class="nav-extra hidden" href="#communication" id="vcPrivateInboxTop" aria-label="Private inbox">✉ Inbox</a>
+          <a class="nav-extra cta-small" href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
+
+          <details class="nav-more">
+            <summary>More</summary>
+            <div class="nav-more-menu">
+              <a href="./hot-picks.html" data-i18n="nav.hot">Hot Picks</a>
+              <a href="./rewards-hub.html" data-i18n="nav.rewards">Rewards</a>
+              <a href="./insurance.html" data-i18n="nav.insurance">Insurance</a>
+              <a href="./legal-settings.html" data-i18n="nav.settings">Settings</a>
+              <a href="./seller-boost.html" data-i18n="nav.sellerBoost">Seller Boost</a>
+              <a href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
+            </div>
+          </details>
         </nav>
         <div class="topbar-lang">
           <label for="siteLanguage" data-i18n="lang.label">Language</label>
@@ -183,7 +198,7 @@
 
     <main>
       <div class="page-group page-group--discover" aria-label="Discover and shop">
-      <section class="hero hero--hue-drift" data-vc-frag-k="K">
+      <section class="hero hero--hue-drift" id="scene-top" data-vc-scene="intro" data-vc-frag-k="K">
         <div class="hero-captivate-bg" aria-hidden="true">
           <canvas id="heroCanvasFx" class="hero-canvas-fx"></canvas>
           <span class="bg-orb bg-orb-a"></span>
@@ -195,17 +210,16 @@
           <h1 id="heroTitle" data-i18n="hero.title">Discover bold finds. Buy fast. Sell globally.</h1>
           <p id="heroSubtitle">
             <span id="regionHeadline" data-i18n="hero.regionHeadline"
-              >VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.</span>
+              >VibeCart is your verified cross-border marketplace with fast checkout and clear, trusted buying flows.</span>
             <span data-i18n="hero.subtitleExtended">
-              Discover offers from Poland and Europe, with routes to South Africa, Namibia, Kenya, Ethiopia, Zimbabwe, and
-              other African markets. Trade both directions across Africa and Europe, plus Dubai and selected Asian markets.
-              Pay with trusted payment systems available in your country and use reliable, secure delivery options. AI helps
-              with discovery and risk signals, but final decisions and legal responsibilities remain with humans.
+              Discover top categories fast, compare regional pricing, and open seller pages in fewer taps. Trade in both
+              directions across Africa, Europe, and selected global lanes using approved logistics and trusted payment options.
+              AI supports discovery and safety checks while you stay in control of final decisions.
             </span>
           </p>
           <div class="hero-actions">
-            <a href="#market" class="btn btn-primary" data-i18n="hero.shopNow">Shop Now</a>
-            <a href="#sell" class="btn btn-secondary" data-i18n="hero.listItem">List an Item</a>
+            <a href="./buy-journey.html?flow=buy&amp;lane=fashion" class="btn btn-primary" data-i18n="hero.shopNow">Shop Now</a>
+            <a href="./sell-journey.html" class="btn btn-secondary" data-i18n="hero.listItem">List an Item</a>
             <button id="openOnboarding" class="btn btn-secondary" type="button" data-i18n="hero.smartTour">Start Smart Tour</button>
             <button id="installAppBtn" class="btn btn-secondary hidden" type="button" data-i18n="hero.installApp">Install App</button>
           </div>
@@ -262,16 +276,157 @@
         </div>
       </section>
 
+      <section class="section vc-top-class" id="topClassExperience">
+        <div class="vc-top-class-shell">
+          <p class="badge">Top-Class Subscription</p>
+          <h2 id="premiumPlanHeadline">A completely sophisticated luxury lane.</h2>
+          <p id="premiumPlanLead" class="note">
+            Unlock premium visuals, AI concierge support, priority routing, and advanced discovery signals.
+          </p>
+          <div class="vc-top-class-grid">
+            <article class="vc-top-class-card">
+              <h3>AI Concierge</h3>
+              <p>Faster guided discovery, style help, and trusted route suggestions for complex orders.</p>
+            </article>
+            <article class="vc-top-class-card">
+              <h3>Priority Support</h3>
+              <p>Top-class members are handled first across assistance, dispute review, and resolution updates.</p>
+            </article>
+            <article class="vc-top-class-card">
+              <h3>Luxury Interface</h3>
+              <p>Premium glass layout, elevated animations, and high-focus browsing lanes for smoother sessions.</p>
+            </article>
+          </div>
+          <div class="hero-actions">
+            <button id="activatePremiumExperience" type="button" class="btn btn-primary">Activate Top-Class Experience</button>
+            <label class="note" style="display:flex;align-items:center;gap:.45rem;">
+              <input type="checkbox" id="premiumAutoRenew" checked />
+              Enable automatic renewal
+            </label>
+            <span id="premiumPlanPriceChip" class="vc-origin-chip">EUR 39.99 / month</span>
+          </div>
+          <p id="premiumRenewStatus" class="note" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="section vc-world-shock" aria-label="World shock reel">
+        <div class="vc-world-shock-head">
+          <p class="badge">World Shock Experience</p>
+          <h2>Not a basic marketplace. A living commerce universe.</h2>
+          <p class="note">Swipe, tap, and jump between cinematic moments.</p>
+        </div>
+        <div id="vcShockReel" class="vc-shock-reel" aria-live="polite">
+          <article class="vc-shock-scene is-active" data-shock-scene="0">
+            <img src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-shock-overlay">
+              <h3>Neon Market Gravity</h3>
+              <p>High-energy live picks in seconds.</p>
+              <a class="btn btn-primary" href="./hot-picks.html">Launch now</a>
+            </div>
+          </article>
+          <article class="vc-shock-scene" data-shock-scene="1">
+            <img src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-shock-overlay">
+              <h3>Cross-Border Warp</h3>
+              <p>From one lane to another with trust intact.</p>
+              <a class="btn btn-primary" href="./regional-shops.html">Warp lanes</a>
+            </div>
+          </article>
+          <article class="vc-shock-scene" data-shock-scene="2">
+            <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-shock-overlay">
+              <h3>Seller Ascension</h3>
+              <p>Build your empire with speed and style.</p>
+              <a class="btn btn-primary" href="./sell-journey.html">Ascend</a>
+            </div>
+          </article>
+          <article class="vc-shock-scene" data-shock-scene="3">
+            <img src="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-shock-overlay">
+              <h3>Rewards Hyperloop</h3>
+              <p>Momentum loops that keep users engaged.</p>
+              <a class="btn btn-primary" href="./rewards-hub.html">Enter loop</a>
+            </div>
+          </article>
+        </div>
+        <div class="vc-shock-controls">
+          <div id="vcShockProgress" class="vc-shock-progress"><span id="vcShockProgressBar"></span></div>
+          <div id="vcShockDots" class="vc-shock-dots" role="tablist" aria-label="Shock scenes"></div>
+        </div>
+      </section>
+
+      <section class="section alt vc-visual-splash" aria-label="Visual highlights">
+        <h2 class="vc-visual-splash-title">Visual lanes</h2>
+        <p class="note vc-visual-splash-sub">Tap a scene. Enter instantly.</p>
+        <div class="vc-visual-splash-grid">
+          <a class="vc-visual-tile" href="./hot-picks.html">
+            <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1200&h=800&q=80" loading="lazy" decoding="async" alt="" />
+            <span>Hot picks</span>
+          </a>
+          <a class="vc-visual-tile" href="./regional-shops.html">
+            <img src="https://images.unsplash.com/photo-1481437156560-3205f6a55735?auto=format&fit=crop&w=1200&h=800&q=80" loading="lazy" decoding="async" alt="" />
+            <span>Regional folders</span>
+          </a>
+          <a class="vc-visual-tile" href="./wellbeing.html">
+            <img src="https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&h=800&q=80" loading="lazy" decoding="async" alt="" />
+            <span>Health coach</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="section vc-epic-experience" aria-label="Epic Vibe experience">
+        <div class="vc-epic-head">
+          <h2>Epic Mode</h2>
+          <p class="note">Swipe cinematic scenes. Tap to enter.</p>
+        </div>
+        <div id="vcEpicTrack" class="vc-epic-track" aria-live="polite">
+          <article class="vc-epic-card is-active" data-epic-index="0">
+            <img src="https://images.unsplash.com/photo-1557821552-17105176677c?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-epic-overlay">
+              <h3>Live Market Pulse</h3>
+              <p>Real energy, quick picks, fast route.</p>
+              <a class="btn btn-primary" href="./hot-picks.html">Enter now</a>
+            </div>
+          </article>
+          <article class="vc-epic-card" data-epic-index="1">
+            <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-epic-overlay">
+              <h3>Cross-Border Vault</h3>
+              <p>Trusted folders, verified routes, smooth handoff.</p>
+              <a class="btn btn-primary" href="./regional-shops.html">Open vault</a>
+            </div>
+          </article>
+          <article class="vc-epic-card" data-epic-index="2">
+            <img src="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-epic-overlay">
+              <h3>Creator Seller Arena</h3>
+              <p>Build, boost, and scale with style.</p>
+              <a class="btn btn-primary" href="./sell-journey.html">Start selling</a>
+            </div>
+          </article>
+          <article class="vc-epic-card" data-epic-index="3">
+            <img src="https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <div class="vc-epic-overlay">
+              <h3>Wellness Command</h3>
+              <p>Health coach + routines + momentum.</p>
+              <a class="btn btn-primary" href="./wellbeing.html">Go wellness</a>
+            </div>
+          </article>
+        </div>
+        <div id="vcEpicDots" class="vc-epic-dots" role="tablist" aria-label="Epic scene selector"></div>
+      </section>
+
       <section class="section alt vc-horizontal-only vc-mobile-chapter-deck" aria-label="Quick jumps">
         <p class="vc-mobile-rail-eyebrow">Swipe sideways · jump</p>
         <nav class="vc-mobile-rail vc-mobile-rail--chips" aria-label="Jump to a lane">
-          <a class="vc-mobile-chip" href="#vc-lane-entry">You are here</a>
-          <a class="vc-mobile-chip" href="#market-fit">Who it fits</a>
-          <a class="vc-mobile-chip" href="#shops">Folders</a>
-          <a class="vc-mobile-chip" href="#bridge-routes">Bridge</a>
-          <a class="vc-mobile-chip" href="#market">Live picks</a>
-          <a class="vc-mobile-chip" href="#rewards">Rewards</a>
-          <a class="vc-mobile-chip" href="#account-access">Hub</a>
+          <a class="vc-mobile-chip" href="./lane-welcome.html" data-i18n="ui.youAreHereChip">You are here</a>
+          <a class="vc-mobile-chip" href="./audience-fit.html">Who it fits</a>
+          <a class="vc-mobile-chip" href="./regional-shops.html">Folders</a>
+          <a class="vc-mobile-chip" href="./bridge-hub.html">Bridge</a>
+          <a class="vc-mobile-chip" href="./hot-picks.html">Live picks</a>
+          <a class="vc-mobile-chip" href="./rewards-hub.html">Rewards</a>
+          <a class="vc-mobile-chip" href="./wellbeing.html">Health coach</a>
+          <a class="vc-mobile-chip" href="./account-hub.html">Hub</a>
         </nav>
       </section>
 
@@ -350,7 +505,7 @@
         </div>
       </section>
 
-      <section id="vc-lane-entry" class="section vc-lane-entry alt">
+      <section id="vc-lane-entry" class="section vc-lane-entry alt" data-vc-scene="lane">
         <div class="vc-path-chooser" aria-labelledby="vcPathChooserTitle">
           <h2 id="vcPathChooserTitle" data-i18n="pathChooser.title">You are here as</h2>
           <p class="note" data-i18n="pathChooser.lead">
@@ -386,9 +541,9 @@
         </article>
       </section>
 
-      <section id="market-fit" class="section" data-vc-frag-u="u">
+      <section id="market-fit" class="section" data-vc-scene="fit" data-vc-frag-u="u">
         <h2 data-i18n="marketFit.title">Built for Students, Families, and Growing Businesses</h2>
-        <p data-i18n="marketFit.lead">
+        <p id="marketFitLead" data-i18n="marketFit.lead">
           VibeCart is designed for fast, trustworthy cross-border trading between African and European markets, with clear support for both modern and traditional shoppers.
         </p>
         <div class="grid market-pillars">
@@ -411,7 +566,7 @@
         <h2 id="vcMobileMomentumTitle" class="vc-mobile-rail-title">Momentum strip</h2>
         <p class="note vc-mobile-rail-sub">Horizontal beats — tap a tile, then keep swiping.</p>
         <div class="vc-mobile-rail">
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="#rewards">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="./rewards-hub.html">
             <img
               src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=480&h=320&q=75"
               width="240"
@@ -421,7 +576,7 @@
             />
             <span class="vc-mobile-rail-card-label">Rewards streak</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="#bridge-routes">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="./bridge-hub.html">
             <img
               src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=480&h=320&q=75"
               width="240"
@@ -431,7 +586,7 @@
             />
             <span class="vc-mobile-rail-card-label">Trade bridge</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="#shops">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="./regional-shops.html">
             <img
               src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=480&h=320&q=75"
               width="240"
@@ -441,7 +596,7 @@
             />
             <span class="vc-mobile-rail-card-label">Regional folders</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="#market">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="./hot-picks.html">
             <img
               src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=480&h=320&q=75"
               width="240"
@@ -451,7 +606,7 @@
             />
             <span class="vc-mobile-rail-card-label">Live marketplace</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="#sell">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="./sell-journey.html">
             <img
               src="https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=480&h=320&q=75"
               width="240"
@@ -467,15 +622,15 @@
       <section class="section">
         <div class="home-cta-strip">
           <h3>Start local, trade global with confidence.</h3>
-          <p>Launch your first listing, test demand, and scale safely across Africa and Europe.</p>
+          <p>Launch your first listing, read demand signals, and scale safely across Africa and Europe.</p>
           <div class="hero-actions">
-            <a href="#sell" class="btn btn-primary">Start Selling on VibeCart</a>
-            <a href="#settings-security" class="btn btn-secondary">Security &amp; settings</a>
+            <a href="./sell-journey.html" class="btn btn-primary">Start Selling on VibeCart</a>
+            <a href="./security-overview.html" class="btn btn-secondary">Security &amp; settings</a>
           </div>
         </div>
       </section>
 
-      <section id="rewards" class="section" data-vc-frag-a="a">
+      <section id="rewards" class="section" data-vc-scene="rewards" data-vc-frag-a="a">
         <h2>Campus Rewards and Savings Streaks</h2>
         <p>
           Earn points for safe purchases, completed bookings, and on-time subscriptions. Unlock
@@ -504,10 +659,10 @@
         </div>
       </section>
 
-      <section id="categories" class="section">
-        <h2>Popular Categories</h2>
+      <section id="categories" class="section" data-vc-scene="categories">
+        <h2 data-i18n="categories.title">Popular Categories</h2>
         <div class="grid cards">
-          <a class="card" href="#market" data-filter="Electronics">
+          <a class="card" href="./live-market-shops.html?cat=Electronics" data-filter="Electronics">
             <img
               src="https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&h=600&q=75"
               width="900"
@@ -518,7 +673,7 @@
             />
             <h3>Electronics</h3>
           </a>
-          <a class="card" href="#market" data-filter="Fashion">
+          <a class="card" href="./fashion-trends.html" data-filter="Fashion">
             <img
               src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=900&h=600&q=75"
               width="900"
@@ -529,7 +684,7 @@
             />
             <h3>Fashion</h3>
           </a>
-          <a class="card" href="#market" data-filter="Books">
+          <a class="card" href="./live-market-shops.html?cat=Books" data-filter="Books">
             <img
               src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&h=600&q=75"
               width="900"
@@ -540,7 +695,7 @@
             />
             <h3>Books</h3>
           </a>
-          <a class="card" href="#market" data-filter="Gaming">
+          <a class="card" href="./live-market-shops.html?cat=Gaming" data-filter="Gaming">
             <img
               src="https://images.unsplash.com/photo-1486401899868-0e435ed85128?auto=format&fit=crop&w=900&h=600&q=75"
               width="900"
@@ -556,9 +711,9 @@
 
       <section class="section vc-horizontal-only vc-mobile-rail-section" aria-labelledby="vcMobileGalleryTitle">
         <h2 id="vcMobileGalleryTitle" class="vc-mobile-rail-title">Browse sideways</h2>
-        <p class="note vc-mobile-rail-sub">Photo-forward lane — opens the live grid.</p>
+          <p class="note vc-mobile-rail-sub">Photo-forward lane — each card opens a focused live lane.</p>
         <div class="vc-mobile-rail">
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="#market">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="./live-market-shops.html?cat=Electronics">
             <img
               src="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=640&h=400&q=75"
               width="320"
@@ -568,17 +723,18 @@
             />
             <span class="vc-mobile-rail-card-label">Tech picks</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="#market">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide vc-fashion-trends-tile" id="vcFashionTrendsTile" href="./fashion-trends.html">
             <img
+              id="vcFashionTrendsImage"
               src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=640&h=400&q=75"
               width="320"
               height="200"
               loading="lazy"
               alt="Fashion lane"
             />
-            <span class="vc-mobile-rail-card-label">Fashion lane</span>
+            <span class="vc-mobile-rail-card-label">Fashion trends lane (carousel on the page)</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="#market">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="./live-market-shops.html?cat=Gaming">
             <img
               src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=640&h=400&q=75"
               width="320"
@@ -588,7 +744,7 @@
             />
             <span class="vc-mobile-rail-card-label">Outdoor gear</span>
           </a>
-          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="#market">
+          <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="./live-market-shops.html?cat=Books">
             <img
               src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=640&h=400&q=75"
               width="320"
@@ -601,8 +757,35 @@
         </div>
       </section>
 
-      <section id="shops" class="section alt">
-        <h2>Regional shop folders</h2>
+      <section class="section alt vc-horizontal-only vc-mobile-rail-section" aria-labelledby="vcProjectorTitle">
+        <h2 id="vcProjectorTitle" class="vc-mobile-rail-title">Projector lines</h2>
+        <p class="note vc-mobile-rail-sub">Micro-beats — swipe like cue cards, not a transcript.</p>
+        <div class="vc-mobile-rail vc-mobile-rail--projector">
+          <figure class="vc-projector-card">
+            <blockquote>“Cut the endless scroll — trade in lanes.”</blockquote>
+            <figcaption>VibeCart desk</figcaption>
+          </figure>
+          <figure class="vc-projector-card">
+            <blockquote>“Folders first, then the bridge, then live picks.”</blockquote>
+            <figcaption>Route rhythm</figcaption>
+          </figure>
+          <figure class="vc-projector-card">
+            <blockquote>“If it reads like homework, we failed the vibe.”</blockquote>
+            <figcaption>Quality bar</figcaption>
+          </figure>
+          <figure class="vc-projector-card">
+            <blockquote>“Humans on the flags — automation assists.”</blockquote>
+            <figcaption>Trust stance</figcaption>
+          </figure>
+          <figure class="vc-projector-card">
+            <blockquote>“Swipe sideways — the story breathes.”</blockquote>
+            <figcaption>Motion note</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="shops" class="section alt" data-vc-scene="shops">
+        <h2 data-i18n="shops.title">Regional shop folders</h2>
         <p id="shopSearchStatus" class="note shop-search-status" aria-live="polite"></p>
         <p id="vibePassportBadge" class="vibe-passport-badge" aria-live="polite"></p>
         <p id="vibeAuraLine" class="vibe-aura-line" aria-live="polite"></p>
@@ -616,7 +799,7 @@
         </p>
         <p class="note bridge-shop-intro">
           Each lane opens its own page with bubble tiles (not one long list). VibeCart lane cards still jump to
-          <a href="#bridge-routes">Trade Bridge &amp; Live Marketplace</a>; external bubbles open in a new tab.
+          <a href="./bridge-hub.html" data-i18n="shops.bridgeLink">Trade Bridge &amp; Live Marketplace</a>; external bubbles open in a new tab.
         </p>
         <p class="shop-folder-scroll-hint" aria-hidden="true">Swipe the five regional folders sideways — Europe, Mama Africa, Asia, Scents, Global.</p>
         <div class="shop-folder-experience">
@@ -662,7 +845,7 @@
         </div>
         <div id="vibePassportBurstLayer" class="vibe-passport-burst-layer" aria-hidden="true"></div>
       </section>
-      <section id="bridge-routes" class="section">
+      <section id="bridge-routes" class="section" data-vc-scene="bridge">
         <h2 id="bridgeTitle">Africa-Europe-Asia Trade Bridge</h2>
         <p id="bridgeText">
           VibeCart is built as a digital bridge between Africa, Europe, Dubai, and Asian
@@ -677,10 +860,10 @@
           Active path: From Europe to Africa. Products and shops are filtered to this route.
         </p>
         <aside class="vc-bridge-truth" aria-labelledby="vcBridgeTruthTitle">
-          <h3 id="vcBridgeTruthTitle" data-i18n="bridgeTruth.title">Bridge truth (no fake precision)</h3>
+          <h3 id="vcBridgeTruthTitle" data-i18n="bridgeTruth.title">Bridge guide</h3>
           <ul class="vc-bridge-truth-list">
             <li data-i18n="bridgeTruth.li1">
-              Duty and tax estimates here are bands, not customs rulings — final charges depend on classification and local law.
+              Duty and tax guidance is provided up front to help you compare routes clearly before checkout.
             </li>
             <li data-i18n="bridgeTruth.li2">
               Typical tracked delivery for many EU→Africa lanes falls in a 7–21 day window; remote handoffs can run longer.
@@ -693,9 +876,9 @@
         <div id="bridgeShops" class="grid shop-grid"></div>
       </section>
 
-      <section id="market" class="section" data-vc-frag-w="w">
+      <section id="market" class="section" data-vc-scene="market" data-vc-frag-w="w">
         <div class="market-header">
-          <h2>Live Marketplace</h2>
+          <h2 data-i18n="market.title">Live Marketplace</h2>
           <p id="marketLivePulse" class="vc-market-live-pulse" hidden aria-live="polite"></p>
           <label for="categoryFilter">Filter</label>
           <select id="categoryFilter" aria-label="Filter products by category">
@@ -709,6 +892,16 @@
           <select id="buyerDestinationSelect" aria-label="Buyer destination">
             <option value="africa">Africa buyer</option>
             <option value="europe">Europe buyer</option>
+          </select>
+          <label for="marketRegionSelect">Market region</label>
+          <select id="marketRegionSelect" aria-label="Market region targeting">
+            <option value="auto">Auto</option>
+            <option value="za">South Africa</option>
+            <option value="ke">Kenya</option>
+            <option value="zw">Zimbabwe</option>
+            <option value="eu">Europe</option>
+            <option value="gulf">Gulf</option>
+            <option value="asia">Asia</option>
           </select>
         </div>
         <p id="buyerDestinationHint" class="note">
@@ -727,13 +920,13 @@
               height="600"
               loading="lazy"
               decoding="async"
-              alt="Smartphone"
+              alt="Electronics online shops"
             />
-            <h3>Premium Smartphone</h3>
-            <p class="price">EUR 280</p>
-            <p>Ships from Poland</p>
+            <h3>Amazon Electronics</h3>
+            <p class="price">Real shop</p>
+            <p>Live electronics listings</p>
             <p class="vc-photo-promise"><span class="vc-photo-promise-mark" aria-hidden="true">✓</span> <span data-i18n="photoPromise.short">Photo = this listing’s unit</span></p>
-            <button class="btn btn-primary buy-now-btn" data-title="Premium Smartphone" data-price="280">Buy in 1 Click</button>
+            <button class="btn btn-primary buy-now-btn" data-title="Amazon Electronics" data-shop-name="Amazon Electronics" data-shop-url="https://www.amazon.com/s?i=electronics&tag=vibecart20-20">Open shop</button>
           </article>
           <article class="product" data-category="Fashion">
             <img
@@ -742,13 +935,13 @@
               height="600"
               loading="lazy"
               decoding="async"
-              alt="Streetwear hoodie"
+              alt="Fashion online shops"
             />
-            <h3>Streetwear Hoodie</h3>
-            <p class="price">EUR 45</p>
-            <p>Ships from Germany</p>
+            <h3>Zalando</h3>
+            <p class="price">Real shop</p>
+            <p>Live fashion listings</p>
             <p class="vc-photo-promise"><span class="vc-photo-promise-mark" aria-hidden="true">✓</span> <span data-i18n="photoPromise.short">Photo = this listing’s unit</span></p>
-            <button class="btn btn-primary buy-now-btn" data-title="Streetwear Hoodie" data-price="45">Buy in 1 Click</button>
+            <button class="btn btn-primary buy-now-btn" data-title="Zalando" data-shop-name="Zalando" data-shop-url="https://www.zalando.com">Open shop</button>
           </article>
           <article class="product" data-category="Books">
             <img
@@ -757,12 +950,12 @@
               height="600"
               loading="lazy"
               decoding="async"
-              alt="University textbooks"
+              alt="Book online shops"
             />
-            <h3>University Textbook Set</h3>
-            <p class="price">EUR 34</p>
-            <p>Ships from Poland</p>
-            <button class="btn btn-primary buy-now-btn" data-title="University Textbook Set" data-price="34">Buy in 1 Click</button>
+            <h3>AbeBooks</h3>
+            <p class="price">Real shop</p>
+            <p>Live book and textbook listings</p>
+            <button class="btn btn-primary buy-now-btn" data-title="AbeBooks" data-shop-name="AbeBooks" data-shop-url="https://www.abebooks.com">Open shop</button>
           </article>
           <article class="product" data-category="Gaming">
             <img
@@ -771,12 +964,12 @@
               height="600"
               loading="lazy"
               decoding="async"
-              alt="Gaming controller"
+              alt="Gaming online shops"
             />
-            <h3>Gaming Controller Pro</h3>
-            <p class="price">EUR 52</p>
-            <p>Ships from France</p>
-            <button class="btn btn-primary buy-now-btn" data-title="Gaming Controller Pro" data-price="52">Buy in 1 Click</button>
+            <h3>Steam Store</h3>
+            <p class="price">Real shop</p>
+            <p>Live gaming listings</p>
+            <button class="btn btn-primary buy-now-btn" data-title="Steam Store" data-shop-name="Steam Store" data-shop-url="https://store.steampowered.com">Open shop</button>
           </article>
         </div>
         <p id="expressCheckoutStatus" class="note" aria-live="polite"></p>
@@ -804,16 +997,16 @@
         </p>
         <div class="steps">
           <article>
-            <h3>1. Upload</h3>
-            <p>Add photos and item details.</p>
+            <h3 data-i18n="seller.step1h">1. Upload</h3>
+            <p data-i18n="seller.step1p">Add photos and item details.</p>
           </article>
           <article>
-            <h3>2. Price</h3>
-            <p>Set your price, then VibeCart applies platform markup safely.</p>
+            <h3 data-i18n="seller.step2h">2. Price</h3>
+            <p data-i18n="seller.step2p">Set your price, then VibeCart applies platform markup safely.</p>
           </article>
           <article>
-            <h3>3. Ship</h3>
-            <p>Choose courier options for buyer country routes.</p>
+            <h3 data-i18n="seller.step3h">3. Ship</h3>
+            <p data-i18n="seller.step3p">Choose courier options for buyer country routes.</p>
           </article>
         </div>
 
@@ -833,7 +1026,7 @@
         <details class="vc-bridge-faq">
           <summary data-i18n="bridgeFaq.summary">Bridge FAQ snippets (copy-paste friendly)</summary>
           <ul class="vc-bridge-faq-list">
-            <li data-i18n="bridgeFaq.q1">Customs: final duties depend on classification — we show bands, not rulings.</li>
+            <li data-i18n="bridgeFaq.q1">Customs and duty guidance appears before checkout so you can decide with clear context.</li>
             <li data-i18n="bridgeFaq.q2">Timelines: tracked EU↔Africa often 7–21 days; remote handoffs can run longer.</li>
             <li data-i18n="bridgeFaq.q3">Ambiguous orders go to human review — say so in your listing if edge-case.</li>
           </ul>
@@ -890,7 +1083,7 @@
         </div>
       </section>
 
-      <section id="seller-marketing" class="section">
+      <section id="seller-marketing" class="section hidden" hidden>
         <h2>Seller Marketing Tools</h2>
         <p>
           Once your listings are live, use these tiles to promote drops, launches, and geo-targeted campaigns — all
@@ -912,7 +1105,7 @@
         </div>
       </section>
 
-      <section id="seller-growth-ai" class="section alt">
+      <section id="seller-growth-ai" class="section alt hidden" hidden>
         <h2>AI Seller Growth — Zero to Ten</h2>
         <p>
           You have <strong>0</strong> live sellers today. This module keeps an active acquisition plan until you reach
@@ -956,11 +1149,22 @@
       </section>
 
       <section id="ads" class="section alt">
-        <h2>Sponsored Brands and Ads</h2>
+        <h2 data-i18n="ads.title">Sponsored Brands and Ads</h2>
         <p>
           Legal brands can advertise on VibeCart through a secure, policy-reviewed ad system.
           Ads are shown in small slots so user shopping remains smooth and trusted.
         </p>
+        <div class="vc-sponsored-apply alt" style="margin: 0.75rem 0 1rem; padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.2)">
+          <h3 style="margin: 0 0 0.35rem; font-size: 1.05rem">Verified sponsor lane</h3>
+          <p class="note" style="margin: 0 0 0.5rem">
+            We only slot <strong>policy-reviewed</strong> partners with clear disclosures. Apply with company details,
+            target regions, and proof of business registration — no pay-to-win “fake” placements.
+          </p>
+          <p class="hero-actions" style="margin: 0">
+            <a class="btn btn-primary" href="mailto:partners@vibe-cart.com?subject=VibeCart%20verified%20sponsor%20application">Apply as a sponsor</a>
+            <a class="btn btn-secondary" href="./policy.html">Review ad policy</a>
+          </p>
+        </div>
         <div id="adSlots" class="grid shop-grid"></div>
         <div class="hero-actions">
           <button id="refreshAds" class="btn btn-secondary">Refresh Sponsored Ads</button>
@@ -975,13 +1179,13 @@
           page — not a remote model.
         </p>
         <div class="ai-grid">
-          <label for="aiNeed">What do you need?</label>
+          <label for="aiNeed" data-i18n="ai.need">What do you need?</label>
           <input id="aiNeed" type="text" placeholder="Example: phone for school and social media" />
 
-          <label for="aiBudget">Your max budget (EUR)</label>
+          <label for="aiBudget" data-i18n="ai.budget">Your max budget (EUR)</label>
           <input id="aiBudget" type="number" min="1" placeholder="Example: 60" />
 
-          <label for="aiCategory">Preferred category</label>
+          <label for="aiCategory" data-i18n="ai.category">Preferred category</label>
           <select id="aiCategory">
             <option value="All">Any</option>
             <option value="Electronics">Electronics</option>
@@ -999,23 +1203,29 @@
 
       <div class="page-group page-group--assurance" aria-label="Safety, services, and compliance">
       <section id="communication" class="section">
-        <h2>Buyer-Seller Communication Hub</h2>
+        <h2 data-i18n="chat.title">Buyer-Seller Communication Hub</h2>
         <p>
-          Buyers and sellers can contact each other quickly for product questions, delivery
-          updates, and order clarifications in a secure communication channel.
+          <span data-i18n="chat.lead">Buyers and sellers can contact each other quickly for product questions and delivery updates.</span>
         </p>
+        <p id="chatPrivateHint" class="note"></p>
         <div class="alt">
+          <div class="chat-input-row">
+            <label for="chatShopInput">Shop</label>
+            <input id="chatShopInput" list="chatShopSuggestions" type="text" placeholder="Type any shop name (e.g. H&M, Zara, OLX...)" />
+            <datalist id="chatShopSuggestions"></datalist>
+          </div>
           <div id="messagesBox" class="messages-box" aria-live="polite"></div>
           <div class="chat-input-row">
             <input id="chatInput" type="text" placeholder="Type your message to buyer or seller..." />
             <button id="chatSend" class="btn btn-primary">Send</button>
           </div>
           <div id="chatSafetyAlert" class="safety-alert hidden" aria-live="polite"></div>
+          <p id="chatDispatchStatus" class="note" aria-live="polite"></p>
         </div>
       </section>
 
       <section id="tracking" class="section alt">
-        <h2>Order Tracking and Delivery Updates</h2>
+        <h2 data-i18n="tracking.title">Order Tracking and Delivery Updates</h2>
         <p>
           Buyers and sellers receive live progress updates from purchase to final delivery.
           After delivery, both sides get a review window to accept, return, or refuse based on policy.
@@ -1031,7 +1241,7 @@
       </section>
 
       <section id="beauty-booking" class="section">
-        <h2>Beauty and Service Booking Platform</h2>
+        <h2 data-i18n="booking.title">Beauty and Service Booking Platform</h2>
         <p>
           Hair, nails, barber, and makeup professionals can publish available slots and let
           clients book instantly without manual back-and-forth.
@@ -1051,10 +1261,17 @@
           <button id="showBookingSlots" class="btn btn-primary">Show Available Slots</button>
         </div>
         <div id="bookingSlotsResult" class="ai-result"></div>
+        <div class="hero-actions" style="margin-top:0.8rem;">
+          <a id="bookingPrepayRouteBtn" class="btn btn-primary" href="./account-hub.html#bookings">Require prepayment to confirm booking</a>
+          <a class="btn btn-secondary" href="./service-provider-hub.html">Provider setup template</a>
+        </div>
       </section>
 
       <section id="insurance" class="section alt">
-        <h2>Student Insurance and Well-Being Support</h2>
+        <h2 data-i18n="insurance.title">Student Insurance and Well-Being Support</h2>
+        <p class="vc-insurance-referral-badge" aria-label="Insurance referral-only model">
+          Referral-only insurance model: customers pay insurers directly. VibeCart does not hold customer insurance funds.
+        </p>
         <p>
           Students and families can access verified insurance offers from real partner companies,
           including life, funeral, and health support plans with affordable monthly premiums.
@@ -1074,7 +1291,7 @@
       <section id="health-coach" class="section">
         <h2>Health and Fitness AI Coach</h2>
         <p>
-          Track weight loss, weight gain, muscle goals, and medication adherence with private check-ins.
+          Track weight loss, weight gain, and muscle goals with private check-ins.
           This coach supports routine fitness and long-term health follow-up workflows.
         </p>
         <div class="ai-grid">
@@ -1127,19 +1344,9 @@
               <span>When supported, include <strong>resting heart rate</strong> and <strong>sleep stages</strong> in digests (requires extra consent in the app).</span>
             </label>
             <button type="button" id="saveWearablePrefs" class="btn btn-primary">Save wearable preferences</button>
-            <button type="button" id="syncWearableDemo" class="btn btn-secondary">Log demo sync to coach</button>
+            <button type="button" id="syncWearableDemo" class="btn btn-secondary">Log sample wearable sync</button>
           </div>
           <div id="wearableLinkStatus" class="ai-result" aria-live="polite"></div>
-        </div>
-
-        <div class="ai-grid" style="margin-top: 1rem;">
-          <label for="medicationName">Medication Name</label>
-          <input id="medicationName" type="text" placeholder="Medication name" />
-          <label for="medicationDose">Dosage</label>
-          <input id="medicationDose" type="text" placeholder="e.g. 1 tablet 500mg" />
-          <label for="medicationTime">Schedule Time</label>
-          <input id="medicationTime" type="text" placeholder="e.g. 08:00 and 20:00" />
-          <button id="addMedicationPlan" class="btn btn-secondary">Add Medication Plan</button>
         </div>
 
         <div class="ai-grid" style="margin-top: 1rem;">
@@ -1148,7 +1355,6 @@
             <option value="weight">Weight</option>
             <option value="activity">Activity</option>
             <option value="symptom">Symptom</option>
-            <option value="medication_taken">Medication Taken</option>
             <option value="wellbeing">Wellbeing</option>
           </select>
           <label for="healthCheckinValue">Metric / Value</label>
@@ -1182,7 +1388,12 @@
         <div id="trustCards" class="grid shop-grid trust-cards-boring"></div>
       </section>
 
-      <section id="account-access" class="section alt vc-account-passport" aria-labelledby="vcAccountPassportTitle">
+      <section
+        id="account-access"
+        class="section alt vc-account-passport"
+        data-vc-scene="hub"
+        aria-labelledby="vcAccountPassportTitle"
+      >
         <div class="vc-passport-intro">
           <h2 id="vcAccountPassportTitle" data-i18n="accountPassport.title">Lane passport</h2>
           <p class="vc-passport-tagline" data-i18n="accountPassport.tagline">Create once. Shop or sell with the same secure session.</p>
@@ -1192,6 +1403,21 @@
           <p class="note account-passport-pay-note" data-i18n="accountPassport.paymentsNote">
             Checkout uses Stripe when the server is configured. Blink Payment is not connected here yet.
           </p>
+          <div id="vcMemberAura" class="vc-member-aura hidden" aria-live="polite">
+            <p id="vcMemberAuraChip" class="vc-member-aura-chip">VibeCart Passport Holder</p>
+            <h3 id="vcMemberAuraTitle" class="vc-member-aura-title">Welcome back, traveler.</h3>
+            <p id="vcMemberAuraText" class="vc-member-aura-text">
+              Your passport status unlocks smoother checkout confidence, identity continuity, and trusted seller visibility.
+            </p>
+            <div id="vcMemberAuraGlow" class="vc-member-aura-glow" aria-hidden="true"></div>
+          </div>
+          <div id="vcGuestAura" class="vc-member-aura vc-member-aura--guest">
+            <p class="vc-member-aura-chip">Guest View</p>
+            <h3 class="vc-member-aura-title">Create your VibeCart identity</h3>
+            <p class="vc-member-aura-text">
+              Passport holders get a personalized welcome stripe, trust-first prompts, and account memory across shopping sessions.
+            </p>
+          </div>
           <div id="vcBridgePassportStamp" class="vc-passport-stamp-display hidden" aria-live="polite">
             <span class="vc-passport-stamp-visual" aria-hidden="true">✶</span>
             <p class="vc-passport-stamp-text" data-i18n="passportStamp.earned">
@@ -1217,17 +1443,35 @@
               <span data-i18n="accountPassport.haveAccount">Already registered?</span>
               <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToLogin" data-i18n="accountPassport.goLogin">Sign in</button>
             </p>
+            <div class="vc-passport-journey-switch" role="group" aria-label="Choose signup flow">
+              <button type="button" class="btn btn-secondary vc-passport-journey-option is-active" id="vcAuthJourneyPassport">
+                Create passport
+              </button>
+              <button type="button" class="btn btn-secondary vc-passport-journey-option" id="vcAuthJourneyAccount">
+                Create account
+              </button>
+            </div>
             <p class="note" data-i18n="accountPassport.createLeadFast">Three fields plus password — country defaults from your lane (edit if needed).</p>
+            <p id="vcAuthJourneyHint" class="note">
+              Flow: Create passport → Enter details → Congratulations, welcome to the VibeCart family with your VibeCart passport.
+            </p>
+            <ol class="vc-passport-steps" aria-label="Signup steps">
+              <li>Choose your flow</li>
+              <li>Enter your details</li>
+              <li>Finish with your welcome screen</li>
+            </ol>
 
             <div class="vc-passport-role-inline">
               <span data-i18n="accountPassport.signingUpAs">Signing up as</span>
               <strong id="vcAuthRoleLabel">Buyer</strong>
-              <button type="button" class="btn btn-secondary vc-passport-toggle-role" id="vcAuthToggleRole" data-i18n="accountPassport.switchToSeller">
-                I want to sell
-              </button>
+              <div class="vc-passport-role-switch" role="group" aria-label="Account role switch">
+                <button type="button" class="btn btn-secondary vc-passport-role-option is-active" id="vcAuthRoleBuyer">Buyer</button>
+                <button type="button" class="btn btn-secondary vc-passport-role-option" id="vcAuthRoleSeller">Seller</button>
+              </div>
             </div>
             <p id="vcAuthSellerNote" class="note hidden" data-i18n="accountPassport.sellerNote"></p>
             <input type="hidden" id="vcAuthRole" value="buyer" />
+            <input type="hidden" id="vcAuthJourney" value="passport" />
 
             <form id="vcAuthFormCreate" class="vc-passport-form" autocomplete="on" novalidate>
               <div class="ai-grid vc-passport-fields">
@@ -1307,8 +1551,8 @@
             <h3 data-i18n="settingsHub.accountH">Account controls</h3>
             <p data-i18n="settingsHub.accountP">Use Account Access to switch between buyer and seller profiles securely.</p>
             <p class="settings-links">
-              <a href="#account-access">Open Account Access</a>
-              <a href="#settings-security">Security overview</a>
+              <a href="./account-hub.html">Open Account Access</a>
+              <a href="./security-overview.html">Security overview</a>
             </p>
           </article>
           <article class="settings-card settings-card--wide">
@@ -1331,10 +1575,6 @@
               <label class="settings-toggle">
                 <input id="vcRitualToggle" type="checkbox" checked />
                 <span data-i18n="settingsHub.calmMoment">Calm moment after browsing (one short screen per session — respects reduced motion)</span>
-              </label>
-              <label class="settings-toggle">
-                <input id="vcSkipReceiptToggle" type="checkbox" />
-                <span data-i18n="settingsHub.skipReceipt">Skip receipt rehearsal before one-click checkout (pro — off by default)</span>
               </label>
             </div>
           </article>
@@ -1372,8 +1612,7 @@
       <summary>Live atmosphere (optional)</summary>
       <p class="note">
         Rhythm tint follows local time in soft bands. Hero depth adds gentle 3D tilt to the headline block from your
-        pointer (respects <strong>reduce motion</strong>). If anything looks stuck, open once with
-        <a href="?instant=1">?instant=1</a> then reload without it.
+        pointer (respects <strong>reduce motion</strong>).
       </p>
       <div class="hero-actions">
         <button type="button" id="vcChronoToggle" class="btn btn-secondary">Rhythm tint: on</button>
@@ -1382,19 +1621,17 @@
     </details>
 
     <nav id="mobileQuickNav" class="mobile-quick-nav" aria-label="Mobile quick actions">
-      <a href="#market" data-quick-target="market">Shop</a>
-      <a href="#categories" data-quick-target="categories">Explore</a>
-      <a href="#tracking" data-quick-target="tracking">Orders</a>
-      <a href="#account-access" data-quick-target="account-access">Account</a>
+      <a href="./hot-picks.html" data-quick-target="market">Shop</a>
+      <a href="./browse-categories.html" data-quick-target="categories">Explore</a>
+      <a href="./orders-tracking.html" data-quick-target="tracking">Orders</a>
+      <a href="./lane-passport.html">Passport</a>
     </nav>
 
     <footer class="footer">
-      <p class="note build-id-note" data-build-id="20260422ux2">
-        Site build: 20260422ux2 · hard refresh once after deploy if layout looks old.
-      </p>
+      <p class="note build-id-note" data-build-id="20260422ux2">Release 20260422ux2</p>
       <p>VibeCart - Discover, trade, and grow your vibe globally.</p>
       <p>Contact: <a href="mailto:1vibe.cart@gmail.com">1vibe.cart@gmail.com</a></p>
-      <p><a href="#settings-hub">Settings & Legal Center</a></p>
+      <p><a href="./legal-settings.html">Settings &amp; Legal Center</a></p>
     </footer>
 
     <div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
@@ -1418,37 +1655,14 @@
       </div>
     </div>
 
-    <div id="vcReceiptRehearsal" class="modal hidden vc-receipt-modal" role="dialog" aria-modal="true" aria-labelledby="vcReceiptTitle" aria-hidden="true">
-      <div class="modal-card vc-receipt-card">
-        <h3 id="vcReceiptTitle" data-i18n="receipt.title">Receipt rehearsal</h3>
-        <p class="note" data-i18n="receipt.lead">Plain language summary — not a tax invoice. Confirm before we place the order.</p>
-        <dl class="vc-receipt-dl">
-          <dt data-i18n="receipt.item">Item</dt>
-          <dd id="vcReceiptItem"></dd>
-          <dt data-i18n="receipt.price">Listed price</dt>
-          <dd id="vcReceiptPrice"></dd>
-          <dt data-i18n="receipt.lane">Active lane</dt>
-          <dd id="vcReceiptRoute"></dd>
-          <dt data-i18n="receipt.buyer">Buyer routing</dt>
-          <dd id="vcReceiptBuyer"></dd>
-          <dt data-i18n="receipt.ship">Shipping method</dt>
-          <dd id="vcReceiptShip"></dd>
-          <dt data-i18n="receipt.returns">Returns &amp; disputes</dt>
-          <dd data-i18n="receipt.returnsBody">Platform + seller policies apply; cross-border windows vary by category.</dd>
-        </dl>
-        <p id="vcMismatchGuard" class="vc-mismatch-guard hidden" role="alert"></p>
-        <div class="hero-actions">
-          <button type="button" class="btn btn-secondary" id="vcReceiptCancel" data-i18n="receipt.cancel">Back</button>
-          <button type="button" class="btn btn-primary" id="vcReceiptConfirm" data-i18n="receipt.confirm">Place order</button>
-        </div>
-      </div>
-    </div>
-
     <div id="vcSealedToast" class="vc-sealed-toast" role="status" aria-live="polite" data-i18n="sealed.word">Sealed.</div>
 
-    <script src="./i18n.js?v=20260426uxpack2"></script>
+    <script src="./i18n.js?v=20260426langhotfix6"></script>
     <script src="./vendor/lenis.min.js?v=20260423phone1"></script>
-    <script src="./script.js?v=20260420rails1"></script>
-    <script src="./mobile-app-shell.js?v=20260423phone1" defer></script>
+    <script src="./script.js?v=20260422assist1" defer></script>
+    <script src="./script-safe.js?v=20260426flowfix28"></script>
+    <script src="./epic-home.js?v=20260422epic1" defer></script>
+    <script src="./wow-home.js?v=20260426wow2" defer></script>
+    <script src="./mobile-app-shell.js?v=20260419nav1" defer></script>
   </body>
 </html>

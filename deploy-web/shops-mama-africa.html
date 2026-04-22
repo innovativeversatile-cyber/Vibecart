@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mama Africa shops · VibeCart</title>
   <meta name="robots" content="noindex,follow" />
-  <link rel="stylesheet" href="./styles.css?v=20260418lanes1" />
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
-    <a class="btn btn-secondary" href="./index.html#shops">← Regional folders</a>
-    <a class="btn btn-primary" href="./index.html#bridge-routes">Trade bridge</a>
+    <a class="btn btn-secondary" href="./regional-shops.html">← Regional folders</a>
+    <a class="btn btn-primary" href="./bridge-hub.html">Trade bridge</a>
   </header>
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title">Mama Africa shops</h1>
@@ -40,6 +40,30 @@
               <a href="https://www.takealot.com" target="_blank" rel="noopener noreferrer" class="shop">
                 <h3>Takealot</h3>
                 <p>South Africa — leading mass-market online store.</p>
+              </a>
+              <a href="https://www.hm.com/za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>H&amp;M South Africa</h3>
+                <p>Fashion &amp; basics — strong mall + app traffic.</p>
+              </a>
+              <a href="https://www.zara.com/za/" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Zara South Africa</h3>
+                <p>Inditex lane with frequent new-season drops.</p>
+              </a>
+              <a href="https://www.samsung.com/za/" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Samsung South Africa</h3>
+                <p>Official Galaxy &amp; home appliances storefront.</p>
+              </a>
+              <a href="https://www.incredible.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Incredible Connection</h3>
+                <p>CE &amp; computing chain — high promo velocity.</p>
+              </a>
+              <a href="https://www.dischem.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Dis-Chem</h3>
+                <p>Pharmacy, beauty, baby — huge weekly digital orders.</p>
+              </a>
+              <a href="https://www.clicks.co.za" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Clicks</h3>
+                <p>Health, beauty, convenience — loyalty-led repeat visits.</p>
               </a>
               <a href="https://www.superbalist.com" target="_blank" rel="noopener noreferrer" class="shop">
                 <h3>Superbalist</h3>
@@ -108,17 +132,8 @@
               </a>
     </div>
   </main>
-  <script>
-(function () {
-  var key = "vibecart-bridge-path";
-  document.querySelectorAll("[data-bridge-hop]").forEach(function (link) {
-    link.addEventListener("click", function () {
-      var path = link.getAttribute("data-bridge-hop");
-      if (!path) return;
-      try { localStorage.setItem(key, path); } catch (e) {}
-    });
-  });
-})();
-  </script>
+  <script src="./bridge-hop.js?v=20260420csp1"></script>
+  <script src="./shop-favicons.js?v=20260426logos1"></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

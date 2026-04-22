@@ -1,5 +1,20 @@
 "use strict";
 
+(function removeLegacyReceiptRehearsalDom() {
+  try {
+    document.getElementById("vcReceiptRehearsal")?.remove();
+    const skip = document.getElementById("vcSkipReceiptToggle");
+    const row = skip?.closest?.(".settings-toggle") || skip?.closest?.("label");
+    if (row) {
+      row.remove();
+    } else {
+      skip?.remove();
+    }
+  } catch {
+    /* ignore */
+  }
+})();
+
 const categoryFilter = document.getElementById("categoryFilter");
 const categoryCards = document.querySelectorAll("[data-filter]");
 let products = Array.from(document.querySelectorAll(".product"));
@@ -64,7 +79,6 @@ const vcJurisdictionPanel = document.getElementById("vcJurisdictionPanel");
 const vcPersonaHint = document.getElementById("vcPersonaHint");
 const vcUiSoundToggle = document.getElementById("vcUiSoundToggle");
 const vcRitualToggle = document.getElementById("vcRitualToggle");
-const vcSkipReceiptToggle = document.getElementById("vcSkipReceiptToggle");
 const vcSignatureRitual = document.getElementById("vcSignatureRitual");
 const vcRitualDismiss = document.getElementById("vcRitualDismiss");
 const vcLaneNoteDate = document.getElementById("vcLaneNoteDate");
@@ -93,10 +107,6 @@ const coachBaselineWeight = document.getElementById("coachBaselineWeight");
 const coachTargetWeight = document.getElementById("coachTargetWeight");
 const coachActivityGoal = document.getElementById("coachActivityGoal");
 const saveCoachProfileBtn = document.getElementById("saveCoachProfile");
-const medicationName = document.getElementById("medicationName");
-const medicationDose = document.getElementById("medicationDose");
-const medicationTime = document.getElementById("medicationTime");
-const addMedicationPlanBtn = document.getElementById("addMedicationPlan");
 const healthCheckinType = document.getElementById("healthCheckinType");
 const healthCheckinValue = document.getElementById("healthCheckinValue");
 const healthCheckinNotes = document.getElementById("healthCheckinNotes");
@@ -119,11 +129,10 @@ const RITUAL_SESSION_KEY = "vibecart-session-ritual-shown";
 const BRIDGE_PASSPORT_STAMP_KEY = "vibecart-bridge-passport-stamp-v1";
 const LISTING_HEALTH_KEY = "vibecart-listing-health-v1";
 const SERENDIPITY_SESSION_KEY = "vibecart-serendipity-idx-v1";
-const SKIP_RECEIPT_REHEARSAL_KEY = "vibecart-skip-receipt-rehearsal";
 
 const RADAR_HINTS = {
   en: [
-    "Cross-list one hero SKU in both Europe and Mama Africa lanes to test demand elasticity.",
+    "Cross-list one hero SKU in both Europe and Mama Africa lanes to compare demand in each lane.",
     "Pair student pickup (campus) with tracked courier for higher trust scores on first orders.",
     "Bundle beauty + books in a themed cart campaign — composite AOV often beats single-category pushes.",
     "Surface insurance add-on at checkout for electronics above EUR 150 — fewer dispute losses.",
@@ -172,6 +181,141 @@ const QUICK_BUY_TOKEN_KEY = "vibecart-quick-buy-token";
 const QUICK_BUY_EMAIL_KEY = "vibecart-quick-buy-email";
 const QUICK_BUY_PASSWORD_KEY = "vibecart-quick-buy-password";
 const WEARABLE_PREF_KEY = "vibecart-wearable-prefs";
+const COACH_ENTITLEMENTS_CACHE_KEY = "vibecart-coach-entitlements-v1";
+const COACH_AUTO_RENEW_KEY = "vibecart-coach-auto-renew-v1";
+const PREMIUM_AUTO_RENEW_KEY = "vibecart-premium-auto-renew-v1";
+let coachMonetizationState = null;
+let coachEntitlements = new Set();
+const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
+const BRIDGE_TARGET_IDS = new Set(["bridge-routes", "bridgeTitle", "bridgeText", "bridgeShops"]);
+
+function clearLegacyBridgeNavOverlays() {
+  document.getElementById("vcCinematicFloatingMap")?.remove();
+  document.getElementById("vcCinematicCueRail")?.remove();
+  document.getElementById("vcCinematicPullHint")?.remove();
+  document.body.classList.remove("vc-cinematic-map-on");
+}
+
+function allowOneBridgeJump() {
+  try {
+    sessionStorage.setItem(BRIDGE_JUMP_ALLOW_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+function consumeBridgeJumpAllowance() {
+  try {
+    const ok = sessionStorage.getItem(BRIDGE_JUMP_ALLOW_KEY) === "1";
+    if (ok) {
+      sessionStorage.removeItem(BRIDGE_JUMP_ALLOW_KEY);
+    }
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+function initBridgeAntiHijackGuard() {
+  clearLegacyBridgeNavOverlays();
+  // Hard guard: block programmatic bridge auto-scroll unless explicitly allowed.
+  try {
+    const proto = window.Element && window.Element.prototype;
+    if (proto && typeof proto.scrollIntoView === "function" && !proto.__vcBridgeGuardPatched) {
+      const nativeScrollIntoView = proto.scrollIntoView;
+      Object.defineProperty(proto, "__vcBridgeGuardPatched", { value: true, configurable: true });
+      proto.scrollIntoView = function patchedScrollIntoView(...args) {
+        try {
+          const id = String(this && this.id ? this.id : "");
+          if (BRIDGE_TARGET_IDS.has(id) && !consumeBridgeJumpAllowance()) {
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+        return nativeScrollIntoView.apply(this, args);
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest("a[href]") : null;
+      if (!anchor) {
+        return;
+      }
+      const href = String(anchor.getAttribute("href") || "");
+      const samePageBridgeJump = href === "#bridge-routes" || href.endsWith("/index.html#bridge-routes") || href === "./index.html#bridge-routes";
+      const bridgeHubJump = href.includes("bridge-hub.html");
+      if (!samePageBridgeJump && !bridgeHubJump) {
+        return;
+      }
+      // Allow only explicit bridge CTA links to jump; block accidental overlay hits.
+      const explicit = anchor.hasAttribute("data-allow-bridge-nav");
+      if (explicit) {
+        allowOneBridgeJump();
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true
+  );
+
+  window.addEventListener("hashchange", () => {
+    if (window.location.hash !== "#bridge-routes") {
+      return;
+    }
+    if (consumeBridgeJumpAllowance()) {
+      return;
+    }
+    try {
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+function initGlobalTapHijackGuard() {
+  const blockIfSuspicious = (event) => {
+    const target = event.target;
+    const anchor = target && target.closest ? target.closest("a[href]") : null;
+    if (!anchor) {
+      return;
+    }
+    const href = String(anchor.getAttribute("href") || "");
+    const isBridgeHref =
+      href === "#bridge-routes" ||
+      href === "./index.html#bridge-routes" ||
+      href.endsWith("/index.html#bridge-routes") ||
+      href.includes("bridge-hub.html");
+    const explicit = anchor.hasAttribute("data-allow-bridge-nav");
+    let giantOverlayAnchor = false;
+    try {
+      const rect = anchor.getBoundingClientRect();
+      giantOverlayAnchor =
+        rect.width >= Math.max(320, window.innerWidth * 0.82) &&
+        rect.height >= Math.max(200, window.innerHeight * 0.35);
+    } catch {
+      giantOverlayAnchor = false;
+    }
+    if ((isBridgeHref || giantOverlayAnchor) && !explicit) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+    }
+  };
+  ["pointerdown", "touchstart", "click"].forEach((type) => {
+    document.addEventListener(type, blockIfSuspicious, true);
+  });
+}
 const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
 let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
@@ -179,6 +323,7 @@ let disclaimerWatchdogTimer = null;
 const PUBLIC_USER_KEY = "vibecart-public-user-id";
 const PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
 const PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
+const PUBLIC_AUTH_JOURNEY_KEY = "vibecart-public-auth-journey";
 const easterKeyBuffer = [];
 const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "TZ", "UG", "RW", "BW", "ZM"]);
 const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
@@ -467,6 +612,74 @@ function initVibeVipSecrets() {
   });
 }
 
+function initPremiumSubscriptionExperience() {
+  const root = document.getElementById("topClassExperience");
+  const activateBtn = document.getElementById("activatePremiumExperience");
+  const autoRenewInput = document.getElementById("premiumAutoRenew");
+  const renewStatus = document.getElementById("premiumRenewStatus");
+  const priceChip = document.getElementById("premiumPlanPriceChip");
+  const lead = document.getElementById("premiumPlanLead");
+  if (!root) {
+    return;
+  }
+  let settings = { enabled: "1", price: 39.99, benefits: "" };
+  try {
+    const stored = JSON.parse(localStorage.getItem("vibecart-public-premium-plan-v1") || "{}");
+    settings = {
+      enabled: String(stored.enabled || "1"),
+      price: Number(stored.price || 39.99),
+      benefits: String(stored.benefits || "")
+    };
+  } catch {
+    /* ignore */
+  }
+  if (settings.enabled !== "1") {
+    root.classList.add("hidden");
+    return;
+  }
+  if (priceChip) {
+    priceChip.textContent = `EUR ${Math.max(1, Number(settings.price || 39.99)).toFixed(2)} / month`;
+  }
+  if (lead && settings.benefits) {
+    lead.textContent = settings.benefits;
+  }
+  if (autoRenewInput) {
+    var savedPremiumAutoRenew = localStorage.getItem(PREMIUM_AUTO_RENEW_KEY);
+    autoRenewInput.checked = savedPremiumAutoRenew === null ? true : savedPremiumAutoRenew === "1";
+    autoRenewInput.addEventListener("change", function () {
+      localStorage.setItem(PREMIUM_AUTO_RENEW_KEY, autoRenewInput.checked ? "1" : "0");
+      if (renewStatus) {
+        renewStatus.textContent = autoRenewInput.checked
+          ? "Automatic renewal is enabled for the top-class subscription."
+          : "Automatic renewal is off. You can still renew manually anytime.";
+      }
+    });
+    if (renewStatus) {
+      renewStatus.textContent = autoRenewInput.checked
+        ? "Automatic renewal is enabled for the top-class subscription."
+        : "Automatic renewal is off. You can still renew manually anytime.";
+    }
+  }
+  if (activateBtn) {
+    activateBtn.addEventListener("click", () => {
+      var autoRenew = autoRenewInput ? !!autoRenewInput.checked : true;
+      localStorage.setItem(PREMIUM_AUTO_RENEW_KEY, autoRenew ? "1" : "0");
+      unlockVibeVip("top-class subscription");
+      if (expressCheckoutStatus) {
+        expressCheckoutStatus.textContent = "Top-class experience activated. AI concierge and luxury lane are now live.";
+      }
+      if (renewStatus) {
+        renewStatus.textContent = autoRenew
+          ? "Top-class active with automatic renewal enabled."
+          : "Top-class active with manual renewal preference.";
+      }
+      activateBtn.textContent = "Top-Class Activated";
+      activateBtn.classList.remove("btn-primary");
+      activateBtn.classList.add("btn-secondary");
+    });
+  }
+}
+
 function initShopFolderConstellation() {
   const wrap = document.querySelector(".shop-folder-experience");
   const svg = document.getElementById("shopFolderConstellation");
@@ -710,7 +923,7 @@ function updateJurisdictionStrip() {
   const route = getPathLabel(activeBridgePath);
   const buyer = getBuyerDestinationLabel();
   const langHint = (navigator.language || "en").slice(0, 5);
-  vcJurisdictionLine.textContent = `Viewing: ${route} · ${buyer} · browser ${langHint}. Estimates are bands, not customs quotes.`;
+  vcJurisdictionLine.textContent = `Route: ${route} · Buyer mode: ${buyer} · Browser: ${langHint}.`;
   updateLaneWeatherQuiet();
 }
 
@@ -829,6 +1042,11 @@ function applyPersonaHint(persona) {
 }
 
 function initPathPersonaChooser() {
+  const routeByPersona = {
+    buyer: "./buy-journey.html?flow=buy&lane=fashion",
+    seller: "./sell-journey.html",
+    curious: "./browse-categories.html"
+  };
   document.querySelectorAll("[data-vc-persona]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const persona = btn.getAttribute("data-vc-persona") || "curious";
@@ -838,16 +1056,8 @@ function initPathPersonaChooser() {
         /* ignore */
       }
       applyPersonaHint(persona);
-      const target =
-        persona === "buyer"
-          ? "#market"
-          : persona === "seller"
-            ? "#sell"
-            : "#bridge-routes";
-      const el = document.querySelector(target);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      const route = routeByPersona[persona] || "./browse-categories.html";
+      window.location.assign(route);
     });
   });
   try {
@@ -881,12 +1091,6 @@ function initUiSoundAndRitualSettings() {
       vcRitualToggle.checked = localStorage.getItem(RITUAL_ENABLED_KEY) !== "0";
       vcRitualToggle.addEventListener("change", () => {
         localStorage.setItem(RITUAL_ENABLED_KEY, vcRitualToggle.checked ? "1" : "0");
-      });
-    }
-    if (vcSkipReceiptToggle) {
-      vcSkipReceiptToggle.checked = localStorage.getItem(SKIP_RECEIPT_REHEARSAL_KEY) === "1";
-      vcSkipReceiptToggle.addEventListener("change", () => {
-        localStorage.setItem(SKIP_RECEIPT_REHEARSAL_KEY, vcSkipReceiptToggle.checked ? "1" : "0");
       });
     }
   } catch {
@@ -973,6 +1177,7 @@ function initVibecartLanePack() {
   initLaneNoteDate();
   initUiSoundAndRitualSettings();
   initSignatureRitual();
+  initAiAssistantShortcuts();
   initVcExperiencePack();
 }
 
@@ -1006,7 +1211,6 @@ const SERENDIPITY_POOL = [
 
 function initVcExperiencePack() {
   initSerendipityLane();
-  initReceiptRehearsalFlow();
   initPassportStampDisplay();
   initListingHealthMeter();
 }
@@ -1031,104 +1235,6 @@ function initSerendipityLane() {
   const pick = SERENDIPITY_POOL[idx];
   host.innerHTML = `<p class="vc-serendipity-eyebrow">Serendipity lane</p><p class="vc-serendipity-title">${escapeHtml(pick.title)}</p><p class="vc-serendipity-sub">${escapeHtml(pick.sub)}</p><a class="btn btn-secondary" href="${safeUrlHref(pick.href)}">Try this angle</a>`;
   host.hidden = false;
-}
-
-let pendingReceiptCheckoutTitle = null;
-
-function getMismatchWarningText() {
-  const loc = (navigator.language || "").toLowerCase();
-  const dest = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  const eu = loc.startsWith("pl") || loc.startsWith("de") || loc.startsWith("fr") || loc.startsWith("nl");
-  if (eu && dest === "africa") {
-    return "Your browser locale looks EU while checkout is set to Africa buyer — confirm card and delivery country.";
-  }
-  if (!eu && dest === "europe") {
-    return "Checkout is set to Europe buyer — confirm your card and shipping country match.";
-  }
-  return "";
-}
-
-function openReceiptRehearsal(btn) {
-  try {
-    if (localStorage.getItem(SKIP_RECEIPT_REHEARSAL_KEY) === "1") {
-      runLiveOneClickCheckoutWithExtras(String(btn.getAttribute("data-title") || "Selected item"));
-      return;
-    }
-  } catch {
-    /* ignore */
-  }
-  const modal = document.getElementById("vcReceiptRehearsal");
-  if (!modal) {
-    runLiveOneClickCheckoutWithExtras(String(btn.getAttribute("data-title") || "Selected item"));
-    return;
-  }
-  pendingReceiptCheckoutTitle = String(btn.getAttribute("data-title") || "Selected item");
-  const price = String(btn.getAttribute("data-price") || "—");
-  const rItem = document.getElementById("vcReceiptItem");
-  const rPrice = document.getElementById("vcReceiptPrice");
-  const rRoute = document.getElementById("vcReceiptRoute");
-  const rBuyer = document.getElementById("vcReceiptBuyer");
-  const rShip = document.getElementById("vcReceiptShip");
-  if (rItem) {
-    rItem.textContent = pendingReceiptCheckoutTitle;
-  }
-  if (rPrice) {
-    rPrice.textContent = price === "—" ? price : `EUR ${price}`;
-  }
-  if (rRoute) {
-    rRoute.textContent = getPathLabel(activeBridgePath);
-  }
-  if (rBuyer) {
-    rBuyer.textContent = `${getBuyerDestinationLabel()} · ${getBuyerCountryCode()}`;
-  }
-  if (rShip) {
-    rShip.textContent = getBuyerShippingMethod();
-  }
-  const mm = document.getElementById("vcMismatchGuard");
-  const warn = getMismatchWarningText();
-  if (mm) {
-    if (warn) {
-      mm.textContent = warn;
-      mm.classList.remove("hidden");
-    } else {
-      mm.textContent = "";
-      mm.classList.add("hidden");
-    }
-  }
-  modal.classList.remove("hidden");
-  modal.setAttribute("aria-hidden", "false");
-}
-
-function closeReceiptRehearsal() {
-  const modal = document.getElementById("vcReceiptRehearsal");
-  if (modal) {
-    modal.classList.add("hidden");
-    modal.setAttribute("aria-hidden", "true");
-  }
-  pendingReceiptCheckoutTitle = null;
-}
-
-function initReceiptRehearsalFlow() {
-  const modal = document.getElementById("vcReceiptRehearsal");
-  const cancel = document.getElementById("vcReceiptCancel");
-  const confirm = document.getElementById("vcReceiptConfirm");
-  if (!modal) {
-    return;
-  }
-  closeReceiptRehearsal();
-  cancel?.addEventListener("click", () => closeReceiptRehearsal());
-  confirm?.addEventListener("click", () => {
-    const title = pendingReceiptCheckoutTitle;
-    closeReceiptRehearsal();
-    if (title) {
-      runLiveOneClickCheckoutWithExtras(title);
-    }
-  });
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      closeReceiptRehearsal();
-    }
-  });
 }
 
 async function runLiveOneClickCheckoutWithExtras(itemTitle) {
@@ -1295,7 +1401,7 @@ const DEMO_BRIDGE_SHOPS = {
       href: "./shops-europe.html",
       line: "Same lane page — use Trade bridge when you want Poland → Africa checkout paths."
     },
-    { name: "Berlin & Lyon (live)", origin: "DE / FR", href: "#market", line: "Browse the demo grid below when the live API is quiet." },
+    { name: "Berlin & Lyon (live)", origin: "DE / FR", href: "#market", line: "Browse the live grid on the marketplace when this lane is quiet." },
     {
       name: "EU national retailers",
       origin: "EU",
@@ -1312,7 +1418,7 @@ const DEMO_BRIDGE_SHOPS = {
     },
     { name: "Takealot (South Africa)", origin: "ZA", href: "https://www.takealot.com", line: "External marketplace — high national traffic.", external: true },
     { name: "Jumia South Africa", origin: "ZA", href: "https://www.jumia.co.za", line: "External storefront on the Africa → Europe story.", external: true },
-    { name: "Seed live shops", origin: "—", href: "#market", line: "Add African-origin products in Railway DB to populate live tiles." }
+    { name: "More shops coming", origin: "—", href: "#market", line: "Open the live marketplace to see listings as sellers publish them." }
   ]
 };
 
@@ -1422,7 +1528,7 @@ function setBridgePath(path) {
       suffix = " Live catalog is empty — check API connection or seed products.";
     }
     bridgePathStatus.textContent =
-      `Active path: ${getPathLabel(activeBridgePath)}. ${count} live product${count === 1 ? "" : "s"} on this path (${total} loaded).${suffix}`;
+      `Current route: ${getPathLabel(activeBridgePath)}. ${count} live product${count === 1 ? "" : "s"} on this path (${total} loaded).${suffix}`;
   }
   if (bridgePathSwitch) {
     bridgePathSwitch.querySelectorAll("[data-bridge-path]").forEach((btn) => {
@@ -1531,6 +1637,92 @@ function filterProducts(value) {
   });
 }
 
+function initVcDeepLinkFromQuery() {
+  try {
+    const p = new URLSearchParams(window.location.search || "");
+    const cat = String(p.get("cat") || "").trim();
+    const allowed = new Set(["All", "Electronics", "Fashion", "Books", "Gaming"]);
+    categoryCards.forEach((card) => {
+      const name = String(card.getAttribute("data-filter") || "All").trim();
+      const isSelected = !!cat && allowed.has(cat) && name === cat;
+      card.classList.toggle("vc-cat-selected", isSelected);
+      card.setAttribute("aria-current", isSelected ? "true" : "false");
+    });
+    if (cat && categoryFilter && allowed.has(cat)) {
+      categoryFilter.value = cat;
+      filterProducts(cat);
+    }
+    const flow = String(p.get("flow") || "").trim();
+    if (flow === "buy" || flow === "browse" || flow === "sell") {
+      try {
+        sessionStorage.setItem("vibecart-active-flow", flow);
+      } catch {
+        /* ignore */
+      }
+    }
+    const hash = (window.location.hash || "").replace(/^#/, "").split("&")[0];
+    const scrollDeferred = () => {
+      const explicitMarketJump = String(p.get("instant") || "") === "1";
+      if (hash === "market" && explicitMarketJump && (flow === "buy" || flow === "browse" || cat)) {
+        const el = document.getElementById("market");
+        if (!el) {
+          return;
+        }
+        const lenis = window.__vibecartLenis;
+        try {
+          if (
+            lenis &&
+            typeof lenis.scrollTo === "function" &&
+            !document.documentElement.classList.contains("vc-mobile-app")
+          ) {
+            lenis.scrollTo(el, { offset: -88 });
+          } else {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        } catch {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+      if (hash === "sell" && flow === "sell") {
+        document.getElementById("sell")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+    /* Lenis binds later in this file — defer scroll so smooth scroll is available on desktop. */
+    window.setTimeout(scrollDeferred, 480);
+  } catch {
+    /* ignore */
+  }
+}
+
+function initVcScrollKinetics() {
+  try {
+    const root = document.documentElement;
+    if (!root.classList.contains("vc-mobile-app") && !root.classList.contains("vc-phone")) {
+      return;
+    }
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    root.classList.add("vc-mobile-kinetic");
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) {
+        return;
+      }
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        ticking = false;
+        const y = window.scrollY || 0;
+        root.style.setProperty("--vc-scroll", String(Math.min(1, y / 1600)));
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  } catch {
+    /* ignore */
+  }
+}
+
 function vcShouldReduceScrollEffects() {
   try {
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -1546,6 +1738,25 @@ function vcShouldReduceScrollEffects() {
     /* ignore */
   }
   return false;
+}
+
+/* Lane passport: long smooth Lenis scroll reads as “rolling”; snap this section instead. */
+const VC_INSTANT_SCROLL_IDS = new Set(["account-access"]);
+
+function vcPreferInstantScrollForId(id) {
+  const raw = String(id || "")
+    .replace(/^#/, "")
+    .split("&")[0]
+    .trim();
+  return VC_INSTANT_SCROLL_IDS.has(raw);
+}
+
+function vcPreferInstantScrollForElement(el) {
+  try {
+    return !!(el && el.id && vcPreferInstantScrollForId(el.id));
+  } catch {
+    return false;
+  }
 }
 
 function vcIntroSkipVisualViewportBinding() {
@@ -1612,6 +1823,286 @@ function bindVcIntroVisualViewport(intro) {
     intro.style.removeProperty("right");
     intro.style.removeProperty("bottom");
   };
+}
+
+function vcIsCompactCinematic() {
+  const r = document.documentElement;
+  return r.classList.contains("vc-mobile-app") || r.classList.contains("vc-phone");
+}
+
+function initVcBridgeCinemaTeaser() {
+  try {
+    if (!vcIsCompactCinematic()) {
+      return;
+    }
+    const p = document.getElementById("bridgeText");
+    if (!p || p.closest(".vc-bridge-cinema")) {
+      return;
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "vc-bridge-cinema";
+    p.replaceWith(wrap);
+    p.classList.add("vc-bridge-cinema__body");
+    wrap.appendChild(p);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "vc-bridge-cinema__toggle";
+    btn.setAttribute("aria-expanded", "false");
+    btn.textContent = "Roll the full bridge take";
+    btn.addEventListener("click", () => {
+      const open = !wrap.classList.contains("vc-bridge-cinema--open");
+      wrap.classList.toggle("vc-bridge-cinema--open", open);
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.textContent = open ? "Tuck it back" : "Roll the full bridge take";
+    });
+    wrap.appendChild(btn);
+  } catch {
+    /* ignore */
+  }
+}
+
+function initVcMarketFitTeaser() {
+  try {
+    if (!vcIsCompactCinematic()) {
+      return;
+    }
+    const section = document.getElementById("market-fit");
+    const lead = document.getElementById("marketFitLead");
+    if (!section || !lead || lead.dataset.vcFitToggle === "1") {
+      return;
+    }
+    lead.dataset.vcFitToggle = "1";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "vc-bridge-cinema__toggle";
+    btn.setAttribute("aria-expanded", "false");
+    btn.textContent = "Unfold the fit line";
+    btn.addEventListener("click", () => {
+      const open = !section.classList.contains("market-fit--open");
+      section.classList.toggle("market-fit--open", open);
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+      btn.textContent = open ? "Shorten again" : "Unfold the fit line";
+    });
+    lead.insertAdjacentElement("afterend", btn);
+  } catch {
+    /* ignore */
+  }
+}
+
+function initVcHeroParallaxLite() {
+  try {
+    if (!vcIsCompactCinematic()) {
+      return;
+    }
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      return;
+    }
+    const img = document.querySelector(".hero-image img");
+    if (!img) {
+      return;
+    }
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) {
+        return;
+      }
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        ticking = false;
+        const y = Math.min(window.scrollY * 0.1, 36);
+        img.style.transform = `translate3d(0, ${y}px, 0) scale(1.02)`;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  } catch {
+    /* ignore */
+  }
+}
+
+function initVcCinematicFloatingMapAndCues() {
+  try {
+    // Global kill-switch: this layer can intercept clicks/taps and feel like page hijack.
+    // Keep disabled on all devices until redesigned.
+    return;
+    if (!vcIsCompactCinematic() || !("IntersectionObserver" in window)) {
+      return;
+    }
+    const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const scenes = Array.from(document.querySelectorAll("[data-vc-scene]"));
+    if (!scenes.length) {
+      return;
+    }
+    if (document.getElementById("vcCinematicFloatingMap")) {
+      return;
+    }
+    const map = document.createElement("nav");
+    map.id = "vcCinematicFloatingMap";
+    map.setAttribute("aria-label", "Scene map");
+    const cue = document.createElement("nav");
+    cue.id = "vcCinematicCueRail";
+    cue.setAttribute("aria-label", "Scene markers");
+
+    const labels = {
+      intro: "Open",
+      lane: "Lane",
+      fit: "Fit",
+      rewards: "Win",
+      categories: "Grid",
+      shops: "Folders",
+      bridge: "Bridge",
+      market: "Live",
+      hub: "Hub"
+    };
+
+    let lastRnScenePosted = "";
+    const tryPostSceneToNative = (sid) => {
+      if (!sid || sid === lastRnScenePosted) {
+        return;
+      }
+      lastRnScenePosted = sid;
+      try {
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ vcScene: sid, src: "vc" }));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    scenes.forEach((sec) => {
+      const id = String(sec.getAttribute("data-vc-scene") || "").trim();
+      if (!id) {
+        return;
+      }
+      const a = document.createElement("a");
+      a.href = sec.id ? `#${sec.id}` : "#scene-top";
+      a.textContent = labels[id] || id;
+      a.dataset.vcSceneLink = id;
+      a.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        const el = sec.id ? document.getElementById(sec.id) : document.getElementById("scene-top");
+        el?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+        tryPostSceneToNative(id);
+      });
+      map.appendChild(a);
+
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.title = labels[id] || id;
+      dot.setAttribute("aria-label", `Go to ${labels[id] || id}`);
+      dot.dataset.vcSceneCue = id;
+      dot.addEventListener("click", () => {
+        const el = sec.id ? document.getElementById(sec.id) : document.getElementById("scene-top");
+        el?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+        tryPostSceneToNative(id);
+      });
+      cue.appendChild(dot);
+    });
+
+    document.body.appendChild(map);
+    document.body.appendChild(cue);
+
+    const setActive = (activeId) => {
+      document.body.dataset.vcActiveScene = activeId;
+      map.querySelectorAll("a").forEach((a) => {
+        a.classList.toggle("vc-cinematic-map-link--active", a.dataset.vcSceneLink === activeId);
+      });
+      cue.querySelectorAll("button").forEach((b) => {
+        b.classList.toggle("vc-cinematic-cue--active", b.dataset.vcSceneCue === activeId);
+      });
+    };
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting && e.intersectionRatio > 0.12)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) {
+          return;
+        }
+        const id = String(visible.target.getAttribute("data-vc-scene") || "");
+        if (id) {
+          setActive(id);
+          tryPostSceneToNative(id);
+        }
+      },
+      { root: null, rootMargin: "-22% 0px -38% 0px", threshold: [0, 0.08, 0.16, 0.28] }
+    );
+    scenes.forEach((s) => io.observe(s));
+
+    let mapShown = false;
+    const onWinScroll = () => {
+      const y = window.scrollY || 0;
+      const show = y > 140;
+      if (show !== mapShown) {
+        mapShown = show;
+        map.classList.toggle("vc-cinematic-map--visible", show);
+        document.body.classList.toggle("vc-cinematic-map-on", show);
+      }
+    };
+    window.addEventListener("scroll", onWinScroll, { passive: true });
+    onWinScroll();
+    setActive("intro");
+  } catch {
+    /* ignore */
+  }
+}
+
+function initVcPullPathHint() {
+  try {
+    if (!vcIsCompactCinematic()) {
+      return;
+    }
+    if (sessionStorage.getItem("vibecart-pull-hint-dismissed") === "1") {
+      return;
+    }
+    const root = document.documentElement;
+    const inApp = root.classList.contains("vc-mobile-app");
+    const ua = String(navigator.userAgent || "");
+    const android = /Android/i.test(ua);
+    if (!inApp && !android) {
+      return;
+    }
+    if (document.getElementById("vcCinematicPullHint")) {
+      return;
+    }
+    const el = document.createElement("div");
+    el.id = "vcCinematicPullHint";
+    el.innerHTML = `<span>${
+      inApp
+        ? "Native refresh lives top-right — pull isn’t the only move."
+        : "Tip: use your browser refresh when you want the freshest lane copy."
+    }</span><button type="button" aria-label="Dismiss">✕</button>`;
+    const btn = el.querySelector("button");
+    btn?.addEventListener("click", () => {
+      el.classList.remove("vc-pull-hint--show");
+      try {
+        sessionStorage.setItem("vibecart-pull-hint-dismissed", "1");
+      } catch {
+        /* ignore */
+      }
+      window.setTimeout(() => el.remove(), 400);
+    });
+    document.body.appendChild(el);
+    window.requestAnimationFrame(() => el.classList.add("vc-pull-hint--show"));
+    window.setTimeout(() => {
+      if (el.isConnected) {
+        btn?.click();
+      }
+    }, 9000);
+  } catch {
+    /* ignore */
+  }
+}
+
+function initVcCinematicExperience() {
+  initVcBridgeCinemaTeaser();
+  initVcMarketFitTeaser();
+  initVcHeroParallaxLite();
+  initVcCinematicFloatingMapAndCues();
+  initVcPullPathHint();
 }
 
 function initVcHorizontalRails() {
@@ -1874,6 +2365,14 @@ function initVibePassport() {
   };
   renderBadge();
   renderAura();
+  badge.style.cursor = "pointer";
+  badge.title = "Open Vibe Passport";
+  if (badge.dataset.vibePassportOpenBound !== "1") {
+    badge.dataset.vibePassportOpenBound = "1";
+    badge.addEventListener("click", () => {
+      window.location.assign("./lane-passport.html");
+    });
+  }
 
   cards.forEach((card) => {
     if (card.dataset.vibePassportBound === "1") {
@@ -2180,7 +2679,7 @@ function wireOneClickBuy() {
         }
         return;
       }
-      openReceiptRehearsal(btn);
+      runLiveOneClickCheckoutWithExtras(String(btn.getAttribute("data-title") || "Selected item"));
     });
   });
 }
@@ -2291,6 +2790,11 @@ function paintAuthLoggedIn(user) {
   const inn = document.getElementById("vcAuthLoggedIn");
   const welcome = document.getElementById("vcAuthWelcomeLine");
   const meta = document.getElementById("vcAuthMetaLine");
+  const memberAura = document.getElementById("vcMemberAura");
+  const guestAura = document.getElementById("vcGuestAura");
+  const memberAuraTitle = document.getElementById("vcMemberAuraTitle");
+  const memberAuraText = document.getElementById("vcMemberAuraText");
+  const memberAuraChip = document.getElementById("vcMemberAuraChip");
   if (out) {
     out.classList.add("hidden");
   }
@@ -2303,6 +2807,23 @@ function paintAuthLoggedIn(user) {
   const roleLabel =
     roleRaw === "seller" ? authT("accountPassport.roleSellerLabel") : authT("accountPassport.roleBuyerLabel");
   const cc = String(user.countryCode || "");
+  var stampCount = 0;
+  var isVip = false;
+  try {
+    stampCount = Number(localStorage.getItem(VIBE_PASSPORT_KEY) || "0");
+    isVip = localStorage.getItem(VIBE_VIP_KEY) === "1";
+  } catch {
+    stampCount = 0;
+    isVip = false;
+  }
+  var level = "Explorer";
+  if (isVip || stampCount >= 8) {
+    level = "Legend";
+  } else if (stampCount >= 5) {
+    level = "Elite";
+  } else if (stampCount >= 2) {
+    level = "Citizen";
+  }
   if (welcome) {
     const tpl = authT("accountPassport.welcome");
     welcome.textContent = tpl ? tpl.replace("{name}", name) : `Welcome, ${name}`;
@@ -2313,16 +2834,50 @@ function paintAuthLoggedIn(user) {
       ? tpl.replace("{email}", email).replace("{role}", roleLabel).replace("{country}", cc)
       : `${email} · ${roleLabel} · ${cc}`;
   }
+  if (memberAuraTitle) {
+    memberAuraTitle.textContent = `Welcome, ${name}. Your VibeCart passport is active.`;
+  }
+  if (memberAuraText) {
+    memberAuraText.textContent =
+      `Holder level: ${level}. You have ${stampCount} passport stamp${stampCount === 1 ? "" : "s"} on this device.`;
+  }
+  if (memberAuraChip) {
+    memberAuraChip.textContent = `VibeCart Passport Holder · ${level}`;
+  }
+  if (memberAura) {
+    memberAura.classList.remove("hidden");
+    memberAura.classList.remove("vc-member-aura--explorer", "vc-member-aura--citizen", "vc-member-aura--elite", "vc-member-aura--legend");
+    memberAura.classList.add(
+      level === "Legend"
+        ? "vc-member-aura--legend"
+        : level === "Elite"
+          ? "vc-member-aura--elite"
+          : level === "Citizen"
+            ? "vc-member-aura--citizen"
+            : "vc-member-aura--explorer"
+    );
+  }
+  if (guestAura) {
+    guestAura.classList.add("hidden");
+  }
 }
 
 function paintAuthLoggedOut() {
   const out = document.getElementById("vcAuthLoggedOut");
   const inn = document.getElementById("vcAuthLoggedIn");
+  const memberAura = document.getElementById("vcMemberAura");
+  const guestAura = document.getElementById("vcGuestAura");
   if (out) {
     out.classList.remove("hidden");
   }
   if (inn) {
     inn.classList.add("hidden");
+  }
+  if (memberAura) {
+    memberAura.classList.add("hidden");
+  }
+  if (guestAura) {
+    guestAura.classList.remove("hidden");
   }
 }
 
@@ -2396,6 +2951,11 @@ function initPublicAccountAuth() {
   const btnLogin = document.getElementById("vcAuthSubmitLogin");
   const btnLogout = document.getElementById("vcAuthLogout");
   const toggleRoleBtn = document.getElementById("vcAuthToggleRole");
+  const journeyInput = document.getElementById("vcAuthJourney");
+  const journeyPassportBtn = document.getElementById("vcAuthJourneyPassport");
+  const journeyAccountBtn = document.getElementById("vcAuthJourneyAccount");
+  const journeyHint = document.getElementById("vcAuthJourneyHint");
+  const createSubmitLabel = document.getElementById("vcAuthSubmitCreate");
 
   if (!panelCreate || !panelLogin) {
     return;
@@ -2413,6 +2973,25 @@ function initPublicAccountAuth() {
     panelLogin.removeAttribute("hidden");
   }
 
+  function refreshJourneyUi() {
+    const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
+    if (journeyPassportBtn) {
+      journeyPassportBtn.classList.toggle("is-active", journey === "passport");
+    }
+    if (journeyAccountBtn) {
+      journeyAccountBtn.classList.toggle("is-active", journey === "account");
+    }
+    if (createSubmitLabel) {
+      createSubmitLabel.textContent = journey === "passport" ? "Create passport" : "Create account";
+    }
+    if (journeyHint) {
+      journeyHint.textContent =
+        journey === "passport"
+          ? "Flow: Create passport -> Enter details -> Congratulations, welcome to the VibeCart family with your VibeCart passport."
+          : "Flow: Create account -> Enter details -> Congratulations, welcome to the VibeCart community.";
+    }
+  }
+
   linkToLogin?.addEventListener("click", (event) => {
     event.preventDefault();
     showLogin();
@@ -2420,6 +2999,18 @@ function initPublicAccountAuth() {
   linkToCreate?.addEventListener("click", (event) => {
     event.preventDefault();
     showCreate();
+  });
+  journeyPassportBtn?.addEventListener("click", () => {
+    if (journeyInput) {
+      journeyInput.value = "passport";
+    }
+    refreshJourneyUi();
+  });
+  journeyAccountBtn?.addEventListener("click", () => {
+    if (journeyInput) {
+      journeyInput.value = "account";
+    }
+    refreshJourneyUi();
   });
 
   toggleRoleBtn?.addEventListener("click", () => {
@@ -2439,7 +3030,11 @@ function initPublicAccountAuth() {
   if (roleInput) {
     roleInput.value = "buyer";
   }
+  if (journeyInput && !journeyInput.value) {
+    journeyInput.value = "passport";
+  }
   refreshAccountPassportLabels();
+  refreshJourneyUi();
 
   if (emailCreate && fullNameInput) {
     emailCreate.addEventListener("blur", () => {
@@ -2468,18 +3063,20 @@ function initPublicAccountAuth() {
     const email = String(document.getElementById("vcAuthEmail")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("vcAuthPassword")?.value || "");
     const role = String(roleInput?.value || "buyer");
+    const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
     const countryCode = String(country?.value || "ZA").toUpperCase();
     if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
-      setAuthStatus(authT("accountPassport.errGeneric"));
+      setAuthStatus(authT("accountPassport.errMissingFields"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setAuthStatus(authT("accountPassport.errGeneric"));
+      setAuthStatus(authT("accountPassport.errInvalidEmail"));
       return;
     }
     if (btnCreate) {
       btnCreate.disabled = true;
     }
+    setAuthStatus(authT("accountPassport.creating"));
     try {
       const response = await fetch("/api/public/auth/register", {
         method: "POST",
@@ -2497,12 +3094,32 @@ function initPublicAccountAuth() {
         return;
       }
       if (!response.ok || !body.ok || !body.token) {
-        setAuthStatus(authT("accountPassport.errGeneric"));
+        const detail =
+          body && (body.message || body.code)
+            ? ` (${String(body.code || "")}: ${String(body.message || "").slice(0, 120)})`
+            : "";
+        setAuthStatus(authT("accountPassport.errGeneric") + detail);
         return;
       }
       persistPublicAuth(body.token, body.user);
+      try {
+        localStorage.setItem(PUBLIC_AUTH_JOURNEY_KEY, journey);
+      } catch {
+        /* ignore */
+      }
       paintAuthLoggedIn(body.user);
-      setAuthStatus("");
+      setAuthStatus(
+        journey === "passport"
+          ? "Congratulations, welcome to the VibeCart family with your VibeCart passport."
+          : "Congratulations, welcome to the VibeCart community."
+      );
+      const nextUrl =
+        journey === "passport"
+          ? `./passport-welcome.html?welcome=1&new=1&journey=passport&name=${encodeURIComponent(String(body.user?.fullName || fullName || ""))}&email=${encodeURIComponent(email)}`
+          : `./account-welcome.html?welcome=1&new=1&journey=account&name=${encodeURIComponent(String(body.user?.fullName || fullName || ""))}&email=${encodeURIComponent(email)}`;
+      window.setTimeout(() => {
+        window.location.assign(nextUrl);
+      }, 420);
     } catch {
       setAuthStatus(authT("accountPassport.errGeneric"));
     } finally {
@@ -2719,6 +3336,10 @@ if (categoryFilter) {
 categoryCards.forEach((card) => {
   card.addEventListener("click", () => {
     const chosen = card.getAttribute("data-filter") || "All";
+    categoryCards.forEach((item) => {
+      item.classList.toggle("vc-cat-selected", item === card);
+      item.setAttribute("aria-current", item === card ? "true" : "false");
+    });
     if (categoryFilter) {
       categoryFilter.value = chosen;
     }
@@ -3057,17 +3678,38 @@ function initMobileQuickNav() {
   if (!nav) {
     return;
   }
-  const links = Array.from(nav.querySelectorAll("a[data-quick-target]"));
+  /* Only same-page # links belong in scroll-spy; external href + data-quick-target caused wrong highlights (Account vs passport). */
+  const links = Array.from(nav.querySelectorAll("a[data-quick-target]")).filter((link) => {
+    const href = String(link.getAttribute("href") || "");
+    return href.startsWith("#");
+  });
   const sections = links
     .map((link) => document.getElementById(String(link.getAttribute("data-quick-target") || "")))
     .filter(Boolean);
 
   links.forEach((link) => {
     link.addEventListener("click", (event) => {
+      const href = String(link.getAttribute("href") || "");
+      if (!href.startsWith("#")) {
+        return;
+      }
       event.preventDefault();
       const targetId = String(link.getAttribute("data-quick-target") || "");
       const target = document.getElementById(targetId);
       if (target) {
+        if (vcPreferInstantScrollForElement(target)) {
+          const lenis = window.__vibecartLenis;
+          try {
+            if (lenis && typeof lenis.scrollTo === "function") {
+              lenis.scrollTo(target, { offset: -88, immediate: true });
+              return;
+            }
+          } catch {
+            /* ignore */
+          }
+          target.scrollIntoView({ behavior: "auto", block: "start" });
+          return;
+        }
         target.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
@@ -3108,15 +3750,19 @@ initBrandSignatureMotion();
 initMobileQuickNav();
 wireOneClickBuy();
 initializeBridgePaths().catch(() => {});
+initVcDeepLinkFromQuery();
 initMobileWebLayoutGuards();
 initVcMobileAppFx();
+initVcScrollKinetics();
 initVcHorizontalRails();
+initVcCinematicExperience();
 initCinematicIntro();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
 initShopFolderConstellation();
 initDailyRouteFortune();
 initVibeVipSecrets();
+initPremiumSubscriptionExperience();
 initVibePassport();
 initVibeFlowMotion();
 initHeroCanvasFx();
@@ -3220,6 +3866,25 @@ function scoreProduct(product, preference) {
   if (preference.category === "All" || preference.category === product.category) {
     score += 5;
   }
+  const fashionWords = [
+    "fashion",
+    "clothes",
+    "clothing",
+    "outfit",
+    "dress",
+    "shoe",
+    "sneaker",
+    "jacket",
+    "night",
+    "wear",
+    "style",
+    "jeans",
+    "skirt",
+    "hoodie"
+  ];
+  if (needText && fashionWords.some((w) => needText.includes(w)) && product.category === "Fashion") {
+    score += 8;
+  }
   if (needText && (titleText.includes("phone") || needText.includes("phone")) && product.category === "Electronics") {
     score += 4;
   }
@@ -3228,6 +3893,13 @@ function scoreProduct(product, preference) {
   }
   if (needText && (needText.includes("game") || needText.includes("gaming")) && product.category === "Gaming") {
     score += 4;
+  }
+  const electronicsWords = ["laptop", "tablet", "charger", "headphone", "tech", "electronic", "usb", "camera"];
+  if (needText && electronicsWords.some((w) => needText.includes(w)) && product.category === "Electronics") {
+    score += 7;
+  }
+  if (needText && (needText.includes("read") || needText.includes("textbook")) && product.category === "Books") {
+    score += 5;
   }
   if (product.price <= preference.budget) {
     score += 6;
@@ -3280,43 +3952,20 @@ function initShopSearch() {
   if (!form || !input) {
     return;
   }
-  const cards = () => Array.from(document.querySelectorAll("#shops .shop-folder-card"));
-  const applyFilter = () => {
-    const raw = String(input.value || "").trim().toLowerCase();
-    let n = 0;
-    cards().forEach((card) => {
-      const hay = `${card.textContent || ""} ${card.getAttribute("href") || ""} ${card.dataset.vcRegion || ""}`.toLowerCase();
-      const ok = !raw || hay.includes(raw);
-      card.style.display = ok ? "" : "none";
-      if (ok) {
-        n += 1;
-      }
-    });
-    if (status) {
-      const i18n = window.VibeCartI18n;
-      const lang = currentUiLocale();
-      if (!raw) {
-        status.textContent = i18n && i18n.t ? i18n.t(lang, "search.reset") : "All regional folders visible.";
-      } else if (n > 0) {
-        const tpl = i18n && i18n.t ? i18n.t(lang, "search.matchCount") : "{n} folders match.";
-        status.textContent = tpl.replace(/\{n\}/g, String(n));
-      } else {
-        status.textContent = i18n && i18n.t ? i18n.t(lang, "search.none") : "No matches — try another keyword.";
-      }
-    }
-  };
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    applyFilter();
-    document.getElementById("shops")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-  input.addEventListener("input", applyFilter);
-  input.addEventListener("search", () => {
-    if (!String(input.value || "").trim()) {
-      applyFilter();
+    const q = String(input.value || "").trim();
+    if (!q) {
+      if (status) {
+        status.textContent = "Enter what you want to find.";
+      }
+      return;
     }
+    if (status) {
+      status.textContent = "Searching everything...";
+    }
+    window.location.assign(`./global-search.html?q=${encodeURIComponent(q)}`);
   });
-  applyFilter();
 }
 
 function vcScrollToSelector(selector) {
@@ -3324,16 +3973,20 @@ function vcScrollToSelector(selector) {
   if (!el) {
     return;
   }
+  const instant = vcPreferInstantScrollForElement(el);
   const lenis = window.__vibecartLenis;
   try {
     if (lenis && typeof lenis.scrollTo === "function") {
-      lenis.scrollTo(el, { offset: -88, duration: 0.85 });
+      lenis.scrollTo(
+        el,
+        instant ? { offset: -88, immediate: true } : { offset: -88, duration: 0.85 }
+      );
       return;
     }
   } catch {
     /* ignore */
   }
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
 }
 
 function flashTargetSection(el) {
@@ -3376,15 +4029,17 @@ function initHeroChips() {
   };
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
-      const sel = String(chip.getAttribute("data-hero-chip-target") || "");
-      const target = sel ? document.querySelector(sel) : null;
+      const kind = String(chip.getAttribute("data-hero-chip") || "");
+      const route =
+        kind === "checkout"
+          ? "./buy-journey.html?flow=buy&lane=fashion"
+          : kind === "sellers"
+            ? "./regional-shops.html"
+            : "./orders-tracking.html";
       strip.querySelectorAll(".hero-chip").forEach((c) => c.classList.remove("hero-chip--active"));
       chip.classList.add("hero-chip--active");
-      if (target) {
-        vcScrollToSelector(sel);
-        flashTargetSection(target);
-      }
       announce(chip);
+      window.location.assign(route);
     });
   });
   const refreshHintIfChipActive = () => {
@@ -3401,6 +4056,10 @@ function initHeroChips() {
 function initBrandHomeLink() {
   const link = document.getElementById("brandHomeLink");
   if (!link) {
+    return;
+  }
+  const href = String(link.getAttribute("href") || "").trim();
+  if (href && href !== "#") {
     return;
   }
   link.addEventListener("click", (event) => {
@@ -3429,10 +4088,17 @@ function getAISuggestions() {
     category: aiCategory.value || "All"
   };
 
-  const ranked = parseProductCards()
+  const cards = parseProductCards();
+  if (!cards.length) {
+    aiResult.textContent =
+      "No demo listings found on this page yet. Scroll to Live Marketplace above, then try again.";
+    return;
+  }
+
+  const scored = cards
     .map((product) => ({ ...product, score: scoreProduct(product, preference) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .sort((a, b) => b.score - a.score);
+  let ranked = scored.slice(0, 3);
 
   const L = currentUiLocale();
   const i18n = window.VibeCartI18n;
@@ -3440,9 +4106,24 @@ function getAISuggestions() {
     i18n && typeof i18n.t === "function"
       ? i18n.t(L, "ai.noMatch")
       : "No exact match yet. Try increasing budget or selecting 'Any' category for better suggestions.";
-  if (!ranked.length || ranked[0].score <= 0) {
+  if (!ranked.length) {
     aiResult.textContent = noMatch;
     return;
+  }
+
+  if (ranked[0].score <= 0) {
+    const budget = preference.budget;
+    ranked = scored
+      .map((p) => ({
+        ...p,
+        score: -Math.abs(p.price - budget)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+    if (!ranked.length) {
+      aiResult.textContent = noMatch;
+      return;
+    }
   }
 
   const lines = ranked.map(
@@ -3456,11 +4137,38 @@ function getAISuggestions() {
     i18n && typeof i18n.t === "function" ? i18n.t(L, "ai.resultFunPrefix") : "Vibe-ranked picks";
   const prefix = persona === "fun" ? funPrefix : effPrefix;
   const joiner = persona === "fun" ? " ✦ " : " | ";
-  aiResult.textContent = `${prefix}: ${lines.join(joiner)}`;
+  const relaxed =
+    scored[0].score <= 0 ? " (relaxed budget fit — refine your need text for tighter style matches)" : "";
+  aiResult.textContent = `${prefix}: ${lines.join(joiner)}${relaxed}`;
+  try {
+    aiAssistantSection?.scrollIntoView({ behavior: "smooth", block: "center" });
+    aiResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch {
+    /* ignore */
+  }
 }
 
 if (aiSuggest) {
-  aiSuggest.addEventListener("click", getAISuggestions);
+  aiSuggest.addEventListener("click", (event) => {
+    event.preventDefault();
+    getAISuggestions();
+  });
+}
+
+function initAiAssistantShortcuts() {
+  const run = (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    const t = event.target;
+    if (t !== aiNeed && t !== aiBudget) {
+      return;
+    }
+    event.preventDefault();
+    getAISuggestions();
+  };
+  aiNeed?.addEventListener("keydown", run);
+  aiBudget?.addEventListener("keydown", run);
 }
 
 function getSellerOnboardedCount() {
@@ -3881,31 +4589,78 @@ function renderBookingSlots() {
   const date = bookingDate.value || "selected date";
   const service = bookingServiceType.value || "Service";
   const sampleSlots = ["09:00", "11:00", "13:30", "16:00"];
-  bookingSlotsResult.textContent = `${service} slots on ${date}: ${sampleSlots.join(", ")}. Bookings auto-confirm and notify provider + client.`;
+  const safeService = encodeURIComponent(service);
+  const safeDate = encodeURIComponent(date);
+  const checkoutLink = `./checkout-details.html?flow=service_booking&service=${safeService}&date=${safeDate}`;
+  bookingSlotsResult.innerHTML = `${service} slots on ${date}: ${sampleSlots.join(
+    ", "
+  )}. Payment is required before the date is locked.<br/><a class="btn btn-primary" href="${checkoutLink}">Pay deposit and reserve date</a>`;
+  const prepayBtn = document.getElementById("bookingPrepayRouteBtn");
+  if (prepayBtn) {
+    prepayBtn.setAttribute("href", checkoutLink);
+  }
 }
 
 if (showBookingSlots) {
   showBookingSlots.addEventListener("click", renderBookingSlots);
 }
 
+const TRUSTED_INSURANCE_PROVIDER_DOMAINS = new Set([
+  "allianz.com",
+  "axa.com",
+  "cigna.com",
+  "bupa.com",
+  "discovery.co.za",
+  "oldmutual.co.za"
+]);
+
+function normalizeInsuranceUrl(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) {
+    return "";
+  }
+  try {
+    const url = new URL(value.startsWith("http") ? value : `https://${value}`);
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
+function isTrustedInsuranceWebsite(rawUrl) {
+  const href = normalizeInsuranceUrl(rawUrl);
+  if (!href) {
+    return false;
+  }
+  try {
+    const host = new URL(href).hostname.replace(/^www\./, "").toLowerCase();
+    return Array.from(TRUSTED_INSURANCE_PROVIDER_DOMAINS).some((domain) => host === domain || host.endsWith(`.${domain}`));
+  } catch {
+    return false;
+  }
+}
+
 const demoInsurancePlans = [
   {
-    provider: "CampusLife Assurance",
-    plan: "Student Life Basic",
+    provider: "Allianz",
+    website: "https://www.allianz.com",
+    plan: "Student Life Basic (illustrative)",
     type: "Life Cover",
     price: "EUR 4.99 / month",
     benefits: "Starter life protection and emergency support guidance."
   },
   {
-    provider: "WellNest Health Cover",
-    plan: "Student Health Shield",
+    provider: "AXA",
+    website: "https://www.axa.com",
+    plan: "Student Health Shield (illustrative)",
     type: "Health Cover",
     price: "EUR 6.99 / month",
     benefits: "Basic outpatient support and tele-health guidance."
   },
   {
-    provider: "FamilyCare Secure",
-    plan: "Funeral Family Plan",
+    provider: "Bupa",
+    website: "https://www.bupa.com",
+    plan: "Family Protect Plan (illustrative)",
     type: "Funeral Cover",
     price: "EUR 5.49 / month",
     benefits: "Affordable funeral support for student families."
@@ -3920,12 +4675,15 @@ function renderInsurancePlans() {
   demoInsurancePlans.forEach((item) => {
     const node = document.createElement("article");
     node.className = "shop";
+    const providerUrl = normalizeInsuranceUrl(item.website);
     node.innerHTML = `
       <h3>${escapeHtml(item.plan)}</h3>
       <p><strong>${escapeHtml(item.provider)}</strong> - ${escapeHtml(item.type)}</p>
       <p class="price">${escapeHtml(item.price)}</p>
       <p>${escapeHtml(item.benefits)}</p>
-      <button class="btn btn-primary insurance-action-btn">Request Plan Details</button>
+      <p>
+        <a class="btn btn-primary insurance-action-btn insurance-provider-link" data-provider-url="${escapeHtml(providerUrl)}" href="${escapeHtml(providerUrl)}" target="_blank" rel="noopener noreferrer">Visit provider website</a>
+      </p>
     `;
     insurancePlans.appendChild(node);
   });
@@ -3944,7 +4702,16 @@ async function loadPublicInsurancePlans() {
       return;
     }
     insurancePlans.innerHTML = "";
-    payload.plans.slice(0, 6).forEach((plan) => {
+    let rendered = 0;
+    payload.plans.slice(0, 12).forEach((plan) => {
+      const providerUrlRaw = plan.provider_website || plan.provider_url || plan.website_url || "";
+      if (!isTrustedInsuranceWebsite(providerUrlRaw)) {
+        return;
+      }
+      const providerUrl = normalizeInsuranceUrl(providerUrlRaw);
+      if (!providerUrl) {
+        return;
+      }
       const node = document.createElement("article");
       node.className = "shop";
       const summary = plan.summary_text || "Verified insurance plan for students and families.";
@@ -3953,10 +4720,16 @@ async function loadPublicInsurancePlans() {
         <p><strong>${escapeHtml(plan.provider_name)}</strong> - ${escapeHtml(plan.plan_type)}</p>
         <p class="price">${escapeHtml(plan.currency)} ${escapeHtml(Number(plan.monthly_premium).toFixed(2))} / month</p>
         <p>${escapeHtml(summary)}</p>
-        <button class="btn btn-primary insurance-action-btn">Request Plan Details</button>
+        <p>
+          <a class="btn btn-primary insurance-action-btn insurance-provider-link" data-provider-url="${escapeHtml(providerUrl)}" href="${escapeHtml(providerUrl)}" target="_blank" rel="noopener noreferrer">Visit provider website</a>
+        </p>
       `;
       insurancePlans.appendChild(node);
+      rendered += 1;
     });
+    if (!rendered) {
+      renderInsurancePlans();
+    }
   } catch {
     renderInsurancePlans();
   }
@@ -4058,6 +4831,7 @@ function wireInsuranceActionButtons() {
     button.dataset.guardReady = "1";
     button.addEventListener("click", async (event) => {
       event.preventDefault();
+      const providerUrl = String(button.getAttribute("data-provider-url") || button.getAttribute("href") || "").trim();
       if (!insuranceDisclaimerAck || !insuranceDisclaimerAck.checked) {
         openDisclaimerGate(
           "Before continuing, accept the insurance disclaimer checkbox in the insurance section.",
@@ -4068,7 +4842,10 @@ function wireInsuranceActionButtons() {
       }
       await recordDisclaimerAcceptance("insurance_subscription", true);
       if (wellbeingTips) {
-        wellbeingTips.textContent = "Insurance disclaimer accepted. You can continue to policy detail/subscription flow.";
+        wellbeingTips.textContent = "Insurance disclaimer accepted. Opening trusted provider website.";
+      }
+      if (providerUrl && isTrustedInsuranceWebsite(providerUrl)) {
+        window.open(normalizeInsuranceUrl(providerUrl), "_blank", "noopener,noreferrer");
       }
     });
   });
@@ -4121,6 +4898,181 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+function rememberCoachEntitlements(entitlements) {
+  coachEntitlements = new Set(
+    (Array.isArray(entitlements) ? entitlements : [])
+      .map((item) => String(item || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+  try {
+    localStorage.setItem(COACH_ENTITLEMENTS_CACHE_KEY, JSON.stringify(Array.from(coachEntitlements)));
+  } catch {
+    /* ignore */
+  }
+}
+
+function restoreCoachEntitlements() {
+  try {
+    const raw = localStorage.getItem(COACH_ENTITLEMENTS_CACHE_KEY);
+    if (!raw) {
+      return;
+    }
+    rememberCoachEntitlements(JSON.parse(raw));
+  } catch {
+    /* ignore */
+  }
+}
+
+function coachHasEntitlement(key) {
+  return coachEntitlements.has(String(key || "").trim().toLowerCase());
+}
+
+function renderCoachMonetizationUi(state) {
+  const section = document.getElementById("health-coach");
+  if (!section) {
+    return;
+  }
+  let host = document.getElementById("coachMonetizationHost");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "coachMonetizationHost";
+    host.className = "alt";
+    host.style.marginTop = "1rem";
+    host.innerHTML = `
+      <h3>VibeFit plans & add-ons</h3>
+      <p class="note">Unlock unlimited check-ins, advanced wearable sync, and deep analysis reports.</p>
+      <div class="hero-actions">
+        <button type="button" id="coachPlanPlus" class="btn btn-primary">Start Plus (€6.99/mo)</button>
+        <button type="button" id="coachPlanPro" class="btn btn-secondary">Start Pro (€12.99/mo)</button>
+        <button type="button" id="coachAddonDeep" class="btn btn-secondary">Buy Deep Analysis (€2.99)</button>
+        <button type="button" id="coachPartnerWellNest" class="btn btn-secondary">Open WellNest partner</button>
+      </div>
+      <label class="note" style="display:flex;align-items:center;gap:.45rem;margin:.5rem 0 0;">
+        <input type="checkbox" id="coachAutoRenewChoice" checked />
+        Enable automatic renewal for coach subscription
+      </label>
+      <p id="coachMonetizationStatus" class="note" aria-live="polite"></p>
+    `;
+    const anchor = coachDashboard ? coachDashboard.parentElement : section;
+    anchor?.insertBefore(host, coachDashboard || null);
+    document.getElementById("coachPlanPlus")?.addEventListener("click", () => {
+      startCoachSubscriptionCheckout("PLUS").catch(() => {});
+    });
+    document.getElementById("coachPlanPro")?.addEventListener("click", () => {
+      startCoachSubscriptionCheckout("PRO").catch(() => {});
+    });
+    document.getElementById("coachAddonDeep")?.addEventListener("click", () => {
+      buyCoachAddonCheckout("DEEP_ANALYSIS").catch(() => {});
+    });
+    document.getElementById("coachPartnerWellNest")?.addEventListener("click", () => {
+      trackCoachPartnerEvent("WellNest Health Cover", "click", "cpl", 0, { source: "health-coach-ui" }).catch(() => {});
+      window.open("./insurance.html", "_blank", "noopener");
+    });
+    var coachAutoRenewChoice = document.getElementById("coachAutoRenewChoice");
+    if (coachAutoRenewChoice) {
+      var savedAutoRenew = localStorage.getItem(COACH_AUTO_RENEW_KEY);
+      coachAutoRenewChoice.checked = savedAutoRenew === null ? true : savedAutoRenew === "1";
+      coachAutoRenewChoice.addEventListener("change", function () {
+        localStorage.setItem(COACH_AUTO_RENEW_KEY, coachAutoRenewChoice.checked ? "1" : "0");
+      });
+    }
+  }
+  const status = document.getElementById("coachMonetizationStatus");
+  if (!status) {
+    return;
+  }
+  if (!state || !state.plan) {
+    status.textContent = "Plan info unavailable right now.";
+    return;
+  }
+  const plan = state.plan;
+  const features = Array.isArray(state.entitlements) ? state.entitlements : [];
+  status.textContent = `Plan: ${plan.name} (${plan.code}) · ${plan.currency} ${Number(plan.monthlyPrice || 0).toFixed(2)}/month · features: ${features.join(", ") || "none"}.`;
+}
+
+async function refreshCoachMonetizationState() {
+  try {
+    const response = await fetch(`/api/public/coach/monetization?userId=${encodeURIComponent(getPublicUserId())}`);
+    const payload = await response.json();
+    if (!payload || !payload.ok) {
+      return null;
+    }
+    coachMonetizationState = payload;
+    rememberCoachEntitlements(payload.entitlements || []);
+    renderCoachMonetizationUi(payload);
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function startCoachSubscriptionCheckout(planCode) {
+  if (!coachDashboard) {
+    return;
+  }
+  coachDashboard.textContent = `Starting ${planCode} subscription...`;
+  var autoRenewPref = localStorage.getItem(COACH_AUTO_RENEW_KEY);
+  var autoRenew = autoRenewPref === null ? true : autoRenewPref === "1";
+  const response = await fetch("/api/public/coach/subscription/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: getPublicUserId(),
+      planCode,
+      source: "web-health-coach",
+      autoRenew: autoRenew
+    })
+  });
+  const result = await response.json();
+  if (!result || !result.ok) {
+    coachDashboard.textContent = "Could not start subscription right now.";
+    return;
+  }
+  coachDashboard.textContent = `${planCode} activated. Premium coach features are now available. Auto-renew: ${autoRenew ? "on" : "off"}.`;
+  await refreshCoachMonetizationState();
+  await refreshCoachDashboard();
+}
+
+async function buyCoachAddonCheckout(addonCode) {
+  if (!coachDashboard) {
+    return;
+  }
+  coachDashboard.textContent = "Processing add-on purchase...";
+  const response = await fetch("/api/public/coach/addon/purchase", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: getPublicUserId(),
+      addonCode,
+      channel: "web"
+    })
+  });
+  const result = await response.json();
+  if (!result || !result.ok) {
+    coachDashboard.textContent = "Add-on purchase failed right now.";
+    return;
+  }
+  coachDashboard.textContent = "Add-on unlocked. Refreshing coach dashboard.";
+  await refreshCoachMonetizationState();
+  await refreshCoachDashboard();
+}
+
+async function trackCoachPartnerEvent(partnerName, eventType, payoutModel, payoutAmount, metadata) {
+  await fetch("/api/public/coach/partner/event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userId: getPublicUserId(),
+      partnerName,
+      eventType,
+      payoutModel,
+      payoutAmount,
+      currency: "EUR",
+      metadata: metadata || null
+    })
+  }).catch(() => {});
+}
+
 async function saveCoachProfile() {
   if (!coachFocus || !coachDashboard) {
     return;
@@ -4132,7 +5084,7 @@ async function saveCoachProfile() {
     baselineWeightKg: coachBaselineWeight && coachBaselineWeight.value ? Number(coachBaselineWeight.value) : null,
     targetWeightKg: coachTargetWeight && coachTargetWeight.value ? Number(coachTargetWeight.value) : null,
     dailyActivityGoal: coachActivityGoal ? coachActivityGoal.value.trim() : "",
-    medicationTrackingEnabled: true
+    medicationTrackingEnabled: false
   };
   const response = await fetch("/api/public/coach/profile/upsert", {
     method: "POST",
@@ -4141,34 +5093,8 @@ async function saveCoachProfile() {
   });
   const result = await response.json();
   coachDashboard.textContent = result.ok
-    ? "AI Coach profile saved. You can now add medication and daily check-ins."
+    ? "AI Coach profile saved. You can now add daily check-ins."
     : "Could not save coach profile right now.";
-}
-
-async function addMedicationPlan() {
-  if (!coachDashboard || !medicationName || !medicationDose || !medicationTime) {
-    return;
-  }
-  const payload = {
-    userId: getPublicUserId(),
-    medicationName: medicationName.value.trim(),
-    dosageText: medicationDose.value.trim(),
-    scheduleTime: medicationTime.value.trim(),
-    scheduleType: "daily"
-  };
-  if (!payload.medicationName || !payload.dosageText || !payload.scheduleTime) {
-    coachDashboard.textContent = "Enter medication name, dosage, and schedule time first.";
-    return;
-  }
-  const response = await fetch("/api/public/coach/medication/add", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json();
-  coachDashboard.textContent = result.ok
-    ? "Medication plan added. You will see it in your coach dashboard."
-    : "Could not add medication plan right now.";
 }
 
 async function addHealthCheckin() {
@@ -4255,6 +5181,12 @@ async function saveWearablePreferences() {
     detailedMetrics: wearableDetailedMetrics ? Boolean(wearableDetailedMetrics.checked) : false,
     updatedAt: new Date().toISOString()
   };
+  if (prefs.detailedMetrics && !coachHasEntitlement("wearable_advanced")) {
+    if (wearableLinkStatus) {
+      wearableLinkStatus.textContent = "Detailed wearable metrics require VibeFit Plus.";
+    }
+    return;
+  }
   try {
     localStorage.setItem(WEARABLE_PREF_KEY, JSON.stringify(prefs));
   } catch {
@@ -4292,7 +5224,7 @@ async function logWearableDemoCheckin() {
   const prefs = readWearablePrefs();
   if (!prefs || prefs.vendor === "none" || !prefs.vendor) {
     if (wearableLinkStatus) {
-      wearableLinkStatus.textContent = "Choose a watch family and save preferences before demo sync.";
+      wearableLinkStatus.textContent = "Choose a watch family and save preferences before logging a sample sync.";
     }
     return;
   }
@@ -4314,7 +5246,7 @@ async function logWearableDemoCheckin() {
     userId: getPublicUserId(),
     checkinType: "activity",
     metricValue,
-    notes: "Demo wearable sync from web."
+    notes: "Sample wearable sync from web."
   };
   try {
     const response = await fetch("/api/public/coach/checkin/add", {
@@ -4325,15 +5257,15 @@ async function logWearableDemoCheckin() {
     const result = await response.json();
     if (wearableLinkStatus) {
       wearableLinkStatus.textContent = result.ok
-        ? "Demo sync logged to your coach check-ins. Refresh the coach dashboard to see it."
-        : "Demo sync could not reach the coach API — preference is still saved locally.";
+        ? "Sample sync logged to your coach check-ins. Refresh the coach dashboard to see it."
+        : "Sample sync could not reach the coach API — preference is still saved locally.";
     }
     if (result.ok) {
       await refreshCoachDashboard();
     }
   } catch {
     if (wearableLinkStatus) {
-      wearableLinkStatus.textContent = "Network error during demo sync. Preferences remain saved locally.";
+      wearableLinkStatus.textContent = "Network error during sample sync. Preferences remain saved locally.";
     }
   }
 }
@@ -4351,11 +5283,12 @@ async function refreshCoachDashboard() {
       return;
     }
     const profile = payload.profile || {};
-    const meds = Array.isArray(payload.medicationSchedules) ? payload.medicationSchedules : [];
     const checkins = Array.isArray(payload.recentCheckins) ? payload.recentCheckins : [];
-    const medText = meds.length
-      ? meds.map((item) => `${item.medication_name} (${item.dosage_text}) at ${item.schedule_time}`).join(" | ")
-      : "No medication schedules yet.";
+    if (payload.monetization && payload.monetization.ok) {
+      coachMonetizationState = payload.monetization;
+      rememberCoachEntitlements(payload.monetization.entitlements || []);
+      renderCoachMonetizationUi(payload.monetization);
+    }
     const checkinText = checkins.length
       ? checkins.slice(0, 3).map((item) => `${item.checkin_type}: ${item.metric_value || "n/a"}`).join(" | ")
       : "No recent check-ins yet.";
@@ -4363,8 +5296,11 @@ async function refreshCoachDashboard() {
     if (profile.wearable_vendor) {
       wearOut += ` | Server: ${profile.wearable_vendor} digest=${Number(profile.wearable_daily_digest) === 1 ? "on" : "off"}`;
     }
+    const planText = coachMonetizationState && coachMonetizationState.plan
+      ? `Plan: ${coachMonetizationState.plan.code}`
+      : "Plan: FREE";
     coachDashboard.textContent =
-      `Focus: ${profile.coach_focus || "not set"} | Goal: ${profile.goal_notes || "not set"} || Medications: ${medText} || Recent check-ins: ${checkinText} || ${wearOut}`;
+      `Focus: ${profile.coach_focus || "not set"} | Goal: ${profile.goal_notes || "not set"} | ${planText} || Recent check-ins: ${checkinText} || ${wearOut}`;
   } catch {
     coachDashboard.textContent = `Coach dashboard request failed. Please try again. ${wearableLine}`;
   }
@@ -4372,9 +5308,6 @@ async function refreshCoachDashboard() {
 
 if (saveCoachProfileBtn) {
   saveCoachProfileBtn.addEventListener("click", saveCoachProfile);
-}
-if (addMedicationPlanBtn) {
-  addMedicationPlanBtn.addEventListener("click", addMedicationPlan);
 }
 if (addHealthCheckinBtn) {
   addHealthCheckinBtn.addEventListener("click", addHealthCheckin);
@@ -4388,7 +5321,9 @@ if (saveWearablePrefsBtn) {
 if (syncWearableDemoBtn) {
   syncWearableDemoBtn.addEventListener("click", logWearableDemoCheckin);
 }
+restoreCoachEntitlements();
 loadWearablePrefsIntoForm();
+refreshCoachMonetizationState().catch(() => {});
 refreshCoachDashboard();
 
 const trustEntities = [
@@ -4651,6 +5586,8 @@ if (onboardingClose) {
   onboardingClose.addEventListener("click", closeOnboardingModal);
 }
 
+initBridgeAntiHijackGuard();
+initGlobalTapHijackGuard();
 initVibecartLanePack();
 initPublicAccountAuth();
 loadTrustCards();
@@ -4713,6 +5650,9 @@ localStorage.setItem(ONBOARDING_KEY, "1");
       if (!id || id.includes(":")) {
         return;
       }
+      if (id === "bridge-routes" && !anchor.hasAttribute("data-allow-bridge-nav")) {
+        return;
+      }
       if (anchor.dataset.vcLenisAnchor === "1") {
         return;
       }
@@ -4723,15 +5663,44 @@ localStorage.setItem(ONBOARDING_KEY, "1");
           return;
         }
         event.preventDefault();
-        lenis.scrollTo(target, { offset: -88 });
+        const instant = vcPreferInstantScrollForId(id);
+        const inApp = document.documentElement.classList.contains("vc-mobile-app");
+        if (!inApp) {
+          try {
+            lenis.scrollTo(target, instant ? { offset: -88, immediate: true } : { offset: -88 });
+            return;
+          } catch {
+            /* fall through */
+          }
+        }
+        target.scrollIntoView({ behavior: instant ? "auto" : "smooth", block: "start" });
       });
     });
     const hash = window.location.hash;
     if (hash && hash.length > 1) {
-      const jump = document.getElementById(hash.slice(1));
+      const hashTarget = hash.slice(1);
+      if (hashTarget === "bridge-routes" && !consumeBridgeJumpAllowance()) {
+        try {
+          history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      const jump = document.getElementById(hashTarget);
       if (jump) {
+        const instant = vcPreferInstantScrollForId(hashTarget);
         requestAnimationFrame(() => {
-          lenis.scrollTo(jump, { offset: -88 });
+          const inApp = document.documentElement.classList.contains("vc-mobile-app");
+          if (!inApp) {
+            try {
+              lenis.scrollTo(jump, instant ? { offset: -88, immediate: true } : { offset: -88 });
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
+          jump.scrollIntoView({ behavior: "auto", block: "start" });
         });
       }
     }
@@ -4745,9 +5714,20 @@ localStorage.setItem(ONBOARDING_KEY, "1");
     return;
   }
   window.addEventListener("load", () => {
+    const inAppShell = document.documentElement.classList.contains("vc-mobile-app");
+    if (inAppShell) {
+      // Do not wipe storage inside app WebView; it can break app boot/session restore.
+      return;
+    }
     navigator.serviceWorker
-      .register("./service-worker.js", { updateViaCache: "none" })
-      .then((reg) => reg.update())
+      .getRegistrations()
+      .then((regs) => Promise.all(regs.map((reg) => reg.unregister())))
       .catch(() => {});
+    if (window.caches && typeof window.caches.keys === "function") {
+      window.caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((key) => window.caches.delete(key))))
+        .catch(() => {});
+    }
   });
 })();

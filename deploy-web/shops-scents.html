@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Scents and beauty shops · VibeCart</title>
   <meta name="robots" content="noindex,follow" />
-  <link rel="stylesheet" href="./styles.css?v=20260421lang5" />
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
-    <a class="btn btn-secondary" href="./index.html#shops">← Regional folders</a>
-    <a class="btn btn-primary" href="./index.html#bridge-routes">Trade bridge</a>
+    <a class="btn btn-secondary" href="./regional-shops.html">← Regional folders</a>
+    <a class="btn btn-primary" href="./bridge-hub.html">Trade bridge</a>
   </header>
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title">Scents & beauty shops</h1>
@@ -110,17 +110,8 @@
               </a>
     </div>
   </main>
-  <script>
-(function () {
-  var key = "vibecart-bridge-path";
-  document.querySelectorAll("[data-bridge-hop]").forEach(function (link) {
-    link.addEventListener("click", function () {
-      var path = link.getAttribute("data-bridge-hop");
-      if (!path) return;
-      try { localStorage.setItem(key, path); } catch (e) {}
-    });
-  });
-})();
-  </script>
+  <script src="./bridge-hop.js?v=20260420csp1"></script>
+  <script src="./shop-favicons.js?v=20260426logos1"></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

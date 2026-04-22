@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health &amp; fitness coach · VibeCart</title>
+  <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-primary" href="./insurance.html">Insurance options</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Health &amp; fitness coach</h1>
+    <p class="note shops-lane-intro">
+      Set goals, log check-ins, and connect wearable preferences for steps, sleep, and activity summaries. Full device pairing
+      runs in the VibeCart mobile app; the web coach stores your plan and shows status here.
+    </p>
+    <ul class="buyer-adv-list" style="max-width: 42rem">
+      <li>Weight, muscle tone, and general fitness tracks stay private to your session.</li>
+      <li>Save coach profiles and wearable preferences before syncing from the app.</li>
+      <li>Use insurance &amp; well-being for partner coverage; use this coach for day-to-day routines.</li>
+    </ul>
+    <p class="note" id="priceDisclosureTop" style="margin-top: 0.5rem">
+      Prices are localized for your country. Final charges may include country taxes at payment.
+    </p>
+    <section id="coach-packages" style="margin-top: 1.25rem">
+      <h2>Coach packages</h2>
+      <div class="shop-bubble-grid">
+        <article class="shop package-card">
+          <h3>Starter Coach</h3>
+          <p>Weekly AI goal check-ins, simple weight tracking, and reminders.</p>
+          <p><strong data-base-eur="10.5" data-price-label="month">EUR 10.5/month</strong></p>
+          <p><a class="btn btn-primary" href="./checkout-details.html?flow=coach&plan=starter">Choose Starter</a></p>
+        </article>
+        <article class="shop package-card">
+          <h3>AI Home Workout</h3>
+          <p>Daily AI-built home workout program with routine updates and progress prompts.</p>
+          <p><strong data-base-eur="12.5" data-price-label="month">EUR 12.5/month</strong></p>
+          <p><a class="btn btn-primary" href="./checkout-details.html?flow=coach&plan=ai-home">Choose AI Home Workout</a></p>
+        </article>
+        <article class="shop package-card">
+          <h3>Coach Plus</h3>
+          <p>Daily AI routines and wearable summary sync.</p>
+          <p><strong data-base-eur="18.5" data-price-label="month">EUR 18.5/month</strong></p>
+          <p><a class="btn btn-primary" href="./checkout-details.html?flow=coach&plan=plus">Choose Plus</a></p>
+        </article>
+        <article class="shop package-card">
+          <h3>Coach Pro</h3>
+          <p>Advanced AI analytics, deeper reports, and partner referral rewards.</p>
+          <p><strong data-base-eur="30" data-price-label="month">EUR 30/month</strong></p>
+          <p><a class="btn btn-primary" href="./checkout-details.html?flow=coach&plan=pro">Choose Pro</a></p>
+        </article>
+      </div>
+    </section>
+    <p class="hero-actions" style="margin-top: 1.25rem">
+      <a class="btn btn-primary" href="./checkout-details.html?flow=coach&plan=starter">Continue to checkout</a>
+      <a class="btn btn-secondary" href="./insurance.html">Compare insurance plans</a>
+    </p>
+    <section style="margin-top: 1.25rem">
+      <h2>Buy two coach packages together</h2>
+      <p class="note">
+        Select a primary and second package, complete one payment, and unlock access to both plans in your workspace.
+      </p>
+      <div class="admin-grid" style="max-width: 42rem">
+        <label for="bundlePrimaryPlan">Primary package</label>
+        <select id="bundlePrimaryPlan">
+          <option value="starter">Starter Coach</option>
+          <option value="ai-home">AI Home Workout</option>
+          <option value="plus">Coach Plus</option>
+          <option value="pro">Coach Pro</option>
+        </select>
+        <label for="bundleSecondPlan">Second package</label>
+        <select id="bundleSecondPlan">
+          <option value="ai-home">AI Home Workout</option>
+          <option value="plus">Coach Plus</option>
+          <option value="pro">Coach Pro</option>
+          <option value="starter">Starter Coach</option>
+        </select>
+      </div>
+      <p class="hero-actions" style="margin-top:0.75rem">
+        <button class="btn btn-primary" id="bundleCheckoutBtn" type="button">Checkout both packages</button>
+      </p>
+      <p class="note" id="bundleCheckoutStatus" aria-live="polite"></p>
+    </section>
+    <p class="note" style="margin-top: 0.75rem">
+      After selecting your coach plan, continue to checkout directly above. You do not need to return to the home page.
+    </p>
+  </main>
+  <script src="./package-pricing.js?v=20260420flowfix17" defer></script>
+  <script>
+    (function () {
+      var primaryEl = document.getElementById("bundlePrimaryPlan");
+      var secondEl = document.getElementById("bundleSecondPlan");
+      var btn = document.getElementById("bundleCheckoutBtn");
+      var status = document.getElementById("bundleCheckoutStatus");
+      if (!primaryEl || !secondEl || !btn) {
+        return;
+      }
+      btn.addEventListener("click", function () {
+        var primary = String(primaryEl.value || "starter").trim().toLowerCase();
+        var second = String(secondEl.value || "").trim().toLowerCase();
+        if (!second) {
+          if (status) status.textContent = "Choose a second package first.";
+          return;
+        }
+        if (primary === second) {
+          if (status) status.textContent = "Choose two different packages for bundle checkout.";
+          return;
+        }
+        window.location.assign(
+          "./checkout-details.html?flow=coach&plan=" +
+            encodeURIComponent(primary) +
+            "&addonPlan=" +
+            encodeURIComponent(second)
+        );
+      });
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

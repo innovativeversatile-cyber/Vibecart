@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plan workspace · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./account-hub.html">← Account hub</a>
+    <a class="btn btn-primary" href="./index.html">Continue browsing</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title" id="workspaceTitle">Your active plan workspace</h1>
+    <p class="note" id="workspaceStatus">Payment confirmed. Your plan is now active.</p>
+    <p class="note" id="workspaceMeta">Reference and session details will appear here.</p>
+    <p class="note">Unlocked package(s): <strong id="workspaceOwnedPlans">Starter Coach</strong></p>
+
+    <div class="hero-actions" style="margin-top:0.75rem">
+      <a class="btn btn-primary" href="./wellbeing.html">Open Health Coach</a>
+      <a class="btn btn-secondary" href="./index.html">Continue browsing</a>
+      <button class="btn btn-secondary" id="enablePushBtn" type="button">Enable phone notifications</button>
+    </div>
+    <div class="admin-grid" style="max-width:26rem;margin-top:0.85rem">
+      <label for="planViewMode">Owned package view</label>
+      <select id="planViewMode">
+        <option value="merged">Merged benefits (all owned)</option>
+      </select>
+    </div>
+
+    <section style="margin-top:1.25rem">
+      <h2>Client intake for AI coach</h2>
+      <p class="note">AI starts automatically after payment. You can edit these details anytime to refine routines, meals, and updates.</p>
+      <div class="admin-grid" style="max-width:42rem">
+        <label for="planGoal">Main goal</label>
+        <input id="planGoal" type="text" placeholder="Example: weight loss, muscle gain, blood pressure support" />
+        <label for="planDiet">Diet preference</label>
+        <input id="planDiet" type="text" placeholder="Example: balanced, low carb, vegetarian" />
+        <label for="planActivity">Current activity level</label>
+        <select id="planActivity">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <label for="planWake">Preferred training time</label>
+        <input id="planWake" type="text" placeholder="Example: 06:30 morning / 18:00 evening" />
+        <label for="planNotes">Medical or recovery notes</label>
+        <input id="planNotes" type="text" placeholder="Example: knee pain, diabetes support, stress management" />
+      </div>
+      <p class="hero-actions" style="margin-top:0.8rem">
+        <button class="btn btn-primary" id="buildPlanBtn" type="button">Refine my AI plan</button>
+      </p>
+      <p class="note" id="planBuildStatus" aria-live="polite"></p>
+    </section>
+
+    <section style="margin-top:1.25rem">
+      <h2>Today's routine and updates</h2>
+      <div class="ai-result" id="planOutput">Your routine, meals, and update guidance will appear here.</div>
+    </section>
+
+    <section style="margin-top:1.25rem">
+      <h2>AI notifications</h2>
+      <ul class="buyer-adv-list" id="planNotifications">
+        <li>No notifications yet. Build your AI plan first.</li>
+      </ul>
+    </section>
+  </main>
+  <script src="./plan-workspace.js?v=20260420flow7" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

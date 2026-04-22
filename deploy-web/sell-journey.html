@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guided selling · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260422fashion1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-primary" href="./seller-boost.html">Seller Boost</a>
+  </header>
+  <main class="section alt shops-lane-main vc-flow-shell" data-vc-flow-root="sell">
+    <h1 class="shops-lane-title">List without losing your place</h1>
+    <p class="note" data-flow-step-label style="margin-top: 0">Step 1 of 4</p>
+    <div class="vc-flow-progress-wrap" aria-hidden="true"><div class="vc-flow-progress-bar" data-flow-progress></div></div>
+
+    <div class="vc-flow-step-box" data-flow-step>
+      <h2>1 · Intent &amp; lane</h2>
+      <p class="note">Confirm you are selling legal goods on an allowed route. Bridge path on the hub controls buyer hints.</p>
+      <p class="hero-actions"><button type="button" class="btn btn-primary" data-flow-next>Continue</button></p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden>
+      <h2>2 · Photos &amp; truth</h2>
+      <p class="note">Hero shots, condition notes, and “photo = this unit” build first-order trust.</p>
+      <div class="ai-grid" style="margin-top: 0.75rem">
+        <label for="vcSellPhotos">Upload listing photos (demo — stored on this device only)</label>
+        <input id="vcSellPhotos" type="file" accept="image/*" multiple />
+        <label for="vcSellTitle">Working title</label>
+        <input id="vcSellTitle" type="text" maxlength="120" placeholder="Example: Vintage denim jacket — EU ship" />
+        <label for="vcSellCondition">Condition</label>
+        <select id="vcSellCondition">
+          <option>New with tags</option>
+          <option>Like new</option>
+          <option>Good — light wear</option>
+          <option>Fair — visible wear</option>
+        </select>
+      </div>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden>
+      <h2>3 · Shipping band</h2>
+      <p class="note">State realistic delivery windows — EU↔Africa often 7–21 days tracked; remote longer.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden>
+      <h2>4 · Broadcast to buyers</h2>
+      <p class="note">
+        Preview your lane, then open the live marketplace grid so shoppers can see your drop alongside route-trusted
+        listings. Sign in from the seller hub when you are ready for payouts.
+      </p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <a class="btn btn-secondary" href="./index.html#sell">Seller tools on home</a>
+        <a class="btn btn-primary" href="./index.html?cat=Fashion&amp;instant=1&amp;flow=browse#market" data-flow-done>Preview live market</a>
+      </p>
+    </div>
+  </main>
+  <script src="./flow-shell.js?v=20260419haptic1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>
