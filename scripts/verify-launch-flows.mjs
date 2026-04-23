@@ -36,6 +36,12 @@ function main() {
   assertIncludes(hotJs, 'fetch("/api/public/products/live")', "Hot picks live products API");
   assertIncludes(hotJs, "/api/public/shop/redirect?shop=", "Hot picks external redirect route");
 
+  const worldShop = read("world-shop-experience.html");
+  assertIncludes(worldShop, "brainrot.mov%3Fref%3DApLX4MJQoF", "Brainrot partner integration");
+
+  const liveMarket = read("live-market-shops.js");
+  assertIncludes(liveMarket, "https://brainrot.mov?ref=ApLX4MJQoF", "Brainrot tracked partner URL in live market");
+
   const wb = read("wellbeing.html");
   assertIncludes(wb, "./coach-experience.html?flow=coach&plan=starter", "Coach starter preview link");
   assertIncludes(wb, "./coach-experience.html?flow=coach&plan=pro", "Coach pro preview link");
