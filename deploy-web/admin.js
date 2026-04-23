@@ -567,8 +567,10 @@ async function runAdminReadinessGate() {
       const pass = seoPatterns.every((re) => re.test(html));
       add(pass, `SEO ${path}`, pass ? "meta set present" : "missing canonical/og/twitter/description tags");
       if (path === "/index.html") {
-        const legalPass =
-          html.includes("./terms.html") && html.includes("./privacy.html") && html.includes("./policy.html");
+        const hasTerms = /href=["'](?:\.\/)?terms\.html(?:[?#][^"']*)?["']/i.test(html);
+        const hasPrivacy = /href=["'](?:\.\/)?privacy\.html(?:[?#][^"']*)?["']/i.test(html);
+        const hasPolicy = /href=["'](?:\.\/)?policy\.html(?:[?#][^"']*)?["']/i.test(html);
+        const legalPass = hasTerms && hasPrivacy && hasPolicy;
         add(legalPass, "LEGAL homepage links", legalPass ? "terms/privacy/policy present" : "missing legal links");
       }
     } catch (error) {
