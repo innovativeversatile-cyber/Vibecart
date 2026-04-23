@@ -24,6 +24,7 @@ const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
 const BOOKKEEPING_LEDGER_KEY = "vibecart-bookkeeping-ledger-v1";
 const PREMIUM_PLAN_SETTINGS_KEY = "vibecart-premium-plan-settings-v1";
 const COMMISSION_VALIDATION_KEY = "vibecart-commission-validation-v1";
+const COMMISSION_OFFER_FILTER_MODE_KEY = "vibecart-commission-offer-filter-mode-v1";
 const LIVE_MONEY_DASHBOARD_KEY = "vibecart-live-money-dashboard-v1";
 const affiliateRuntime = {
   linkHealth: null,
@@ -231,6 +232,34 @@ function getCommissionValidationState() {
     };
   } catch {
     return { offers: [] };
+  }
+}
+
+function readCommissionOfferFilterMode() {
+  try {
+    const mode = String(localStorage.getItem(COMMISSION_OFFER_FILTER_MODE_KEY) || "commission_first").trim();
+    if (mode === "commission_only" || mode === "all" || mode === "commission_first") {
+      return mode;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "commission_first";
+}
+
+function saveCommissionOfferFilterMode(mode) {
+  const normalized =
+    mode === "commission_only" || mode === "all" || mode === "commission_first"
+      ? mode
+      : "commission_first";
+  try {
+    localStorage.setItem(COMMISSION_OFFER_FILTER_MODE_KEY, normalized);
+  } catch {
+    /* ignore */
+  }
+  const node = document.getElementById("commissionOfferFilterMode");
+  if (node) {
+    node.value = normalized;
   }
 }
 
@@ -1367,6 +1396,26 @@ function renderCommissionValidatedOffers() {
   }
   const state = getCommissionValidationState();
   const offers = state.offers || [];
+  const filterMode = readCommissionOfferFilterMode();
+  const filterNode = document.getElementById("commissionOfferFilterMode");
+  if (filterNode) {
+    filterNode.value = filterMode;
+  }
+  const offerPriority = (offerStatus) => {
+    if (offerStatus === "commission_enabled") return 0;
+    if (offerStatus === "traffic_only") return 1;
+    return 2;
+  };
+  let visibleOffers = offers.slice();
+  if (filterMode === "commission_only") {
+    visibleOffers = visibleOffers.filter((offer) => String(offer.status || "traffic_only") === "commission_enabled");
+  } else if (filterMode === "commission_first") {
+    visibleOffers = visibleOffers.sort((a, b) => {
+      const aStatus = String(a.status || "traffic_only");
+      const bStatus = String(b.status || "traffic_only");
+      return offerPriority(aStatus) - offerPriority(bStatus);
+    });
+  }
   list.innerHTML = "";
   if (!offers.length) {
     status.textContent = "Offer validation: complete all 5 steps.";
@@ -1391,7 +1440,11 @@ function renderCommissionValidatedOffers() {
     policy.textContent =
       "Launch policy: default YELLOW traffic-only until partner approval. Promote to GREEN after validation. Use RED only for unsafe/unapproved offers.";
   }
-  offers.forEach((offer) => {
+  if (!visibleOffers.length) {
+    list.innerHTML = "<div class='msg msg-buyer'>No offers match this filter yet.</div>";
+    return;
+  }
+  visibleOffers.forEach((offer) => {
     const row = document.createElement("div");
     const offerStatus = String(offer.status || "traffic_only");
     row.className =
@@ -3377,6 +3430,21 @@ if (affiliateAlertSeverityNode) {
       affiliateAlertSeverityNode.value === "red_only"
         ? "Affiliate alerts set to RED only."
         : "Affiliate alerts set to YELLOW + RED."
+    );
+  });
+}
+const commissionOfferFilterNode = document.getElementById("commissionOfferFilterMode");
+if (commissionOfferFilterNode) {
+  commissionOfferFilterNode.value = readCommissionOfferFilterMode();
+  commissionOfferFilterNode.addEventListener("change", () => {
+    saveCommissionOfferFilterMode(commissionOfferFilterNode.value);
+    renderCommissionValidatedOffers();
+    setStatus(
+      commissionOfferFilterNode.value === "commission_only"
+        ? "Offer list now shows commission-enabled links only."
+        : commissionOfferFilterNode.value === "all"
+          ? "Offer list now shows all offers in saved order."
+          : "Offer list now prioritizes commission-enabled offers."
     );
   });
 }
