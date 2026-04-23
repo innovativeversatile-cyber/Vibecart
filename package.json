@@ -19,6 +19,7 @@
     "health:proxy": "node scripts/check-api-proxy.mjs",
     "health:dns": "node scripts/diagnose-vibe-cart-dns.mjs",
     "smoke:full": "node scripts/run-full-smoke.mjs",
+    "readiness:gate": "node scripts/production-readiness-gate.mjs",
     "test:syntax": "node -e \"require('child_process').execSync('node --check db-env.js',{stdio:'inherit'});require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/apply-schema.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/seed-demo.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/diagnose-vibe-cart-dns.mjs',{stdio:'inherit'});require('child_process').execSync('node --check scripts/run-full-smoke.mjs',{stdio:'inherit'});\""
   },
   "engines": {
