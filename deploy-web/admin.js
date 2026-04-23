@@ -2260,6 +2260,29 @@ function renderAffiliatePartnerHealth() {
   }
 }
 
+function openAffiliatePartnerTargetInNewTab() {
+  const click = readAffiliateLastClick();
+  const target = String(click?.target || "").trim();
+  const statusNode = document.getElementById("affiliatePartnerHealthStatus");
+  if (!target) {
+    if (statusNode) statusNode.textContent = "Partner health: no target URL to open.";
+    return;
+  }
+  let parsed;
+  try {
+    parsed = new URL(target);
+  } catch {
+    if (statusNode) statusNode.textContent = "Partner health: target URL is invalid.";
+    return;
+  }
+  if (!/^https?:$/i.test(parsed.protocol)) {
+    if (statusNode) statusNode.textContent = "Partner health: target must be http/https.";
+    return;
+  }
+  window.open(parsed.toString(), "_blank", "noopener,noreferrer");
+  if (statusNode) statusNode.textContent = "Partner health: opened target in new tab.";
+}
+
 async function checkAffiliatePartnerTargetReachability() {
   const statusNode = document.getElementById("affiliatePartnerHealthStatus");
   const click = readAffiliateLastClick();
@@ -3147,6 +3170,9 @@ bindClick("refreshAffiliatePartnerHealth", () => {
 bindClick("checkAffiliatePartnerTarget", () => {
   checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`));
 });
+bindClick("openAffiliatePartnerTarget", () => {
+  openAffiliatePartnerTargetInNewTab();
+});
 bindClick("runAffiliateFullAudit", () => {
   runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`));
 });
@@ -3283,6 +3309,7 @@ const clickHandlers = {
   },
   checkAffiliatePartnerTarget: () =>
     checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`)),
+  openAffiliatePartnerTarget: () => openAffiliatePartnerTargetInNewTab(),
   runAffiliateFullAudit: () =>
     runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`)),
   runCommissionReadiness: () => {
