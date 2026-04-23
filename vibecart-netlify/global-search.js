@@ -23,7 +23,7 @@
     { title: "Account hub", url: "./account-hub.html", keywords: "account bookings profile passport login register" },
     { title: "Trade bridge hub", url: "./bridge-hub.html", keywords: "bridge trade africa europe asia communication route" },
     { title: "Browse categories", url: "./browse-categories.html", keywords: "categories browse lanes" },
-    { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks deals live marketplace" },
+    { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks live offers trending now" },
     { title: "Rewards hub", url: "./rewards-hub.html", keywords: "rewards points loyalty" },
     { title: "Orders tracking", url: "./orders-tracking.html", keywords: "orders tracking delivery shipment" },
     { title: "Checkout details", url: "./checkout-details.html", keywords: "checkout payment stripe card" },

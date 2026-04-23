@@ -23,12 +23,17 @@ function assertFile(rel) {
 
 function main() {
   assertFile("world-shop-experience.html");
+  assertFile("hot-picks.js");
   assertFile("coach-experience.html");
   assertFile("seller-live-preview.html");
   assertFile("sell-journey.js");
 
   const hot = read("hot-picks.html");
   assertIncludes(hot, 'href="./world-shop-experience.html"', "Hot picks primary CTA");
+  assertIncludes(hot, 'id="hotPicksGrid"', "Hot picks live grid mount");
+
+  const hotJs = read("hot-picks.js");
+  assertIncludes(hotJs, 'fetch("/api/public/products/live")', "Hot picks live products API");
 
   const wb = read("wellbeing.html");
   assertIncludes(wb, "./coach-experience.html?flow=coach&plan=starter", "Coach starter preview link");
