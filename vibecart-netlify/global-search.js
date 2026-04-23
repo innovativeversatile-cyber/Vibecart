@@ -26,7 +26,7 @@
     { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks live offers trending now" },
     { title: "Rewards hub", url: "./rewards-hub.html", keywords: "rewards points loyalty" },
     { title: "Orders tracking", url: "./orders-tracking.html", keywords: "orders tracking delivery shipment" },
-    { title: "Checkout details", url: "./checkout-details.html", keywords: "checkout payment stripe card" },
+    { title: "Coach subscription checkout", url: "./checkout-details.html?flow=coach&plan=starter", keywords: "coach checkout subscription payment" },
     { title: "Payment confirmation", url: "./payment-confirmation.html", keywords: "payment confirmation receipt" },
     { title: "Buy journey", url: "./buy-journey.html?flow=buy&lane=fashion", keywords: "buy journey checkout steps fashion buyer" },
     { title: "Sell journey", url: "./sell-journey.html", keywords: "sell journey seller onboarding" },

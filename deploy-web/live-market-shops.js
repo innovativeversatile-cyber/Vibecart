@@ -253,7 +253,13 @@
     }
     a.setAttribute("data-aff-shop", shop.name);
     a.setAttribute("data-aff-cat", category);
-    a.innerHTML = "<h3>" + shop.name + "</h3><p>" + shop.desc + (trusted ? "" : " (link unavailable)") + "</p>";
+    a.innerHTML =
+      "<h3>" +
+      shop.name +
+      "</h3><p>" +
+      shop.desc +
+      (trusted ? " · External checkout on source site." : " (link unavailable)") +
+      "</p>";
     a.addEventListener("click", function (event) {
       if (!trusted) {
         event.preventDefault();

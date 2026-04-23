@@ -104,6 +104,7 @@
         escapeHtml(cat) +
         (price ? " · " + escapeHtml(currency + " " + price) : "") +
         "</p>" +
+        '<p class="note">External checkout on assigned source site.</p>' +
         '<p class="hero-actions"><a class="btn btn-primary' +
         (href ? "" : " is-disabled") +
         '" href="' +

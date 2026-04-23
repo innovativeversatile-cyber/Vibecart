@@ -34,6 +34,7 @@ function main() {
 
   const hotJs = read("hot-picks.js");
   assertIncludes(hotJs, 'fetch("/api/public/products/live")', "Hot picks live products API");
+  assertIncludes(hotJs, "/api/public/shop/redirect?shop=", "Hot picks external redirect route");
 
   const wb = read("wellbeing.html");
   assertIncludes(wb, "./coach-experience.html?flow=coach&plan=starter", "Coach starter preview link");
@@ -53,6 +54,23 @@ function main() {
 
   const chrome = read("site-chrome.js");
   assertIncludes(chrome, "initLaneScrollRestore", "Lane scroll restore");
+
+  const walk = (dir) => {
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((ent) => {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) return walk(full);
+      return [full];
+    });
+  };
+  const blockedPattern = "checkout-details.html?flow=buy";
+  walk(web)
+    .filter((full) => /\.(html|js)$/i.test(full))
+    .forEach((full) => {
+      const body = fs.readFileSync(full, "utf8");
+      if (body.includes(blockedPattern)) {
+        throw new Error(`Blocked internal buy checkout link found in ${path.relative(web, full)}`);
+      }
+    });
 
   console.log("verify-launch-flows: all checks passed");
 }
