@@ -510,6 +510,113 @@ function setStatus(text) {
   }
 }
 
+function renderAdminReadinessReport(rows) {
+  const reportNode = document.getElementById("adminReadinessReport");
+  if (!reportNode) {
+    return;
+  }
+  reportNode.innerHTML = "";
+  rows.forEach((row) => {
+    const node = document.createElement("div");
+    node.className = "msg " + (row.pass ? "msg-seller" : "msg-buyer");
+    node.textContent = `${row.pass ? "PASS" : "FAIL"} | ${row.label}${row.detail ? ` | ${row.detail}` : ""}`;
+    reportNode.appendChild(node);
+  });
+}
+
+async function runAdminReadinessGate() {
+  const statusNode = document.getElementById("adminReadinessStatus");
+  const reportRows = [];
+  function add(pass, label, detail = "") {
+    reportRows.push({ pass, label, detail });
+  }
+  if (statusNode) {
+    statusNode.textContent = "Readiness gate: running live checks...";
+  }
+  const base = window.location.origin;
+
+  try {
+    const response = await fetch(`${base}/`, { method: "GET", cache: "no-store" });
+    const required = [
+      "strict-transport-security",
+      "content-security-policy",
+      "x-frame-options",
+      "x-content-type-options",
+      "referrer-policy",
+      "permissions-policy"
+    ];
+    required.forEach((header) => {
+      const has = Boolean(response.headers.get(header));
+      add(has, `SECURITY header ${header}`, has ? "" : "missing");
+    });
+  } catch (error) {
+    add(false, "SECURITY headers", String(error?.message || error));
+  }
+
+  const seoTargets = ["/index.html", "/hot-picks.html", "/world-shop-experience.html"];
+  const seoPatterns = [
+    /<meta[\s\S]*name=["']description["']/i,
+    /<link[\s\S]*rel=["']canonical["']/i,
+    /<meta[\s\S]*property=["']og:title["']/i,
+    /<meta[\s\S]*name=["']twitter:card["']/i
+  ];
+  for (const path of seoTargets) {
+    try {
+      const response = await fetch(`${base}${path}`, { method: "GET", cache: "no-store" });
+      const html = await response.text();
+      const pass = seoPatterns.every((re) => re.test(html));
+      add(pass, `SEO ${path}`, pass ? "meta set present" : "missing canonical/og/twitter/description tags");
+      if (path === "/index.html") {
+        const legalPass =
+          html.includes("./terms.html") && html.includes("./privacy.html") && html.includes("./policy.html");
+        add(legalPass, "LEGAL homepage links", legalPass ? "terms/privacy/policy present" : "missing legal links");
+      }
+    } catch (error) {
+      add(false, `SEO ${path}`, String(error?.message || error));
+    }
+  }
+
+  try {
+    const samples = [];
+    for (let i = 0; i < 5; i += 1) {
+      const started = performance.now();
+      const response = await fetch(`${base}/index.html?rg=${Date.now()}${i}`, { method: "GET", cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      samples.push(Math.round(performance.now() - started));
+    }
+    const avg = Math.round(samples.reduce((a, b) => a + b, 0) / samples.length);
+    const sorted = samples.slice().sort((a, b) => a - b);
+    const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
+    add(avg <= 2500, "PERF index.html avg", `${avg}ms`);
+    add(p95 <= 4000, "PERF index.html p95", `${p95}ms`);
+  } catch (error) {
+    add(false, "PERF index.html", String(error?.message || error));
+  }
+
+  try {
+    const health = await fetch(`${base}/api/health`, { method: "GET", cache: "no-store" });
+    add(health.ok, "QA /api/health", `HTTP ${health.status}`);
+  } catch (error) {
+    add(false, "QA /api/health", String(error?.message || error));
+  }
+  try {
+    const products = await fetch(`${base}/api/public/products/live`, { method: "GET", cache: "no-store" });
+    add(products.ok, "QA /api/public/products/live", `HTTP ${products.status}`);
+  } catch (error) {
+    add(false, "QA /api/public/products/live", String(error?.message || error));
+  }
+
+  renderAdminReadinessReport(reportRows);
+  const fails = reportRows.filter((row) => !row.pass).length;
+  const summary = `Readiness gate: ${reportRows.length - fails}/${reportRows.length} checks passing.`;
+  if (statusNode) {
+    statusNode.textContent = summary;
+  }
+  setStatus(summary);
+}
+
 function appendPulseItem(text) {
   const feed = document.getElementById("pulseFeed");
   if (!feed || !text) {
@@ -3358,6 +3465,9 @@ bindClick("openAffiliatePartnerTarget", () => {
 bindClick("runAffiliateFullAudit", () => {
   runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`));
 });
+bindClick("runAdminReadinessGate", () => {
+  runAdminReadinessGate().catch((error) => setStatus(`Readiness gate failed: ${error.message}`));
+});
 bindClick("runCommissionReadiness", () => {
   updateCommissionReadinessChecklist();
   setStatus("Commission readiness check refreshed.");
@@ -3504,6 +3614,8 @@ const clickHandlers = {
   openAffiliatePartnerTarget: () => openAffiliatePartnerTargetInNewTab(),
   runAffiliateFullAudit: () =>
     runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`)),
+  runAdminReadinessGate: () =>
+    runAdminReadinessGate().catch((error) => setStatus(`Readiness gate failed: ${error.message}`)),
   runCommissionReadiness: () => {
     updateCommissionReadinessChecklist();
     setStatus("Commission readiness check refreshed.");
