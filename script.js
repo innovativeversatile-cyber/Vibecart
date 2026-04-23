@@ -198,11 +198,26 @@ function trackAffiliateClick(payload) {
         at: new Date().toISOString(),
         source: String(payload?.source || "unknown"),
         shop: String(payload?.shop || ""),
-        target: String(payload?.target || "")
+        target: String(payload?.target || ""),
+        commissionEligible: Boolean(payload?.commissionEligible)
       })
     );
   } catch {
     /* ignore */
+  }
+}
+
+function isCommissionTrackedUrl(url) {
+  try {
+    var parsed = new URL(String(url || ""));
+    if (!/^https?:$/i.test(parsed.protocol)) return false;
+    var keys = ["tag", "ref", "aff", "affiliate", "affid", "subid", "clickid", "irclickid", "pub_id", "publisher_id"];
+    for (var i = 0; i < keys.length; i += 1) {
+      if (parsed.searchParams.get(keys[i])) return true;
+    }
+    return false;
+  } catch {
+    return false;
   }
 }
 
@@ -2845,7 +2860,7 @@ function wireOneClickBuy() {
         encodeURIComponent(shop) +
         "&target=" +
         encodeURIComponent(target);
-      trackAffiliateClick({ source: "index-buy-button", shop, target });
+      trackAffiliateClick({ source: "index-buy-button", shop, target, commissionEligible: isCommissionTrackedUrl(target) });
       window.location.assign(redirectUrl);
     });
   });

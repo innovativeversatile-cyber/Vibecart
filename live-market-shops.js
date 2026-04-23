@@ -240,10 +240,24 @@
     var host = extractHost(url);
     return !!(host && trustedHosts[host]);
   }
+  function isCommissionTrackedUrl(url) {
+    try {
+      var parsed = new URL(String(url || ""));
+      if (!/^https?:$/i.test(parsed.protocol)) return false;
+      var keys = ["tag", "ref", "aff", "affiliate", "affid", "subid", "clickid", "irclickid", "pub_id", "publisher_id"];
+      for (var i = 0; i < keys.length; i += 1) {
+        if (parsed.searchParams.get(keys[i])) return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
   function buildShopLink(shop, category) {
     var a = document.createElement("a");
     a.className = "shop";
     var trusted = isTrustedShopUrl(shop.url);
+    var commissionEnabled = isCommissionTrackedUrl(shop.url);
     a.href =
       "/api/public/shop/redirect?shop=" +
       encodeURIComponent(shop.name) +
@@ -259,12 +273,15 @@
     }
     a.setAttribute("data-aff-shop", shop.name);
     a.setAttribute("data-aff-cat", category);
+    a.setAttribute("data-aff-commission", commissionEnabled ? "1" : "0");
     a.innerHTML =
       "<h3>" +
       shop.name +
       "</h3><p>" +
       shop.desc +
-      (trusted ? " · External checkout on source site." : " (link unavailable)") +
+      (trusted
+        ? " · External checkout on source site. · " + (commissionEnabled ? "Commission-enabled." : "Traffic-only.")
+        : " (link unavailable)") +
       "</p>";
     a.addEventListener("click", function (event) {
       if (!trusted) {
@@ -288,7 +305,8 @@
             at: new Date().toISOString(),
             source: "live-market-shops",
             shop: String(shop.name || ""),
-            target: String(shop.url || "")
+            target: String(shop.url || ""),
+            commissionEligible: commissionEnabled
           })
         );
       } catch {

@@ -2251,11 +2251,12 @@ function renderAffiliatePartnerHealth() {
   const src = String(click.source || "unknown");
   const shop = String(click.shop || "unknown");
   const target = String(click.target || "").trim();
+  const commissionEligible = Boolean(click.commissionEligible);
   if (lastClickNode) lastClickNode.value = `${at} | ${shop} | source=${src}`;
   if (targetNode) targetNode.value = target;
   if (statusNode) {
     statusNode.textContent = target
-      ? `Partner health: last click recorded, target captured.`
+      ? `Partner health: last click recorded, target captured (${commissionEligible ? "commission-enabled" : "traffic-only"}).`
       : `Partner health: last click recorded but target URL missing.`;
   }
 }

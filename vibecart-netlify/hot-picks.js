@@ -60,6 +60,19 @@
         p.link
     );
   }
+  function isCommissionTrackedUrl(url) {
+    try {
+      var parsed = new URL(String(url || ""));
+      if (!/^https?:$/i.test(parsed.protocol)) return false;
+      var keys = ["tag", "ref", "aff", "affiliate", "affid", "subid", "clickid", "irclickid", "pub_id", "publisher_id"];
+      for (var i = 0; i < keys.length; i += 1) {
+        if (parsed.searchParams.get(keys[i])) return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
 
   function offerHref(p) {
     var item = String(p.name || p.title || "Marketplace item");
@@ -89,6 +102,7 @@
       var price = p.price != null ? String(p.price) : "";
       var currency = String(p.currency || "EUR");
       var target = pickTargetUrl(p);
+      var commissionEnabled = isCommissionTrackedUrl(target);
       var href = offerHref(p);
       var ctaLabel = target ? "Open source website" : "Source unavailable";
       var html =
@@ -105,7 +119,9 @@
         escapeHtml(cat) +
         (price ? " · " + escapeHtml(currency + " " + price) : "") +
         "</p>" +
-        '<p class="note">External checkout on assigned source site.</p>' +
+        '<p class="note">External checkout on assigned source site. · ' +
+        (commissionEnabled ? "Commission-enabled." : "Traffic-only.") +
+        "</p>" +
         '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link' +
         (href ? "" : " is-disabled") +
         '" href="' +
@@ -114,6 +130,8 @@
         escapeHtml(title) +
         '" data-aff-target="' +
         escapeHtml(target) +
+        '" data-aff-commission="' +
+        (commissionEnabled ? "1" : "0") +
         '">' +
         escapeHtml(ctaLabel) +
         "</a></p>" +
@@ -131,7 +149,8 @@
               at: new Date().toISOString(),
               source: "hot-picks",
               shop: String(a.getAttribute("data-aff-shop") || ""),
-              target: String(a.getAttribute("data-aff-target") || "")
+              target: String(a.getAttribute("data-aff-target") || ""),
+              commissionEligible: String(a.getAttribute("data-aff-commission") || "0") === "1"
             })
           );
         } catch {
