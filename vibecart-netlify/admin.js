@@ -20,10 +20,297 @@ const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
 const AFFILIATE_LINK_HEALTH_HISTORY_KEY = "vibecart-affiliate-link-health-history-v1";
 const AFFILIATE_ALERT_LAST_KEY = "vibecart-affiliate-alert-last-v1";
 const AFFILIATE_ALERT_SEVERITY_MODE_KEY = "vibecart-affiliate-alert-severity-mode-v1";
+const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+const BOOKKEEPING_LEDGER_KEY = "vibecart-bookkeeping-ledger-v1";
+const PREMIUM_PLAN_SETTINGS_KEY = "vibecart-premium-plan-settings-v1";
+const COMMISSION_VALIDATION_KEY = "vibecart-commission-validation-v1";
+const LIVE_MONEY_DASHBOARD_KEY = "vibecart-live-money-dashboard-v1";
 const affiliateRuntime = {
   linkHealth: null,
-  reconciliation: null
+  reconciliation: null,
+  quickStats: null,
+  ownerRevenue: null
 };
+let liveMoneyDashboardTimer = 0;
+const AFFILIATE_PROGRAMS = [
+  { id: "awin", name: "Awin", signupUrl: "https://www.awin.com" },
+  { id: "cj", name: "CJ Affiliate", signupUrl: "https://www.cj.com" },
+  { id: "impact", name: "Impact", signupUrl: "https://impact.com" },
+  { id: "partnerstack", name: "PartnerStack", signupUrl: "https://partnerstack.com" },
+  { id: "amazon", name: "Amazon Associates", signupUrl: "https://affiliate-program.amazon.com" },
+  { id: "rakuten-ad", name: "Rakuten Advertising", signupUrl: "https://rakutenadvertising.com" },
+  { id: "shareasale", name: "ShareASale", signupUrl: "https://www.shareasale.com" },
+  { id: "ebay-partner", name: "eBay Partner Network", signupUrl: "https://partnernetwork.ebay.com" },
+  { id: "aliexpress-portals", name: "AliExpress Portals", signupUrl: "https://portals.aliexpress.com" },
+  { id: "flexoffers", name: "FlexOffers", signupUrl: "https://www.flexoffers.com" },
+  { id: "clickbank", name: "ClickBank", signupUrl: "https://www.clickbank.com" },
+  { id: "admitad", name: "Admitad", signupUrl: "https://www.admitad.com" },
+  { id: "trade-doubler", name: "Tradedoubler", signupUrl: "https://www.tradedoubler.com" },
+  { id: "travelpayouts", name: "Travelpayouts", signupUrl: "https://www.travelpayouts.com" },
+  { id: "booking-com", name: "Booking.com Affiliate Partner Program", signupUrl: "https://www.booking.com/affiliate-program/v2/index.html" },
+  { id: "expedia-group", name: "Expedia Group Affiliate Program", signupUrl: "https://www.expediagroup.com/partner-solutions/affiliate-program/" },
+  { id: "tripadvisor", name: "Tripadvisor Affiliate Program", signupUrl: "https://www.tripadvisor.com/Affiliates" },
+  { id: "walmart", name: "Walmart Affiliate Program", signupUrl: "https://affiliates.walmart.com" },
+  { id: "target", name: "Target Affiliates", signupUrl: "https://partners.target.com" },
+  { id: "etsy", name: "Etsy Affiliate Program", signupUrl: "https://www.etsy.com/affiliates" },
+  { id: "temu", name: "Temu Affiliate Program", signupUrl: "https://affiliate.temu.com" },
+  { id: "alibaba", name: "Alibaba Affiliate Program", signupUrl: "https://portals.aliexpress.com" },
+  { id: "bestbuy", name: "Best Buy Affiliate Program", signupUrl: "https://www.bestbuy.com/site/help-topics/affiliate-program/pcmcat204400050013.c?id=pcmcat204400050013" },
+  { id: "asos", name: "ASOS Affiliate Program", signupUrl: "https://www.asosplc.com/affiliate-programme/" },
+  { id: "zalando", name: "Zalando Partner Program", signupUrl: "https://affiliate.zalando.com" },
+  { id: "shein", name: "SHEIN Affiliate Program", signupUrl: "https://us.shein.com/affiliate" },
+  { id: "notino", name: "Notino Affiliate Program", signupUrl: "https://www.notino.com/affiliate-program/" },
+  { id: "sephora", name: "Sephora Affiliate Program", signupUrl: "https://www.sephora.com/beauty/affiliate-program" },
+  { id: "booking-holdings", name: "Agoda Affiliate Program", signupUrl: "https://partners.agoda.com" },
+  { id: "canva", name: "Canva Affiliate Program", signupUrl: "https://www.canva.com/affiliates/" },
+  { id: "adobe", name: "Adobe Affiliate Program", signupUrl: "https://www.adobe.com/affiliates.html" },
+  { id: "shopify", name: "Shopify Affiliate Program", signupUrl: "https://www.shopify.com/affiliates" },
+  { id: "namecheap", name: "Namecheap Affiliate Program", signupUrl: "https://www.namecheap.com/affiliates/" },
+  { id: "udemy", name: "Udemy Affiliate Program", signupUrl: "https://about.udemy.com/affiliates/" },
+  { id: "nike", name: "Nike Affiliate Program", signupUrl: "https://www.nike.com/help/a/affiliate-program" },
+  { id: "apple-services", name: "Apple Services Performance Partners", signupUrl: "https://performance-partners.apple.com" }
+];
+
+/* Public or partner-network inboxes commonly used for publisher outreach (verify before production sends). */
+const AFFILIATE_CONTACT_BY_ID = {
+  awin: "publishers@awin.com",
+  cj: "publishersupport@cj.com",
+  impact: "partners@impact.com",
+  partnerstack: "partners@partnerstack.com",
+  amazon: "",
+  "rakuten-ad": "publishersupport@rakuten.com",
+  shareasale: "help@shareasale.com",
+  "ebay-partner": "epnpartner@ebay.com",
+  "aliexpress-portals": "",
+  flexoffers: "publishers@flexoffers.com",
+  clickbank: "support@clickbank.com",
+  admitad: "publishers@admitad.com",
+  "trade-doubler": "support@tradedoubler.com",
+  travelpayouts: "affiliates@travelpayouts.com",
+  "booking-com": "affiliateprogram@booking.com",
+  "expedia-group": "affiliate@expedia.com",
+  tripadvisor: "affiliates@tripadvisor.com",
+  walmart: "affiliate@walmart.com",
+  target: "",
+  etsy: "affiliates@etsy.com",
+  temu: "",
+  alibaba: "",
+  bestbuy: "affiliate@bestbuy.com",
+  asos: "affiliate@asos.com",
+  zalando: "affiliate.support@zalando.com",
+  shein: "affiliate@shein.com",
+  notino: "partners@notino.com",
+  sephora: "",
+  "booking-holdings": "affiliates@agoda.com",
+  canva: "affiliates@canva.com",
+  adobe: "affiliate@adobe.com",
+  shopify: "affiliates@shopify.com",
+  namecheap: "affiliates@namecheap.com",
+  udemy: "business@udemy.com",
+  nike: "",
+  "apple-services": "affprograms@apple.com"
+};
+
+AFFILIATE_PROGRAMS.forEach((program) => {
+  program.contactEmail = AFFILIATE_CONTACT_BY_ID[program.id] || "";
+});
+
+function getAffiliateProgramById(programId) {
+  return AFFILIATE_PROGRAMS.find((item) => item.id === String(programId || "").trim()) || null;
+}
+
+function applyAffiliateContactToOutreach(programId) {
+  const program = getAffiliateProgramById(programId);
+  const select = document.getElementById("outreachPartnerSelect");
+  const email = document.getElementById("outreachPartnerEmail");
+  const status = document.getElementById("outreachStatus");
+  if (!program) {
+    return;
+  }
+  if (select) {
+    select.value = program.id;
+  }
+  if (email) {
+    email.value = String(program.contactEmail || "").trim();
+    email.focus();
+  }
+  if (status) {
+    status.textContent = program.contactEmail
+      ? `Loaded ${program.name} contact into the outreach email field.`
+      : `${program.name} is usually portal-only — use the official signup link, or paste the inbox your rep gave you.`;
+  }
+  setStatus(`Affiliate outreach: ${program.name}`);
+}
+
+function syncOutreachPartnerEmailFromSelect() {
+  const select = document.getElementById("outreachPartnerSelect");
+  const email = document.getElementById("outreachPartnerEmail");
+  if (!select || !email) {
+    return;
+  }
+  const program = getAffiliateProgramById(String(select.value || ""));
+  if (!program || !program.contactEmail) {
+    return;
+  }
+  if (!String(email.value || "").trim()) {
+    email.value = String(program.contactEmail || "").trim();
+  }
+}
+
+function initAffiliateOutreachUi() {
+  const signupList = document.getElementById("affiliateProgramSignupList");
+  const partnerList = document.getElementById("partnerOutreachList");
+  const outreachSelect = document.getElementById("outreachPartnerSelect");
+  if (signupList && !signupList.dataset.vcAffClickBound) {
+    signupList.dataset.vcAffClickBound = "1";
+    signupList.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-aff-fill-email]");
+      if (!btn) {
+        return;
+      }
+      event.preventDefault();
+      applyAffiliateContactToOutreach(String(btn.getAttribute("data-aff-fill-email") || ""));
+    });
+  }
+  if (partnerList && !partnerList.dataset.vcAffClickBound) {
+    partnerList.dataset.vcAffClickBound = "1";
+    partnerList.addEventListener("click", (event) => {
+      const btn = event.target.closest("[data-aff-fill-email]");
+      if (!btn) {
+        return;
+      }
+      event.preventDefault();
+      applyAffiliateContactToOutreach(String(btn.getAttribute("data-aff-fill-email") || ""));
+    });
+  }
+  if (outreachSelect && !outreachSelect.dataset.vcAffChangeBound) {
+    outreachSelect.dataset.vcAffChangeBound = "1";
+    outreachSelect.addEventListener("change", () => {
+      syncOutreachPartnerEmailFromSelect();
+    });
+  }
+}
+
+const AFFILIATE_OUTREACH_DRAFTS = {
+  initial_application:
+    "Hello {partner_name} Affiliate Team,\n\n" +
+    "My name is {owner_name}, and I am the founder of {site_name} ({site_url}).\n" +
+    "We operate a cross-border marketplace audience focused on Africa-Europe commerce.\n\n" +
+    "We would like to apply for your affiliate partnership and promote your offers through verified traffic lanes.\n\n" +
+    "Business details:\n" +
+    "- Company/brand: {site_name}\n" +
+    "- Website: {site_url}\n" +
+    "- Primary regions: Africa, Europe\n" +
+    "- Main categories: fashion, electronics, lifestyle\n" +
+    "- Traffic model: content + marketplace referrals\n\n" +
+    "Please share onboarding requirements, tracking format, payout model, and compliance rules.\n\n" +
+    "Thank you,\n{owner_name}\n{reply_email}",
+  traffic_update:
+    "Hello {partner_name} Affiliate Team,\n\n" +
+    "Following up on our affiliate application for {site_name}.\n\n" +
+    "Current traffic summary:\n" +
+    "- Recent click-outs: {traffic_clicks}\n" +
+    "- Active regions: {traffic_regions}\n" +
+    "- Conversion-ready placements: homepage lane, category pages, and curated partner folders\n\n" +
+    "We are ready to launch your tracking links as soon as approval is granted.\n\n" +
+    "Please advise next steps.\n\n" +
+    "Best regards,\n{owner_name}\n{reply_email}",
+  approval_followup:
+    "Hello {partner_name} Affiliate Team,\n\n" +
+    "Thank you for reviewing our affiliate request.\n" +
+    "Could you confirm approval status and provide production tracking links?\n\n" +
+    "We are prepared to run a compliance-first launch with approved placements only.\n\n" +
+    "Thank you,\n{owner_name}\n{reply_email}"
+};
+
+function getCommissionValidationState() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(COMMISSION_VALIDATION_KEY) || "{}");
+    return {
+      offers: Array.isArray(parsed.offers) ? parsed.offers : []
+    };
+  } catch {
+    return { offers: [] };
+  }
+}
+
+function saveCommissionValidationState(state) {
+  localStorage.setItem(
+    COMMISSION_VALIDATION_KEY,
+    JSON.stringify({
+      offers: (state && Array.isArray(state.offers) ? state.offers : []).slice(0, 200)
+    })
+  );
+}
+
+function getBookkeepingLedger() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BOOKKEEPING_LEDGER_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveBookkeepingLedger(items) {
+  localStorage.setItem(BOOKKEEPING_LEDGER_KEY, JSON.stringify(items.slice(0, 500)));
+}
+
+function addBookkeepingEntry(entry) {
+  const now = Date.now();
+  const ledger = getBookkeepingLedger();
+  ledger.unshift({
+    id: `${now}-${Math.random().toString(16).slice(2)}`,
+    at: new Date(now).toISOString(),
+    type: String(entry.type || "ops_note"),
+    note: String(entry.note || "").trim() || "Bookkeeping event",
+    amountEur: Number(entry.amountEur || 0)
+  });
+  saveBookkeepingLedger(ledger);
+  renderBookkeepingLedger();
+}
+
+function renderBookkeepingLedger() {
+  const list = document.getElementById("bookkeepingLedgerList");
+  const status = document.getElementById("bookkeepingChipStatus");
+  if (!list || !status) {
+    return;
+  }
+  const ledger = getBookkeepingLedger();
+  if (!ledger.length) {
+    status.textContent = "AI bookkeeping chip active. Waiting for first entry.";
+    list.innerHTML = "<div class='msg msg-buyer'>No bookkeeping records yet.</div>";
+    return;
+  }
+  const total = ledger.reduce((sum, row) => sum + Number(row.amountEur || 0), 0);
+  status.textContent = `Bookkeeping entries: ${ledger.length}. Recorded total: EUR ${total.toFixed(2)}.`;
+  list.innerHTML = "";
+  ledger.slice(0, 80).forEach((row) => {
+    const node = document.createElement("div");
+    node.className = "msg msg-seller";
+    node.textContent = `${row.at} | ${String(row.type).toUpperCase()} | EUR ${Number(row.amountEur || 0).toFixed(2)} | ${row.note}`;
+    list.appendChild(node);
+  });
+}
+
+function getPremiumPlanSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PREMIUM_PLAN_SETTINGS_KEY) || "{}");
+    return {
+      enabled: String(parsed.enabled || "1") === "1",
+      price: Number(parsed.price || 39.99),
+      benefits:
+        String(parsed.benefits || "").trim() ||
+        "AI concierge responses, priority support lane, premium discovery layout, and luxury account badge."
+    };
+  } catch {
+    return {
+      enabled: true,
+      price: 39.99,
+      benefits: "AI concierge responses, priority support lane, premium discovery layout, and luxury account badge."
+    };
+  }
+}
 /** When admin is opened as file:// or odd schemes, localhost:8081 causes ECONNREFUSED if no local API. */
 const PUBLIC_PRODUCTION_API_FALLBACK = "https://vibe-cart.com";
 const DEFAULT_API_BASE = (() => {
@@ -502,6 +789,750 @@ function updateAffiliateReadinessAndActions() {
   maybeDispatchAffiliateAlert({ level, issueSummary }).catch(() => {});
 }
 
+function updateCommissionReadinessChecklist() {
+  const scoreNode = document.getElementById("commissionReadinessScore");
+  const actionsNode = document.getElementById("commissionReadinessActions");
+  const checksNode = document.getElementById("commissionReadinessChecks");
+  if (!scoreNode || !actionsNode || !checksNode) {
+    return;
+  }
+  const checks = [];
+  const actions = [];
+  let score = 100;
+
+  const health = affiliateRuntime.linkHealth;
+  const recon = affiliateRuntime.reconciliation;
+  const quick = affiliateRuntime.quickStats;
+  const owner = affiliateRuntime.ownerRevenue;
+
+  const trackingOk = Boolean(health && Number(health.checked || 0) > 0 && Number(health.unreachable || 0) === 0);
+  checks.push({
+    label: "Tracking links healthy",
+    ok: trackingOk,
+    detail: health
+      ? `checked=${Number(health.checked || 0)}, unreachable=${Number(health.unreachable || 0)}`
+      : "run affiliate link health first"
+  });
+  if (!trackingOk) {
+    score -= 30;
+    actions.push("Fix broken/blocked affiliate links so traffic can be tracked.");
+  }
+
+  const conversionSignal = Boolean(recon && Number(recon.clicks || 0) > 0 && (Number(recon.pending || 0) > 0 || Number(recon.confirmed || 0) > 0));
+  checks.push({
+    label: "Conversion events flowing",
+    ok: conversionSignal,
+    detail: recon
+      ? `clicks=${Number(recon.clicks || 0)}, pending=${Number(recon.pending || 0)}, confirmed=${Number(recon.confirmed || 0)}`
+      : "run affiliate reconciliation first"
+  });
+  if (!conversionSignal) {
+    score -= 25;
+    actions.push("Get clicks through tracked links and verify partner postbacks.");
+  }
+
+  const commissionSignal = Boolean(quick && Number(quick.commission || 0) > 0);
+  checks.push({
+    label: "Commission value recorded",
+    ok: commissionSignal,
+    detail: quick
+      ? `estimated_commission=${Number(quick.commission || 0).toFixed(2)} EUR`
+      : "refresh affiliate quick stats"
+  });
+  if (!commissionSignal) {
+    score -= 25;
+    actions.push("No commission posted yet; verify payout model and conversion mapping.");
+  }
+
+  const payoutReady = Boolean(owner && Number(owner.ownerPayoutReady || 0) > 0);
+  checks.push({
+    label: "Owner payout ready",
+    ok: payoutReady,
+    detail: owner
+      ? `owner_payout_ready=${Number(owner.ownerPayoutReady || 0).toFixed(2)} EUR`
+      : "refresh owner revenue dashboard"
+  });
+  if (!payoutReady) {
+    score -= 20;
+    actions.push("No payout-ready balance; complete conversion settlement cycle.");
+  }
+
+  score = Math.max(0, Math.round(score));
+  const level = score >= 85 ? "GREEN" : score >= 60 ? "YELLOW" : "RED";
+  scoreNode.textContent = `Commission readiness: ${level} (${score}/100).`;
+  actionsNode.textContent = actions.length
+    ? `Actions: ${actions.join(" ")}`
+    : "Actions: all key commission checkpoints look healthy.";
+
+  checksNode.innerHTML = "";
+  checks.forEach((item) => {
+    const line = document.createElement("div");
+    line.className = "msg " + (item.ok ? "msg-seller" : "msg-buyer");
+    line.textContent = `${item.ok ? "PASS" : "FAIL"} | ${item.label} | ${item.detail}`;
+    checksNode.appendChild(line);
+  });
+}
+
+function refreshMoneyDashboard(options) {
+  const opts = options || {};
+  const summary = document.getElementById("moneyDashboardSummary");
+  const breakdown = document.getElementById("moneyDashboardBreakdown");
+  if (!summary || !breakdown) {
+    return;
+  }
+  const quick = affiliateRuntime.quickStats || { clicks: 0, conversions: 0, commission: 0 };
+  const recon = affiliateRuntime.reconciliation || { confirmed: 0, pending: 0 };
+  const owner = affiliateRuntime.ownerRevenue || { ownerPayoutReady: 0 };
+  const clicks = Number(quick.clicks || 0);
+  const conversions = Number(quick.conversions || 0);
+  const estimatedCommission = Number(quick.commission || 0);
+  const confirmed = Number(recon.confirmed || 0);
+  const pending = Number(recon.pending || 0);
+  const payoutReady = Number(owner.ownerPayoutReady || 0);
+  const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
+  const payoutProjection = Math.max(0, payoutReady + estimatedCommission * 0.7);
+
+  summary.textContent =
+    `Money dashboard: ${clicks} click-outs | ${conversions} conversions (${conversionRate.toFixed(1)}%) | ` +
+    `est. commission EUR ${estimatedCommission.toFixed(2)} | payout ready EUR ${payoutReady.toFixed(2)}.`;
+  breakdown.innerHTML = "";
+  [
+    `Confirmed partner events: ${confirmed}. Pending partner events: ${pending}.`,
+    `Projected next payout window: EUR ${payoutProjection.toFixed(2)} (estimation based on current trend).`,
+    `Top action: ${estimatedCommission <= 0 ? "drive tracked clicks and verify partner postbacks." : "optimize highest converting categories and maintain healthy links."}`,
+    "Recommendation: export bookkeeping ledger weekly and reconcile with partner statements."
+  ].forEach((line) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    row.textContent = line;
+    breakdown.appendChild(row);
+  });
+
+  if (!opts.skipLedger) {
+    addBookkeepingEntry({
+      type: "commission",
+      note: "Money dashboard refresh snapshot captured.",
+      amountEur: estimatedCommission
+    });
+  }
+  if (!opts.silent) {
+    setStatus("Money dashboard refreshed.");
+  }
+}
+
+function setLiveMoneyDashboardState(enabled) {
+  const next = enabled ? "1" : "0";
+  localStorage.setItem(LIVE_MONEY_DASHBOARD_KEY, next);
+  const btn = document.getElementById("toggleLiveMoneyDashboard");
+  const status = document.getElementById("moneyDashboardLiveStatus");
+  if (btn) {
+    btn.textContent = enabled ? "Live Auto-Refresh: On" : "Live Auto-Refresh: Off";
+    btn.classList.toggle("btn-primary", enabled);
+    btn.classList.toggle("btn-secondary", !enabled);
+  }
+  if (status) {
+    status.textContent = enabled
+      ? "Live money dashboard: running (every 60 seconds)."
+      : "Live money dashboard: idle.";
+  }
+}
+
+async function runLiveMoneyDashboardTick() {
+  try {
+    await refreshAffiliateQuickStats();
+    await refreshAffiliateReconciliation();
+    refreshMoneyDashboard({ silent: true, skipLedger: true });
+  } catch {
+    /* keep interval resilient */
+  }
+}
+
+function stopLiveMoneyDashboard() {
+  if (liveMoneyDashboardTimer) {
+    clearInterval(liveMoneyDashboardTimer);
+    liveMoneyDashboardTimer = 0;
+  }
+  setLiveMoneyDashboardState(false);
+}
+
+function startLiveMoneyDashboard() {
+  if (liveMoneyDashboardTimer) {
+    return;
+  }
+  setLiveMoneyDashboardState(true);
+  runLiveMoneyDashboardTick().catch(() => {});
+  liveMoneyDashboardTimer = window.setInterval(() => {
+    runLiveMoneyDashboardTick().catch(() => {});
+  }, 60000);
+}
+
+function toggleLiveMoneyDashboard() {
+  if (liveMoneyDashboardTimer) {
+    stopLiveMoneyDashboard();
+    setStatus("Live money dashboard stopped.");
+    return;
+  }
+  startLiveMoneyDashboard();
+  setStatus("Live money dashboard started.");
+}
+
+function runPartnerSecurityCheck() {
+  const statusNode = document.getElementById("partnerSecurityStatus");
+  const listNode = document.getElementById("partnerSecurityChecklist");
+  if (!statusNode || !listNode) {
+    return;
+  }
+  const health = affiliateRuntime.linkHealth;
+  const unreachable = Number(health?.unreachable || 0);
+  const checks = [
+    { ok: unreachable === 0, text: unreachable === 0 ? "No unreachable partner links detected." : `${unreachable} unreachable links detected; replace or fix immediately.` },
+    { ok: true, text: "Use signed callback secrets for each partner postback endpoint." },
+    { ok: true, text: "Restrict partner redirects to approved domains only (allowlist)." },
+    { ok: true, text: "Reconcile partner invoices weekly against click and conversion logs." },
+    { ok: true, text: "Enable anti-fraud review for high payout spikes or sudden conversion bursts." }
+  ];
+  listNode.innerHTML = "";
+  checks.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "msg " + (item.ok ? "msg-seller" : "msg-buyer");
+    row.textContent = `${item.ok ? "PASS" : "ACTION"} | ${item.text}`;
+    listNode.appendChild(row);
+  });
+  statusNode.textContent = unreachable === 0 ? "Partner security status: strong baseline." : "Partner security status: remediation required.";
+  setStatus("Partner security check completed.");
+}
+
+function addBookkeepingEntryFromPanel() {
+  const note = String(document.getElementById("bookkeepingNoteInput")?.value || "").trim();
+  const type = String(document.getElementById("bookkeepingTypeInput")?.value || "ops_note");
+  const amount = Number(document.getElementById("bookkeepingAmountInput")?.value || 0);
+  addBookkeepingEntry({
+    type,
+    note: note || "Manual bookkeeping note",
+    amountEur: amount
+  });
+  const noteInput = document.getElementById("bookkeepingNoteInput");
+  const amountInput = document.getElementById("bookkeepingAmountInput");
+  if (noteInput) noteInput.value = "";
+  if (amountInput) amountInput.value = "";
+  setStatus("Bookkeeping entry saved.");
+}
+
+function exportBookkeepingLedger() {
+  const ledger = getBookkeepingLedger();
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  downloadJson(`vibecart-bookkeeping-${stamp}.json`, {
+    generatedAt: new Date().toISOString(),
+    entries: ledger
+  });
+  setStatus("Bookkeeping ledger exported.");
+}
+
+function clearBookkeepingLedger() {
+  localStorage.removeItem(BOOKKEEPING_LEDGER_KEY);
+  renderBookkeepingLedger();
+  setStatus("Bookkeeping ledger reset.");
+}
+
+function generateMonthlyBookkeepingReport() {
+  const reportNode = document.getElementById("bookkeepingMonthlyReport");
+  if (!reportNode) {
+    return;
+  }
+  const ledger = getBookkeepingLedger();
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const monthRows = ledger.filter((row) => {
+    const at = new Date(String(row.at || ""));
+    return at.getUTCFullYear() === year && at.getUTCMonth() === month;
+  });
+  var revenue = 0;
+  var payout = 0;
+  var subscription = 0;
+  monthRows.forEach((row) => {
+    const amount = Number(row.amountEur || 0);
+    const type = String(row.type || "").toLowerCase();
+    if (type === "commission") revenue += amount;
+    if (type === "payout") payout += amount;
+    if (type === "subscription") subscription += amount;
+  });
+  reportNode.innerHTML = "";
+  [
+    `Month: ${now.toLocaleString(undefined, { month: "long" })} ${year}`,
+    `Entries: ${monthRows.length}`,
+    `Commission logged: EUR ${revenue.toFixed(2)}`,
+    `Subscription logged: EUR ${subscription.toFixed(2)}`,
+    `Payout-ready snapshots: EUR ${payout.toFixed(2)}`,
+    `Net operating view: EUR ${(revenue + subscription - payout).toFixed(2)}`
+  ].forEach((line) => {
+    const node = document.createElement("div");
+    node.className = "msg msg-buyer";
+    node.textContent = line;
+    reportNode.appendChild(node);
+  });
+  setStatus("Monthly bookkeeping report generated.");
+}
+
+function generatePartnerOnboardingTemplate() {
+  const node = document.getElementById("partnerOnboardingTemplate");
+  if (!node) {
+    return;
+  }
+  node.innerHTML = "";
+  [
+    "Partner onboarding template",
+    "1) Legal company identity and registration documents verified.",
+    "2) Domain ownership and redirect target domain allowlist approved.",
+    "3) Signed callback secret and webhook replay protection configured.",
+    "4) Payout model agreed (CPC/CPL/CPA) with reconciliation schedule.",
+    "5) Fraud and dispute response SLA signed.",
+    "6) Sandbox test conversion completed before production traffic.",
+    "7) Weekly finance + security review owner assigned."
+  ].forEach((line, index) => {
+    const row = document.createElement("div");
+    row.className = "msg " + (index === 0 ? "msg-seller" : "msg-buyer");
+    row.textContent = line;
+    node.appendChild(row);
+  });
+  setStatus("Partner onboarding template generated.");
+}
+
+function renderAffiliateProgramSignupList() {
+  const node = document.getElementById("affiliateProgramSignupList");
+  const select = document.getElementById("affiliateProgramSelect");
+  const outreachSelect = document.getElementById("outreachPartnerSelect");
+  if (!node) {
+    return;
+  }
+  if (select && !select.options.length) {
+    AFFILIATE_PROGRAMS.forEach((program) => {
+      const option = document.createElement("option");
+      option.value = program.id;
+      option.textContent = program.name;
+      select.appendChild(option);
+    });
+  }
+  if (outreachSelect && !outreachSelect.options.length) {
+    AFFILIATE_PROGRAMS.forEach((program) => {
+      const option = document.createElement("option");
+      option.value = program.id;
+      option.textContent = program.name;
+      outreachSelect.appendChild(option);
+    });
+  }
+  node.innerHTML = "";
+  AFFILIATE_PROGRAMS.forEach((program) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    const hasEmail = Boolean(String(program.contactEmail || "").trim());
+    const mailHref = hasEmail
+      ? `mailto:${encodeURIComponent(String(program.contactEmail).trim())}?subject=${encodeURIComponent(
+          "Affiliate partnership inquiry"
+        )}`
+      : "";
+    row.innerHTML =
+      `<strong>${escapeHtml(program.name)}</strong> — ` +
+      `<a href="${escapeHtml(program.signupUrl)}" target="_blank" rel="noopener noreferrer">Open signup</a> · ` +
+      `<button type="button" class="btn btn-secondary" data-aff-fill-email="${escapeHtml(program.id)}">` +
+      (hasEmail ? "Load contact email" : "Select for outreach") +
+      `</button>` +
+      (hasEmail
+        ? ` · <a class="btn btn-secondary" href="${escapeHtml(mailHref)}" style="display:inline-block;margin-top:4px">New email to partner</a>`
+        : "");
+    node.appendChild(row);
+  });
+  initAffiliateOutreachUi();
+}
+
+function fillDefaultOutreachFields() {
+  const ownerName = document.getElementById("outreachOwnerName");
+  const replyEmail = document.getElementById("outreachReplyEmail");
+  if (ownerName && !ownerName.value.trim()) {
+    const session = getSession();
+    ownerName.value = String(session?.email || "VibeCart Partnerships");
+  }
+  if (replyEmail && !replyEmail.value.trim()) {
+    const session = getSession();
+    replyEmail.value = String(session?.email || "");
+  }
+}
+
+function buildOutreachDraftPayload(programId) {
+  const partner = AFFILIATE_PROGRAMS.find((item) => item.id === String(programId || ""));
+  const partnerName = partner ? partner.name : "Affiliate Partner";
+  const draftType = document.getElementById("outreachDraftType");
+  const ownerName = document.getElementById("outreachOwnerName");
+  const replyEmail = document.getElementById("outreachReplyEmail");
+  const trafficClicks = document.getElementById("outreachTrafficClicks");
+  const trafficRegions = document.getElementById("outreachTrafficRegions");
+  const siteName = String(document.getElementById("setTitle")?.value || "VibeCart").trim() || "VibeCart";
+  const siteUrl = window.location.origin + "/index.html";
+  const chosenType = String(draftType?.value || "initial_application");
+  const template = AFFILIATE_OUTREACH_DRAFTS[chosenType] || AFFILIATE_OUTREACH_DRAFTS.initial_application;
+  const filledBody = template
+    .replaceAll("{partner_name}", partnerName)
+    .replaceAll("{owner_name}", String(ownerName?.value || "VibeCart Partnerships"))
+    .replaceAll("{site_name}", siteName)
+    .replaceAll("{site_url}", siteUrl)
+    .replaceAll("{reply_email}", String(replyEmail?.value || ""))
+    .replaceAll("{traffic_clicks}", String(Number(trafficClicks?.value || 0)))
+    .replaceAll("{traffic_regions}", String(trafficRegions?.value || "Africa, Europe"));
+  const subjectLine =
+    chosenType === "traffic_update"
+      ? `Traffic Update + Affiliate Request - ${siteName} x ${partnerName}`
+      : chosenType === "approval_followup"
+        ? `Approval Follow-Up - ${siteName} x ${partnerName}`
+        : `Affiliate Partnership Application - ${siteName} x ${partnerName}`;
+  return {
+    programId: partner ? partner.id : "",
+    partnerName,
+    subjectLine,
+    body: filledBody
+  };
+}
+
+function buildOutreachDraft() {
+  const partnerSelect = document.getElementById("outreachPartnerSelect");
+  const partnerEmail = document.getElementById("outreachPartnerEmail");
+  const subject = document.getElementById("outreachSubject");
+  const body = document.getElementById("outreachBody");
+  const status = document.getElementById("outreachStatus");
+  if (!partnerSelect || !subject || !body) {
+    return;
+  }
+  const program = getAffiliateProgramById(String(partnerSelect.value || ""));
+  if (partnerEmail && program && program.contactEmail && !partnerEmail.value.trim()) {
+    partnerEmail.value = String(program.contactEmail || "").trim();
+  }
+  const payload = buildOutreachDraftPayload(String(partnerSelect.value || ""));
+  subject.value = payload.subjectLine;
+  body.value = payload.body;
+  if (status) {
+    status.textContent =
+      "Draft generated. Partner inbox (when listed) is filled from the affiliate directory; otherwise use the signup portal.";
+  }
+  if (partnerEmail && !partnerEmail.value.trim()) {
+    partnerEmail.placeholder = "If no direct email is available, apply via partner signup URL above.";
+  }
+}
+
+function getSelectedOutreachProgramIds() {
+  return Array.from(document.querySelectorAll("#partnerOutreachList input[data-outreach-program]"))
+    .filter((node) => node.checked)
+    .map((node) => String(node.getAttribute("data-outreach-program") || "").trim())
+    .filter(Boolean);
+}
+
+async function saveOutreachDraftToInbox() {
+  const subject = String(document.getElementById("outreachSubject")?.value || "").trim();
+  const body = String(document.getElementById("outreachBody")?.value || "").trim();
+  const partner = String(document.getElementById("outreachPartnerSelect")?.selectedOptions?.[0]?.textContent || "").trim();
+  const status = document.getElementById("outreachStatus");
+  if (!subject || !body) {
+    if (status) status.textContent = "Generate a draft first.";
+    return;
+  }
+  const text = `AFFILIATE OUTREACH DRAFT | Partner: ${partner}\nSubject: ${subject}\n\n${body}`;
+  addAdminMessage(text, "request");
+  try {
+    if (isSessionValid()) {
+      await sendOwnerInboxAlert(text);
+    }
+  } catch {
+    /* local fallback already saved */
+  }
+  if (status) status.textContent = "Draft saved to inbox.";
+  setStatus("Affiliate outreach draft saved to inbox.");
+}
+
+function sendOutreachEmailViaClient() {
+  const partnerSelect = document.getElementById("outreachPartnerSelect");
+  const partnerEmail = document.getElementById("outreachPartnerEmail");
+  let to = String(partnerEmail?.value || "").trim();
+  if (!to && partnerSelect) {
+    const program = getAffiliateProgramById(String(partnerSelect.value || ""));
+    to = String(program?.contactEmail || "").trim();
+    if (to && partnerEmail) {
+      partnerEmail.value = to;
+    }
+  }
+  const subject = String(document.getElementById("outreachSubject")?.value || "").trim();
+  const body = String(document.getElementById("outreachBody")?.value || "").trim();
+  const status = document.getElementById("outreachStatus");
+  if (!subject || !body) {
+    if (status) status.textContent = "Generate a draft first.";
+    return;
+  }
+  if (!to) {
+    if (status) {
+      status.textContent =
+        "Add a partner email, pick a program with a listed inbox, or tap “Load contact email” on a partner row.";
+    }
+    setStatus("Email send blocked: no recipient.");
+    return;
+  }
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+  addAdminMessage(`OUTGOING EMAIL | To: ${to || "(set recipient)"} | Subject: ${subject}`, "request");
+  if (status) status.textContent = "Opened your default email app. Review and send.";
+  setStatus("Email draft opened in default mail app.");
+}
+
+async function saveSelectedOutreachDraftsToInbox() {
+  const selected = getSelectedOutreachProgramIds();
+  const status = document.getElementById("outreachStatus");
+  if (!selected.length) {
+    if (status) status.textContent = "Select at least one partner from the list below.";
+    return;
+  }
+  for (const programId of selected) {
+    const payload = buildOutreachDraftPayload(programId);
+    const text = `AFFILIATE OUTREACH DRAFT | Partner: ${payload.partnerName}\nSubject: ${payload.subjectLine}\n\n${payload.body}`;
+    addAdminMessage(text, "request");
+    try {
+      if (isSessionValid()) {
+        await sendOwnerInboxAlert(text);
+      }
+    } catch {
+      /* local fallback already saved */
+    }
+  }
+  if (status) status.textContent = `Saved ${selected.length} outreach drafts to inbox.`;
+  setStatus(`Saved ${selected.length} partner outreach drafts to inbox.`);
+}
+
+function sendSelectedOutreachEmailViaClient() {
+  const selected = getSelectedOutreachProgramIds();
+  const status = document.getElementById("outreachStatus");
+  if (!selected.length) {
+    if (status) status.textContent = "Select at least one partner from the list below.";
+    return;
+  }
+  const partnerEmail = document.getElementById("outreachPartnerEmail");
+  let to = String(partnerEmail?.value || "").trim();
+  const firstProgram = getAffiliateProgramById(selected[0]);
+  if (!to && firstProgram && firstProgram.contactEmail) {
+    to = String(firstProgram.contactEmail || "").trim();
+    if (to && partnerEmail) {
+      partnerEmail.value = to;
+    }
+  }
+  if (!to) {
+    if (status) {
+      status.textContent =
+        "No inbox on file for the first selected partner — tap “Fill outreach email” on a row with an email, or paste a contact.";
+    }
+    return;
+  }
+  const payload = buildOutreachDraftPayload(selected[0]);
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(payload.subjectLine)}&body=${encodeURIComponent(payload.body)}`;
+  window.location.href = mailto;
+  addAdminMessage(`OUTGOING EMAIL | To: ${to} | Subject: ${payload.subjectLine}`, "request");
+  if (status) status.textContent = "Opened your default email app using the first selected partner draft.";
+  setStatus("Email draft opened in default mail app for selected partner.");
+}
+
+function renderPartnerOutreachList() {
+  const node = document.getElementById("partnerOutreachList");
+  if (!node) {
+    return;
+  }
+  node.innerHTML = "";
+  AFFILIATE_PROGRAMS.forEach((program) => {
+    const row = document.createElement("div");
+    row.className = "msg msg-buyer";
+    const hasEmail = Boolean(String(program.contactEmail || "").trim());
+    const contactLine = hasEmail
+      ? `Inbox: <code>${escapeHtml(String(program.contactEmail).trim())}</code>`
+      : "Inbox: use official signup portal (no public publisher email on file)";
+    row.innerHTML =
+      `<label style="display:inline-flex;align-items:center;gap:.4rem;margin-right:.6rem;"><input type="checkbox" data-outreach-program="${escapeHtml(program.id)}" />Select</label>` +
+      `<strong>${escapeHtml(program.name)}</strong> | ${contactLine} | ` +
+      `<a href="${escapeHtml(program.signupUrl)}" target="_blank" rel="noopener noreferrer">Apply now</a> · ` +
+      `<button type="button" class="btn btn-secondary" data-aff-fill-email="${escapeHtml(program.id)}">` +
+      (hasEmail ? "Fill outreach email" : "Select in outreach form") +
+      `</button>`;
+    node.appendChild(row);
+  });
+  initAffiliateOutreachUi();
+}
+
+function renderCommissionValidatedOffers() {
+  const list = document.getElementById("commissionValidatedOffersList");
+  const status = document.getElementById("commissionValidationStatus");
+  const policy = document.getElementById("offerLaunchPolicyStatus");
+  if (!list || !status) {
+    return;
+  }
+  const state = getCommissionValidationState();
+  const offers = state.offers || [];
+  list.innerHTML = "";
+  if (!offers.length) {
+    status.textContent = "Offer validation: complete all 5 steps.";
+    if (policy) {
+      policy.textContent =
+        "Launch policy: traffic-first mode enabled. Unsafe links blocked; non-commission offers run as traffic-only.";
+    }
+    list.innerHTML = "<div class='msg msg-buyer'>No commission-validated offers yet.</div>";
+    return;
+  }
+  var green = 0;
+  var yellow = 0;
+  var red = 0;
+  offers.forEach((offer) => {
+    const st = String(offer.status || "traffic_only");
+    if (st === "commission_enabled") green += 1;
+    else if (st === "blocked") red += 1;
+    else yellow += 1;
+  });
+  status.textContent = `Offer registry: ${offers.length} total | GREEN ${green} | YELLOW ${yellow} | RED ${red}.`;
+  if (policy) {
+    policy.textContent =
+      "Launch policy: default YELLOW traffic-only until partner approval. Promote to GREEN after validation. Use RED only for unsafe/unapproved offers.";
+  }
+  offers.forEach((offer) => {
+    const row = document.createElement("div");
+    const offerStatus = String(offer.status || "traffic_only");
+    row.className =
+      "msg " +
+      (offerStatus === "commission_enabled" ? "msg-seller" : "msg-buyer");
+    const nextStatus = offerStatus === "traffic_only" ? "commission_enabled" : offerStatus === "commission_enabled" ? "blocked" : "traffic_only";
+    const nextLabel =
+      nextStatus === "commission_enabled"
+        ? "Promote -> GREEN"
+        : nextStatus === "blocked"
+          ? "Set -> RED"
+          : "Set -> YELLOW";
+    row.innerHTML =
+      `<strong>${escapeHtml(offer.offerName || "Offer")}</strong> | ` +
+      `${escapeHtml(offer.programName || offer.programId || "")} | ` +
+      `status: ${escapeHtml(offerStatus)} | ` +
+      `<a href="${escapeHtml(offer.url || "#")}" target="_blank" rel="noopener noreferrer">tracking link</a> | ` +
+      `${escapeHtml(String(offer.validatedAt || ""))} ` +
+      `<button type="button" class="btn btn-secondary" data-offer-id="${escapeHtml(offer.id)}" data-next-status="${escapeHtml(nextStatus)}">${nextLabel}</button>`;
+    list.appendChild(row);
+  });
+  Array.from(list.querySelectorAll("button[data-offer-id][data-next-status]")).forEach((btn) => {
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      const id = String(btn.getAttribute("data-offer-id") || "");
+      const next = String(btn.getAttribute("data-next-status") || "traffic_only");
+      const curr = getCommissionValidationState();
+      curr.offers = (curr.offers || []).map((offer) =>
+        String(offer.id) === id ? { ...offer, status: next, statusUpdatedAt: new Date().toLocaleString() } : offer
+      );
+      saveCommissionValidationState(curr);
+      renderCommissionValidatedOffers();
+      setStatus(`Offer status updated to ${next}.`);
+    });
+  });
+}
+
+function resetOfferValidationSteps() {
+  ["affStep1", "affStep2", "affStep3", "affStep4", "affStep5"].forEach((id) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.checked = false;
+    }
+  });
+  const status = document.getElementById("commissionValidationStatus");
+  if (status) {
+    status.textContent = "Offer validation: steps reset. Complete all 5 steps.";
+  }
+  setStatus("Offer validation steps reset.");
+}
+
+function markOfferCommissionValidated() {
+  const programId = String(document.getElementById("affiliateProgramSelect")?.value || "").trim();
+  const offerName = String(document.getElementById("affiliateOfferName")?.value || "").trim();
+  const offerUrl = String(document.getElementById("affiliateOfferUrl")?.value || "").trim();
+  const initialStatus = String(document.getElementById("affiliateOfferStatus")?.value || "traffic_only").trim();
+  const checks = ["affStep1", "affStep2", "affStep3", "affStep4", "affStep5"].map((id) =>
+    Boolean(document.getElementById(id)?.checked)
+  );
+  const status = document.getElementById("commissionValidationStatus");
+  if (!programId || !offerName || !offerUrl) {
+    if (status) {
+      status.textContent = "Offer validation: add program, offer name, and tracking URL.";
+    }
+    setStatus("Offer validation failed: missing required fields.");
+    return;
+  }
+  if (!checks.every(Boolean)) {
+    if (status) {
+      status.textContent = "Offer validation: all 5 steps must be checked.";
+    }
+    setStatus("Offer validation failed: complete all 5 steps.");
+    return;
+  }
+  const program = AFFILIATE_PROGRAMS.find((item) => item.id === programId);
+  const state = getCommissionValidationState();
+  state.offers.unshift({
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    programId,
+    programName: program ? program.name : programId,
+    offerName,
+    url: offerUrl,
+    status: initialStatus === "commission_enabled" || initialStatus === "blocked" ? initialStatus : "traffic_only",
+    validatedAt: new Date().toLocaleString()
+  });
+  saveCommissionValidationState(state);
+  addBookkeepingEntry({
+    type: "ops_note",
+    note: `Commission-validated offer saved: ${offerName} (${program ? program.name : programId}).`,
+    amountEur: 0
+  });
+  renderCommissionValidatedOffers();
+  resetOfferValidationSteps();
+  setStatus("Offer marked commission-validated.");
+}
+
+function fillPremiumPlanSettingsForm() {
+  const settings = getPremiumPlanSettings();
+  const enabledNode = document.getElementById("premiumPlanEnabled");
+  const priceNode = document.getElementById("premiumPlanPrice");
+  const benefitsNode = document.getElementById("premiumPlanBenefits");
+  const statusNode = document.getElementById("premiumPlanStatus");
+  if (enabledNode) enabledNode.value = settings.enabled ? "1" : "0";
+  if (priceNode) priceNode.value = String(settings.price.toFixed(2));
+  if (benefitsNode) benefitsNode.value = settings.benefits;
+  if (statusNode) {
+    statusNode.textContent = `Premium plan: ${settings.enabled ? "enabled" : "disabled"} at EUR ${settings.price.toFixed(2)} / month.`;
+  }
+}
+
+function savePremiumPlanSettings() {
+  const enabled = String(document.getElementById("premiumPlanEnabled")?.value || "1") === "1";
+  const price = Number(document.getElementById("premiumPlanPrice")?.value || 39.99);
+  const benefits = String(document.getElementById("premiumPlanBenefits")?.value || "").trim();
+  const payload = {
+    enabled: enabled ? "1" : "0",
+    price: Math.max(1, price),
+    benefits: benefits || "AI concierge responses, priority support lane, premium discovery layout, and luxury account badge."
+  };
+  localStorage.setItem(PREMIUM_PLAN_SETTINGS_KEY, JSON.stringify(payload));
+  try {
+    localStorage.setItem(
+      "vibecart-public-premium-plan-v1",
+      JSON.stringify({
+        enabled: payload.enabled,
+        price: payload.price,
+        benefits: payload.benefits
+      })
+    );
+  } catch {
+    /* ignore */
+  }
+  fillPremiumPlanSettingsForm();
+  addBookkeepingEntry({
+    type: "subscription",
+    note: `Premium plan settings updated (${payload.enabled === "1" ? "enabled" : "disabled"}).`,
+    amountEur: payload.price
+  });
+  setStatus("Top-class premium plan settings saved.");
+}
+
 async function fillForm() {
   const remote = await fetchCloudSettings();
   if (remote && typeof remote === "object") {
@@ -539,6 +1570,8 @@ function fillOwnerAuthForm() {
     adminAppNode.value = `${window.location.origin}${window.location.pathname.replace("admin.html", "admin-app.html")}`;
   }
   fillRevenueSettingsForm();
+  fillPremiumPlanSettingsForm();
+  renderBookkeepingLedger();
 }
 
 function getRevenueSettings() {
@@ -902,6 +1935,12 @@ function renderOwnerRevenueDashboard(payload) {
   const sellerTax = taxByParty.seller || {};
   const platformTax = taxByParty.platform || {};
   const reservePercent = Number(payload?.reservePercent ?? 10);
+  affiliateRuntime.ownerRevenue = {
+    ownerPayoutReady: Number(totals.ownerPayoutReady || 0),
+    netTotal: Number(totals.netTotal || 0),
+    unsettledPayoutTotal: Number(totals.unsettledPayoutTotal || 0),
+    paidOutTotal: Number(totals.paidOutTotal || 0)
+  };
 
   summaryNode.textContent =
     `Owner payout ready: EUR ${Number(totals.ownerPayoutReady || 0).toFixed(2)} | ` +
@@ -953,6 +1992,7 @@ function renderOwnerRevenueDashboard(payload) {
     });
     payoutHistoryNode.appendChild(line);
   });
+  updateCommissionReadinessChecklist();
 }
 
 async function refreshOwnerRevenueDashboard() {
@@ -961,6 +2001,12 @@ async function refreshOwnerRevenueDashboard() {
   renderOwnerRevenueDashboard(payload);
   await refreshAffiliateQuickStats();
   await refreshAffiliateReconciliation();
+  refreshMoneyDashboard();
+  addBookkeepingEntry({
+    type: "payout",
+    note: "Owner revenue dashboard refreshed from backend.",
+    amountEur: Number(affiliateRuntime.ownerRevenue?.ownerPayoutReady || 0)
+  });
   setStatus("Owner revenue dashboard refreshed. Seller tax remains seller liability.");
 }
 
@@ -1001,10 +2047,16 @@ async function refreshAffiliateQuickStats() {
         commission += amount;
       }
     });
+    affiliateRuntime.quickStats = { clicks, conversions, commission };
     node.textContent =
       `Affiliate status: ${clicks} click-outs · ${conversions} confirmed conversions · estimated commission ${commission.toFixed(2)} EUR.`;
+    updateCommissionReadinessChecklist();
+    refreshMoneyDashboard();
   } catch {
+    affiliateRuntime.quickStats = null;
     node.textContent = "Affiliate stats unavailable right now.";
+    updateCommissionReadinessChecklist();
+    refreshMoneyDashboard();
   }
 }
 
@@ -1033,6 +2085,7 @@ async function refreshAffiliateReconciliation() {
     syncNode.textContent = `Last sync: reconciliation ${formatSyncTime(Date.now())}`;
   }
   updateAffiliateReadinessAndActions();
+  updateCommissionReadinessChecklist();
 }
 
 async function runAffiliateLinkHealth() {
@@ -1088,6 +2141,7 @@ async function runAffiliateLinkHealth() {
     syncNode.textContent = `Last sync: link health ${formatSyncTime(Date.now())}`;
   }
   updateAffiliateReadinessAndActions();
+  updateCommissionReadinessChecklist();
 }
 
 async function refreshAffiliateAll() {
@@ -1145,6 +2199,8 @@ function exportAffiliateReportJson() {
 function resetAffiliateAuditState() {
   affiliateRuntime.linkHealth = null;
   affiliateRuntime.reconciliation = null;
+  affiliateRuntime.quickStats = null;
+  affiliateRuntime.ownerRevenue = null;
   setAffiliateLastAlertSignature("");
   clearAffiliateLinkHealthHistory();
   const alertNode = document.getElementById("affiliateAlertBanner");
@@ -1152,13 +2208,87 @@ function resetAffiliateAuditState() {
   const linkSummaryNode = document.getElementById("affiliateLinkHealthSummary");
   const linkRowsNode = document.getElementById("affiliateLinkHealthReport");
   const actionsNode = document.getElementById("affiliateRecommendedActions");
+  const commissionScoreNode = document.getElementById("commissionReadinessScore");
+  const commissionActionsNode = document.getElementById("commissionReadinessActions");
+  const commissionChecksNode = document.getElementById("commissionReadinessChecks");
   if (alertNode) alertNode.textContent = "Alerts: none.";
   if (lastSyncNode) lastSyncNode.textContent = "Last sync: reset. Run full affiliate audit.";
   if (linkSummaryNode) linkSummaryNode.textContent = "Link health: run check to view totals.";
   if (linkRowsNode) linkRowsNode.innerHTML = "";
   if (actionsNode) actionsNode.textContent = "Recommended actions: run full affiliate audit.";
+  if (commissionScoreNode) commissionScoreNode.textContent = "Commission readiness: not evaluated yet.";
+  if (commissionActionsNode) commissionActionsNode.textContent = "Actions: run a commission readiness check.";
+  if (commissionChecksNode) commissionChecksNode.innerHTML = "";
   updateAffiliateReadinessAndActions();
+  updateCommissionReadinessChecklist();
   setStatus("Affiliate audit state reset.");
+}
+
+function readAffiliateLastClick() {
+  try {
+    const raw = localStorage.getItem(AFFILIATE_LAST_CLICK_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object") return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function renderAffiliatePartnerHealth() {
+  const click = readAffiliateLastClick();
+  const lastClickNode = document.getElementById("affiliatePartnerLastClick");
+  const targetNode = document.getElementById("affiliatePartnerTarget");
+  const statusNode = document.getElementById("affiliatePartnerHealthStatus");
+  if (!click) {
+    if (lastClickNode) lastClickNode.value = "No tracked click yet";
+    if (targetNode) targetNode.value = "";
+    if (statusNode) statusNode.textContent = "Partner health: no click data yet.";
+    return;
+  }
+  const at = click.at ? new Date(click.at).toLocaleString() : "Unknown";
+  const src = String(click.source || "unknown");
+  const shop = String(click.shop || "unknown");
+  const target = String(click.target || "").trim();
+  if (lastClickNode) lastClickNode.value = `${at} | ${shop} | source=${src}`;
+  if (targetNode) targetNode.value = target;
+  if (statusNode) {
+    statusNode.textContent = target
+      ? `Partner health: last click recorded, target captured.`
+      : `Partner health: last click recorded but target URL missing.`;
+  }
+}
+
+async function checkAffiliatePartnerTargetReachability() {
+  const statusNode = document.getElementById("affiliatePartnerHealthStatus");
+  const click = readAffiliateLastClick();
+  const target = String(click?.target || "").trim();
+  if (!target) {
+    if (statusNode) statusNode.textContent = "Partner health: no target URL to check.";
+    return;
+  }
+  if (statusNode) statusNode.textContent = "Partner health: checking target reachability...";
+  const timeoutMs = 12000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await fetch(target, {
+      method: "GET",
+      mode: "no-cors",
+      cache: "no-store",
+      signal: controller.signal
+    });
+    if (statusNode) {
+      statusNode.textContent = "Partner health: target responded (reachable; no-cors opaque response).";
+    }
+  } catch (error) {
+    if (statusNode) {
+      statusNode.textContent = `Partner health: target check failed (${String(error?.message || error)}).`;
+    }
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function refreshPublicUserStats() {
@@ -1643,6 +2773,8 @@ async function unlockPanelInner() {
   softRefresh(refreshChatSafetyEvents, "Chat safety events").catch(() => {});
   softRefresh(refreshCoachMetrics, "Coach metrics").catch(() => {});
   softRefresh(refreshOwnerRevenueDashboard, "Revenue dashboard").catch(() => {});
+  refreshMoneyDashboard();
+  runPartnerSecurityCheck();
   softRefresh(refreshPublicUserStats, "Public user stats").catch(() => {});
   softRefresh(refreshAiOps, "AI operations").catch(() => {});
 }
@@ -1876,6 +3008,16 @@ function initializeOwnerSecurity() {
   renderAffiliateAlertBanner(null);
   renderAffiliateAlertSeverityMode();
   updateAffiliateReadinessAndActions();
+  updateCommissionReadinessChecklist();
+  fillPremiumPlanSettingsForm();
+  renderBookkeepingLedger();
+  renderAffiliateProgramSignupList();
+  renderPartnerOutreachList();
+  initAffiliateOutreachUi();
+  renderCommissionValidatedOffers();
+  fillDefaultOutreachFields();
+  syncOutreachPartnerEmailFromSelect();
+  setLiveMoneyDashboardState(localStorage.getItem(LIVE_MONEY_DASHBOARD_KEY) === "1");
   if (isSessionValid()) {
     showPanelUnlocked("Session restored.");
     refreshInsuranceJurisdictions().catch(() => {});
@@ -1884,8 +3026,12 @@ function initializeOwnerSecurity() {
     refreshCoachMetrics().catch(() => {});
     refreshOwnerRevenueDashboard().catch(() => {});
     refreshPublicUserStats().catch(() => {});
+    if (localStorage.getItem(LIVE_MONEY_DASHBOARD_KEY) === "1") {
+      startLiveMoneyDashboard();
+    }
     return;
   }
+  stopLiveMoneyDashboard();
   clearSession();
 }
 
@@ -1994,12 +3140,72 @@ bindClick("runAffiliateLinkHealth", () => {
 bindClick("refreshAffiliateAll", () => {
   refreshAffiliateAll().catch((error) => setStatus(`Affiliate full refresh failed: ${error.message}`));
 });
+bindClick("refreshAffiliatePartnerHealth", () => {
+  renderAffiliatePartnerHealth();
+  setStatus("Affiliate partner health refreshed.");
+});
+bindClick("checkAffiliatePartnerTarget", () => {
+  checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`));
+});
 bindClick("runAffiliateFullAudit", () => {
   runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`));
+});
+bindClick("runCommissionReadiness", () => {
+  updateCommissionReadinessChecklist();
+  setStatus("Commission readiness check refreshed.");
+});
+bindClick("markOfferCommissionValidated", () => {
+  markOfferCommissionValidated();
+});
+bindClick("generateOutreachDraft", () => {
+  buildOutreachDraft();
+});
+bindClick("saveOutreachToInbox", () => {
+  saveOutreachDraftToInbox().catch(() => setStatus("Could not save outreach draft to inbox."));
+});
+bindClick("sendOutreachEmail", () => {
+  sendOutreachEmailViaClient();
+});
+bindClick("saveSelectedOutreachToInbox", () => {
+  saveSelectedOutreachDraftsToInbox().catch(() => setStatus("Could not save selected outreach drafts."));
+});
+bindClick("sendSelectedOutreachEmail", () => {
+  sendSelectedOutreachEmailViaClient();
+});
+bindClick("resetOfferValidationSteps", () => {
+  resetOfferValidationSteps();
+});
+bindClick("refreshMoneyDashboard", () => {
+  refreshMoneyDashboard();
+});
+bindClick("toggleLiveMoneyDashboard", () => {
+  toggleLiveMoneyDashboard();
+});
+bindClick("addBookkeepingEntry", () => {
+  addBookkeepingEntryFromPanel();
+});
+bindClick("exportBookkeepingLedger", () => {
+  exportBookkeepingLedger();
+});
+bindClick("generateMonthlyBookkeepingReport", () => {
+  generateMonthlyBookkeepingReport();
+});
+bindClick("clearBookkeepingLedger", () => {
+  clearBookkeepingLedger();
+});
+bindClick("runPartnerSecurityCheck", () => {
+  runPartnerSecurityCheck();
+});
+bindClick("generatePartnerOnboardingTemplate", () => {
+  generatePartnerOnboardingTemplate();
+});
+bindClick("savePremiumPlanSettings", () => {
+  savePremiumPlanSettings();
 });
 bindClick("clearAffiliateTrendHistory", () => {
   clearAffiliateLinkHealthHistory();
   updateAffiliateReadinessAndActions();
+  updateCommissionReadinessChecklist();
   setStatus("Affiliate trend history cleared.");
 });
 bindClick("resetAffiliateAuditState", () => {
@@ -2071,11 +3277,38 @@ const clickHandlers = {
     runAffiliateLinkHealth().catch((error) => setStatus(`Affiliate link health failed: ${error.message}`)),
   refreshAffiliateAll: () =>
     refreshAffiliateAll().catch((error) => setStatus(`Affiliate full refresh failed: ${error.message}`)),
+  refreshAffiliatePartnerHealth: () => {
+    renderAffiliatePartnerHealth();
+    setStatus("Affiliate partner health refreshed.");
+  },
+  checkAffiliatePartnerTarget: () =>
+    checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`)),
   runAffiliateFullAudit: () =>
     runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`)),
+  runCommissionReadiness: () => {
+    updateCommissionReadinessChecklist();
+    setStatus("Commission readiness check refreshed.");
+  },
+  markOfferCommissionValidated: () => markOfferCommissionValidated(),
+  generateOutreachDraft: () => buildOutreachDraft(),
+  saveOutreachToInbox: () => saveOutreachDraftToInbox().catch(() => setStatus("Could not save outreach draft to inbox.")),
+  sendOutreachEmail: () => sendOutreachEmailViaClient(),
+  saveSelectedOutreachToInbox: () => saveSelectedOutreachDraftsToInbox().catch(() => setStatus("Could not save selected outreach drafts.")),
+  sendSelectedOutreachEmail: () => sendSelectedOutreachEmailViaClient(),
+  resetOfferValidationSteps: () => resetOfferValidationSteps(),
+  refreshMoneyDashboard: () => refreshMoneyDashboard(),
+  toggleLiveMoneyDashboard: () => toggleLiveMoneyDashboard(),
+  addBookkeepingEntry: () => addBookkeepingEntryFromPanel(),
+  exportBookkeepingLedger: () => exportBookkeepingLedger(),
+  generateMonthlyBookkeepingReport: () => generateMonthlyBookkeepingReport(),
+  clearBookkeepingLedger: () => clearBookkeepingLedger(),
+  runPartnerSecurityCheck: () => runPartnerSecurityCheck(),
+  generatePartnerOnboardingTemplate: () => generatePartnerOnboardingTemplate(),
+  savePremiumPlanSettings: () => savePremiumPlanSettings(),
   clearAffiliateTrendHistory: () => {
     clearAffiliateLinkHealthHistory();
     updateAffiliateReadinessAndActions();
+    updateCommissionReadinessChecklist();
     setStatus("Affiliate trend history cleared.");
   },
   resetAffiliateAuditState: () => resetAffiliateAuditState(),
@@ -2122,3 +3355,4 @@ if (affiliateAlertSeverityNode) {
 
 initializeOwnerSecurity();
 renderAiSuggestionsFeed();
+renderAffiliatePartnerHealth();

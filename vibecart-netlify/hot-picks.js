@@ -1,4 +1,5 @@
 (function () {
+  var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
   var grid = document.getElementById("hotPicksGrid");
   var status = document.getElementById("hotPicksStatus");
   if (!grid) {
@@ -105,15 +106,38 @@
         (price ? " · " + escapeHtml(currency + " " + price) : "") +
         "</p>" +
         '<p class="note">External checkout on assigned source site.</p>' +
-        '<p class="hero-actions"><a class="btn btn-primary' +
+        '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link' +
         (href ? "" : " is-disabled") +
         '" href="' +
         escapeHtml(href || "#") +
+        '" data-aff-shop="' +
+        escapeHtml(title) +
+        '" data-aff-target="' +
+        escapeHtml(target) +
         '">' +
         escapeHtml(ctaLabel) +
         "</a></p>" +
         "</article>";
       grid.insertAdjacentHTML("beforeend", html);
+    });
+    Array.prototype.slice.call(grid.querySelectorAll(".vc-hot-offer-link")).forEach(function (a) {
+      if (a.dataset.boundAffClick === "1") return;
+      a.dataset.boundAffClick = "1";
+      a.addEventListener("click", function () {
+        try {
+          localStorage.setItem(
+            AFFILIATE_LAST_CLICK_KEY,
+            JSON.stringify({
+              at: new Date().toISOString(),
+              source: "hot-picks",
+              shop: String(a.getAttribute("data-aff-shop") || ""),
+              target: String(a.getAttribute("data-aff-target") || "")
+            })
+          );
+        } catch {
+          /* ignore */
+        }
+      });
     });
   }
 

@@ -188,6 +188,23 @@ let coachMonetizationState = null;
 let coachEntitlements = new Set();
 const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
 const BRIDGE_TARGET_IDS = new Set(["bridge-routes", "bridgeTitle", "bridgeText", "bridgeShops"]);
+const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+
+function trackAffiliateClick(payload) {
+  try {
+    localStorage.setItem(
+      AFFILIATE_LAST_CLICK_KEY,
+      JSON.stringify({
+        at: new Date().toISOString(),
+        source: String(payload?.source || "unknown"),
+        shop: String(payload?.shop || ""),
+        target: String(payload?.target || "")
+      })
+    );
+  } catch {
+    /* ignore */
+  }
+}
 
 function clearLegacyBridgeNavOverlays() {
   document.getElementById("vcCinematicFloatingMap")?.remove();
@@ -2828,6 +2845,7 @@ function wireOneClickBuy() {
         encodeURIComponent(shop) +
         "&target=" +
         encodeURIComponent(target);
+      trackAffiliateClick({ source: "index-buy-button", shop, target });
       window.location.assign(redirectUrl);
     });
   });

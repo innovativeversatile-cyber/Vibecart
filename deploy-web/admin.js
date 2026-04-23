@@ -20,6 +20,7 @@ const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
 const AFFILIATE_LINK_HEALTH_HISTORY_KEY = "vibecart-affiliate-link-health-history-v1";
 const AFFILIATE_ALERT_LAST_KEY = "vibecart-affiliate-alert-last-v1";
 const AFFILIATE_ALERT_SEVERITY_MODE_KEY = "vibecart-affiliate-alert-severity-mode-v1";
+const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
 const BOOKKEEPING_LEDGER_KEY = "vibecart-bookkeeping-ledger-v1";
 const PREMIUM_PLAN_SETTINGS_KEY = "vibecart-premium-plan-settings-v1";
 const COMMISSION_VALIDATION_KEY = "vibecart-commission-validation-v1";
@@ -2223,6 +2224,73 @@ function resetAffiliateAuditState() {
   setStatus("Affiliate audit state reset.");
 }
 
+function readAffiliateLastClick() {
+  try {
+    const raw = localStorage.getItem(AFFILIATE_LAST_CLICK_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object") return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function renderAffiliatePartnerHealth() {
+  const click = readAffiliateLastClick();
+  const lastClickNode = document.getElementById("affiliatePartnerLastClick");
+  const targetNode = document.getElementById("affiliatePartnerTarget");
+  const statusNode = document.getElementById("affiliatePartnerHealthStatus");
+  if (!click) {
+    if (lastClickNode) lastClickNode.value = "No tracked click yet";
+    if (targetNode) targetNode.value = "";
+    if (statusNode) statusNode.textContent = "Partner health: no click data yet.";
+    return;
+  }
+  const at = click.at ? new Date(click.at).toLocaleString() : "Unknown";
+  const src = String(click.source || "unknown");
+  const shop = String(click.shop || "unknown");
+  const target = String(click.target || "").trim();
+  if (lastClickNode) lastClickNode.value = `${at} | ${shop} | source=${src}`;
+  if (targetNode) targetNode.value = target;
+  if (statusNode) {
+    statusNode.textContent = target
+      ? `Partner health: last click recorded, target captured.`
+      : `Partner health: last click recorded but target URL missing.`;
+  }
+}
+
+async function checkAffiliatePartnerTargetReachability() {
+  const statusNode = document.getElementById("affiliatePartnerHealthStatus");
+  const click = readAffiliateLastClick();
+  const target = String(click?.target || "").trim();
+  if (!target) {
+    if (statusNode) statusNode.textContent = "Partner health: no target URL to check.";
+    return;
+  }
+  if (statusNode) statusNode.textContent = "Partner health: checking target reachability...";
+  const timeoutMs = 12000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    await fetch(target, {
+      method: "GET",
+      mode: "no-cors",
+      cache: "no-store",
+      signal: controller.signal
+    });
+    if (statusNode) {
+      statusNode.textContent = "Partner health: target responded (reachable; no-cors opaque response).";
+    }
+  } catch (error) {
+    if (statusNode) {
+      statusNode.textContent = `Partner health: target check failed (${String(error?.message || error)}).`;
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function refreshPublicUserStats() {
   const payload = await authedPost("/api/owner/public-users/stats", {});
   const totalEl = document.getElementById("kpiPublicUsersTotal");
@@ -3072,6 +3140,13 @@ bindClick("runAffiliateLinkHealth", () => {
 bindClick("refreshAffiliateAll", () => {
   refreshAffiliateAll().catch((error) => setStatus(`Affiliate full refresh failed: ${error.message}`));
 });
+bindClick("refreshAffiliatePartnerHealth", () => {
+  renderAffiliatePartnerHealth();
+  setStatus("Affiliate partner health refreshed.");
+});
+bindClick("checkAffiliatePartnerTarget", () => {
+  checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`));
+});
 bindClick("runAffiliateFullAudit", () => {
   runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`));
 });
@@ -3202,6 +3277,12 @@ const clickHandlers = {
     runAffiliateLinkHealth().catch((error) => setStatus(`Affiliate link health failed: ${error.message}`)),
   refreshAffiliateAll: () =>
     refreshAffiliateAll().catch((error) => setStatus(`Affiliate full refresh failed: ${error.message}`)),
+  refreshAffiliatePartnerHealth: () => {
+    renderAffiliatePartnerHealth();
+    setStatus("Affiliate partner health refreshed.");
+  },
+  checkAffiliatePartnerTarget: () =>
+    checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`)),
   runAffiliateFullAudit: () =>
     runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`)),
   runCommissionReadiness: () => {
@@ -3274,3 +3355,4 @@ if (affiliateAlertSeverityNode) {
 
 initializeOwnerSecurity();
 renderAiSuggestionsFeed();
+renderAffiliatePartnerHealth();

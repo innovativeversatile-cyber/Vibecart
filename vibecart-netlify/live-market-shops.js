@@ -1,4 +1,5 @@
 (function () {
+  var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
   var params = new URLSearchParams(window.location.search || "");
   var requested = String(params.get("cat") || "").trim();
   var topCta = document.getElementById("openFullMarketplaceTop");
@@ -278,6 +279,20 @@
         if (searchStatus) {
           searchStatus.textContent = "Please accept the marketplace disclaimer first.";
         }
+        return;
+      }
+      try {
+        localStorage.setItem(
+          AFFILIATE_LAST_CLICK_KEY,
+          JSON.stringify({
+            at: new Date().toISOString(),
+            source: "live-market-shops",
+            shop: String(shop.name || ""),
+            target: String(shop.url || "")
+          })
+        );
+      } catch {
+        /* ignore */
       }
     });
     return a;

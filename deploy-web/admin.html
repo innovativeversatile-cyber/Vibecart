@@ -312,6 +312,20 @@
         <h4>Affiliate Live Status</h4>
         <div id="affiliateSessionState" class="ai-result">Owner session: checking...</div>
         <div id="affiliateQuickStats" class="ai-result"></div>
+        <h4>Affiliate Partner Health</h4>
+        <p class="note">Quick partner signal: last click, target URL, and live reachability probe.</p>
+        <div class="admin-grid">
+          <label>Last tracked affiliate click</label>
+          <input id="affiliatePartnerLastClick" type="text" readonly />
+
+          <label>Last tracked redirect target</label>
+          <input id="affiliatePartnerTarget" type="text" readonly />
+        </div>
+        <div class="hero-actions">
+          <button id="refreshAffiliatePartnerHealth" type="button" class="btn btn-secondary">Refresh Partner Health</button>
+          <button id="checkAffiliatePartnerTarget" type="button" class="btn btn-secondary">Check Target Reachability</button>
+        </div>
+        <div id="affiliatePartnerHealthStatus" class="ai-result">Partner health: no click data yet.</div>
         <div class="hero-actions">
           <button id="refreshAffiliateAll" type="button" class="btn btn-primary">Refresh All Affiliate Data</button>
           <button id="runAffiliateFullAudit" type="button" class="btn btn-primary">Run Full Affiliate Audit</button>

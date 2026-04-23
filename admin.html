@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>VibeCart Owner Panel</title>
-    <link rel="stylesheet" href="./styles.css?v=20260421lang5" />
+    <link rel="stylesheet" href="./styles.css?v=20260426biz4" />
   </head>
   <body class="admin-surface">
     <header class="topbar">
@@ -60,6 +60,10 @@
             <p class="note">Last Sync</p>
             <h3 id="cmdSync">not yet</h3>
           </article>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-secondary" href="#moneyBookkeepingHub">Open Money &amp; Bookkeeping Chip</a>
+          <a class="btn btn-secondary" href="#affiliateGrowthHub">Open Affiliate Growth Hub</a>
         </div>
         <div class="kpi-strip">
           <article class="kpi-card">
@@ -177,9 +181,9 @@
         </div>
 
         <h3>AI Suggestions Feed</h3>
-        <p class="note">Track ideas as todo, in progress, or done. Run pending demos automatically.</p>
+        <p class="note">Track ideas as todo, in progress, or done. Move pending items into active work quickly.</p>
         <div class="hero-actions">
-          <button id="runPendingDemos" type="button" class="btn btn-secondary">Run Pending Demos</button>
+          <button id="runPendingDemos" type="button" class="btn btn-secondary">Start Pending Work</button>
           <button id="clearDoneSuggestions" type="button" class="btn btn-secondary">Clear Done</button>
         </div>
         <div id="aiSuggestionsFeed" class="messages-box"></div>
@@ -275,6 +279,7 @@
         </div>
         <div class="hero-actions">
           <button id="refreshOwnerRevenueDashboard" type="button" class="btn btn-primary">Refresh Owner Revenue</button>
+          <a href="./affiliate-dashboard.html" class="btn btn-secondary">Affiliate Dashboard</a>
         </div>
         <div class="admin-grid">
           <label>Payout Request Amount (EUR)</label>
@@ -304,6 +309,204 @@
         <div id="ownerRevenueSummary" class="ai-result"></div>
         <div id="ownerRevenueSources" class="messages-box"></div>
         <div id="ownerPayoutHistory" class="messages-box"></div>
+        <h4>Affiliate Live Status</h4>
+        <div id="affiliateSessionState" class="ai-result">Owner session: checking...</div>
+        <div id="affiliateQuickStats" class="ai-result"></div>
+        <h4>Affiliate Partner Health</h4>
+        <p class="note">Quick partner signal: last click, target URL, and live reachability probe.</p>
+        <div class="admin-grid">
+          <label>Last tracked affiliate click</label>
+          <input id="affiliatePartnerLastClick" type="text" readonly />
+
+          <label>Last tracked redirect target</label>
+          <input id="affiliatePartnerTarget" type="text" readonly />
+        </div>
+        <div class="hero-actions">
+          <button id="refreshAffiliatePartnerHealth" type="button" class="btn btn-secondary">Refresh Partner Health</button>
+          <button id="checkAffiliatePartnerTarget" type="button" class="btn btn-secondary">Check Target Reachability</button>
+        </div>
+        <div id="affiliatePartnerHealthStatus" class="ai-result">Partner health: no click data yet.</div>
+        <div class="hero-actions">
+          <button id="refreshAffiliateAll" type="button" class="btn btn-primary">Refresh All Affiliate Data</button>
+          <button id="runAffiliateFullAudit" type="button" class="btn btn-primary">Run Full Affiliate Audit</button>
+          <button id="refreshAffiliateReconciliation" type="button" class="btn btn-secondary">Refresh Affiliate Reconciliation</button>
+          <button id="runAffiliateLinkHealth" type="button" class="btn btn-secondary">Run Affiliate Link Health</button>
+          <button id="clearAffiliateTrendHistory" type="button" class="btn btn-secondary">Clear Trend History</button>
+          <button id="resetAffiliateAuditState" type="button" class="btn btn-secondary">Reset Audit State</button>
+          <button id="copyAffiliateReport" type="button" class="btn btn-secondary">Copy Affiliate Report</button>
+          <button id="exportAffiliateReportJson" type="button" class="btn btn-secondary">Export Affiliate JSON</button>
+        </div>
+        <div id="affiliateLastSync" class="ai-result">Last sync: not yet.</div>
+        <div id="affiliateAlertBanner" class="ai-result">Alerts: none.</div>
+        <div class="admin-grid">
+          <label>Alert severity notifications</label>
+          <select id="affiliateAlertSeverityMode">
+            <option value="red_only">Red only</option>
+            <option value="yellow_and_red">Yellow + Red</option>
+          </select>
+        </div>
+        <div id="affiliateReadinessScore" class="ai-result">Readiness: not scored yet.</div>
+        <div id="affiliateRecommendedActions" class="ai-result">Recommended actions: run full affiliate audit.</div>
+        <h4 id="affiliateGrowthHub">Commission Readiness</h4>
+        <p class="note">End-to-end checks for earning your cut: tracking -> conversion -> commission -> payout.</p>
+        <div class="hero-actions">
+          <button id="runCommissionReadiness" type="button" class="btn btn-primary">Run Commission Readiness Check</button>
+        </div>
+        <div id="commissionReadinessScore" class="ai-result">Commission readiness: not evaluated yet.</div>
+        <div id="commissionReadinessActions" class="ai-result">Actions: run a commission readiness check.</div>
+        <div id="commissionReadinessChecks" class="messages-box"></div>
+        <h4>Commission-Validated Offer Gate</h4>
+        <p class="note">
+          Complete all 5 steps before an offer is marked commission-validated and safe to launch.
+        </p>
+        <div class="admin-grid">
+          <label>Affiliate Program</label>
+          <select id="affiliateProgramSelect"></select>
+
+          <label>Offer / Placement Name</label>
+          <input id="affiliateOfferName" type="text" placeholder="Example: Homepage Fashion Lane" />
+
+          <label>Tracking URL</label>
+          <input id="affiliateOfferUrl" type="url" placeholder="https://network.example/track?..." />
+
+          <label>Offer Status at Launch</label>
+          <select id="affiliateOfferStatus">
+            <option value="traffic_only" selected>YELLOW - Traffic-only (no commission yet)</option>
+            <option value="commission_enabled">GREEN - Commission enabled</option>
+            <option value="blocked">RED - Blocked</option>
+          </select>
+        </div>
+        <div class="admin-grid">
+          <label><input id="affStep1" type="checkbox" /> 1) Program approved</label>
+          <label><input id="affStep2" type="checkbox" /> 2) Tracking link tested end-to-end</label>
+          <label><input id="affStep3" type="checkbox" /> 3) SubID/source mapping configured</label>
+          <label><input id="affStep4" type="checkbox" /> 4) Payout terms and window confirmed</label>
+          <label><input id="affStep5" type="checkbox" /> 5) Compliance/legal notes saved</label>
+        </div>
+        <div class="hero-actions">
+          <button id="markOfferCommissionValidated" type="button" class="btn btn-primary">Mark Offer Commission-Validated</button>
+          <button id="resetOfferValidationSteps" type="button" class="btn btn-secondary">Reset 5 Steps</button>
+        </div>
+        <div id="commissionValidationStatus" class="ai-result">Offer validation: complete all 5 steps.</div>
+        <div id="offerLaunchPolicyStatus" class="ai-result">
+          Launch policy: traffic-first mode enabled. Unsafe links blocked; non-commission offers run as traffic-only.
+        </div>
+        <div id="affiliateProgramSignupList" class="messages-box"></div>
+        <div id="commissionValidatedOffersList" class="messages-box"></div>
+        <h4>Affiliate Outreach Inbox</h4>
+        <p class="note">
+          Generate partnership application emails, save drafts to inbox, and send through your default email app.
+        </p>
+        <div class="admin-grid">
+          <label>Partner for Outreach</label>
+          <select id="outreachPartnerSelect"></select>
+
+          <label>Partner Contact Email (if provided)</label>
+          <input id="outreachPartnerEmail" type="email" placeholder="affiliate-team@partner.com" />
+
+          <label>Your Reply Email</label>
+          <input id="outreachReplyEmail" type="email" placeholder="partnerships@yourdomain.com" />
+
+          <label>Your Name</label>
+          <input id="outreachOwnerName" type="text" placeholder="Your full name" />
+
+          <label>Email Draft Type</label>
+          <select id="outreachDraftType">
+            <option value="initial_application">Initial application</option>
+            <option value="traffic_update">Traffic update follow-up</option>
+            <option value="approval_followup">Approval follow-up</option>
+          </select>
+
+          <label>Traffic Clicks (for follow-up draft)</label>
+          <input id="outreachTrafficClicks" type="number" min="0" value="0" />
+
+          <label>Traffic Regions (comma separated)</label>
+          <input id="outreachTrafficRegions" type="text" value="Africa, Europe" />
+
+          <label>Email Subject</label>
+          <input id="outreachSubject" type="text" />
+
+          <label>Email Body</label>
+          <textarea id="outreachBody"></textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="generateOutreachDraft" type="button" class="btn btn-secondary">Generate Draft</button>
+          <button id="saveOutreachToInbox" type="button" class="btn btn-secondary">Save Draft to Inbox</button>
+          <button id="sendOutreachEmail" type="button" class="btn btn-primary">Send via Email App</button>
+          <button id="saveSelectedOutreachToInbox" type="button" class="btn btn-secondary">Save Selected Partners to Inbox</button>
+          <button id="sendSelectedOutreachEmail" type="button" class="btn btn-secondary">Send Selected (first with email)</button>
+        </div>
+        <div id="outreachStatus" class="ai-result">Outreach inbox ready.</div>
+        <div id="partnerOutreachList" class="messages-box"></div>
+        <h4 id="moneyBookkeepingHub">Money Dashboard</h4>
+        <p class="note">Live earning view across click-outs, conversion quality, estimated commission, and payout forecast.</p>
+        <div class="hero-actions">
+          <button id="refreshMoneyDashboard" type="button" class="btn btn-primary">Refresh Money Dashboard</button>
+          <button id="toggleLiveMoneyDashboard" type="button" class="btn btn-secondary">Live Auto-Refresh: Off</button>
+        </div>
+        <div id="moneyDashboardLiveStatus" class="ai-result">Live money dashboard: idle.</div>
+        <div id="moneyDashboardSummary" class="ai-result">Money dashboard: run refresh.</div>
+        <div id="moneyDashboardBreakdown" class="messages-box"></div>
+        <h4>AI Bookkeeping Chip</h4>
+        <p class="note">
+          Records bookkeeping events from day one (local owner ledger). Export anytime for accountant handoff.
+        </p>
+        <div class="admin-grid">
+          <label>Bookkeeping Note</label>
+          <input id="bookkeepingNoteInput" type="text" placeholder="Example: Partner payout verified for week 18." />
+
+          <label>Bookkeeping Type</label>
+          <select id="bookkeepingTypeInput">
+            <option value="commission">commission</option>
+            <option value="payout">payout</option>
+            <option value="subscription">subscription</option>
+            <option value="ops_note">ops_note</option>
+          </select>
+
+          <label>Amount (EUR, optional)</label>
+          <input id="bookkeepingAmountInput" type="number" step="0.01" min="0" placeholder="Optional amount" />
+        </div>
+        <div class="hero-actions">
+          <button id="addBookkeepingEntry" type="button" class="btn btn-secondary">Add Bookkeeping Entry</button>
+          <button id="exportBookkeepingLedger" type="button" class="btn btn-secondary">Export Bookkeeping JSON</button>
+          <button id="generateMonthlyBookkeepingReport" type="button" class="btn btn-secondary">Generate Monthly Report</button>
+          <button id="clearBookkeepingLedger" type="button" class="btn btn-secondary">Reset Ledger</button>
+        </div>
+        <div id="bookkeepingChipStatus" class="ai-result">AI bookkeeping chip active. Waiting for first entry.</div>
+        <div id="bookkeepingLedgerList" class="messages-box"></div>
+        <div id="bookkeepingMonthlyReport" class="messages-box"></div>
+        <h4>Partner Security Hardening</h4>
+        <p class="note">Use this to lock partner standards and reduce fraud, callback spoofing, and payout risk.</p>
+        <div class="hero-actions">
+          <button id="runPartnerSecurityCheck" type="button" class="btn btn-primary">Run Partner Security Check</button>
+          <button id="generatePartnerOnboardingTemplate" type="button" class="btn btn-secondary">Generate Partner Onboarding Template</button>
+        </div>
+        <div id="partnerSecurityStatus" class="ai-result">Partner security status: run check.</div>
+        <div id="partnerSecurityChecklist" class="messages-box"></div>
+        <div id="partnerOnboardingTemplate" class="messages-box"></div>
+        <h4>Top-Class Subscription Experience</h4>
+        <p class="note">Optional premium tier with sophisticated visuals, AI concierge, and priority lane benefits.</p>
+        <div class="admin-grid">
+          <label>Enable Top-Class Subscription</label>
+          <select id="premiumPlanEnabled">
+            <option value="1">Enabled</option>
+            <option value="0">Disabled</option>
+          </select>
+
+          <label>Top-Class Plan Price (EUR/month)</label>
+          <input id="premiumPlanPrice" type="number" min="1" max="500" step="0.01" value="39.99" />
+
+          <label>Top-Class Benefits</label>
+          <textarea id="premiumPlanBenefits">AI concierge responses, priority support lane, premium discovery layout, and luxury account badge.</textarea>
+        </div>
+        <div class="hero-actions">
+          <button id="savePremiumPlanSettings" type="button" class="btn btn-primary">Save Premium Plan</button>
+        </div>
+        <div id="premiumPlanStatus" class="ai-result">Premium plan: not configured.</div>
+        <div id="affiliateReconciliationReport" class="ai-result"></div>
+        <div id="affiliateLinkHealthSummary" class="ai-result">Link health: run check to view totals.</div>
+        <div id="affiliateLinkHealthTrend" class="ai-result">Link health trend (last 7): no history yet.</div>
+        <div id="affiliateLinkHealthReport" class="messages-box"></div>
 
         <hr />
         <h3>Trust Score Manager</h3>
@@ -509,6 +712,6 @@
       </section>
     </main>
 
-    <script src="./admin.js?v=20260419apibase1"></script>
+    <script src="./admin.js?v=20260422affemail1"></script>
   </body>
 </html>
