@@ -1778,7 +1778,7 @@ function renderBridgePathProducts(pathProducts) {
       <h3>${escapeHtml(title)}</h3>
       <p class="price">${escapeHtml(currency)} ${escapeHtml(Number(item.basePrice || 0).toFixed(2))}</p>
       <p>Shop: ${escapeHtml(shopName)} | Ships from ${escapeHtml(origin)}</p>
-      <button class="btn btn-primary buy-now-btn" data-title="${escapeHtml(title)}" data-price="${Number(item.basePrice || 0)}">Buy in 1 Click</button>
+      <button class="btn btn-primary buy-now-btn" data-title="${escapeHtml(title)}" data-price="${Number(item.basePrice || 0)}">Open shop</button>
     `;
     productsGrid.appendChild(node);
   });
