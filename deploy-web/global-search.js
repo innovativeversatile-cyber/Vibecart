@@ -9,6 +9,7 @@
     { title: "Service provider hub", url: "./service-provider-hub.html", keywords: "provider business booking payment deposit barber salon" },
     { title: "Fashion trends lane", url: "./fashion-trends.html", keywords: "fashion trends outfits style runway clothes shoes" },
     { title: "Live market shops", url: "./live-market-shops.html", keywords: "market shops fashion electronics books gaming affiliate" },
+    { title: "World shop experience", url: "./world-shop-experience.html", keywords: "world shop experience preview lanes" },
     { title: "Popular market", url: "./popular-market.html", keywords: "popular market categories" },
     { title: "Live market folders", url: "./live-market.html", keywords: "live market folders" },
     { title: "Regional shops", url: "./regional-shops.html", keywords: "africa europe asia regional shops folders" },

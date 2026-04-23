@@ -127,6 +127,62 @@
     window.location.assign("./global-search.html?q=" + encodeURIComponent(q));
   });
 
+  function initLaneScrollRestore() {
+    var key = "vibecart-scroll-y:" + String(window.location.pathname || "/");
+    var navFlag = "vibecart-restore-next";
+    try {
+      var navEntries = window.performance && performance.getEntriesByType ? performance.getEntriesByType("navigation") : [];
+      var navType = navEntries && navEntries[0] ? String(navEntries[0].type || "") : "";
+      var shouldRestore = navType === "back_forward" || sessionStorage.getItem(navFlag) === "1";
+      if (shouldRestore) {
+        var raw = sessionStorage.getItem(key);
+        var y = Number(raw || "0");
+        if (Number.isFinite(y) && y > 0) {
+          window.setTimeout(function () {
+            window.scrollTo({ top: y, left: 0, behavior: "auto" });
+          }, 0);
+        }
+      }
+      sessionStorage.removeItem(navFlag);
+    } catch {
+      /* ignore */
+    }
+
+    window.addEventListener(
+      "scroll",
+      function () {
+        try {
+          sessionStorage.setItem(key, String(Math.max(0, Math.round(window.scrollY || 0))));
+        } catch {
+          /* ignore */
+        }
+      },
+      { passive: true }
+    );
+
+    document.addEventListener(
+      "click",
+      function (event) {
+        var target = event.target;
+        var anchor = target && target.closest ? target.closest("a[href]") : null;
+        if (!anchor) {
+          return;
+        }
+        var href = String(anchor.getAttribute("href") || "").trim();
+        if (!href || href[0] === "#" || /^javascript:/i.test(href) || /^mailto:/i.test(href) || /^tel:/i.test(href)) {
+          return;
+        }
+        try {
+          sessionStorage.setItem(key, String(Math.max(0, Math.round(window.scrollY || 0))));
+          sessionStorage.setItem(navFlag, "1");
+        } catch {
+          /* ignore */
+        }
+      },
+      true
+    );
+  }
+
   function applyLuxeClasses(on) {
     document.body.classList.toggle("vc-luxe-on", !!on);
     document.body.classList.toggle("vc-luxe-off", !on);
@@ -461,6 +517,7 @@
   }
 
   bootLuxeMode();
+  initLaneScrollRestore();
   var sceneDirector = initSceneDirector();
   initRevealEffects();
   initPointerAmbience();

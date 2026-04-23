@@ -31,6 +31,7 @@ const OFFLINE_URLS = [
   "./plan-workspace.html",
   "./plan-workspace.js",
   "./live-market.html",
+  "./world-shop-experience.html",
   "./popular-market.html",
   "./live-market-shops.html",
   "./live-market-shops.js",
