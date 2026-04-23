@@ -388,6 +388,9 @@ a {
   gap: 0.45rem;
   font-size: 0.82rem;
   color: var(--muted);
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
 }
 
 .topbar-lang label {
@@ -402,6 +405,9 @@ a {
   padding: 0.38rem 0.55rem;
   font: inherit;
   min-width: 8.5rem;
+  position: relative;
+  z-index: 61;
+  pointer-events: auto;
 }
 
 .locale-suggest-banner {

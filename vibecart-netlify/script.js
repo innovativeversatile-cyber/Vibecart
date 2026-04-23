@@ -325,6 +325,23 @@ function initFashionTrendsRouteGuard() {
     true
   );
 }
+
+function initLanguageControlShield() {
+  if (!siteLanguage) {
+    return;
+  }
+  const topbarLang = siteLanguage.closest(".topbar-lang");
+  const halt = (event) => {
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+  };
+  ["pointerdown", "touchstart", "mousedown", "mouseup", "click"].forEach((type) => {
+    siteLanguage.addEventListener(type, halt, true);
+    topbarLang?.addEventListener(type, halt, true);
+  });
+}
 const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
 let pendingDisclaimerAction = null;
 let pendingDisclaimerCheckbox = null;
@@ -5598,6 +5615,7 @@ if (onboardingClose) {
 initBridgeAntiHijackGuard();
 initGlobalTapHijackGuard();
 initFashionTrendsRouteGuard();
+initLanguageControlShield();
 initVibecartLanePack();
 initPublicAccountAuth();
 loadTrustCards();

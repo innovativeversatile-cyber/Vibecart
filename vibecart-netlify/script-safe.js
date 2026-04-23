@@ -157,6 +157,23 @@
     // Keep language switching active in safe mode.
     var i18n = window.VibeCartI18n;
     var siteLanguage = document.getElementById("siteLanguage");
+    function shieldLanguageControl(selectEl) {
+      if (!selectEl) return;
+      var wrap = selectEl.closest ? selectEl.closest(".topbar-lang") : null;
+      var halt = function (event) {
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+      };
+      ["pointerdown", "touchstart", "mousedown", "mouseup", "click"].forEach(function (type) {
+        selectEl.addEventListener(type, halt, true);
+        if (wrap) {
+          wrap.addEventListener(type, halt, true);
+        }
+      });
+    }
+    shieldLanguageControl(siteLanguage);
     if (i18n) {
       var stored = i18n.getStored() || "en";
       if (siteLanguage) {
