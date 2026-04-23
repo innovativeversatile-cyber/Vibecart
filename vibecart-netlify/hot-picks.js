@@ -39,13 +39,24 @@
   }
 
   function safeTarget(url) {
-    var u = String(url || "").trim();
-    if (!u) return "";
-    var lower = u.toLowerCase();
+    var raw = String(url || "").trim();
+    if (!raw) return "";
+    var lower = raw.toLowerCase();
     if (lower.indexOf("javascript:") === 0 || lower.indexOf("data:") === 0 || lower.indexOf("vbscript:") === 0) {
       return "";
     }
-    return u;
+    var value = raw;
+    // Accept partner feeds that send bare domains like "example.com/path".
+    if (!/^https?:\/\//i.test(value) && /^[a-z0-9.-]+\.[a-z]{2,}(?:\/.*)?$/i.test(value)) {
+      value = "https://" + value;
+    }
+    try {
+      var parsed = new URL(value);
+      if (!/^https?:$/i.test(parsed.protocol)) return "";
+      return parsed.toString();
+    } catch {
+      return "";
+    }
   }
 
   function pickTargetUrl(p) {
@@ -141,7 +152,14 @@
     Array.prototype.slice.call(grid.querySelectorAll(".vc-hot-offer-link")).forEach(function (a) {
       if (a.dataset.boundAffClick === "1") return;
       a.dataset.boundAffClick = "1";
-      a.addEventListener("click", function () {
+      a.addEventListener("click", function (event) {
+        if (!a.getAttribute("data-aff-target")) {
+          event.preventDefault();
+          if (status) {
+            status.textContent = "Source URL is not available for this offer yet. Try another live pick.";
+          }
+          return;
+        }
         try {
           localStorage.setItem(
             AFFILIATE_LAST_CLICK_KEY,
