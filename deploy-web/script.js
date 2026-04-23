@@ -343,6 +343,35 @@ function initLanguageControlShield() {
   });
 }
 
+function initTopbarSearchShield() {
+  var form = document.getElementById("shopSearchForm");
+  if (!form) {
+    return;
+  }
+  var controls = [form, document.getElementById("shopSearchInput"), form.querySelector("button[type='submit']")].filter(Boolean);
+  var halt = function (event) {
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+  };
+  ["pointerdown", "touchstart", "mousedown", "mouseup", "click"].forEach(function (type) {
+    controls.forEach(function (el) {
+      el.addEventListener(type, halt, true);
+    });
+  });
+  form.addEventListener(
+    "submit",
+    function (event) {
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+    },
+    true
+  );
+}
+
 function initScrollPositionRestore() {
   var key = "vibecart-scroll-y:" + String(window.location.pathname || "/");
   var navFlag = "vibecart-restore-next";
@@ -1207,8 +1236,20 @@ function initSignatureRitual() {
   if (!vcSignatureRitual || !vcRitualDismiss) {
     return;
   }
-  vcRitualDismiss.addEventListener("click", () => hideSignatureRitual());
+  vcRitualDismiss.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === "function") {
+      event.stopImmediatePropagation();
+    }
+    hideSignatureRitual();
+  });
   vcSignatureRitual.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === "function") {
+      e.stopImmediatePropagation();
+    }
     if (e.target === vcSignatureRitual) {
       hideSignatureRitual();
     }
@@ -5672,6 +5713,7 @@ initBridgeAntiHijackGuard();
 initGlobalTapHijackGuard();
 initFashionTrendsRouteGuard();
 initLanguageControlShield();
+initTopbarSearchShield();
 initScrollPositionRestore();
 initVibecartLanePack();
 initPublicAccountAuth();

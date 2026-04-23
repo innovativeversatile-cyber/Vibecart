@@ -174,6 +174,34 @@
       });
     }
     shieldLanguageControl(siteLanguage);
+    (function shieldTopbarSearch() {
+      var form = document.getElementById("shopSearchForm");
+      if (!form) return;
+      var input = document.getElementById("shopSearchInput");
+      var btn = form.querySelector ? form.querySelector("button[type='submit']") : null;
+      var controls = [form, input, btn].filter(Boolean);
+      var halt = function (event) {
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+      };
+      ["pointerdown", "touchstart", "mousedown", "mouseup", "click"].forEach(function (type) {
+        controls.forEach(function (el) {
+          el.addEventListener(type, halt, true);
+        });
+      });
+      form.addEventListener(
+        "submit",
+        function (event) {
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+          }
+        },
+        true
+      );
+    })();
     if (i18n) {
       var stored = i18n.getStored() || "en";
       if (siteLanguage) {

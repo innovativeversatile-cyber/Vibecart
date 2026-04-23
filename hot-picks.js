@@ -29,28 +29,63 @@
   }
 
   function pickImage(p) {
-    return (
-      p.imageUrl ||
-      p.image_url ||
-      p.thumbnailUrl ||
-      p.thumbnail_url ||
-      "https://images.unsplash.com/photo-1514996937319-344454492b37?auto=format&fit=crop&w=900&h=600&q=75"
+    var direct = p.imageUrl || p.image_url || p.thumbnailUrl || p.thumbnail_url;
+    if (direct) {
+      return direct;
+    }
+    var seed = String(p.id || p.productId || p.name || p.title || p.category || "vibecart-hot").replace(/[^a-z0-9]+/gi, "-");
+    return "https://picsum.photos/seed/" + encodeURIComponent(seed) + "/900/600";
+  }
+
+  function safeTarget(url) {
+    var u = String(url || "").trim();
+    if (!u) return "";
+    var lower = u.toLowerCase();
+    if (lower.indexOf("javascript:") === 0 || lower.indexOf("data:") === 0 || lower.indexOf("vbscript:") === 0) {
+      return "";
+    }
+    return u;
+  }
+
+  function pickTargetUrl(p) {
+    return safeTarget(
+      p.shopUrl ||
+        p.shop_url ||
+        p.productUrl ||
+        p.product_url ||
+        p.targetUrl ||
+        p.target_url ||
+        p.url ||
+        p.link
     );
   }
 
-  function checkoutHref(p) {
+  function offerHref(p) {
     var item = String(p.name || p.title || "Marketplace item");
     var cat = productCategory(p) || "All";
     var id = String(p.id || p.productId || "").trim();
-    var href =
+    var target = pickTargetUrl(p);
+    if (target) {
+      return (
+        "/api/public/shop/redirect?shop=" +
+        encodeURIComponent(item) +
+        "&cat=" +
+        encodeURIComponent(cat) +
+        "&partner=" +
+        encodeURIComponent(item) +
+        "&target=" +
+        encodeURIComponent(target)
+      );
+    }
+    var fallback =
       "./checkout-details.html?flow=buy&plan=market&item=" +
       encodeURIComponent(item) +
       "&cat=" +
       encodeURIComponent(cat);
     if (id) {
-      href += "&productId=" + encodeURIComponent(id);
+      fallback += "&productId=" + encodeURIComponent(id);
     }
-    return href;
+    return fallback;
   }
 
   function render(items) {
@@ -60,6 +95,8 @@
       var cat = productCategory(p);
       var price = p.price != null ? String(p.price) : "";
       var currency = String(p.currency || "EUR");
+      var target = pickTargetUrl(p);
+      var ctaLabel = target ? "Open source website" : "View offer";
       var html =
         '<article class="card">' +
         '<img src="' +
@@ -75,8 +112,10 @@
         (price ? " · " + escapeHtml(currency + " " + price) : "") +
         "</p>" +
         '<p class="hero-actions"><a class="btn btn-primary" href="' +
-        escapeHtml(checkoutHref(p)) +
-        '">View offer</a></p>' +
+        escapeHtml(offerHref(p)) +
+        '">' +
+        escapeHtml(ctaLabel) +
+        "</a></p>" +
         "</article>";
       grid.insertAdjacentHTML("beforeend", html);
     });
