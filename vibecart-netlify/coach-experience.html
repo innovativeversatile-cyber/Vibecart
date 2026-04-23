@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coach package experience · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./wellbeing.html">← Coach packages</a>
+    <a class="btn btn-primary" id="coachProceedTop" href="./checkout-details.html?flow=coach&plan=starter">Proceed to checkout</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title" id="coachExpTitle">Coach package experience</h1>
+    <p class="note shops-lane-intro" id="coachExpIntro">
+      Preview what you get before payment: routine style, update cadence, and support depth.
+    </p>
+    <div class="grid cards" id="coachExperienceGallery">
+      <article class="card">
+        <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&h=600&q=75" alt="Workout preview" loading="lazy" />
+        <h3>Routine format</h3>
+        <p class="note" id="coachRoutineLine">Structured daily blocks with clear effort targets.</p>
+      </article>
+      <article class="card">
+        <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=900&h=600&q=75" alt="Nutrition preview" loading="lazy" />
+        <h3>Nutrition guidance</h3>
+        <p class="note" id="coachNutritionLine">Meal guidance depth depends on selected package level.</p>
+      </article>
+      <article class="card">
+        <img src="https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&h=600&q=75" alt="Progress dashboard preview" loading="lazy" />
+        <h3>Progress tracking</h3>
+        <p class="note" id="coachTrackingLine">Progress updates are reflected inside your plan workspace.</p>
+      </article>
+    </div>
+    <section style="margin-top:1rem">
+      <h2>Included in this package</h2>
+      <ul class="buyer-adv-list" id="coachExpFeatures"></ul>
+    </section>
+    <p class="hero-actions" style="margin-top:1rem">
+      <a class="btn btn-primary" id="coachProceedBottom" href="./checkout-details.html?flow=coach&plan=starter">Proceed to checkout</a>
+      <a class="btn btn-secondary" href="./wellbeing.html">Compare other packages</a>
+    </p>
+  </main>
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search || "");
+      var plan = String(params.get("plan") || "starter").trim().toLowerCase();
+      var map = {
+        "starter": {
+          title: "Starter Coach preview",
+          intro: "Starter gives weekly structure and simple check-in accountability.",
+          features: ["Weekly AI check-in", "Basic routine guidance", "Core reminders"],
+          routine: "3-4 structured sessions per week with gentle progression.",
+          nutrition: "Simple habits and hydration guidance.",
+          tracking: "Weekly milestones and consistency score."
+        },
+        "ai-home": {
+          title: "AI Home Workout preview",
+          intro: "AI Home Workout focuses on daily home-friendly sessions.",
+          features: ["Daily home workouts", "Adaptive intensity", "Daily nudges"],
+          routine: "Daily guided blocks designed for minimal equipment.",
+          nutrition: "Light fueling notes matched to session intensity.",
+          tracking: "Daily streak and completion snapshots."
+        },
+        "plus": {
+          title: "Coach Plus preview",
+          intro: "Plus adds deeper plan adaptation and wearable summary sync.",
+          features: ["Daily routines", "Wearable summary sync", "Faster plan updates"],
+          routine: "Personalized split with rest-day balancing.",
+          nutrition: "Expanded meal templates by goal type.",
+          tracking: "Weekly trend summary with corrective actions."
+        },
+        "pro": {
+          title: "Coach Pro preview",
+          intro: "Pro unlocks full-depth analytics and advanced support loops.",
+          features: ["Advanced analytics", "Deep reports", "Partner reward referrals"],
+          routine: "High-detail programming with load progression guidance.",
+          nutrition: "Macro-aware meal strategy with periodic recalibration.",
+          tracking: "Comprehensive dashboard and risk flags."
+        }
+      };
+      var cfg = map[plan] || map.starter;
+      document.getElementById("coachExpTitle").textContent = cfg.title;
+      document.getElementById("coachExpIntro").textContent = cfg.intro;
+      document.getElementById("coachRoutineLine").textContent = cfg.routine;
+      document.getElementById("coachNutritionLine").textContent = cfg.nutrition;
+      document.getElementById("coachTrackingLine").textContent = cfg.tracking;
+      var list = document.getElementById("coachExpFeatures");
+      list.innerHTML = "";
+      cfg.features.forEach(function (f) {
+        var li = document.createElement("li");
+        li.textContent = f;
+        list.appendChild(li);
+      });
+      var checkoutHref = "./checkout-details.html?flow=coach&plan=" + encodeURIComponent(plan);
+      document.getElementById("coachProceedTop").setAttribute("href", checkoutHref);
+      document.getElementById("coachProceedBottom").setAttribute("href", checkoutHref);
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

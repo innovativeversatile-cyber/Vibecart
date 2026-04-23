@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seller live preview · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./sell-journey.html">← Back to selling flow</a>
+    <a class="btn btn-primary" href="./seller-boost.html">Open Seller tools</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Seller live preview</h1>
+    <p class="note shops-lane-intro">
+      This is exactly what buyers will see before your listing goes live.
+    </p>
+    <article class="product" style="max-width: 38rem">
+      <h3 id="previewTitle">Draft listing title</h3>
+      <p class="price" id="previewCondition">Condition: -</p>
+      <p id="previewShipping">Shipping: -</p>
+      <p class="note">Publish from Seller Boost when details are complete and truthful.</p>
+    </article>
+    <p class="hero-actions" style="margin-top:1rem">
+      <a class="btn btn-primary" href="./seller-boost.html">Publish from Seller Boost</a>
+      <a class="btn btn-secondary" href="./live-market-shops.html?cat=Fashion">Open fashion live lane</a>
+    </p>
+  </main>
+  <script>
+    (function () {
+      try {
+        var raw = localStorage.getItem("vibecart-seller-preview-draft");
+        if (!raw) return;
+        var d = JSON.parse(raw);
+        document.getElementById("previewTitle").textContent = d.title || "Draft listing title";
+        document.getElementById("previewCondition").textContent = "Condition: " + (d.condition || "-");
+        var ship = [d.shippingMode || "-", d.shippingWindow || "-"].join(" · ");
+        document.getElementById("previewShipping").textContent = "Shipping: " + ship;
+      } catch {
+        /* ignore */
+      }
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

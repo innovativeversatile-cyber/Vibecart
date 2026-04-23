@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guided selling · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+  <link rel="stylesheet" href="./styles.css?v=20260422fashion1" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
@@ -25,30 +25,67 @@
     <div class="vc-flow-step-box" data-flow-step hidden>
       <h2>2 · Photos &amp; truth</h2>
       <p class="note">Hero shots, condition notes, and “photo = this unit” build first-order trust.</p>
+      <div class="ai-grid" style="margin-top: 0.75rem">
+        <label for="vcSellPhotos">Upload listing photos (demo — stored on this device only)</label>
+        <input id="vcSellPhotos" type="file" accept="image/*" multiple />
+        <label for="vcSellTitle">Working title</label>
+        <input id="vcSellTitle" type="text" maxlength="120" placeholder="Example: Vintage denim jacket — EU ship" />
+        <label for="vcSellCondition">Condition</label>
+        <select id="vcSellCondition">
+          <option>New with tags</option>
+          <option>Like new</option>
+          <option>Good — light wear</option>
+          <option>Fair — visible wear</option>
+        </select>
+      </div>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+        <button type="button" class="btn btn-primary" id="sellStep2Continue" data-flow-next>Continue</button>
       </p>
+      <p class="note" id="sellStep2Status" aria-live="polite"></p>
     </div>
 
     <div class="vc-flow-step-box" data-flow-step hidden>
       <h2>3 · Shipping band</h2>
       <p class="note">State realistic delivery windows — EU↔Africa often 7–21 days tracked; remote longer.</p>
+      <div class="ai-grid" style="margin-top: 0.75rem">
+        <label for="vcSellShipMode">Shipping mode</label>
+        <select id="vcSellShipMode">
+          <option value="">Select shipping mode</option>
+          <option value="tracked">Tracked courier (recommended)</option>
+          <option value="economy">Economy parcel</option>
+          <option value="pickup">Local pickup</option>
+        </select>
+        <label for="vcSellShipWindow">Estimated delivery window</label>
+        <select id="vcSellShipWindow">
+          <option value="">Select realistic window</option>
+          <option value="3-7">3-7 days (local / domestic)</option>
+          <option value="7-21">7-21 days (cross-border tracked)</option>
+          <option value="21-35">21-35 days (remote routes)</option>
+        </select>
+      </div>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+        <button type="button" class="btn btn-primary" id="sellStep3Continue" data-flow-next>Continue</button>
       </p>
+      <p class="note" id="sellStep3Status" aria-live="polite"></p>
     </div>
 
     <div class="vc-flow-step-box" data-flow-step hidden>
-      <h2>4 · Publish on the hub</h2>
-      <p class="note">Listing health meters and seller tools live on the main page — your step state is cleared when you tap Done.</p>
+      <h2>4 · Broadcast to buyers</h2>
+      <p class="note">
+        Preview your lane, then open the live marketplace grid so shoppers can see your drop alongside route-trusted
+        listings. Sign in from the seller hub when you are ready for payouts.
+      </p>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <a class="btn btn-primary" href="./index.html?flow=sell#sell" data-flow-done>Open seller hub</a>
+        <a class="btn btn-secondary" href="./seller-boost.html">Seller tools</a>
+        <a class="btn btn-primary" id="sellPreviewBtn" href="./seller-live-preview.html" data-flow-done>Preview live market</a>
       </p>
     </div>
   </main>
   <script src="./flow-shell.js?v=20260419haptic1" defer></script>
+  <script src="./sell-journey.js?v=20260423sellerflow1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

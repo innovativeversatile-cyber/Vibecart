@@ -40,17 +40,35 @@
       </div>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+        <button type="button" class="btn btn-primary" id="sellStep2Continue" data-flow-next>Continue</button>
       </p>
+      <p class="note" id="sellStep2Status" aria-live="polite"></p>
     </div>
 
     <div class="vc-flow-step-box" data-flow-step hidden>
       <h2>3 · Shipping band</h2>
       <p class="note">State realistic delivery windows — EU↔Africa often 7–21 days tracked; remote longer.</p>
+      <div class="ai-grid" style="margin-top: 0.75rem">
+        <label for="vcSellShipMode">Shipping mode</label>
+        <select id="vcSellShipMode">
+          <option value="">Select shipping mode</option>
+          <option value="tracked">Tracked courier (recommended)</option>
+          <option value="economy">Economy parcel</option>
+          <option value="pickup">Local pickup</option>
+        </select>
+        <label for="vcSellShipWindow">Estimated delivery window</label>
+        <select id="vcSellShipWindow">
+          <option value="">Select realistic window</option>
+          <option value="3-7">3-7 days (local / domestic)</option>
+          <option value="7-21">7-21 days (cross-border tracked)</option>
+          <option value="21-35">21-35 days (remote routes)</option>
+        </select>
+      </div>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+        <button type="button" class="btn btn-primary" id="sellStep3Continue" data-flow-next>Continue</button>
       </p>
+      <p class="note" id="sellStep3Status" aria-live="polite"></p>
     </div>
 
     <div class="vc-flow-step-box" data-flow-step hidden>
@@ -61,12 +79,13 @@
       </p>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <a class="btn btn-secondary" href="./index.html#sell">Seller tools on home</a>
-        <a class="btn btn-primary" href="./index.html?cat=Fashion&amp;instant=1&amp;flow=browse#market" data-flow-done>Preview live market</a>
+        <a class="btn btn-secondary" href="./seller-boost.html">Seller tools</a>
+        <a class="btn btn-primary" id="sellPreviewBtn" href="./seller-live-preview.html" data-flow-done>Preview live market</a>
       </p>
     </div>
   </main>
   <script src="./flow-shell.js?v=20260419haptic1" defer></script>
+  <script src="./sell-journey.js?v=20260423sellerflow1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>
