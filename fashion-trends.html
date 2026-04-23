@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Fashion trends · VibeCart</title>
+    <meta name="theme-color" content="#1a0f24" />
+    <link rel="stylesheet" href="./styles.css?v=20260422fashion1" />
+  </head>
+  <body class="shops-lane-page vc-fashion-trends-page">
+    <header class="shops-lane-topbar">
+      <a class="btn btn-secondary" href="./index.html">← Home</a>
+      <span class="note" style="margin: 0">Fashion-only lane</span>
+    </header>
+
+    <section class="vc-fashion-hero" aria-label="Moving trend spotlight">
+      <div class="vc-fashion-hero-inner">
+        <p class="vc-fashion-hero-eyebrow">Slide show · tap the button to open that drop</p>
+        <div id="vcFashionHeroStage" class="vc-fashion-hero-stage">
+          <div id="vcFashionHeroVisual" class="vc-fashion-hero-visual" aria-hidden="true"></div>
+          <div class="vc-fashion-hero-copy">
+            <h1 id="vcFashionHeroTitle" class="vc-fashion-hero-title">Loading trend…</h1>
+            <p id="vcFashionHeroLine" class="vc-fashion-hero-line"></p>
+            <a id="vcFashionHeroCta" class="btn btn-primary" href="#" rel="noopener noreferrer" target="_blank">Open this trend</a>
+          </div>
+        </div>
+        <div id="vcFashionHeroDots" class="vc-fashion-hero-dots" role="tablist" aria-label="Trend scenes"></div>
+      </div>
+    </section>
+
+    <main class="section alt shops-lane-main">
+      <h2 class="shops-lane-title">Fashion stores for your region</h2>
+      <p class="note">
+        No electronics, books, or gaming mix on this page — only fashion retailers we route by your lane. Tap a card to
+        shop that store in a new tab.
+      </p>
+      <p class="note">
+        <label for="vcFashionRegionSelect">Region focus</label>
+        <select id="vcFashionRegionSelect" class="vc-fashion-region-select" aria-label="Fashion region">
+          <option value="auto">Auto (from device)</option>
+          <option value="eu">Europe</option>
+          <option value="za">South Africa</option>
+          <option value="ke">Kenya</option>
+          <option value="zw">Zimbabwe</option>
+          <option value="gulf">Gulf</option>
+          <option value="asia">Asia</option>
+        </select>
+      </p>
+      <div id="vcFashionStoreGrid" class="grid shop-grid"></div>
+
+      <h2 class="shops-lane-title" style="margin-top: 2rem">Micro-trends · outfit destinations</h2>
+      <p class="note">Each tile jumps to a curated category or editorial drop on a real fashion retailer.</p>
+      <div id="vcFashionMicroGrid" class="vc-fashion-micro-grid"></div>
+    </main>
+
+    <script src="./fashion-trends.js?v=20260422fashion1" defer></script>
+    <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+  </body>
+</html>

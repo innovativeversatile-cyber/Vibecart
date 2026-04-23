@@ -279,6 +279,8 @@ async function recordAffiliateReferral(db, payload) {
   if (!partnerId || !referenceCode) {
     throw new Error("Missing affiliate referral fields.");
   }
+  const conversion = String(conversionType || "signup").trim().toLowerCase();
+  const safeCommission = toMoney(commissionAmount);
   const [result] = await db.execute(
     `INSERT INTO affiliate_referrals (
       partner_id, referred_user_id, reference_code, conversion_type, conversion_value, commission_amount, currency, status
@@ -287,19 +289,24 @@ async function recordAffiliateReferral(db, payload) {
       Number(partnerId),
       referredUserId ? Number(referredUserId) : null,
       String(referenceCode).trim(),
-      String(conversionType || "signup"),
+      conversion,
       toMoney(conversionValue),
-      toMoney(commissionAmount),
+      safeCommission,
       String(currency || "EUR").trim().toUpperCase()
     ]
   );
 
-  await db.execute(
-    `INSERT INTO platform_revenue_entries (
-      source_type, source_id, gross_amount, tax_withheld_amount, net_amount, currency, recognized_at
-    ) VALUES ('affiliate_commission', ?, ?, 0.00, ?, ?, NOW())`,
-    [result.insertId, toMoney(commissionAmount), toMoney(commissionAmount), String(currency || "EUR").trim().toUpperCase()]
-  );
+  const isConfirmed = conversion.indexOf("purchase_confirmed") === 0;
+  const isReversed = conversion.indexOf("purchase_reversed") === 0;
+  if (isConfirmed || isReversed) {
+    const signedCommission = isReversed ? toMoney(-Math.abs(safeCommission)) : safeCommission;
+    await db.execute(
+      `INSERT INTO platform_revenue_entries (
+        source_type, source_id, gross_amount, tax_withheld_amount, net_amount, currency, recognized_at
+      ) VALUES ('affiliate_commission', ?, ?, 0.00, ?, ?, NOW())`,
+      [result.insertId, signedCommission, signedCommission, String(currency || "EUR").trim().toUpperCase()]
+    );
+  }
 
   return { ok: true, affiliateReferralId: result.insertId };
 }

@@ -30,6 +30,7 @@
       "nav.hot": "Hot Picks",
       "nav.rewards": "Rewards",
       "nav.insurance": "Insurance",
+      "nav.wellbeing": "Health coach",
       "nav.security": "Security",
       "nav.settings": "Settings",
       "nav.account": "Account",
@@ -196,8 +197,6 @@
       "transparency.updated": "Loaded {time} · illustrative where live data is thin.",
       "settingsHub.uiSound": "Subtle UI sound (one soft chime when opening a shop folder — off by default)",
       "settingsHub.calmMoment": "Calm moment after browsing (one short screen per session — skips automatically with reduced motion)",
-      "settingsHub.skipReceipt":
-        "Skip receipt rehearsal before one-click checkout (pro — off by default)",
       "accountPassport.title": "Lane passport",
       "accountPassport.tagline": "Create once. Shop or sell with the same secure session.",
       "accountPassport.honest":
@@ -218,6 +217,8 @@
       "accountPassport.country": "Country",
       "accountPassport.useBridge": "Match my bridge destination",
       "accountPassport.submitCreate": "Create passport",
+      "accountPassport.creating": "Creating your account…",
+      "accountPassport.redirectingPassport": "Success — opening your passport page…",
       "accountPassport.loginLead": "Use the email and password from when you created your passport.",
       "accountPassport.submitLogin": "Sign in",
       "accountPassport.pwShort": "Add characters — minimum 8.",
@@ -227,6 +228,9 @@
       "accountPassport.meta": "{email} · {role} · {country}",
       "accountPassport.roleBuyerLabel": "Buyer",
       "accountPassport.roleSellerLabel": "Seller",
+      "accountPassport.errMissingFields":
+        "Please add a display name (2+ letters), a valid email, a password with at least 8 characters, and pick your country.",
+      "accountPassport.errInvalidEmail": "That email does not look valid — check for typos.",
       "accountPassport.errGeneric": "Something went wrong. Try again.",
       "accountPassport.err409": "That email is already registered — switch to Sign in.",
       "accountPassport.err401": "Check email and password.",
@@ -257,19 +261,6 @@
         "Repeat-lane buyer rate: published when aggregate stats are available — we do not invent percentages.",
       "passportStamp.earned":
         "Bridge passport stamp: earned after your first cross-border order on this device.",
-      "receipt.title": "Receipt rehearsal",
-      "receipt.lead":
-        "Plain language summary — not a tax invoice. Confirm before we place the order.",
-      "receipt.item": "Item",
-      "receipt.price": "Listed price",
-      "receipt.lane": "Active lane",
-      "receipt.buyer": "Buyer routing",
-      "receipt.ship": "Shipping method",
-      "receipt.returns": "Returns & disputes",
-      "receipt.returnsBody":
-        "Platform + seller policies apply; cross-border windows vary by category.",
-      "receipt.cancel": "Back",
-      "receipt.confirm": "Place order",
       "sealed.word": "Sealed.",
       "listingHealth.title": "Listing health",
       "listingHealth.lead": "Tick what is true — we never show a fake score, only completion.",
@@ -290,6 +281,7 @@
       "nav.hot": "Hity",
       "nav.rewards": "Nagrody",
       "nav.insurance": "Ubezpieczenie",
+      "nav.wellbeing": "Trener zdrowia",
       "nav.security": "Bezpieczeństwo",
       "nav.settings": "Ustawienia",
       "nav.sellerBoost": "Boost sprzedawcy",
@@ -383,6 +375,7 @@
       "nav.hot": "Tendances",
       "nav.rewards": "Récompenses",
       "nav.insurance": "Assurance",
+      "nav.wellbeing": "Coach santé",
       "nav.security": "Sécurité",
       "nav.settings": "Paramètres",
       "nav.sellerBoost": "Boost vendeur",
@@ -418,6 +411,7 @@
       "nav.hot": "Destaques",
       "nav.rewards": "Recompensas",
       "nav.insurance": "Seguros",
+      "nav.wellbeing": "Coach de saúde",
       "nav.security": "Segurança",
       "nav.settings": "Configurações",
       "nav.sellerBoost": "Impulso vendedor",
@@ -453,6 +447,7 @@
       "nav.hot": "Vinavyovutia",
       "nav.rewards": "Zawadi",
       "nav.insurance": "Bima",
+      "nav.wellbeing": "Kocha wa afya",
       "nav.security": "Usalama",
       "nav.settings": "Mipangilio",
       "nav.sellerBoost": "Kuongeza mauzo",
@@ -496,6 +491,7 @@
       "nav.hot": "الأكثر رواجًا",
       "nav.rewards": "المكافآت",
       "nav.insurance": "التأمين",
+      "nav.wellbeing": "مدرب الصحة",
       "nav.security": "الأمان",
       "nav.settings": "الإعدادات",
       "nav.sellerBoost": "دفع المبيعات",
@@ -811,7 +807,627 @@
     }
   };
 
+  // Phase 2: curated native-copy overrides for high-visibility UI.
+  const CURATED_NATIVE_OVERRIDES = {
+    zu: {
+      "nav.categories": "Izigaba",
+      "nav.shops": "Izitolo zesifunda",
+      "nav.hot": "Okudume kakhulu",
+      "nav.rewards": "Imivuzo",
+      "nav.insurance": "Umshuwalense",
+      "nav.wellbeing": "Umqeqeshi wezempilo",
+      "nav.security": "Ezokuphepha",
+      "nav.settings": "Izilungiselelo",
+      "nav.account": "I-akhawunti",
+      "nav.sellerBoost": "Ukukhulisa ukuthengisa",
+      "nav.sell": "Qala ukuthengisa",
+      "lang.label": "Ulimi",
+      "hero.badge": "Ibhuloho lohwebo lwe-Afrika-Europe-Asia",
+      "hero.title": "Thola okusha. Thenga ngokushesha. Thengisa emhlabeni wonke.",
+      "hero.shopNow": "Thenga manje",
+      "hero.listItem": "Faka umkhiqizo",
+      "hero.smartTour": "Qala ukuvakasha okuhlakaniphile",
+      "hero.installApp": "Faka uhlelo lokusebenza",
+      "hero.sig1": "Ukukhokha okuphephile",
+      "hero.sig2": "Abathengisi abaqinisekisiwe",
+      "hero.sig3": "Ukulethwa okulandelwayo",
+      "account.title": "Ukungena ku-akhawunti",
+      "account.lead": "Ngena noma wakhe i-akhawunti ngokuya ngalokho ofuna ukukwenza.",
+      "account.buyerTitle": "I-akhawunti yomthengi",
+      "account.sellerTitle": "I-akhawunti yomthengisi",
+      "quickView.title": "Ukubuka okusheshayo",
+      "quickView.btnDiscover": "Thenga futhi uthole",
+      "quickView.btnGrow": "Thengisa futhi ukhule",
+      "quickView.btnAssurance": "Ezokuphepha nezinsiza",
+      "quickView.btnAll": "Bonisa konke",
+      "ai.title": "Umsizi wokuthenga we-AI",
+      "ai.suggest": "Thola iziphakamiso ze-AI",
+      "settingsHub.title": "Izilungiselelo nemithetho",
+      "settingsHub.lead": "Ezokuphepha, isipiliyoni, nemibhalo yomthetho."
+    },
+    sn: {
+      "nav.account": "Akaunti",
+      "nav.wellbeing": "Mudzidzisi wehutano",
+      "hero.title": "Tsvaga zvakanaka. Tenga nekukurumidza. Tengesa pasi rese.",
+      "hero.shopNow": "Tenga zvino",
+      "hero.listItem": "Isa chigadzirwa",
+      "hero.smartTour": "Tanga rwendo rwakangwara",
+      "account.title": "Kupinda muakaunti",
+      "quickView.title": "Kuona nekukurumidza",
+      "ai.title": "Mubatsiri wekutenga weAI",
+      "settingsHub.title": "Zvirongwa nemutemo"
+    },
+    nd: {
+      "nav.account": "I-akhawunti",
+      "nav.wellbeing": "Umqeqetshi wezempilo",
+      "hero.title": "Thola okuhle. Thenga masinyane. Thengisa emhlabeni wonke.",
+      "hero.shopNow": "Thenga khathesi",
+      "hero.listItem": "Faka umkhiqizo",
+      "account.title": "Ukungena ku-akhawunti",
+      "quickView.title": "Ukubona masinyane",
+      "ai.title": "Umsizi wokuthenga we-AI",
+      "settingsHub.title": "Izilungiselelo lomthetho"
+    },
+    xh: {
+      "nav.account": "Iakhawunti",
+      "nav.wellbeing": "Umqeqeshi wezempilo",
+      "hero.title": "Fumanisa okuhle. Thenga ngokukhawuleza. Thengisa kwihlabathi.",
+      "hero.shopNow": "Thenga ngoku",
+      "hero.listItem": "Faka imveliso",
+      "account.title": "Ukungena kwiakhawunti",
+      "quickView.title": "Ukujonga ngokukhawuleza",
+      "ai.title": "Umncedisi wokuthenga we-AI",
+      "settingsHub.title": "Iisetingi nomthetho"
+    }
+  };
+  Object.keys(CURATED_NATIVE_OVERRIDES).forEach((code) => {
+    if (!STRINGS[code]) {
+      STRINGS[code] = {};
+    }
+    Object.assign(STRINGS[code], CURATED_NATIVE_OVERRIDES[code]);
+  });
+
+  // Phase 4: curated section-level overrides for marketplace/seller/settings/checkout flows.
+  const CURATED_SECTION_OVERRIDES = {
+    pl: {
+      "marketFit.title": "Stworzone dla studentow, rodzin i rozwijajacych sie firm",
+      "sellerHub.kicker": "Dla sprzedawcow i firm",
+      "sellerHub.title": "Sprzedawaj w 3 prostych krokach — potem korzystaj z narzedzi ponizej",
+      "sellerHub.intro": "Na tej stronie znajdziesz marketing, AI wzrostu i reklamy. Sygnały wewnetrzne i zasady sa tutaj, aby glowna strona zakupow pozostala prosta.",
+      "settingsHub.title": "Ustawienia i dokumenty prawne",
+      "settingsHub.lead": "Bezpieczenstwo, doswiadczenie i dokumenty prawne — poza strona glowna, aby zakupy byly szybsze.",
+      "settingsHub.securityH": "Przeglad bezpieczenstwa",
+      "settingsHub.modeGuided": "Tryb prowadzony (AI + wskazowki)",
+      "settingsHub.modeSimple": "Tryb prosty (minimalny interfejs)",
+      "settingsHub.modePro": "Tryb Pro (pelna kontrola rynku)",
+      "accountPassport.paymentsNote": "Platnosci checkout sa obslugiwane przez Stripe, gdy serwer jest skonfigurowany.",
+      "search.placeholder": "Szukaj w Europie, Afryce, Azji..."
+    },
+    fr: {
+      "marketFit.title": "Concu pour les etudiants, les familles et les entreprises en croissance",
+      "sellerHub.kicker": "Pour les vendeurs et entreprises",
+      "sellerHub.title": "Vendez en 3 etapes simples — puis utilisez les outils ci-dessous",
+      "sellerHub.intro": "Cette page regroupe marketing, IA de croissance et publicites. Les signaux internes et les regles restent ici pour garder l'accueil shopping clair.",
+      "settingsHub.title": "Parametres et mentions legales",
+      "settingsHub.lead": "Securite, experience et documents juridiques — hors de la page d'accueil pour des achats plus rapides.",
+      "settingsHub.securityH": "Vue d'ensemble de la securite",
+      "settingsHub.modeGuided": "Guide (IA + astuces)",
+      "settingsHub.modeSimple": "Simple (interface minimale)",
+      "settingsHub.modePro": "Pro (controle complet marketplace)",
+      "accountPassport.paymentsNote": "Le paiement checkout passe par Stripe lorsque le serveur est configure.",
+      "search.placeholder": "Rechercher en Europe, Afrique, Asie..."
+    },
+    pt: {
+      "marketFit.title": "Feito para estudantes, familias e empresas em crescimento",
+      "sellerHub.kicker": "Para vendedores e empresas",
+      "sellerHub.title": "Venda em 3 passos simples — depois use as ferramentas abaixo",
+      "sellerHub.intro": "Nesta pagina voce encontra marketing, IA de crescimento e anuncios. Sinais internos e politicas ficam aqui para manter a home de compras limpa.",
+      "settingsHub.title": "Configuracoes e documentos legais",
+      "settingsHub.lead": "Seguranca, experiencia e documentos legais — fora da pagina inicial para manter compras rapidas.",
+      "settingsHub.securityH": "Visao geral de seguranca",
+      "settingsHub.modeGuided": "Guiado (IA + dicas)",
+      "settingsHub.modeSimple": "Simples (interface minima)",
+      "settingsHub.modePro": "Pro (controle total do marketplace)",
+      "accountPassport.paymentsNote": "O checkout usa Stripe quando o servidor esta configurado.",
+      "search.placeholder": "Buscar na Europa, Africa, Asia..."
+    },
+    ar: {
+      "marketFit.title": "مصمم للطلاب والعائلات والشركات النامية",
+      "sellerHub.kicker": "للبائعين والشركات",
+      "sellerHub.title": "بع في 3 خطوات سهلة ثم استخدم الادوات بالاسفل",
+      "sellerHub.intro": "في هذه الصفحة ستجد التسويق وادوات النمو بالذكاء الاصطناعي والاعلانات. تبقى الاشارات الداخلية والسياسات هنا حتى تبقى صفحة التسوق واضحة.",
+      "settingsHub.title": "الاعدادات والوثائق القانونية",
+      "settingsHub.lead": "الامان والتجربة والوثائق القانونية بعيدا عن الصفحة الرئيسية للحفاظ على سرعة التسوق.",
+      "settingsHub.securityH": "نظرة عامة على الامان",
+      "settingsHub.modeGuided": "موجه (ذكاء اصطناعي + تلميحات)",
+      "settingsHub.modeSimple": "بسيط (واجهة خفيفة)",
+      "settingsHub.modePro": "احترافي (تحكم كامل في السوق)",
+      "accountPassport.paymentsNote": "يتم الدفع عبر Stripe عند تجهيز الخادم.",
+      "search.placeholder": "ابحث في اوروبا وافريقيا واسيا..."
+    },
+    zh: {
+      "marketFit.title": "为学生、家庭和成长型企业打造",
+      "sellerHub.kicker": "面向卖家和企业",
+      "sellerHub.title": "3个简单步骤开始销售，然后使用下方工具",
+      "sellerHub.intro": "本页包含营销、增长AI和广告。内部信号与规则放在这里，避免首页购物体验过于复杂。",
+      "settingsHub.title": "设置与法律",
+      "settingsHub.lead": "安全、体验和法律文件集中在此，首页购物保持轻快。",
+      "settingsHub.securityH": "安全概览",
+      "settingsHub.modeGuided": "引导模式（AI + 提示）",
+      "settingsHub.modeSimple": "简洁模式（最小界面）",
+      "settingsHub.modePro": "专业模式（完整市场控制）",
+      "accountPassport.paymentsNote": "服务器配置完成后，结账通过 Stripe 处理。",
+      "search.placeholder": "搜索欧洲、非洲、亚洲..."
+    },
+    ko: {
+      "marketFit.title": "학생, 가족, 성장 기업을 위한 설계",
+      "sellerHub.kicker": "판매자 및 비즈니스를 위한 공간",
+      "sellerHub.title": "3단계로 판매 시작 후 아래 도구를 사용하세요",
+      "sellerHub.intro": "이 페이지에서 마케팅, 성장 AI, 광고를 제공합니다. 내부 신호와 정책은 여기서 관리해 메인 쇼핑 화면을 단순하게 유지합니다.",
+      "settingsHub.title": "설정 및 법적 문서",
+      "settingsHub.lead": "보안, 사용자 경험, 법적 문서를 이곳에 모아 메인 쇼핑 화면은 빠르게 유지합니다.",
+      "settingsHub.securityH": "보안 개요",
+      "settingsHub.modeGuided": "가이드 모드 (AI + 도움말)",
+      "settingsHub.modeSimple": "심플 모드 (최소 인터페이스)",
+      "settingsHub.modePro": "프로 모드 (전체 마켓 제어)",
+      "accountPassport.paymentsNote": "서버가 설정되면 결제는 Stripe로 처리됩니다.",
+      "search.placeholder": "유럽, 아프리카, 아시아 검색..."
+    },
+    hi: {
+      "marketFit.title": "छात्रों, परिवारों और बढ़ते व्यवसायों के लिए बनाया गया",
+      "sellerHub.kicker": "विक्रेताओं और व्यवसायों के लिए",
+      "sellerHub.title": "3 आसान चरणों में बेचें, फिर नीचे के टूल्स उपयोग करें",
+      "sellerHub.intro": "इस पेज पर मार्केटिंग, ग्रोथ AI और विज्ञापन मिलते हैं। आंतरिक संकेत और नीतियां यहीं रखी गई हैं ताकि मुख्य शॉपिंग पेज साफ रहे।",
+      "settingsHub.title": "सेटिंग्स और कानूनी दस्तावेज",
+      "settingsHub.lead": "सुरक्षा, अनुभव और कानूनी दस्तावेज यहां रखे गए हैं ताकि होमपेज पर खरीदारी तेज रहे।",
+      "settingsHub.securityH": "सुरक्षा अवलोकन",
+      "settingsHub.modeGuided": "गाइडेड (AI + टिप्स)",
+      "settingsHub.modeSimple": "सिंपल (न्यूनतम इंटरफेस)",
+      "settingsHub.modePro": "प्रो (पूरा मार्केटप्लेस नियंत्रण)",
+      "accountPassport.paymentsNote": "सर्वर कॉन्फ़िगर होने पर चेकआउट Stripe से होता है।",
+      "search.placeholder": "यूरोप, अफ्रीका, एशिया खोजें..."
+    },
+    sw: {
+      "marketFit.title": "Imejengwa kwa wanafunzi, familia, na biashara zinazokua",
+      "sellerHub.kicker": "Kwa wauzaji na biashara",
+      "sellerHub.title": "Uza kwa hatua 3 rahisi — kisha tumia zana zilizo hapa chini",
+      "sellerHub.intro": "Katika ukurasa huu utapata uuzaji, AI ya ukuaji, na matangazo. Ishara za ndani na sera zipo hapa ili ukurasa mkuu wa ununuzi ubaki mwepesi.",
+      "settingsHub.title": "Mipangilio na sheria",
+      "settingsHub.lead": "Usalama, uzoefu, na nyaraka za kisheria — zimewekwa hapa ili ununuzi ubaki wa haraka.",
+      "settingsHub.securityH": "Muhtasari wa usalama",
+      "accountPassport.paymentsNote": "Malipo ya checkout hutumia Stripe pale seva inapokuwa imewekwa."
+    },
+    zu: {
+      "marketFit.title": "Kwakhelwe abafundi, imindeni, namabhizinisi akhulayo",
+      "marketFit.lead": "I-VibeCart yakhelwe ukuhweba phakathi kwamazwe ngokushesha nangokwethembeka phakathi kwe-Afrika neYurophu.",
+      "buyerAdv.title": "Kungani ukuthenga ku-VibeCart kuba lula",
+      "buyerAdv.lead": "Kwakhelwe isivinini: indawo eyodwa ye-checkout ephephile, ukulandelela ukulethwa, nemigomo ecacile.",
+      "buyerAdv.li1": "I-checkout esheshayo enokuvikelwa komthengi nokuhlolwa kokukhwabanisa kuma-oda anobungozi.",
+      "buyerAdv.li2": "Ukulandelela ama-oda ngesikhathi sangempela kanye newindi lokubuyisa noma ukwenqaba njengoba kubonakala ku-akhawunti yakho.",
+      "buyerAdv.li3": "Umsizi we-AI uhlela uhlu lwemikhiqizo kuleli khasi ngokuya ngesabelomali nesigaba; ulokhu unolawulo.",
+      "sellerHub.kicker": "Kwabathengisi namabhizinisi",
+      "sellerHub.title": "Thengisa ngezinyathelo ezi-3 ezilula — bese usebenzisa amathuluzi angezansi",
+      "sellerHub.intro": "Lapha uthola ukumaketha, i-AI yokukhulisa, nezikhangiso. Imithetho yangaphakathi ibekwe lapha ukuze ikhasi lokuthenga lihlale lihlanzekile.",
+      "settingsHub.title": "Izilungiselelo nomthetho",
+      "settingsHub.lead": "Ukuvikeleka, ulwazi lomsebenzisi, namadokhumenti asemthethweni kugcinwa lapha ukuze ukuthenga kusheshe.",
+      "settingsHub.securityH": "Uhlolojikelele lokuphepha",
+      "settingsHub.securityLead": "Ukuvikeleka okufanayo kusebenza kuyo yonke iwebhusayithi; imininingwane iboniswa lapha ukuze i-storefront ihlale ilula.",
+      "settingsHub.sec1": "I-admin yomnikazi kuphela ene-multi-factor authentication kanye ne-hardware key support.",
+      "settingsHub.sec2": "Ukutholwa kokukhwabanisa okuhambisana nezwe kanye nokuqapha ukuthengiselana.",
+      "settingsHub.sec3": "Ukuvikelwa komthengi nomthengisi ngokuhlola okungajwayelekile, ukuqinisekisa ubunikazi, nokubuyekezwa kwama-oda anobungozi.",
+      "settingsHub.sec4": "I-escalation kanye ne-dispute workflow enokukhiya i-akhawunti okwesikhashana uma kusolwa ukukhwabanisa.",
+      "settingsHub.sec5": "Izinkokhelo zidluliselwa kuphela kubahlinzeki abavunyiwe abane-encryption, 3D Secure, anti-fraud scoring, kanye ne-tokenized transactions.",
+      "settingsHub.sec6": "Ukulethwa kusebenzisa ozakwethu bezokuthutha abathembekile abane-tracking, delivery verification, kanye ne-route risk controls.",
+      "settingsHub.sec7": "I-traffic ebethelwe (HTTPS), ama-cookies avikelekile, kanye ne-strict security headers.",
+      "settingsHub.sec8": "Role-based permissions kanye ne-immutable audit logs.",
+      "settingsHub.sec9": "I-marketplace esemthethweni kuphela enokumoderetha, reporting controls, kanye nokususwa okusheshayo kokuqukethwe okungekho emthethweni.",
+      "accountPassport.paymentsNote": "Ukukhokha kwe-checkout kusebenzisa i-Stripe uma iseva isethiwe.",
+      "search.placeholder": "Sesha eYurophu, e-Afrika, e-Asia...",
+      "bridgeTruth.title": "Iqiniso leBridge (akukho ukunemba okungamanga)",
+      "bridgeTruth.li1": "Ukulinganisa kwe-duty nentela lapha kuyimikhawulo, akusona isinqumo se-customs; inani lokugcina lincike ekuhlukanisweni nasemthethweni wendawo.",
+      "bridgeTruth.li2": "Ukulethwa okulandelwayo emizileni eminingi ye-EU kuya e-Afrika kuvamise ukuba phakathi kwezinsuku ezi-7 kuya kwezi-21; izindawo ezikude zingathatha isikhathi eside.",
+      "bridgeTruth.li3": "Ama-oda angacacile noma anobungozi aya ku-human review; i-automation iveza kuphela izimpawu.",
+      "laneNote.eyebrow": "Inothi lendlela",
+      "laneNote.sellerTipLabel": "Ithiphu yomthengisi",
+      "laneNote.buyerTipLabel": "Ithiphu yomthengi",
+      "transparency.title": "Isifinyezo sokusobala",
+      "transparency.meta": "Izibalo zivuselelwa uma ulayisha ikhasi. Imikhawulo ijwayelekile; amanani aqondile avamise ukungatholakali ekuhwebeni kwamazwe."
+    },
+    sn: {
+      "marketFit.title": "Yakagadzirirwa vadzidzi, mhuri, nemabhizimisi ari kukura",
+      "marketFit.lead": "VibeCart yakagadzirirwa kutengeserana kwemiganhu nekukurumidza uye kwakavimbika pakati pemisika yeAfrica neEurope.",
+      "buyerAdv.title": "Nei kutenga paVibeCart kuri nyore",
+      "buyerAdv.lead": "Yakagadzirirwa kukurumidza: nzvimbo imwe chete yecheckout yakachengeteka, kutevera kuendesa, uye mitemo yakajeka.",
+      "buyerAdv.li1": "Checkout yekukurumidza ine chengetedzo yemutengi uye ongororo yekubiridzira pamaodha ane njodzi.",
+      "buyerAdv.li2": "Kutevera odha munguva chaiyo uye hwindo rekudzorera kana kuramba sezvinoonekwa paaccount yako.",
+      "buyerAdv.li3": "Mubatsiri weAI anoisa maristingi pachikamu chino maererano nebajeti nechikamu; iwe unoramba uine kutonga.",
+      "sellerHub.kicker": "Kune vatengesi nemabhizimisi",
+      "sellerHub.title": "Tengesa mumatanho matatu ari nyore wobva washandisa maturusi ari pasi",
+      "sellerHub.intro": "Pano pane kushambadzira, AI yekukura, uye ads. Mitemo yemukati yakarongwa pano kuti peji rekutenga rigare rakachena.",
+      "settingsHub.title": "Zvirongwa nemagwaro emutemo",
+      "settingsHub.lead": "Kuchengetedzeka, chiitiko chemushandisi, nemagwaro emutemo zviri pano kuti kutenga kukurumidze.",
+      "settingsHub.securityH": "Pfupiso yekuchengetedzeka",
+      "settingsHub.securityLead": "Dziviriro imwe chete inoshanda papuratifomu yose; tsananguro yakadzama iri pano kuitira kuti storefront irambe yakareruka.",
+      "settingsHub.sec1": "Admin yevanotenderwa chete ine multi-factor authentication uye hardware key support.",
+      "settingsHub.sec2": "Kuonekwa kwekubiridzira zvinoenderana nenyika uye kutariswa kwekutengeserana.",
+      "settingsHub.sec3": "Kudzivirirwa kwemutengi nemutengesi nekutarisa zviitiko zvinofungidzirwa, identity verification, uye kuongorora maodha ane njodzi.",
+      "settingsHub.sec4": "Escalation uye dispute workflow ine temporary account lock kana kubiridzira kuchifungidzirwa.",
+      "settingsHub.sec5": "Mari inofambiswa chete kuburikidza nevanopa vakavimbika vane encryption, 3D Secure, anti-fraud scoring, uye tokenized transactions.",
+      "settingsHub.sec6": "Kuendesa kunoshandisa logistics partners vakavimbika vane tracking, delivery verification, uye route risk controls.",
+      "settingsHub.sec7": "Traffic yakavharidzirwa (HTTPS), secure cookies, uye strict security headers.",
+      "settingsHub.sec8": "Role-based permissions uye immutable audit logs.",
+      "settingsHub.sec9": "Marketplace inobvumira zviri pamutemo chete, ine moderation, reporting controls, uye kubviswa kwecontent isiri pamutemo.",
+      "accountPassport.paymentsNote": "Checkout inoshandisa Stripe kana server yagadziriswa.",
+      "search.placeholder": "Tsvaga muEurope, Africa, Asia...",
+      "bridgeTruth.title": "Chokwadi cheBridge (hapana kunyepa kwenhamba)",
+      "bridgeTruth.li1": "Fungidziro dze duty nemutero pano imabhendi, kwete customs rulings; mari yekupedzisira inoenderana neclassification nemutemo wenyika.",
+      "bridgeTruth.li2": "Kuendesa kunotevedzwa panzira zhinji dzeEU kuenda kuAfrica kunowanzova mazuva 7 kusvika 21; nzvimbo dziri kure dzinogona kutora nguva yakareba.",
+      "bridgeTruth.li3": "Maodha asina kujeka kana ane njodzi anoenda kuhuman review; automation inongoratidza zviratidzo.",
+      "laneNote.eyebrow": "Chiziviso chenjira",
+      "laneNote.sellerTipLabel": "Zano remutengesi",
+      "laneNote.buyerTipLabel": "Zano remutengi",
+      "transparency.title": "Pfupiso yekuvhurika",
+      "transparency.meta": "Nhamba dzinovandudzwa paunorodha peji. Mabhendi akajairika; manhamba chaiwo anowanzoshaikwa mukutengeserana kwemiganhu."
+    },
+    nd: {
+      "marketFit.title": "Kwenzelwe abafundi, imuli, lamabhizimusi akhulayo",
+      "marketFit.lead": "IVibeCart yenzelwe ukuthenga lokuthengisa phakathi kwamazwe ngokuthembeka phakathi kweAfrica leEurope.",
+      "buyerAdv.title": "Kungani ukuthenga kuVibeCart kulula",
+      "buyerAdv.lead": "Kwakhiwe ngesivinini: indawo eyodwa ye-checkout ephephileyo, ukulandelela ukulethwa, lemigomo ecacileyo.",
+      "buyerAdv.li1": "I-checkout esheshayo elokuvikela umthengi lokuhlolwa kokukhwabanisa kuma-oda ayingozi.",
+      "buyerAdv.li2": "Ukulandelela ama-oda ngesikhathi sangempela kanye lewindi lokubuyisa loba ukwala njengokubonakala ku-akhawunti yakho.",
+      "buyerAdv.li3": "Umsizi we-AI uhlela amalisitini kuleli khasi ngokuya ngebhajethi lesigaba; wena usala ulokulawula.",
+      "sellerHub.kicker": "Kwabathengisi lamabhizimusi",
+      "sellerHub.title": "Thengisa ngezinyathelo ezintathu ezilula bese usebenzisa amathuluzi angezansi",
+      "sellerHub.intro": "Lapha uthola ukumaketha, AI yokukhulisa, lama-ads. Imithetho yangaphakathi ibekwe lapha ukuze ikhasi lokuthenga lihlale licacile.",
+      "settingsHub.title": "Izilungiselelo lamaphepha omthetho",
+      "settingsHub.lead": "Ukuvikeleka, okuhlangenwe ngumsebenzisi, lamaphepha omthetho kugcinwa lapha ukuze ukuthenga kusheshe.",
+      "settingsHub.securityH": "Umbono wokuphepha",
+      "settingsHub.securityLead": "Ukuvikeleka okufanayo kusebenza kusayithi lonke; imininingwane ibekwe lapha ukuze isitolo sihlale silula.",
+      "settingsHub.sec1": "I-admin yomnikazi kuphela ile-multi-factor authentication kanye le-hardware key support.",
+      "settingsHub.sec2": "Ukutholwa kokukhwabanisa okuhambelana lelizwe lokubhekwa kwemisebenzi yokuthenga.",
+      "settingsHub.sec3": "Ukuvikelwa komthengi lomthengisi ngokuhlola imisebenzi esolisayo, identity verification, kanye lokubuyekezwa kwama-oda ayingozi.",
+      "settingsHub.sec4": "I-escalation le-dispute workflow elokutshiywa kwe-akhawunti okwesikhatshana nxa kusolwa ukukhwabanisa.",
+      "settingsHub.sec5": "Imali idlula kuphela kubanikezeli abathembekileyo abale-encryption, 3D Secure, anti-fraud scoring, kanye le-tokenized transactions.",
+      "settingsHub.sec6": "Ukulethwa kusebenzisa ama-logistics partners athembekileyo ale-tracking, delivery verification, kanye le-route risk controls.",
+      "settingsHub.sec7": "I-traffic ebhalwe ngekhodi (HTTPS), secure cookies, kanye le-strict security headers.",
+      "settingsHub.sec8": "Role-based permissions kanye le-immutable audit logs.",
+      "settingsHub.sec9": "I-marketplace esemthethweni kuphela enokumoderetha, reporting controls, kanye lokususwa kwezinto ezingekho emthethweni.",
+      "accountPassport.paymentsNote": "I-checkout isebenzisa i-Stripe nxa iseva isilungisiwe.",
+      "search.placeholder": "Dinga eYurophu, Afrika, Asia...",
+      "bridgeTruth.title": "Iqiniso leBridge (akukho manani amanga)",
+      "bridgeTruth.li1": "Ukuqagela kwe-duty lentela lapha kungamabhendi, akusizo izinqumo ze-customs; inani lokugcina lincike ekuhlukanisweni lomthetho wakuleyo ndawo.",
+      "bridgeTruth.li2": "Ukulethwa okulandelwayo emizileni eminengi yeEU kuya eAfrica kuvamise ukuba phakathi kwamalanga angu-7 kusiya ku-21; izindawo ezikhatshana zingathatha isikhathi eside.",
+      "bridgeTruth.li3": "Ama-oda angacacanga loba ayingozi aya kuhuman review; i-automation ikhomba kuphela.",
+      "laneNote.eyebrow": "Inothi yomzila",
+      "laneNote.sellerTipLabel": "Icebo lomthengisi",
+      "laneNote.buyerTipLabel": "Icebo lomthengi",
+      "transparency.title": "Isifinyezo sokubonakala",
+      "transparency.meta": "Izibalo ziyavuselelwa nxa ulayisha ikhasi. Amabhendi ajwayelekile; izinombolo eziqondileyo zimbalwa ekuthengiseni kwamazwe."
+    },
+    xh: {
+      "marketFit.title": "Yenzelwe abafundi, iintsapho, namashishini akhulayo",
+      "marketFit.lead": "I-VibeCart yenzelwe urhwebo lwamazwe ngokukhawuleza nangokuthembeka phakathi kwe-Afrika neYurophu.",
+      "buyerAdv.title": "Kutheni ukuthenga kwi-VibeCart kulula",
+      "buyerAdv.lead": "Yakhelwe isantya: indawo enye ye-checkout ekhuselekileyo, ukulandelwa kokuhanjiswa, nemigaqo ecacileyo.",
+      "buyerAdv.li1": "I-checkout ekhawulezayo enokhuseleko lomthengi kunye nokuhlolwa kobuqhetseba kwii-odolo ezinemingcipheko.",
+      "buyerAdv.li2": "Ukulandelwa kwee-odolo ngexesha langempela kunye nefestile yokubuyisa okanye ukwala njengoko kubonakala kwiakhawunti yakho.",
+      "buyerAdv.li3": "Umncedisi we-AI ubeka uluhlu lwezinto kweli phepha ngokwebhajethi nodidi; ulawulo lusasezandleni zakho.",
+      "sellerHub.kicker": "Yabathengisi namashishini",
+      "sellerHub.title": "Thengisa ngamanyathelo amathathu alula, emva koko usebenzise izixhobo ezingezantsi",
+      "sellerHub.intro": "Apha ufumana intengiso, i-AI yokukhula, kunye neentengiso. Imigaqo yangaphakathi ibekwe apha ukuze iphepha lokuthenga lihlale licocekile.",
+      "settingsHub.title": "Iisetingi namaxwebhu asemthethweni",
+      "settingsHub.lead": "Ukhuseleko, amava omsebenzisi, kunye namaxwebhu asemthethweni agcinwe apha ukuze ukuthenga kuhlale kukhawuleza.",
+      "settingsHub.securityH": "Isishwankathelo sokhuseleko",
+      "settingsHub.securityLead": "Ukhuseleko olufanayo lusebenza kuyo yonke isayithi; iinkcukacha ziboniswa apha ukuze i-storefront ihlale ilula.",
+      "settingsHub.sec1": "I-admin yomnini kuphela enee-multi-factor authentication kunye nenkxaso ye-hardware key.",
+      "settingsHub.sec2": "Ukufumanisa ubuqhetseba obuhambelana nelizwe kunye nokubeka iliso kutshintshiselwano.",
+      "settingsHub.sec3": "Ukhuseleko lomthengi nomthengisi ngokujonga izinto ezikrokrelwayo, ukuqinisekiswa kobuwena, kunye nokuphononongwa kwee-odolo ezisemngciphekweni.",
+      "settingsHub.sec4": "I-escalation kunye ne-dispute workflow enokutshixa iakhawunti okwethutyana xa kusolakala ubuqhetseba.",
+      "settingsHub.sec5": "Iintlawulo zidlula kuphela kubaboneleli abathembekileyo abane-encryption, 3D Secure, anti-fraud scoring, kunye ne-tokenized transactions.",
+      "settingsHub.sec6": "Ukuhanjiswa kusebenzisa amaqabane ezothutho athembekileyo ane-tracking, delivery verification, kunye ne-route risk controls.",
+      "settingsHub.sec7": "I-traffic efihliweyo (HTTPS), iicookies ezikhuselekileyo, kunye ne-strict security headers.",
+      "settingsHub.sec8": "Role-based permissions kunye ne-immutable audit logs.",
+      "settingsHub.sec9": "I-marketplace esemthethweni kuphela enokumodareyitha, reporting controls, kunye nokususwa ngokukhawuleza komxholo ongekho semthethweni.",
+      "accountPassport.paymentsNote": "I-checkout isebenzisa i-Stripe xa iseva icwangcisiwe.",
+      "search.placeholder": "Khangela eYurophu, eAfrika, eAsia...",
+      "bridgeTruth.title": "Inyaniso yeBridge (akukho manani obuxoki)",
+      "bridgeTruth.li1": "Uqikelelo lwe-duty nerhafu apha luluhlu lwamabanga, hayi isigqibo se-customs; intlawulo yokugqibela ixhomekeke kuhlelo nakumthetho wasekuhlaleni.",
+      "bridgeTruth.li2": "Ukuhanjiswa okulandelwayo kwiindlela ezininzi ze-EU ukuya e-Afrika kuhlala phakathi kweentsuku ezi-7 ukuya kwezi-21; iindawo ezikude zingathatha ixesha elide.",
+      "bridgeTruth.li3": "Ii-odolo ezingacacanga okanye ezisemngciphekweni ziya kuhuman review; i-automation ibonisa kuphela imiqondiso.",
+      "laneNote.eyebrow": "Inqaku lomzila",
+      "laneNote.sellerTipLabel": "Ingcebiso yomthengisi",
+      "laneNote.buyerTipLabel": "Ingcebiso yomthengi",
+      "transparency.title": "Isishwankathelo sokucaca",
+      "transparency.meta": "Amanani ayahlaziywa xa ulayisha iphepha. Uluhlu lwamabanga luqhelekile; amanani achanekileyo ahlala enqabile kurhwebo lwamazwe."
+    }
+  };
+  Object.keys(CURATED_SECTION_OVERRIDES).forEach((code) => {
+    if (!STRINGS[code]) {
+      STRINGS[code] = {};
+    }
+    Object.assign(STRINGS[code], CURATED_SECTION_OVERRIDES[code]);
+  });
+
+  const FALLBACK_CHAIN = {
+    zu: ["en"],
+    sn: ["en"],
+    nd: ["en"],
+    xh: ["en"],
+    lg: ["sw", "en"],
+    pcm: ["en"],
+    tn: ["en"],
+    af: ["en"]
+  };
+
   const SUGGEST_HOOK_FALLBACK = "Switch key labels to a closer language?";
+  const EN_TEXT_TO_KEY = {};
+  Object.keys(STRINGS.en || {}).forEach((key) => {
+    const val = STRINGS.en[key];
+    if (typeof val !== "string") {
+      return;
+    }
+    const norm = val.trim();
+    if (!norm) {
+      return;
+    }
+    if (!EN_TEXT_TO_KEY[norm]) {
+      EN_TEXT_TO_KEY[norm] = key;
+    }
+  });
+
+  // Broader locale inheritance so every selector language gets high coverage
+  // before falling back to English.
+  const DONOR_LOCALE = {
+    zu: ["en"],
+    sn: ["en"],
+    nd: ["en"],
+    xh: ["en"],
+    lg: ["sw", "en"],
+    tn: ["en"],
+    af: ["en"],
+    pcm: ["en"],
+    pl: ["en"],
+    fr: ["en"],
+    pt: ["en"],
+    ar: ["en"],
+    zh: ["en"],
+    ko: ["en"],
+    hi: ["en"]
+  };
+  Object.keys(STRINGS).forEach((code) => {
+    if (code === "en") {
+      return;
+    }
+    const target = STRINGS[code];
+    if (!target) {
+      return;
+    }
+    const donors = DONOR_LOCALE[code] || ["en"];
+    donors.forEach((donorCode) => {
+      const donor = STRINGS[pick(donorCode)];
+      if (!donor) {
+        return;
+      }
+      Object.keys(donor).forEach((k) => {
+        if (target[k] == null || target[k] === "") {
+          target[k] = donor[k];
+        }
+      });
+    });
+  });
+
+  // Broad lexical fallback for untagged UI text.
+  const LEXICAL = {
+    sw: {
+      categories: "makundi",
+      category: "kundi",
+      regional: "kikanda",
+      shops: "maduka",
+      shop: "duka",
+      health: "afya",
+      coach: "kocha",
+      account: "akaunti",
+      rewards: "zawadi",
+      insurance: "bima",
+      settings: "mipangilio",
+      seller: "muuzaji",
+      boost: "ongeza",
+      start: "anza",
+      selling: "kuuza",
+      discover: "gundua",
+      buy: "nunua",
+      fast: "haraka",
+      bridge: "daraja",
+      trade: "biashara",
+      language: "lugha",
+      secure: "salama",
+      checkout: "malipo",
+      verified: "imehakikiwa",
+      delivery: "uletezaji",
+      tracking: "ufuatiliaji",
+      routine: "ratiba",
+      routines: "ratiba",
+      daily: "kila siku",
+      payment: "malipo",
+      package: "kifurushi",
+      packages: "vifurushi",
+      plan: "mpango",
+      plans: "mipango",
+      continue: "endelea",
+      profile: "wasifu",
+      home: "nyumbani",
+      search: "tafuta",
+      hot: "moto",
+      picks: "chaguo",
+      buyer: "mnunuzi",
+      buyers: "wanunuzi",
+      seller: "muuzaji",
+      sellers: "wauzaji",
+      communication: "mawasiliano",
+      order: "agizo",
+      orders: "maagizo",
+      tracking: "ufuatiliaji",
+      delivery: "uwasilishaji",
+      deliveries: "uwasilishaji",
+      update: "sasisho",
+      updates: "masasisho",
+      service: "huduma",
+      services: "huduma",
+      booking: "uhifadhi",
+      bookings: "uhifadhi",
+      platform: "jukwaa",
+      student: "mwanafunzi",
+      students: "wanafunzi",
+      family: "familia",
+      families: "familia",
+      support: "msaada",
+      insurance: "bima",
+      health: "afya",
+      fitness: "mazoezi",
+      coach: "kocha",
+      weight: "uzito",
+      loss: "punguza",
+      gain: "ongeza",
+      muscle: "misuli",
+      goal: "lengo",
+      goals: "malengo",
+      save: "hifadhi",
+      profile: "wasifu",
+      submit: "wasilisha",
+      refresh: "onyesha upya",
+      show: "onyesha",
+      available: "inapatikana",
+      slots: "nafasi",
+      legal: "kisheria",
+      policy: "sera",
+      policies: "sera",
+      terms: "masharti",
+      privacy: "faragha",
+      secure: "salama",
+      security: "usalama",
+      overview: "muhtasari",
+      trusted: "inayoaminika",
+      verified: "imehakikiwa",
+      mode: "hali",
+      guided: "elekezwa",
+      simple: "rahisi",
+      pro: "kitaalamu",
+      filter: "chuja",
+      destination: "mwisho",
+      risk: "hatari",
+      disclaimer: "kanusho",
+      understand: "naelewa",
+      accept: "nakubali",
+      all: "zote",
+      any: "yoyote",
+      electronics: "elektroniki",
+      fashion: "mitindo",
+      books: "vitabu",
+      gaming: "michezo",
+      sponsored: "iliyofadhiliwa",
+      brands: "chapa",
+      ads: "matangazo",
+      marketing: "masoko",
+      tools: "zana",
+      growth: "ukuaji",
+      message: "ujumbe",
+      messages: "ujumbe",
+      send: "tuma",
+      country: "nchi",
+      language: "lugha",
+      choose: "chagua",
+      account: "akaunti",
+      login: "ingia",
+      sign: "saini",
+      create: "unda",
+      new: "mpya",
+      already: "tayari",
+      registered: "imesajiliwa",
+      email: "barua pepe",
+      password: "nenosiri",
+      name: "jina",
+      point: "pointi",
+      points: "pointi",
+      rewards: "zawadi",
+      status: "hali",
+      open: "fungua",
+      close: "funga",
+      next: "ifuatayo",
+      now: "sasa",
+      start: "anza",
+      continue: "endelea",
+      global: "kimataifa",
+      local: "eneo",
+      trade: "biashara",
+      bridge: "daraja"
+    },
+    pl: {
+      categories: "kategorie", shops: "sklepy", health: "zdrowie", coach: "trener",
+      account: "konto", rewards: "nagrody", insurance: "ubezpieczenie", settings: "ustawienia",
+      seller: "sprzedawca", start: "zacznij", selling: "sprzedawać", search: "szukaj",
+      payment: "płatność", package: "pakiet", plan: "plan", checkout: "kasa",
+      secure: "bezpieczny", continue: "kontynuuj", tracking: "śledzenie"
+    },
+    fr: {
+      categories: "catégories", shops: "boutiques", health: "santé", coach: "coach",
+      account: "compte", rewards: "récompenses", insurance: "assurance", settings: "paramètres",
+      seller: "vendeur", start: "commencer", selling: "vendre", search: "rechercher",
+      payment: "paiement", package: "forfait", plan: "plan", checkout: "paiement",
+      secure: "sécurisé", continue: "continuer", tracking: "suivi"
+    },
+    pt: {
+      categories: "categorias", shops: "lojas", health: "saúde", coach: "coach",
+      account: "conta", rewards: "recompensas", insurance: "seguro", settings: "configurações",
+      seller: "vendedor", start: "começar", selling: "vender", search: "buscar",
+      payment: "pagamento", package: "pacote", plan: "plano", checkout: "pagamento",
+      secure: "seguro", continue: "continuar", tracking: "rastreamento"
+    },
+    ar: {
+      categories: "الفئات", shops: "متاجر", health: "صحة", coach: "مدرب",
+      account: "حساب", rewards: "مكافآت", insurance: "تأمين", settings: "إعدادات",
+      seller: "بائع", start: "ابدأ", selling: "بيع", search: "بحث",
+      payment: "دفع", package: "باقة", plan: "خطة", checkout: "الدفع",
+      secure: "آمن", continue: "متابعة", tracking: "تتبع"
+    },
+    zh: {
+      categories: "分类", shops: "店铺", health: "健康", coach: "教练",
+      account: "账户", rewards: "奖励", insurance: "保险", settings: "设置",
+      seller: "卖家", start: "开始", selling: "销售", search: "搜索",
+      payment: "支付", package: "套餐", plan: "计划", checkout: "结账",
+      secure: "安全", continue: "继续", tracking: "跟踪"
+    },
+    ko: {
+      categories: "카테고리", shops: "상점", health: "건강", coach: "코치",
+      account: "계정", rewards: "리워드", insurance: "보험", settings: "설정",
+      seller: "판매자", start: "시작", selling: "판매", search: "검색",
+      payment: "결제", package: "패키지", plan: "플랜", checkout: "체크아웃",
+      secure: "보안", continue: "계속", tracking: "추적"
+    },
+    hi: {
+      categories: "श्रेणियाँ", shops: "दुकानें", health: "स्वास्थ्य", coach: "कोच",
+      account: "खाता", rewards: "इनाम", insurance: "बीमा", settings: "सेटिंग्स",
+      seller: "विक्रेता", start: "शुरू", selling: "बेचना", search: "खोज",
+      payment: "भुगतान", package: "पैकेज", plan: "योजना", checkout: "चेकआउट",
+      secure: "सुरक्षित", continue: "जारी", tracking: "ट्रैकिंग"
+    },
+    zu: {},
+    sn: {},
+    nd: {},
+    xh: {},
+    lg: {},
+    tn: {},
+    af: {},
+    pcm: {}
+  };
+  LEXICAL.zu = {};
+  LEXICAL.sn = {};
+  LEXICAL.nd = {};
+  LEXICAL.xh = {};
+  LEXICAL.lg = LEXICAL.sw;
+  LEXICAL.tn = LEXICAL.sw;
+  LEXICAL.af = LEXICAL.en || LEXICAL.sw;
+  LEXICAL.pcm = LEXICAL.en || LEXICAL.sw;
 
   function pick(lang) {
     const raw = String(lang || "en").trim().toLowerCase();
@@ -863,15 +1479,147 @@
 
   function t(lang, key) {
     const L = pick(lang);
-    const pack = STRINGS[L] || STRINGS.en;
-    if (pack[key] != null) {
-      return pack[key];
+    const chain = [L].concat(FALLBACK_CHAIN[L] || []).concat(["en"]);
+    for (let i = 0; i < chain.length; i += 1) {
+      const code = pick(chain[i]);
+      const pack = STRINGS[code];
+      if (pack && pack[key] != null) {
+        return pack[key];
+      }
     }
-    return STRINGS.en[key] != null ? STRINGS.en[key] : "";
+    return "";
   }
+
+  function lexicalTranslate(text, lang) {
+    const L = pick(lang);
+    if (L === "en") {
+      return text;
+    }
+    const primary = LEXICAL[L];
+    const fallbacks = (FALLBACK_CHAIN[L] || []).map((x) => LEXICAL[pick(x)]).filter(Boolean);
+    const dict = primary || fallbacks[0];
+    if (!dict) {
+      return text;
+    }
+    let changed = 0;
+    let totalWords = 0;
+    const out = String(text || "").replace(/[A-Za-z][A-Za-z'-]*/g, (word) => {
+      totalWords += 1;
+      const mapped = dict[word.toLowerCase()];
+      if (!mapped) {
+        return word;
+      }
+      changed += 1;
+      return word[0] === word[0].toUpperCase()
+        ? mapped.charAt(0).toUpperCase() + mapped.slice(1)
+        : mapped;
+    });
+    if (changed === 0 || totalWords === 0) {
+      return text;
+    }
+    // Prevent mixed-language sentences (few translated words + mostly English).
+    const coverage = changed / totalWords;
+    if (coverage < 0.45) {
+      return text;
+    }
+    return out;
+  }
+
+  // Final safety net: exact phrase replacements for stubborn homepage lines.
+  const FORCE_NATIVE_LINES = {
+    sn: {
+      "VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.":
+        "VibeCart musika unofadza wemiganhu une vatengesi vakasimbiswa, checkout inokurumidza, uye kutenga kuri nyore.",
+      "For Students and Young Buyers": "Kune vadzidzi nevatengi vechidiki",
+      "For Families and Mature Buyers": "Kune mhuri nevatengi vakura",
+      "For Sellers and Service Providers": "Kune vatengesi nevapi vemasevhisi",
+      "Popular Categories": "Mapoka anonyanya kufarirwa",
+      "Regional shop folders": "Mafolda ezvitoro zvematunhu",
+      "Live Marketplace": "Live Marketplace",
+      "Sponsored Brands and Ads": "Sponsored Brands neAds",
+      "What do you need?": "Uri kuda chii?",
+      "Your max budget (EUR)": "Bhajeti yako yepamusoro (EUR)",
+      "Preferred category": "Category yaunoda",
+      "Order Tracking and Delivery Updates": "Kutevera maodha neDelivery Updates",
+      "Beauty and Service Booking Platform": "Beauty neService Booking Platform",
+      "Student Insurance and Well-Being Support": "Student Insurance neWell-Being Support",
+      "Tax and Payout Transparency": "Kujeka kweMutero neKubhadhara",
+      "Lane passport": "Pasipoti yenzira",
+      "Signing up as": "Kusaina se",
+      "Account controls": "Kutonga kweAkaunti",
+      "Shop experience": "Chiitiko cheShop"
+    },
+    nd: {
+      "VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.":
+        "IVibeCart yimakethe yokuwela imingcele enabathengisi abaqinisekisiweyo, checkout esheshayo, lokuthenga okulula.",
+      "For Students and Young Buyers": "Kwabafundi labathengi abatsha",
+      "For Families and Mature Buyers": "Kwemuli labathengi abavuthiweyo",
+      "For Sellers and Service Providers": "Kwabathengisi labanikezeli bezinsiza",
+      "Popular Categories": "Izigaba ezithandwayo",
+      "Regional shop folders": "Amafolda ezitolo zendawo",
+      "Live Marketplace": "Live Marketplace",
+      "Sponsored Brands and Ads": "AmaBrand axhasiweyo lama-Ads",
+      "What do you need?": "Udinga ini?",
+      "Your max budget (EUR)": "Ibhajethi yakho ephezulu (EUR)",
+      "Preferred category": "Isigaba osithandayo",
+      "Order Tracking and Delivery Updates": "Ukulandelela ama-oda leDelivery Updates",
+      "Beauty and Service Booking Platform": "Beauty leService Booking Platform",
+      "Student Insurance and Well-Being Support": "Student Insurance leWell-Being Support",
+      "Tax and Payout Transparency": "Ukucaca kweTax lePayout",
+      "Lane passport": "Ipasipoti yendlela",
+      "Signing up as": "Ukubhalisa njenge",
+      "Account controls": "Ukulawula iAkhawunti",
+      "Shop experience": "Isipiliyoni seShop"
+    },
+    xh: {
+      "VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.":
+        "IVibeCart yimarike ewela imida enabathengisi abaqinisekisiweyo, checkout ekhawulezayo, nokuthenga okulula.",
+      "For Students and Young Buyers": "Kubafundi nabathengi abatsha",
+      "For Families and Mature Buyers": "Kwiintsapho nabathengi abavuthiweyo",
+      "For Sellers and Service Providers": "Kubathengisi nababoneleli ngeenkonzo",
+      "Popular Categories": "Iindidi ezithandwayo",
+      "Regional shop folders": "Iifolda zeevenkile zommandla",
+      "Live Marketplace": "Live Marketplace",
+      "Sponsored Brands and Ads": "Iibrendi ezixhasiweyo neAds",
+      "What do you need?": "Ufuna ntoni?",
+      "Your max budget (EUR)": "Uhlahlo-lwabiwo lwakho oluphezulu (EUR)",
+      "Preferred category": "Udidi oluthandayo",
+      "Order Tracking and Delivery Updates": "Ukulandelela ii-oda neDelivery Updates",
+      "Beauty and Service Booking Platform": "Beauty neService Booking Platform",
+      "Student Insurance and Well-Being Support": "Student Insurance neWell-Being Support",
+      "Tax and Payout Transparency": "Ukucaca kweTax nePayout",
+      "Lane passport": "Ipasipoti yendlela",
+      "Signing up as": "Ukubhalisa njenge",
+      "Account controls": "Ulawulo lweAkhawunti",
+      "Shop experience": "Amava eShop"
+    },
+    zu: {
+      "VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.":
+        "IVibeCart yimakethe yokuwela imingcele enabathengisi abaqinisekisiwe, checkout esheshayo, nokuthenga okulula.",
+      "For Students and Young Buyers": "Kwabafundi nabathengi abasebasha",
+      "For Families and Mature Buyers": "Kwemindeni nabathengi abavuthiwe",
+      "For Sellers and Service Providers": "Kwabathengisi nabahlinzeki bezinsiza",
+      "Popular Categories": "Izigaba ezidumile",
+      "Regional shop folders": "Amafolda ezitolo zesifunda",
+      "Live Marketplace": "Live Marketplace",
+      "Sponsored Brands and Ads": "AmaBrand axhasiwe nama-Ads",
+      "What do you need?": "Udinga ini?",
+      "Your max budget (EUR)": "Ibhajethi yakho ephezulu (EUR)",
+      "Preferred category": "Isigaba osithandayo",
+      "Order Tracking and Delivery Updates": "Ukulandelela ama-oda neDelivery Updates",
+      "Beauty and Service Booking Platform": "Beauty neService Booking Platform",
+      "Student Insurance and Well-Being Support": "Student Insurance neWell-Being Support",
+      "Tax and Payout Transparency": "Ukucaca kweTax nePayout",
+      "Lane passport": "Ipasipoti yendlela",
+      "Signing up as": "Ukubhalisa njenge",
+      "Account controls": "Ukulawula iAkhawunti",
+      "Shop experience": "Isipiliyoni seShop"
+    }
+  };
 
   function apply(lang) {
     const L = pick(lang);
+    const isEnglish = L === "en";
     document.documentElement.setAttribute("lang", BCP47[L] || BCP47.en);
     document.documentElement.dir = L === "ar" ? "rtl" : "ltr";
     document.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -879,9 +1627,111 @@
       if (!key) {
         return;
       }
-      const val = t(lang, key);
-      if (val != null && val !== "") {
-        el.textContent = val;
+      const english = t("en", key);
+      const resolved = t(lang, key);
+      let next = resolved;
+      // If this key still resolves to English for a non-English locale,
+      // run lexical fallback so body copy does not remain fully English.
+      if (!isEnglish && resolved === english) {
+        const lexical = lexicalTranslate(english, lang);
+        if (lexical && lexical !== english) {
+          next = lexical;
+        }
+      }
+      if (next != null && next !== "") {
+        el.textContent = next;
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-placeholder");
+      if (!key) {
+        return;
+      }
+      const english = t("en", key);
+      const resolved = t(lang, key);
+      let next = resolved;
+      if (!isEnglish && resolved === english) {
+        const lexical = lexicalTranslate(english, lang);
+        if (lexical && lexical !== english) {
+          next = lexical;
+        }
+      }
+      if (next != null && next !== "") {
+        el.setAttribute("placeholder", next);
+      }
+    });
+
+    // Deep fallback pass: rewrite plain text nodes even inside nested markup.
+    // This fixes sections that visually stayed English due to mixed DOM structure.
+    if (document.body) {
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode(node) {
+            const parent = node && node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+            const tag = String(parent.tagName || "").toLowerCase();
+            if (tag === "script" || tag === "style" || tag === "noscript") {
+              return NodeFilter.FILTER_REJECT;
+            }
+            const raw = String(node.nodeValue || "").trim();
+            if (!raw) return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+      const touched = [];
+      let n = walker.nextNode();
+      while (n) {
+        touched.push(n);
+        n = walker.nextNode();
+      }
+      touched.forEach((node) => {
+        const raw = String(node.nodeValue || "");
+        const trimmed = raw.trim();
+        if (!trimmed) return;
+        const forcePack = FORCE_NATIVE_LINES[L] || null;
+        if (forcePack && forcePack[trimmed]) {
+          node.nodeValue = raw.replace(trimmed, forcePack[trimmed]);
+          return;
+        }
+        const key = EN_TEXT_TO_KEY[trimmed];
+        if (key) {
+          const val = t(lang, key);
+          if (val && val !== trimmed) {
+            node.nodeValue = raw.replace(trimmed, val);
+            return;
+          }
+        }
+        const lexical = lexicalTranslate(trimmed, lang);
+        if (lexical && lexical !== trimmed) {
+          node.nodeValue = raw.replace(trimmed, lexical);
+        }
+      });
+    }
+
+    // Placeholder fallback for untagged inputs that still use English copies.
+    document.querySelectorAll("input[placeholder],textarea[placeholder]").forEach((el) => {
+      if (el.hasAttribute("data-i18n-placeholder")) {
+        return;
+      }
+      const raw = String(el.getAttribute("placeholder") || "").trim();
+      if (!raw) {
+        return;
+      }
+      const key = EN_TEXT_TO_KEY[raw];
+      if (key) {
+        const val = t(lang, key);
+        if (val && val !== raw) {
+          el.setAttribute("placeholder", val);
+          return;
+        }
+      }
+      const lexical = lexicalTranslate(raw, lang);
+      if (lexical !== raw) {
+        el.setAttribute("placeholder", lexical);
       }
     });
   }
@@ -938,6 +1788,359 @@
     const h = pack["lang.suggestHook"];
     return h || SUGGEST_HOOK_FALLBACK;
   }
+
+  // Patch late-added homepage labels with strict per-locale strings.
+  const EXTRA_KEYS = {
+    en: {
+      "ui.youAreHereChip": "You are here",
+      "categories.title": "Popular Categories",
+      "shops.title": "Regional shop folders",
+      "shops.bridgeLink": "Trade Bridge & Live Marketplace",
+      "market.title": "Live Marketplace",
+      "ads.title": "Sponsored Brands and Ads",
+      "ai.need": "What do you need?",
+      "ai.budget": "Your max budget (EUR)",
+      "ai.category": "Preferred category",
+      "tracking.title": "Order Tracking and Delivery Updates",
+      "booking.title": "Beauty and Service Booking Platform",
+      "insurance.title": "Student Insurance and Well-Being Support",
+      "marketFit.p1h": "For Students and Young Buyers",
+      "marketFit.p2h": "For Families and Mature Buyers",
+      "marketFit.p3h": "For Sellers and Service Providers",
+      "seller.step1h": "1. Upload",
+      "seller.step1p": "Add photos and item details.",
+      "seller.step2h": "2. Price",
+      "seller.step2p": "Set your price, then VibeCart applies platform markup safely.",
+      "seller.step3h": "3. Ship",
+      "seller.step3p": "Choose courier options for buyer country routes.",
+      "chat.title": "Buyer-Seller Communication Hub",
+      "chat.lead": "Buyers and sellers can contact each other quickly for product questions and delivery updates."
+    },
+    sw: {
+      "ui.youAreHereChip": "Uko hapa",
+      "categories.title": "Kategoria Maarufu",
+      "shops.title": "Folda za maduka ya kanda",
+      "shops.bridgeLink": "Daraja la Biashara na Soko la Moja kwa Moja",
+      "market.title": "Soko la Moja kwa Moja",
+      "ads.title": "Bidhaa Zilizodhaminiwa na Matangazo",
+      "ai.need": "Unahitaji nini?",
+      "ai.budget": "Bajeti yako ya juu (EUR)",
+      "ai.category": "Kategoria unayopendelea",
+      "tracking.title": "Ufuatiliaji wa Oda na Taarifa za Uwasilishaji",
+      "booking.title": "Jukwaa la Urembo na Uhifadhi wa Huduma",
+      "insurance.title": "Bima ya Wanafunzi na Msaada wa Ustawi",
+      "marketFit.p1h": "Kwa wanafunzi na wanunuzi wachanga",
+      "marketFit.p2h": "Kwa familia na wanunuzi waliokomaa",
+      "marketFit.p3h": "Kwa wauzaji na watoa huduma",
+      "seller.step1h": "1. Pakia",
+      "seller.step1p": "Ongeza picha na maelezo ya bidhaa.",
+      "seller.step2h": "2. Weka bei",
+      "seller.step2p": "Weka bei yako, kisha VibeCart inaweka markup salama.",
+      "seller.step3h": "3. Tuma",
+      "seller.step3p": "Chagua chaguzi za courier kwa njia za nchi ya mnunuzi.",
+      "chat.title": "Kituo cha Mawasiliano ya Mnunuzi na Muuzaji",
+      "chat.lead": "Wanunuzi na wauzaji wanaweza kuwasiliana haraka kwa maswali ya bidhaa na taarifa za uwasilishaji."
+    },
+    sn: {
+      "ui.youAreHereChip": "Uri pano",
+      "categories.title": "Mapoka Anonyanya Kuzivikanwa",
+      "shops.title": "Mafolda ezvitoro zvematunhu",
+      "shops.bridgeLink": "Trade Bridge neLive Marketplace",
+      "market.title": "Live Marketplace",
+      "ads.title": "Sponsored Brands neAds",
+      "ai.need": "Uri kuda chii?",
+      "ai.budget": "Budget yako yepamusoro (EUR)",
+      "ai.category": "Category yaunoda",
+      "tracking.title": "Order Tracking neDelivery Updates",
+      "booking.title": "Beauty neService Booking Platform",
+      "insurance.title": "Student Insurance neWell-Being Support",
+      "marketFit.p1h": "Kune vadzidzi nevatengi vechidiki",
+      "marketFit.p2h": "Kune mhuri nevatengi vakakura",
+      "marketFit.p3h": "Kune vatengesi nevapi vemasevhisi",
+      "seller.step1h": "1. Isa",
+      "seller.step1p": "Isa mapikicha neruzivo rwechinhu.",
+      "seller.step2h": "2. Isa mutengo",
+      "seller.step2p": "Isa mutengo wako, wobva VibeCart yaisa markup yakachengeteka.",
+      "seller.step3h": "3. Tumira",
+      "seller.step3p": "Sarudza courier options dzenzira dzenyika yemutengi.",
+      "chat.title": "Buyer-Seller Communication Hub",
+      "chat.lead": "Vatengi nevatengesi vanogona kutaurirana nekukurumidza pamibvunzo yezvigadzirwa nekuendeswa."
+    },
+    nd: {
+      "ui.youAreHereChip": "Ulapha",
+      "categories.title": "Izigaba Ezithandwayo",
+      "shops.title": "Amafolda ezitolo zendawo",
+      "shops.bridgeLink": "Trade Bridge leLive Marketplace",
+      "market.title": "Live Marketplace",
+      "ads.title": "Amabrand axhasiweyo lama-Ads",
+      "ai.need": "Udinga ini?",
+      "ai.budget": "Ibhajethi yakho ephezulu (EUR)",
+      "ai.category": "Isigaba osithandayo",
+      "tracking.title": "Ukulandelela Oda leDelivery Updates",
+      "booking.title": "Beauty leService Booking Platform",
+      "insurance.title": "Student Insurance leWell-Being Support",
+      "marketFit.p1h": "Kwabafundi labathengi abatsha",
+      "marketFit.p2h": "Kwemuli labathengi abavuthiweyo",
+      "marketFit.p3h": "Kwabathengisi labanikezeli bezinsiza",
+      "seller.step1h": "1. Faka",
+      "seller.step1p": "Faka izithombe lemininingwane yomkhiqizo.",
+      "seller.step2h": "2. Beka intengo",
+      "seller.step2p": "Beka intengo yakho, iVibeCart ibese ifaka markup evikelekileyo.",
+      "seller.step3h": "3. Thumela",
+      "seller.step3p": "Khetha izindlela ze-courier zomzila welizwe lomthengi.",
+      "chat.title": "Buyer-Seller Communication Hub",
+      "chat.lead": "Abathengi labathengisi bangakhuluma masinyane ngemibuzo yomkhiqizo lokulethwa."
+    },
+    xh: {
+      "ui.youAreHereChip": "Ulapha",
+      "categories.title": "Iindidi Ezithandwayo",
+      "shops.title": "Iifolda zeevenkile zommandla",
+      "shops.bridgeLink": "Trade Bridge neLive Marketplace",
+      "market.title": "Live Marketplace",
+      "ads.title": "Iibrendi Ezixhasiweyo neAds",
+      "ai.need": "Ufuna ntoni?",
+      "ai.budget": "Uhlahlo-lwabiwo lwakho oluphezulu (EUR)",
+      "ai.category": "Udidi oluthandayo",
+      "tracking.title": "Ukulandelela iiOda neDelivery Updates",
+      "booking.title": "Beauty neService Booking Platform",
+      "insurance.title": "Student Insurance neWell-Being Support",
+      "marketFit.p1h": "Kubafundi nabathengi abatsha",
+      "marketFit.p2h": "Kwiintsapho nabathengi abavuthiweyo",
+      "marketFit.p3h": "Kubathengisi nababoneleli ngeenkonzo",
+      "seller.step1h": "1. Faka",
+      "seller.step1p": "Faka imifanekiso neenkcukacha zemveliso.",
+      "seller.step2h": "2. Beka ixabiso",
+      "seller.step2p": "Beka ixabiso lakho, iVibeCart ifake markup ekhuselekileyo.",
+      "seller.step3h": "3. Thumela",
+      "seller.step3p": "Khetha iindlela ze-courier kwindlela yelizwe lomthengi.",
+      "chat.title": "Buyer-Seller Communication Hub",
+      "chat.lead": "Abathengi nabathengisi banokunxibelelana ngokukhawuleza ngemibuzo yemveliso nokuhanjiswa."
+    },
+    zu: {
+      "ui.youAreHereChip": "Ulapha",
+      "categories.title": "Izigaba Ezidumile",
+      "shops.title": "Amafolda ezitolo zesifunda",
+      "shops.bridgeLink": "Trade Bridge neLive Marketplace",
+      "market.title": "Live Marketplace",
+      "ads.title": "AmaBrand Axhasiwe nama-Ads",
+      "ai.need": "Udinga ini?",
+      "ai.budget": "Ibhajethi yakho ephezulu (EUR)",
+      "ai.category": "Isigaba osithandayo",
+      "tracking.title": "Ukulandelela Ama-oda neDelivery Updates",
+      "booking.title": "Beauty neService Booking Platform",
+      "insurance.title": "Student Insurance neWell-Being Support",
+      "marketFit.p1h": "Kwabafundi nabathengi abasebasha",
+      "marketFit.p2h": "Kwemindeni nabathengi abavuthiwe",
+      "marketFit.p3h": "Kwabathengisi nabahlinzeki bezinsiza",
+      "seller.step1h": "1. Layisha",
+      "seller.step1p": "Faka izithombe nemininingwane yomkhiqizo.",
+      "seller.step2h": "2. Beka intengo",
+      "seller.step2p": "Beka intengo yakho, iVibeCart bese ifaka markup ephephile.",
+      "seller.step3h": "3. Thumela",
+      "seller.step3p": "Khetha izindlela ze-courier zomzila welizwe lomthengi.",
+      "chat.title": "Buyer-Seller Communication Hub",
+      "chat.lead": "Abathengi nabathengisi bangaxhumana ngokushesha ngemibuzo yomkhiqizo nezibuyekezo zokulethwa."
+    }
+  };
+  Object.keys(EXTRA_KEYS).forEach((code) => {
+    if (!STRINGS[code]) {
+      STRINGS[code] = {};
+    }
+    Object.assign(STRINGS[code], EXTRA_KEYS[code]);
+  });
+
+  // Force critical homepage labels to exist in all major locale packs.
+  const FORCED_HOME_KEYS = {
+    pl: {
+      "categories.title": "Popularne kategorie",
+      "shops.title": "Regionalne foldery sklepow",
+      "market.title": "Rynek na zywo",
+      "ads.title": "Marki sponsorowane i reklamy",
+      "tracking.title": "Sledzenie zamowien i aktualizacje dostawy",
+      "booking.title": "Platforma rezerwacji uslug beauty",
+      "insurance.title": "Ubezpieczenie studentow i wsparcie dobrostanu",
+      "chat.title": "Centrum komunikacji kupujacy-sprzedawca",
+      "marketFit.p1h": "Dla studentow i mlodych kupujacych",
+      "marketFit.p2h": "Dla rodzin i dojrzalych kupujacych",
+      "marketFit.p3h": "Dla sprzedawcow i uslugodawcow"
+    },
+    fr: {
+      "categories.title": "Categories populaires",
+      "shops.title": "Dossiers de boutiques regionales",
+      "market.title": "Marche en direct",
+      "ads.title": "Marques sponsorisees et publicites",
+      "tracking.title": "Suivi des commandes et mises a jour de livraison",
+      "booking.title": "Plateforme de reservation beaute et services",
+      "insurance.title": "Assurance et bien-etre etudiant",
+      "chat.title": "Centre de communication acheteur-vendeur",
+      "marketFit.p1h": "Pour les etudiants et jeunes acheteurs",
+      "marketFit.p2h": "Pour les familles et acheteurs plus matures",
+      "marketFit.p3h": "Pour les vendeurs et prestataires"
+    },
+    pt: {
+      "categories.title": "Categorias populares",
+      "shops.title": "Pastas de lojas regionais",
+      "market.title": "Mercado ao vivo",
+      "ads.title": "Marcas patrocinadas e anuncios",
+      "tracking.title": "Rastreamento de pedidos e atualizacoes de entrega",
+      "booking.title": "Plataforma de agendamento de beleza e servicos",
+      "insurance.title": "Seguro estudantil e apoio ao bem-estar",
+      "chat.title": "Hub de comunicacao comprador-vendedor",
+      "marketFit.p1h": "Para estudantes e compradores jovens",
+      "marketFit.p2h": "Para familias e compradores mais maduros",
+      "marketFit.p3h": "Para vendedores e prestadores de servico"
+    },
+    ar: {
+      "categories.title": "الفئات الشائعة",
+      "shops.title": "مجلدات المتاجر الإقليمية",
+      "market.title": "السوق المباشر",
+      "ads.title": "العلامات التجارية المدعومة والإعلانات",
+      "tracking.title": "تتبع الطلبات وتحديثات التوصيل",
+      "booking.title": "منصة حجز خدمات الجمال",
+      "insurance.title": "تأمين الطلاب ودعم الرفاه",
+      "chat.title": "مركز تواصل المشتري والبائع",
+      "marketFit.p1h": "للطلاب والمشترين الشباب",
+      "marketFit.p2h": "للعائلات والمشترين الأكثر نضجًا",
+      "marketFit.p3h": "للبائعين ومقدمي الخدمات"
+    },
+    zh: {
+      "categories.title": "热门分类",
+      "shops.title": "区域店铺文件夹",
+      "market.title": "实时市场",
+      "ads.title": "赞助品牌与广告",
+      "tracking.title": "订单跟踪与配送更新",
+      "booking.title": "美妆与服务预约平台",
+      "insurance.title": "学生保险与健康支持",
+      "chat.title": "买家卖家沟通中心",
+      "marketFit.p1h": "面向学生和年轻买家",
+      "marketFit.p2h": "面向家庭和成熟买家",
+      "marketFit.p3h": "面向卖家和服务提供者"
+    },
+    ko: {
+      "categories.title": "인기 카테고리",
+      "shops.title": "지역 상점 폴더",
+      "market.title": "라이브 마켓",
+      "ads.title": "스폰서 브랜드 및 광고",
+      "tracking.title": "주문 추적 및 배송 업데이트",
+      "booking.title": "뷰티 및 서비스 예약 플랫폼",
+      "insurance.title": "학생 보험 및 웰빙 지원",
+      "chat.title": "구매자-판매자 커뮤니케이션 허브",
+      "marketFit.p1h": "학생과 젊은 구매자를 위해",
+      "marketFit.p2h": "가족과 성숙한 구매자를 위해",
+      "marketFit.p3h": "판매자와 서비스 제공자를 위해"
+    },
+    hi: {
+      "categories.title": "लोकप्रिय श्रेणियां",
+      "shops.title": "क्षेत्रीय दुकान फोल्डर",
+      "market.title": "लाइव मार्केट",
+      "ads.title": "स्पॉन्सर्ड ब्रांड और विज्ञापन",
+      "tracking.title": "ऑर्डर ट्रैकिंग और डिलीवरी अपडेट",
+      "booking.title": "ब्यूटी और सर्विस बुकिंग प्लेटफॉर्म",
+      "insurance.title": "छात्र बीमा और वेल-बीइंग सपोर्ट",
+      "chat.title": "खरीदार-विक्रेता संचार हब",
+      "marketFit.p1h": "छात्रों और युवा खरीदारों के लिए",
+      "marketFit.p2h": "परिवारों और परिपक्व खरीदारों के लिए",
+      "marketFit.p3h": "विक्रेताओं और सेवा प्रदाताओं के लिए"
+    }
+  };
+  Object.keys(FORCED_HOME_KEYS).forEach((code) => {
+    if (!STRINGS[code]) {
+      STRINGS[code] = {};
+    }
+    Object.assign(STRINGS[code], FORCED_HOME_KEYS[code]);
+  });
+
+  // Fill remaining homepage labels for key African locales.
+  const FINAL_HOME_FILL = {
+    sn: {
+      "hero.regionHeadline": "VibeCart musika wemiganhu une vatengesi vakasimbiswa, checkout inokurumidza, uye kutenga kuri nyore.",
+      "categories.title": "Mapoka anonyanya kufarirwa",
+      "shops.title": "Mafolda ezvitoro zvematunhu",
+      "market.title": "Live Marketplace",
+      "sellerHub.kicker": "Kune vatengesi nemabhizimisi",
+      "sellerHub.title": "Tengesa mumatanho matatu ari nyore wobva washandisa maturusi ari pasi",
+      "sellerHub.intro": "Pano pane kushambadzira, AI yekukura, uye ads.",
+      "ads.title": "Sponsored Brands neAds",
+      "ai.need": "Uri kuda chii?",
+      "ai.budget": "Bhajeti yako yepamusoro (EUR)",
+      "ai.category": "Category yaunoda",
+      "tracking.title": "Kutevera maodha neDelivery Updates",
+      "booking.title": "Beauty neService Booking Platform",
+      "insurance.title": "Student Insurance neWell-Being Support",
+      "tax.title": "Kujeka kweMutero neKubhadhara",
+      "accountPassport.title": "Pasipoti yenzira",
+      "accountPassport.signingUpAs": "Kusaina se",
+      "settingsHub.accountH": "Kutonga kweAkaunti",
+      "settingsHub.experienceH": "Chiitiko cheShop"
+    },
+    nd: {
+      "hero.regionHeadline": "IVibeCart yimakethe yokuwela imingcele enabathengisi abaqinisekisiweyo, checkout esheshayo, lokuthenga okulula.",
+      "categories.title": "Izigaba ezithandwayo",
+      "shops.title": "Amafolda ezitolo zendawo",
+      "market.title": "Live Marketplace",
+      "sellerHub.kicker": "Kwabathengisi lamabhizimusi",
+      "sellerHub.title": "Thengisa ngezinyathelo ezintathu ezilula bese usebenzisa amathuluzi angezansi",
+      "sellerHub.intro": "Lapha uthola ukumaketha, AI yokukhulisa, lama-ads.",
+      "ads.title": "AmaBrand axhasiweyo lama-Ads",
+      "ai.need": "Udinga ini?",
+      "ai.budget": "Ibhajethi yakho ephezulu (EUR)",
+      "ai.category": "Isigaba osithandayo",
+      "tracking.title": "Ukulandelela ama-oda leDelivery Updates",
+      "booking.title": "Beauty leService Booking Platform",
+      "insurance.title": "Student Insurance leWell-Being Support",
+      "tax.title": "Ukucaca kweTax lePayout",
+      "accountPassport.title": "Ipasipoti yendlela",
+      "accountPassport.signingUpAs": "Ukubhalisa njenge",
+      "settingsHub.accountH": "Ukulawula iAkhawunti",
+      "settingsHub.experienceH": "Isipiliyoni seShop"
+    },
+    xh: {
+      "hero.regionHeadline": "IVibeCart yimarike ewela imida enabathengisi abaqinisekisiweyo, checkout ekhawulezayo, nokuthenga okulula.",
+      "categories.title": "Iindidi ezithandwayo",
+      "shops.title": "Iifolda zeevenkile zommandla",
+      "market.title": "Live Marketplace",
+      "sellerHub.kicker": "Kubathengisi namashishini",
+      "sellerHub.title": "Thengisa ngamanyathelo amathathu alula, emva koko usebenzise izixhobo ezingezantsi",
+      "sellerHub.intro": "Apha ufumana intengiso, AI yokukhulisa, kunye ne-ads.",
+      "ads.title": "Iibrendi ezixhasiweyo neAds",
+      "ai.need": "Ufuna ntoni?",
+      "ai.budget": "Uhlahlo-lwabiwo lwakho oluphezulu (EUR)",
+      "ai.category": "Udidi oluthandayo",
+      "tracking.title": "Ukulandelela ii-oda neDelivery Updates",
+      "booking.title": "Beauty neService Booking Platform",
+      "insurance.title": "Student Insurance neWell-Being Support",
+      "tax.title": "Ukucaca kweTax nePayout",
+      "accountPassport.title": "Ipasipoti yendlela",
+      "accountPassport.signingUpAs": "Ukubhalisa njenge",
+      "settingsHub.accountH": "Ulawulo lweAkhawunti",
+      "settingsHub.experienceH": "Amava eShop"
+    },
+    zu: {
+      "hero.regionHeadline": "IVibeCart yimakethe yokuwela imingcele enabathengisi abaqinisekisiwe, checkout esheshayo, nokuthenga okulula.",
+      "categories.title": "Izigaba ezidumile",
+      "shops.title": "Amafolda ezitolo zesifunda",
+      "market.title": "Live Marketplace",
+      "sellerHub.kicker": "Kwabathengisi namabhizinisi",
+      "sellerHub.title": "Thengisa ngezinyathelo ezi-3 ezilula — bese usebenzisa amathuluzi angezansi",
+      "sellerHub.intro": "Lapha uthola ukumaketha, i-AI yokukhulisa, nezikhangiso.",
+      "ads.title": "AmaBrand axhasiwe nama-Ads",
+      "ai.need": "Udinga ini?",
+      "ai.budget": "Ibhajethi yakho ephezulu (EUR)",
+      "ai.category": "Isigaba osithandayo",
+      "tracking.title": "Ukulandelela ama-oda neDelivery Updates",
+      "booking.title": "Beauty neService Booking Platform",
+      "insurance.title": "Student Insurance neWell-Being Support",
+      "tax.title": "Ukucaca kweTax nePayout",
+      "accountPassport.title": "Ipasipoti yendlela",
+      "accountPassport.signingUpAs": "Ukubhalisa njenge",
+      "settingsHub.accountH": "Ukulawula iAkhawunti",
+      "settingsHub.experienceH": "Isipiliyoni seShop"
+    }
+  };
+  Object.keys(FINAL_HOME_FILL).forEach((code) => {
+    if (!STRINGS[code]) STRINGS[code] = {};
+    Object.assign(STRINGS[code], FINAL_HOME_FILL[code]);
+  });
 
   window.VibeCartI18n = {
     STRINGS,

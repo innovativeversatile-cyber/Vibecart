@@ -63,3 +63,27 @@ Failure codes:
 - Never log raw credentials.
 - Rate limit auth routes by IP and account.
 - Bind session checks to user-agent and optional IP heuristics.
+
+## Affiliate Tracking Endpoints
+
+### `GET /api/public/shop/redirect`
+
+- Redirect gateway for outbound shop clicks.
+- Records referral click event, then redirects to target shop URL.
+- Appends `vc_ref` query param to target URL for conversion matching.
+
+### `GET /api/public/affiliate/referrals?limit=100`
+
+- Returns recent recorded affiliate referral events (clicks + conversion entries).
+
+### `GET /api/public/affiliate/postback`
+
+- Partner conversion callback endpoint for completed payments.
+- Requires token:
+  - query: `?token=...`
+  - or header: `x-affiliate-postback-token`
+- Required query:
+  - `ref` (the click reference code / vc_ref)
+- Optional query:
+  - `partnerId`, `value`, `commission`, `currency`, `status`
+  - `partnerId` is optional; if omitted, backend uses/creates an internal default affiliate partner automatically.

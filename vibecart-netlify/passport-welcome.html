@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome Passport · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=passport-1" />
+</head>
+<body>
+  <header class="shops-lane-topbar">
+    <a href="./index.html" class="btn btn-secondary">Home</a>
+    <h1 class="shops-lane-title">Welcome to VibeCart</h1>
+  </header>
+  <main class="section">
+    <div class="hero-card">
+      <h2 id="welcomeLine">Thank you for being a VibeCart citizen.</h2>
+      <p class="note">Your digital passport is ready. You can add a profile photo now.</p>
+    </div>
+    <section class="section alt" style="max-width:760px;">
+      <h3>VibeCart Citizen Passport</h3>
+      <div class="admin-grid">
+        <label>Full name</label>
+        <input id="ppName" type="text" readonly />
+        <label>Email</label>
+        <input id="ppEmail" type="text" readonly />
+        <label>Member ID</label>
+        <input id="ppMemberId" type="text" readonly />
+        <label>Role</label>
+        <input id="ppRole" type="text" readonly />
+      </div>
+      <div class="hero-actions" style="margin-top:1rem;">
+        <input id="ppPhotoInput" type="file" accept="image/*" />
+      </div>
+      <div id="ppPhotoPreviewWrap" class="ai-result" style="margin-top:1rem;">
+        <p id="ppPhotoError" class="note hidden"></p>
+        <img id="ppPhotoPreview" alt="Passport profile preview" style="max-width:140px;border-radius:10px;display:none;" />
+      </div>
+      <div class="hero-actions" style="margin-top:1rem;">
+        <a class="btn btn-primary" href="./account-hub.html">Continue to Account Hub</a>
+        <a class="btn btn-secondary" href="./index.html">Go to Marketplace</a>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function () {
+      var PHOTO_KEY = "vibecart-passport-photo-data";
+      var MAX_BYTES = 240000;
+      var params = new URLSearchParams(window.location.search || "");
+      var rawUser = localStorage.getItem("vibecart-public-auth-user");
+      var user = {};
+      try { user = rawUser ? JSON.parse(rawUser) : {}; } catch (e) { user = {}; }
+      var name = params.get("name") || user.fullName || "Citizen";
+      var email = params.get("email") || user.email || "";
+      var role = user.role || "buyer";
+      var memberId = "VC-" + String(user.id || Date.now()).slice(-8);
+      var nameNode = document.getElementById("ppName");
+      var emailNode = document.getElementById("ppEmail");
+      var roleNode = document.getElementById("ppRole");
+      var idNode = document.getElementById("ppMemberId");
+      if (nameNode) nameNode.value = name;
+      if (emailNode) emailNode.value = email;
+      if (roleNode) roleNode.value = role;
+      if (idNode) idNode.value = memberId;
+      var input = document.getElementById("ppPhotoInput");
+      var img = document.getElementById("ppPhotoPreview");
+      var err = document.getElementById("ppPhotoError");
+      function showDataUrl(dataUrl) {
+        if (!img || !dataUrl) return;
+        img.src = dataUrl;
+        img.style.display = "block";
+      }
+      try {
+        var saved = localStorage.getItem(PHOTO_KEY);
+        if (saved) showDataUrl(saved);
+      } catch (e) {}
+      if (input && img) {
+        input.addEventListener("change", function () {
+          var file = input.files && input.files[0];
+          if (!file) return;
+          if (file.size > MAX_BYTES) {
+            if (err) {
+              err.textContent = "Photo too large. Please choose an image under about 240 KB.";
+              err.classList.remove("hidden");
+            }
+            input.value = "";
+            return;
+          }
+          if (err) {
+            err.textContent = "Reading your photo…";
+            err.classList.remove("hidden");
+          }
+          var reader = new FileReader();
+          reader.onerror = function () {
+            if (err) {
+              err.textContent = "Could not read that file. Try another image or a smaller file.";
+              err.classList.remove("hidden");
+            }
+          };
+          reader.onload = function () {
+            var dataUrl = String(reader.result || "");
+            if (dataUrl.indexOf("data:image") === 0) {
+              showDataUrl(dataUrl);
+              try { localStorage.setItem(PHOTO_KEY, dataUrl); } catch (e) {}
+              if (err) {
+                err.textContent = "Photo saved on this device. Use Continue below when you are ready.";
+                err.classList.remove("hidden");
+              }
+            } else if (err) {
+              err.textContent = "That file is not a supported image.";
+              err.classList.remove("hidden");
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

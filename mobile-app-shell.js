@@ -36,7 +36,7 @@
     "Cross-border fun, not chaos: banned categories stay off-limits; if a route looks too good, double-check duties in the listing notes.",
     "Tell us one thing to improve below — we fold your notes into the next app polish cycle.",
     "When the web shell flashes “Live sync”, the API merged both bridge paths — try switching Mama Africa ↔ Europe before you filter categories.",
-    "After a seed or seller upload, pull-to-refresh mentally: reopen Hot Picks so the WebView picks up new SKUs without clearing site data."
+    "After new listings ship, pull to refresh or reopen Hot Picks so the WebView shows the latest catalog without clearing site data."
   ];
 
   function ensureAiCoach() {

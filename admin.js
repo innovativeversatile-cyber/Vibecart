@@ -17,6 +17,13 @@ const REVENUE_SETTINGS_KEY = "vibecart-revenue-settings";
 const API_BASE_KEY = "vibecart-api-base-url";
 const MESSAGE_CENTER_KEY = "vibecart-admin-message-center-v1";
 const MESSAGE_CENTER_READ_AT_KEY = "vibecart-admin-message-read-at-v1";
+const AFFILIATE_LINK_HEALTH_HISTORY_KEY = "vibecart-affiliate-link-health-history-v1";
+const AFFILIATE_ALERT_LAST_KEY = "vibecart-affiliate-alert-last-v1";
+const AFFILIATE_ALERT_SEVERITY_MODE_KEY = "vibecart-affiliate-alert-severity-mode-v1";
+const affiliateRuntime = {
+  linkHealth: null,
+  reconciliation: null
+};
 /** When admin is opened as file:// or odd schemes, localhost:8081 causes ECONNREFUSED if no local API. */
 const PUBLIC_PRODUCTION_API_FALLBACK = "https://vibe-cart.com";
 const DEFAULT_API_BASE = (() => {
@@ -279,6 +286,220 @@ function clearSession() {
 function isSessionValid() {
   const session = getSession();
   return Boolean(session.token && session.expiresAt && new Date(session.expiresAt).getTime() > Date.now());
+}
+
+function formatSyncTime(now) {
+  try {
+    return new Date(now).toLocaleString();
+  } catch {
+    return String(now);
+  }
+}
+
+function renderAffiliateSessionState() {
+  const node = document.getElementById("affiliateSessionState");
+  if (!node) {
+    return;
+  }
+  const session = getSession();
+  const valid = isSessionValid();
+  if (!session || !session.token) {
+    node.textContent = "Owner session: OFFLINE (not signed in).";
+    return;
+  }
+  node.textContent = `Owner session: ${valid ? "ACTIVE" : "EXPIRED"}${session.expiresAt ? ` · expires ${formatSyncTime(session.expiresAt)}` : ""}`;
+}
+
+function getAffiliateLinkHealthHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(AFFILIATE_LINK_HEALTH_HISTORY_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAffiliateLinkHealthHistory(entry) {
+  const history = getAffiliateLinkHealthHistory();
+  history.unshift(entry);
+  const capped = history.slice(0, 7);
+  localStorage.setItem(AFFILIATE_LINK_HEALTH_HISTORY_KEY, JSON.stringify(capped));
+  return capped;
+}
+
+function clearAffiliateLinkHealthHistory() {
+  localStorage.removeItem(AFFILIATE_LINK_HEALTH_HISTORY_KEY);
+  renderAffiliateLinkHealthTrend([]);
+}
+
+function renderAffiliateLinkHealthTrend(history) {
+  const node = document.getElementById("affiliateLinkHealthTrend");
+  if (!node) {
+    return;
+  }
+  if (!Array.isArray(history) || history.length === 0) {
+    node.textContent = "Link health trend (last 7): no history yet.";
+    return;
+  }
+  const lines = history.map(
+    (entry, idx) =>
+      `#${idx + 1} ${formatSyncTime(entry.at)} | checked ${entry.checked} | reachable ${entry.reachable} | unreachable ${entry.unreachable}`
+  );
+  node.innerHTML = `<strong>Link health trend (last ${history.length})</strong><br />${lines.map((x) => escapeHtml(x)).join("<br />")}`;
+}
+
+function renderAffiliateAlertBanner(summary) {
+  const node = document.getElementById("affiliateAlertBanner");
+  if (!node) {
+    return;
+  }
+  if (!summary) {
+    node.textContent = "Alerts: none.";
+    return;
+  }
+  if (Number(summary.unreachable || 0) > 0) {
+    node.textContent = `Alerts: ${summary.unreachable} unreachable links detected. Check the rows below.`;
+    return;
+  }
+  node.textContent = "Alerts: all monitored links reachable.";
+}
+
+function getAffiliateLastAlertSignature() {
+  return String(localStorage.getItem(AFFILIATE_ALERT_LAST_KEY) || "");
+}
+
+function setAffiliateLastAlertSignature(signature) {
+  localStorage.setItem(AFFILIATE_ALERT_LAST_KEY, String(signature || ""));
+}
+
+function getAffiliateAlertSeverityMode() {
+  const raw = String(localStorage.getItem(AFFILIATE_ALERT_SEVERITY_MODE_KEY) || "yellow_and_red");
+  return raw === "red_only" ? "red_only" : "yellow_and_red";
+}
+
+function saveAffiliateAlertSeverityMode(mode) {
+  const next = mode === "red_only" ? "red_only" : "yellow_and_red";
+  localStorage.setItem(AFFILIATE_ALERT_SEVERITY_MODE_KEY, next);
+}
+
+function renderAffiliateAlertSeverityMode() {
+  const node = document.getElementById("affiliateAlertSeverityMode");
+  if (!node) {
+    return;
+  }
+  node.value = getAffiliateAlertSeverityMode();
+}
+
+async function sendOwnerInboxAlert(messageText) {
+  const text = String(messageText || "").trim();
+  if (!text) {
+    return;
+  }
+  await authedPost("/api/owner/messages/create", {
+    type: "urgent",
+    text: text.slice(0, 600)
+  });
+  await updateMessageBadge();
+}
+
+async function sendPhoneAlertNotification(title, body) {
+  const safeTitle = String(title || "VibeCart alert");
+  const safeBody = String(body || "Affiliate monitoring detected an issue.");
+  try {
+    if (!("Notification" in window)) {
+      return;
+    }
+    if (Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    if (Notification.permission !== "granted") {
+      return;
+    }
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.active) {
+        reg.active.postMessage({
+          type: "SHOW_NOTIFICATION",
+          title: safeTitle,
+          body: safeBody,
+          url: "./admin.html"
+        });
+        return;
+      }
+    }
+    new Notification(safeTitle, { body: safeBody });
+  } catch {
+    // silent fallback
+  }
+}
+
+async function maybeDispatchAffiliateAlert(details) {
+  const level = String(details.level || "");
+  const issueSummary = String(details.issueSummary || "");
+  if (!issueSummary || level === "GREEN") {
+    return;
+  }
+  const mode = getAffiliateAlertSeverityMode();
+  if (mode === "red_only" && level !== "RED") {
+    return;
+  }
+  const signature = `${level}|${issueSummary}`;
+  if (getAffiliateLastAlertSignature() === signature) {
+    return;
+  }
+  setAffiliateLastAlertSignature(signature);
+  const message = `Affiliate monitor ${level}: ${issueSummary}`;
+  try {
+    await sendOwnerInboxAlert(message);
+  } catch {
+    // keep UI non-blocking
+  }
+  await sendPhoneAlertNotification("VibeCart Affiliate Alert", message);
+}
+
+function updateAffiliateReadinessAndActions() {
+  const scoreNode = document.getElementById("affiliateReadinessScore");
+  const actionsNode = document.getElementById("affiliateRecommendedActions");
+  if (!scoreNode || !actionsNode) {
+    return;
+  }
+  let score = 100;
+  const actions = [];
+  const health = affiliateRuntime.linkHealth;
+  const recon = affiliateRuntime.reconciliation;
+
+  if (!health) {
+    score -= 20;
+    actions.push("Run link health to populate monitoring.");
+  } else if (Number(health.unreachable || 0) > 0) {
+    score -= Math.min(40, Number(health.unreachable || 0) * 20);
+    actions.push("Fix unreachable shop links or replace blocked domains.");
+  }
+
+  if (!recon) {
+    score -= 20;
+    actions.push("Refresh reconciliation to verify conversion lifecycle.");
+  } else {
+    const clicks = Number(recon.clicks || 0);
+    const confirmed = Number(recon.confirmed || 0);
+    if (clicks > 0 && confirmed === 0) {
+      score -= 15;
+      actions.push("Clicks detected without confirmed conversions; verify partner postback mapping.");
+    }
+    if (Number(recon.pending || 0) > Math.max(5, confirmed * 2)) {
+      score -= 10;
+      actions.push("Pending conversions are high; reconcile partner callbacks.");
+    }
+  }
+
+  score = Math.max(0, Math.round(score));
+  const level = score >= 85 ? "GREEN" : score >= 65 ? "YELLOW" : "RED";
+  scoreNode.textContent = `Readiness: ${level} (${score}/100).`;
+  actionsNode.textContent = actions.length
+    ? `Recommended actions: ${actions.join(" ")}`
+    : "Recommended actions: no blockers detected; continue monitoring daily.";
+  const issueSummary = actions.length ? actions.join(" ") : "";
+  maybeDispatchAffiliateAlert({ level, issueSummary }).catch(() => {});
 }
 
 async function fillForm() {
@@ -738,7 +959,206 @@ async function refreshOwnerRevenueDashboard() {
   const reservePercent = Number(document.getElementById("ownerReservePercent")?.value || "10");
   const payload = await authedPost("/api/monetization/revenue/owner-dashboard", { reservePercent });
   renderOwnerRevenueDashboard(payload);
+  await refreshAffiliateQuickStats();
+  await refreshAffiliateReconciliation();
   setStatus("Owner revenue dashboard refreshed. Seller tax remains seller liability.");
+}
+
+async function refreshAffiliateQuickStats() {
+  const node = document.getElementById("affiliateQuickStats");
+  if (!node) {
+    return;
+  }
+  renderAffiliateSessionState();
+  const session = getSession();
+  if (!session || !session.token) {
+    node.textContent = "Affiliate stats: sign in as owner to view.";
+    return;
+  }
+  try {
+    const res = await fetch(
+      `${getApiBase()}/api/public/affiliate/referrals?limit=300&authToken=${encodeURIComponent(String(session.token || ""))}`
+    );
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok || !Array.isArray(body.referrals)) {
+      node.textContent = "Affiliate stats unavailable right now.";
+      return;
+    }
+    const rows = body.referrals;
+    let clicks = 0;
+    let conversions = 0;
+    let commission = 0;
+    rows.forEach((row) => {
+      const kind = String(row.conversion_type || "").toLowerCase();
+      const amount = Number(row.commission_amount || 0);
+      if (kind.indexOf("click_out:") === 0) {
+        clicks += 1;
+      }
+      if (kind.indexOf("purchase_confirmed:") === 0) {
+        conversions += 1;
+      }
+      if (Number.isFinite(amount)) {
+        commission += amount;
+      }
+    });
+    node.textContent =
+      `Affiliate status: ${clicks} click-outs · ${conversions} confirmed conversions · estimated commission ${commission.toFixed(2)} EUR.`;
+  } catch {
+    node.textContent = "Affiliate stats unavailable right now.";
+  }
+}
+
+async function refreshAffiliateReconciliation() {
+  const node = document.getElementById("affiliateReconciliationReport");
+  const syncNode = document.getElementById("affiliateLastSync");
+  if (!node) {
+    return;
+  }
+  const payload = await authedPost("/api/owner/affiliate/reconciliation/report", { lookbackDays: 30 });
+  const stats = payload && payload.stats ? payload.stats : {};
+  const warnings = Array.isArray(payload.warnings) ? payload.warnings : [];
+  affiliateRuntime.reconciliation = {
+    clicks: Number(stats.clicks || 0),
+    pending: Number(stats.pending || 0),
+    confirmed: Number(stats.confirmed || 0),
+    reversed: Number(stats.reversed || 0)
+  };
+  node.innerHTML =
+    `<strong>Affiliate reconciliation (30d)</strong><br />` +
+    `Clicks: ${Number(stats.clicks || 0)} · Pending: ${Number(stats.pending || 0)} · Confirmed: ${Number(stats.confirmed || 0)} · Reversed: ${Number(stats.reversed || 0)}<br />` +
+    `Conversion rate: ${Number(stats.conversionRatePercent || 0).toFixed(2)}% · Reversal rate: ${Number(stats.reversalRatePercent || 0).toFixed(2)}%<br />` +
+    `Commission confirmed: ${Number(stats.commissionConfirmed || 0).toFixed(2)} EUR · Net: ${Number(stats.commissionNet || 0).toFixed(2)} EUR` +
+    (warnings.length ? `<br /><em>Warnings:</em> ${warnings.map((x) => escapeHtml(String(x))).join(" | ")}` : "");
+  if (syncNode) {
+    syncNode.textContent = `Last sync: reconciliation ${formatSyncTime(Date.now())}`;
+  }
+  updateAffiliateReadinessAndActions();
+}
+
+async function runAffiliateLinkHealth() {
+  const box = document.getElementById("affiliateLinkHealthReport");
+  const syncNode = document.getElementById("affiliateLastSync");
+  const summaryNode = document.getElementById("affiliateLinkHealthSummary");
+  if (!box) {
+    return;
+  }
+  const payload = await authedPost("/api/owner/affiliate/link-health/check", {});
+  const checks = Array.isArray(payload.checks) ? payload.checks : [];
+  const checked = Number(payload.checked || checks.length || 0);
+  const reachableCount = Number(payload.reachableCount || 0);
+  const failCount = Number(payload.failCount || 0);
+  affiliateRuntime.linkHealth = {
+    checked,
+    reachable: reachableCount,
+    unreachable: failCount
+  };
+  if (summaryNode) {
+    summaryNode.textContent = `Link health totals: checked ${checked} · reachable ${reachableCount} · unreachable ${failCount}.`;
+  }
+  renderAffiliateAlertBanner({ checked, reachable: reachableCount, unreachable: failCount });
+  const history = saveAffiliateLinkHealthHistory({
+    at: new Date().toISOString(),
+    checked,
+    reachable: reachableCount,
+    unreachable: failCount
+  });
+  renderAffiliateLinkHealthTrend(history);
+  if (!checks.length) {
+    box.innerHTML = "<div class='msg msg-buyer'>No link health checks returned.</div>";
+    return;
+  }
+  box.innerHTML = "";
+  checks.forEach((item) => {
+    const row = document.createElement("div");
+    const classification = String(item.classification || (item.ok ? "ok" : "fail"));
+    const healthy = classification === "ok" || classification === "blocked" || classification === "method_not_allowed";
+    row.className = "msg " + (healthy ? "msg-seller" : "msg-buyer");
+    const label =
+      classification === "blocked"
+        ? "BLOCKED(403)"
+        : classification === "method_not_allowed"
+          ? "BLOCKED(405)"
+          : item.ok
+            ? "OK"
+            : "FAIL";
+    row.textContent = `${label} ${item.status || 0} | ${item.url}`;
+    box.appendChild(row);
+  });
+  if (syncNode) {
+    syncNode.textContent = `Last sync: link health ${formatSyncTime(Date.now())}`;
+  }
+  updateAffiliateReadinessAndActions();
+}
+
+async function refreshAffiliateAll() {
+  await refreshAffiliateQuickStats();
+  await refreshAffiliateReconciliation();
+  await runAffiliateLinkHealth();
+  const syncNode = document.getElementById("affiliateLastSync");
+  if (syncNode) {
+    syncNode.textContent = `Last sync: full affiliate refresh ${formatSyncTime(Date.now())}`;
+  }
+}
+
+async function runAffiliateFullAudit() {
+  await refreshAffiliateAll();
+  updateAffiliateReadinessAndActions();
+  setStatus("Full affiliate audit complete.");
+}
+
+function buildAffiliateReportPayload() {
+  const sessionText = String(document.getElementById("affiliateSessionState")?.textContent || "").trim();
+  const quickStatsText = String(document.getElementById("affiliateQuickStats")?.textContent || "").trim();
+  const lastSyncText = String(document.getElementById("affiliateLastSync")?.textContent || "").trim();
+  const reconcileText = String(document.getElementById("affiliateReconciliationReport")?.textContent || "").trim();
+  const healthTotalsText = String(document.getElementById("affiliateLinkHealthSummary")?.textContent || "").trim();
+  const alertText = String(document.getElementById("affiliateAlertBanner")?.textContent || "").trim();
+  const rows = Array.from(document.querySelectorAll("#affiliateLinkHealthReport .msg"))
+    .map((n) => String(n.textContent || "").trim())
+    .filter(Boolean);
+  return {
+    exportedAt: new Date().toISOString(),
+    session: sessionText,
+    affiliateStatus: quickStatsText,
+    lastSync: lastSyncText,
+    reconciliation: reconcileText,
+    linkHealthTotals: healthTotalsText,
+    alerts: alertText,
+    linkRows: rows,
+    trend: getAffiliateLinkHealthHistory()
+  };
+}
+
+async function copyAffiliateReport() {
+  const payload = buildAffiliateReportPayload();
+  await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+  setStatus("Affiliate report copied.");
+}
+
+function exportAffiliateReportJson() {
+  const payload = buildAffiliateReportPayload();
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  downloadJson(`vibecart-affiliate-report-${stamp}.json`, payload);
+  setStatus("Affiliate report JSON exported.");
+}
+
+function resetAffiliateAuditState() {
+  affiliateRuntime.linkHealth = null;
+  affiliateRuntime.reconciliation = null;
+  setAffiliateLastAlertSignature("");
+  clearAffiliateLinkHealthHistory();
+  const alertNode = document.getElementById("affiliateAlertBanner");
+  const lastSyncNode = document.getElementById("affiliateLastSync");
+  const linkSummaryNode = document.getElementById("affiliateLinkHealthSummary");
+  const linkRowsNode = document.getElementById("affiliateLinkHealthReport");
+  const actionsNode = document.getElementById("affiliateRecommendedActions");
+  if (alertNode) alertNode.textContent = "Alerts: none.";
+  if (lastSyncNode) lastSyncNode.textContent = "Last sync: reset. Run full affiliate audit.";
+  if (linkSummaryNode) linkSummaryNode.textContent = "Link health: run check to view totals.";
+  if (linkRowsNode) linkRowsNode.innerHTML = "";
+  if (actionsNode) actionsNode.textContent = "Recommended actions: run full affiliate audit.";
+  updateAffiliateReadinessAndActions();
+  setStatus("Affiliate audit state reset.");
 }
 
 async function refreshPublicUserStats() {
@@ -895,7 +1315,7 @@ async function refreshCoachMetrics() {
   box.textContent =
     `Profiles: ${s.totalProfiles || 0} | Weight loss: ${s.weightLoss || 0} | Weight gain: ${s.weightGain || 0} | ` +
     `Muscle gain: ${s.muscleGain || 0} | Medical support: ${s.medicalSupport || 0} | ` +
-    `General fitness: ${s.generalFitness || 0} | Active medication plans: ${s.activeMedicationSchedules || 0} | ` +
+    `General fitness: ${s.generalFitness || 0} | ` +
     `Check-ins (7 days): ${s.checkinsLast7Days || 0}`;
   if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
     setStatus("AI coach metrics refreshed.");
@@ -1326,12 +1746,16 @@ async function copyAiPrompt() {
 function openAiAssistantLink() {
   const linkInput = document.getElementById("aiLink");
   const value = String(linkInput.value || "").trim();
+  const fallback = "https://chat.openai.com/";
+  const target = value || fallback;
   if (!value) {
-    setStatus("Add your AI workspace link first.");
-    return;
+    setStatus("No AI workspace link set. Opening default assistant.");
   }
-  localStorage.setItem(AI_LINK_KEY, value);
-  window.open(value, "_blank", "noopener,noreferrer");
+  localStorage.setItem(AI_LINK_KEY, target);
+  if (linkInput) {
+    linkInput.value = target;
+  }
+  window.open(target, "_blank", "noopener,noreferrer");
   setStatus("Opened AI assistant link.");
 }
 
@@ -1423,7 +1847,7 @@ function runPendingDemos() {
   });
   saveAiSuggestions(updated);
   renderAiSuggestionsFeed();
-  setStatus("Pending suggestions moved to demo run (in progress).");
+  setStatus("Pending suggestions moved to active work (in progress).");
 }
 
 function clearDoneSuggestions() {
@@ -1447,6 +1871,11 @@ function generateAdCreative() {
 }
 
 function initializeOwnerSecurity() {
+  renderAffiliateSessionState();
+  renderAffiliateLinkHealthTrend(getAffiliateLinkHealthHistory());
+  renderAffiliateAlertBanner(null);
+  renderAffiliateAlertSeverityMode();
+  updateAffiliateReadinessAndActions();
   if (isSessionValid()) {
     showPanelUnlocked("Session restored.");
     refreshInsuranceJurisdictions().catch(() => {});
@@ -1466,7 +1895,13 @@ function bindClick(id, handler) {
     return;
   }
   el.dataset.boundClick = "1";
-  el.addEventListener("click", handler);
+  el.addEventListener("click", (event) => {
+    const label = String(el.textContent || "").trim();
+    if (label) {
+      setStatus(`Running: ${label}...`);
+    }
+    handler(event);
+  });
 }
 
 updateMessageBadge().catch(() => {});
@@ -1550,6 +1985,32 @@ bindClick("decideAiOp", () => {
 bindClick("refreshOwnerRevenueDashboard", () => {
   refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`));
 });
+bindClick("refreshAffiliateReconciliation", () => {
+  refreshAffiliateReconciliation().catch((error) => setStatus(`Affiliate reconciliation failed: ${error.message}`));
+});
+bindClick("runAffiliateLinkHealth", () => {
+  runAffiliateLinkHealth().catch((error) => setStatus(`Affiliate link health failed: ${error.message}`));
+});
+bindClick("refreshAffiliateAll", () => {
+  refreshAffiliateAll().catch((error) => setStatus(`Affiliate full refresh failed: ${error.message}`));
+});
+bindClick("runAffiliateFullAudit", () => {
+  runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`));
+});
+bindClick("clearAffiliateTrendHistory", () => {
+  clearAffiliateLinkHealthHistory();
+  updateAffiliateReadinessAndActions();
+  setStatus("Affiliate trend history cleared.");
+});
+bindClick("resetAffiliateAuditState", () => {
+  resetAffiliateAuditState();
+});
+bindClick("copyAffiliateReport", () => {
+  copyAffiliateReport().catch((error) => setStatus(`Copy affiliate report failed: ${error.message}`));
+});
+bindClick("exportAffiliateReportJson", () => {
+  exportAffiliateReportJson();
+});
 bindClick("requestOwnerPayout", () => {
   requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`));
 });
@@ -1604,6 +2065,22 @@ const clickHandlers = {
   decideAiOp: () => decideAiOpFromPanel().catch((error) => setStatus(`AI op decision failed: ${error.message}`)),
   refreshOwnerRevenueDashboard: () =>
     refreshOwnerRevenueDashboard().catch((error) => setStatus(`Revenue dashboard refresh failed: ${error.message}`)),
+  refreshAffiliateReconciliation: () =>
+    refreshAffiliateReconciliation().catch((error) => setStatus(`Affiliate reconciliation failed: ${error.message}`)),
+  runAffiliateLinkHealth: () =>
+    runAffiliateLinkHealth().catch((error) => setStatus(`Affiliate link health failed: ${error.message}`)),
+  refreshAffiliateAll: () =>
+    refreshAffiliateAll().catch((error) => setStatus(`Affiliate full refresh failed: ${error.message}`)),
+  runAffiliateFullAudit: () =>
+    runAffiliateFullAudit().catch((error) => setStatus(`Affiliate full audit failed: ${error.message}`)),
+  clearAffiliateTrendHistory: () => {
+    clearAffiliateLinkHealthHistory();
+    updateAffiliateReadinessAndActions();
+    setStatus("Affiliate trend history cleared.");
+  },
+  resetAffiliateAuditState: () => resetAffiliateAuditState(),
+  copyAffiliateReport: () => copyAffiliateReport().catch((error) => setStatus(`Copy affiliate report failed: ${error.message}`)),
+  exportAffiliateReportJson: () => exportAffiliateReportJson(),
   refreshPublicUserStats: () =>
     refreshPublicUserStats().catch((error) => setStatus(`Account counts refresh failed: ${error.message}`)),
   requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),
@@ -1630,6 +2107,18 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   handler();
 });
+
+const affiliateAlertSeverityNode = document.getElementById("affiliateAlertSeverityMode");
+if (affiliateAlertSeverityNode) {
+  affiliateAlertSeverityNode.addEventListener("change", () => {
+    saveAffiliateAlertSeverityMode(affiliateAlertSeverityNode.value);
+    setStatus(
+      affiliateAlertSeverityNode.value === "red_only"
+        ? "Affiliate alerts set to RED only."
+        : "Affiliate alerts set to YELLOW + RED."
+    );
+  });
+}
 
 initializeOwnerSecurity();
 renderAiSuggestionsFeed();

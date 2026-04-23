@@ -43,7 +43,18 @@ const INJECT_HASH_SYNC = `(function(){
         RN.postMessage(JSON.stringify({ vcDock: k, src: "vc" }));
       } catch (e) {}
     }
+    function dockFromPath() {
+      var p = (location.pathname || "").split("/").pop() || "";
+      p = p.toLowerCase();
+      if (/^regional-shops|shops-/.test(p)) return "shops";
+      if (/^bridge-hub/.test(p)) return "bridge";
+      if (/^hot-picks|buy-journey/.test(p)) return "market";
+      if (/^account-hub|legal-settings|sell-journey|rewards-hub|insurance|wellbeing|orders-tracking|security-overview|browse-categories|lane-welcome|audience-fit|seller-boost/.test(p)) return "more";
+      return "";
+    }
     function dockFromHash() {
+      var fromPath = dockFromPath();
+      if (fromPath) return fromPath;
       var h = (location.hash || "").replace(/^#/, "").split("&")[0].split("?")[0];
       if (!h) return "home";
       if (h === "shops") return "shops";
@@ -156,6 +167,9 @@ async function registerPushWithBackend(apiBase: string, pushToken: string): Prom
 
 const FALLBACK_BASE_URL = "https://vibe-cart.com";
 
+/** Extra strip above the tab dock (global search + inbox parity with deploy-web site chrome). */
+const QUICK_CHROME_HEIGHT = 42;
+
 function isAllowedUrl(url: string, allowedHost: string): boolean {
   try {
     const parsed = new URL(url);
@@ -182,17 +196,49 @@ type DockKey = "home" | "shops" | "bridge" | "market" | "more";
 
 const DOCK_KEYS: DockKey[] = ["home", "shops", "bridge", "market", "more"];
 
-function parseVcDockMessage(data: string): DockKey | null {
+type VcSceneId =
+  | "intro"
+  | "lane"
+  | "fit"
+  | "rewards"
+  | "categories"
+  | "shops"
+  | "bridge"
+  | "market"
+  | "hub";
+
+const VC_SCENE_IDS: VcSceneId[] = [
+  "intro",
+  "lane",
+  "fit",
+  "rewards",
+  "categories",
+  "shops",
+  "bridge",
+  "market",
+  "hub"
+];
+
+type VcFlowHaptic = "next" | "prev" | "done";
+
+function parseVcWebViewPayload(data: string): {
+  dock: DockKey | null;
+  scene: VcSceneId | null;
+  flowHaptic: VcFlowHaptic | null;
+} {
   try {
-    const o = JSON.parse(data) as { vcDock?: string };
-    const k = String(o.vcDock || "");
-    if (DOCK_KEYS.includes(k as DockKey)) {
-      return k as DockKey;
-    }
+    const o = JSON.parse(data) as { vcDock?: string; vcScene?: string; vcFlowHaptic?: string };
+    const dk = String(o.vcDock || "");
+    const dock = DOCK_KEYS.includes(dk as DockKey) ? (dk as DockKey) : null;
+    const rawScene = String(o.vcScene || "").trim();
+    const scene = VC_SCENE_IDS.includes(rawScene as VcSceneId) ? (rawScene as VcSceneId) : null;
+    const fh = String(o.vcFlowHaptic || "").trim().toLowerCase();
+    const flowHaptic: VcFlowHaptic | null =
+      fh === "next" || fh === "prev" || fh === "done" ? (fh as VcFlowHaptic) : null;
+    return { dock, scene, flowHaptic };
   } catch {
-    /* ignore */
+    return { dock: null, scene: null, flowHaptic: null };
   }
-  return null;
 }
 
 export default function App(): JSX.Element {
@@ -206,6 +252,8 @@ export default function App(): JSX.Element {
   const [dockActive, setDockActive] = useState<DockKey>("home");
   const [dockCoachVisible, setDockCoachVisible] = useState(false);
   const webViewRef = useRef<WebViewType>(null);
+  const sceneHapticTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHapticScene = useRef<string>("");
   const pulse = useRef(new Animated.Value(0)).current;
   const splashOp = useRef(new Animated.Value(1)).current;
   const appStateRef = useRef(AppState.currentState);
@@ -389,12 +437,20 @@ export default function App(): JSX.Element {
     const root = baseUrl.replace(/\/$/, "");
     const map: Record<DockKey, string> = {
       home: `${root}/`,
-      shops: `${root}/#shops`,
-      bridge: `${root}/#bridge-routes`,
-      market: `${root}/#market`,
-      more: `${root}/#account-access`
+      shops: `${root}/regional-shops.html`,
+      bridge: `${root}/bridge-hub.html`,
+      market: `${root}/hot-picks.html`,
+      more: `${root}/account-hub.html`
     };
     const target = map[key];
+    webViewRef.current?.injectJavaScript(`window.location.href = ${JSON.stringify(target)}; true;`);
+  };
+
+  const navigateWebPath = (pathWithQuery: string) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const root = baseUrl.replace(/\/$/, "");
+    const suffix = pathWithQuery.startsWith("/") ? pathWithQuery : `/${pathWithQuery}`;
+    const target = `${root}${suffix}`;
     webViewRef.current?.injectJavaScript(`window.location.href = ${JSON.stringify(target)}; true;`);
   };
 
@@ -465,9 +521,26 @@ export default function App(): JSX.Element {
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
         injectedJavaScript={INJECT_HASH_SYNC}
         onMessage={(ev: { nativeEvent: { data: string } }) => {
-          const next = parseVcDockMessage(ev.nativeEvent.data);
-          if (next) {
-            setDockActive(next);
+          const { dock, scene, flowHaptic } = parseVcWebViewPayload(ev.nativeEvent.data);
+          if (dock) {
+            setDockActive(dock);
+          }
+          if (flowHaptic === "next") {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          } else if (flowHaptic === "prev") {
+            void Haptics.selectionAsync().catch(() => {});
+          } else if (flowHaptic === "done") {
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          }
+          if (scene && scene !== lastHapticScene.current) {
+            lastHapticScene.current = scene;
+            if (sceneHapticTimer.current) {
+              clearTimeout(sceneHapticTimer.current);
+            }
+            sceneHapticTimer.current = setTimeout(() => {
+              sceneHapticTimer.current = null;
+              void Haptics.selectionAsync();
+            }, 140);
           }
         }}
         onLoadStart={() => {
@@ -570,7 +643,7 @@ export default function App(): JSX.Element {
         <Pressable
           style={[
             styles.disclaimerChip,
-            { bottom: (dockCoachVisible ? 118 : 62) + bottomPad }
+            { bottom: (dockCoachVisible ? 118 : 62) + QUICK_CHROME_HEIGHT + bottomPad }
           ]}
           onPress={() => setDisclaimerPeek((v) => !v)}
         >
@@ -578,7 +651,12 @@ export default function App(): JSX.Element {
         </Pressable>
       )}
       {disclaimerPeek && acceptedDisclaimer && (
-        <View style={[styles.disclaimerPop, { bottom: (dockCoachVisible ? 158 : 102) + bottomPad }]}>
+        <View
+          style={[
+            styles.disclaimerPop,
+            { bottom: (dockCoachVisible ? 158 : 102) + QUICK_CHROME_HEIGHT + bottomPad }
+          ]}
+        >
           <Text style={styles.disclaimerPopText}>
             VibeCart uses strong protection controls, but no platform can eliminate all risk. Follow local laws and
             platform terms.
@@ -616,6 +694,26 @@ export default function App(): JSX.Element {
               <Text style={styles.dockCoachText}>Pick a lane — the marketplace moves with you.</Text>
             </View>
           ) : null}
+          <View style={styles.quickChrome} accessibilityRole="toolbar">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Global search"
+              style={({ pressed }) => [styles.quickChromeBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateWebPath("/global-search.html")}
+            >
+              <Ionicons name="search-outline" size={22} color="#e8dcc8" />
+              <Text style={styles.quickChromeLabel}>Find</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Inbox and messages"
+              style={({ pressed }) => [styles.quickChromeBtn, pressed && styles.dockBtnPressed]}
+              onPress={() => navigateWebPath("/index.html#communication")}
+            >
+              <Ionicons name="mail-outline" size={22} color="#e8dcc8" />
+              <Text style={styles.quickChromeLabel}>Inbox</Text>
+            </Pressable>
+          </View>
           <View style={styles.dock}>
             <Pressable
               accessibilityRole="button"
@@ -891,6 +989,34 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 45
+  },
+  quickChrome: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    minHeight: QUICK_CHROME_HEIGHT,
+    backgroundColor: "rgba(14, 10, 28, 0.96)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(232, 163, 23, 0.12)"
+  },
+  quickChromeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(232, 163, 23, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(232, 163, 23, 0.28)"
+  },
+  quickChromeLabel: {
+    color: "#e8dcc8",
+    fontSize: 12,
+    fontWeight: "700"
   },
   dockCoach: {
     paddingHorizontal: 14,

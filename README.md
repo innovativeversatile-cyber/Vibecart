@@ -43,7 +43,7 @@ VibeCart is a secure marketplace concept for legal products from Poland and Euro
 - Revolution Pack UX scaffold: smart onboarding, trust lab cards, and campus rewards/streak interactions
 - `TRUST_REWARDS_API.md` trust profile and anti-abuse rewards endpoint contract
 - disclaimer acknowledgement gate for marketplace and insurance actions with backend audit logging
-- `safety-wellness-service.js` scam-risk chat checks + AI coach/medication/check-in backend service
+- `safety-wellness-service.js` scam-risk chat checks + AI coach and check-in backend service
 - `SAFETY_WELLNESS_API.md` public endpoint contract for safety checks and health/fitness coach
 - `.env.example` production environment template for backend deployment
 - `GO_LIVE_CHECKLIST.md` production launch checklist and domain replacement guide

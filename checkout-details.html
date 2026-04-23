@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Secure checkout · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-primary" id="checkoutBackLink" href="./buy-journey.html">Back to flow</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title" id="checkoutTitle">Secure checkout</h1>
+    <p class="note" id="checkoutPlanNote">Confirm your selected package and complete payment.</p>
+    <p class="note">
+      Choose the payment option you prefer. For security, all payments are completed through Stripe checkout, and your selected option is saved for support and preference records.
+    </p>
+    <p class="note" id="checkoutTaxDisclosure">
+      Price shown may exclude taxes. Final amount deducted is calculated for your country before you confirm payment.
+    </p>
+
+    <div class="admin-grid" style="max-width: 36rem">
+      <label for="checkoutUserMode">Checkout mode</label>
+      <select id="checkoutUserMode">
+        <option value="new">I am new (fill details)</option>
+        <option value="fast">Fast track (I already have an account)</option>
+      </select>
+      <div id="checkoutFastTrackFields" class="admin-grid" hidden>
+        <label for="checkoutAccountEmail">Account email</label>
+        <input id="checkoutAccountEmail" type="email" placeholder="your account email" />
+        <label for="checkoutPasscode">One-time passcode</label>
+        <input id="checkoutPasscode" type="text" placeholder="Enter passcode" />
+      </div>
+      <div id="checkoutNewUserFields" class="admin-grid">
+      <label for="checkoutServiceType">Service type</label>
+      <select id="checkoutServiceType">
+        <option value="coach">Health coach</option>
+        <option value="wearable">Wearable tracking</option>
+      </select>
+      <label for="checkoutFullName">Full name</label>
+      <input id="checkoutFullName" type="text" placeholder="Your full name" />
+      <label for="checkoutEmail">Email</label>
+      <input id="checkoutEmail" type="email" placeholder="you@example.com" />
+      <label for="checkoutDialCode">Country code</label>
+      <select id="checkoutDialCode">
+        <option value="+48" data-country="PL">Poland (+48)</option>
+        <option value="+27" data-country="ZA">South Africa (+27)</option>
+        <option value="+263" data-country="ZW">Zimbabwe (+263)</option>
+        <option value="+234" data-country="NG">Nigeria (+234)</option>
+        <option value="+44" data-country="GB">United Kingdom (+44)</option>
+        <option value="+1" data-country="US">United States (+1)</option>
+      </select>
+      <label for="checkoutPhone">Phone</label>
+      <input id="checkoutPhone" type="tel" placeholder="+48 ..." />
+      <label for="checkoutAddress">Street address</label>
+      <input id="checkoutAddress" type="text" placeholder="Street and building number" />
+      <label for="checkoutCity">City</label>
+      <input id="checkoutCity" type="text" placeholder="City" />
+      <label for="checkoutPostalCode">Postal code</label>
+      <input id="checkoutPostalCode" type="text" placeholder="Postal code" />
+      <label for="checkoutCountry">Billing country</label>
+      <select id="checkoutCountry">
+        <option value="PL">Poland</option>
+        <option value="ZA">South Africa</option>
+        <option value="ZW">Zimbabwe</option>
+        <option value="NG">Nigeria</option>
+        <option value="GB">United Kingdom</option>
+        <option value="US">United States</option>
+      </select>
+      <label for="checkoutPaymentMethod">Payment option</label>
+      <select id="checkoutPaymentMethod">
+        <option value="card">Bank card (Visa/Mastercard)</option>
+        <option value="blik">BLIK</option>
+        <option value="paypal">PayPal</option>
+        <option value="revolut">Revolut</option>
+        <option value="apple-pay">Apple Pay</option>
+        <option value="google-pay">Google Pay</option>
+        <option value="mobile-money">Mobile money</option>
+        <option value="bank-transfer">Bank transfer</option>
+      </select>
+      <label class="note" for="checkoutAutoRenew" style="display:flex;align-items:center;gap:.45rem;">
+        <input id="checkoutAutoRenew" type="checkbox" checked />
+        Enable automatic subscription renewal (secure auto-deduction)
+      </label>
+      </div>
+    </div>
+
+    <p class="hero-actions" style="margin-top: 1rem">
+      <button class="btn btn-primary" id="checkoutConfirmBtn" type="button">Confirm and continue to secure payment</button>
+      <a class="btn btn-secondary" href="./account-hub.html#account-access">Save and continue later</a>
+    </p>
+    <p class="note">After you confirm details, you will continue directly to secure Stripe checkout.</p>
+    <p class="note" id="checkoutStatus" aria-live="polite"></p>
+  </main>
+  <script src="./checkout-details.js?v=20260426renew1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

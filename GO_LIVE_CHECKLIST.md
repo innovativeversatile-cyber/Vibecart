@@ -80,7 +80,7 @@ Use a cloud scheduler (recommended) or Windows Task Scheduler.
 - Buyer flow: browse -> checkout -> tracking -> return window.
 - Seller flow: list -> promote -> message buyer.
 - Insurance flow: browse plans -> subscribe -> reminders.
-- Health coach flow: profile -> medication -> check-ins.
+- Health coach flow: profile -> check-ins.
 - Admin app mode: `admin-app.html` install + secure access.
 
 ## 9) Post-Launch Operations

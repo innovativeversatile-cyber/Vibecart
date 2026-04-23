@@ -12,21 +12,17 @@ This module adds scam-risk detection for chat and a health/fitness AI coach work
   - body: `{ "userId": 12345, "coachFocus": "weight_loss", "goalNotes": "...", "baselineWeightKg": 80, "targetWeightKg": 74, "dailyActivityGoal": "..." }`
   - creates/updates user coach profile.
 
-- `POST /api/public/coach/medication/add`
-  - body: `{ "userId": 12345, "medicationName": "...", "dosageText": "...", "scheduleType": "daily", "scheduleTime": "08:00" }`
-  - stores medication schedule for reminders/check-ins.
-
 - `POST /api/public/coach/checkin/add`
   - body: `{ "userId": 12345, "checkinType": "activity", "metricValue": "7000 steps", "notes": "..." }`
-  - logs health, activity, symptom, or medication check-ins.
+  - logs health, activity, symptom, or wellbeing check-ins.
 
 - `GET /api/public/coach/dashboard?userId=12345`
-  - returns coach profile + active medication schedules + recent check-ins.
+  - returns coach profile + recent check-ins.
 
 - `POST /api/health/cron/daily-reminders`
   - headers: `x-cron-token: <CRON_SECRET>`
   - body (optional): `{ "limit": 500 }`
-  - queues daily reminder notifications for users with active medication schedules who did not check in today.
+  - queues daily reminder notifications (legacy cron; medication-based targeting is disabled).
 
 - `POST /api/chat/safety/events/list` (owner-authenticated)
   - body: `{ "authToken": "...", "riskLevel": "high", "limit": 50 }`

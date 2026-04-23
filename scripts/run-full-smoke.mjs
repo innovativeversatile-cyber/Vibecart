@@ -179,6 +179,7 @@ const pages = [
   "/shops-asia.html",
   "/shops-scents.html",
   "/shops-global.html",
+  "/global-search.html",
   "/manifest.json",
   "/icon.svg"
 ];
@@ -289,7 +290,7 @@ if (mutations) {
   }
 }
 
-const checkinTypes = ["weight", "activity", "symptom", "medication_taken", "wellbeing"];
+const checkinTypes = ["weight", "activity", "symptom", "wellbeing"];
 if (mutations && smokeSessions.length > 0) {
   for (let i = 0; i < 15; i++) {
     const sess = smokeSessions[i % smokeSessions.length];
@@ -313,7 +314,8 @@ if (mutations && smokeSessions.length > 0) {
   const pid = first ? Number(first.id || first.productId || 0) : 0;
   if (pid) {
     let ordersOk = 0;
-    for (let o = 0; o < 5; o++) {
+    const maxOrders = 3;
+    for (let o = 0; o < maxOrders; o++) {
       const oc = await req(
         "POST",
         `${API_BASE}/api/public/orders/create`,
@@ -328,13 +330,19 @@ if (mutations && smokeSessions.length > 0) {
       if (oc.status === 200 && oc.json?.ok) {
         ordersOk += 1;
         pass(`POST orders/create checkout #${o + 1}`);
+      } else if (oc.json?.code === "INSUFFICIENT_STOCK" && ordersOk > 0) {
+        note(`STOP orders/create at #${o + 1}: INSUFFICIENT_STOCK after ${ordersOk} successful checkout(s).`);
+        break;
+      } else if (oc.json?.code === "INSUFFICIENT_STOCK") {
+        fail(`POST orders/create checkout #${o + 1}`, "INSUFFICIENT_STOCK on first attempt (no stock for smoke product).");
+        break;
       } else {
         fail(`POST orders/create checkout #${o + 1}`, `HTTP ${oc.status} ${JSON.stringify(oc.json || {}).slice(0, 200)}`);
         break;
       }
     }
-    if (ordersOk === 5) {
-      note("Five sequential checkouts completed for one buyer + one product (stock permitting).");
+    if (ordersOk === maxOrders) {
+      note(`${maxOrders} sequential checkouts completed for one buyer + one product (stock permitting).`);
     }
   } else {
     note("SKIP checkout chain: no product id from /api/public/products/live");

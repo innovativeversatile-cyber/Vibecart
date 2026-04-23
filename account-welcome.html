@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome Account · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=passport-6" />
+</head>
+<body>
+  <header class="shops-lane-topbar">
+    <a href="./index.html" class="btn btn-secondary">Home</a>
+    <h1 class="shops-lane-title">Welcome to VibeCart</h1>
+  </header>
+  <main class="section">
+    <div class="hero-card">
+      <h2 id="welcomeLine">Congratulations, welcome to the VibeCart community.</h2>
+      <p class="note">Your account is ready. Continue to personalize your experience.</p>
+    </div>
+    <section class="section alt vc-welcome-luxury" style="max-width:760px;">
+      <h3>VibeCart Account Identity</h3>
+      <div class="admin-grid">
+        <label>Full name</label>
+        <input id="acName" type="text" readonly />
+        <label>Email</label>
+        <input id="acEmail" type="text" readonly />
+        <label>Member ID</label>
+        <input id="acMemberId" type="text" readonly />
+        <label>Role</label>
+        <input id="acRole" type="text" readonly />
+      </div>
+      <p id="acCopyStatus" class="note">Tip: tap Member ID to copy it.</p>
+      <div class="hero-actions" style="margin-top:1rem;">
+        <a class="btn btn-primary" href="./index.html#account-access">Continue to account access</a>
+        <a class="btn btn-secondary" href="./index.html">Go to marketplace</a>
+      </div>
+      <div class="vc-end-steps">
+        <div class="vc-end-steps-head">
+          <h4>End steps</h4>
+          <div id="acStepsProgress" class="vc-steps-progress" style="--pct:0%">
+            <span id="acStepsProgressText">0%</span>
+          </div>
+        </div>
+        <p id="acStepsSummary" class="note">0 of 4 complete.</p>
+        <ol>
+          <li><label><input type="checkbox" data-step="account-identity" />Review your account identity and confirm your role.</label></li>
+          <li><label><input type="checkbox" data-step="account-mode" />Go to Account Access and switch buyer or seller mode as needed.</label></li>
+          <li><label><input type="checkbox" data-step="account-first-action" />Complete your first action (order, listing, or inbox message).</label></li>
+          <li><label><input type="checkbox" data-step="account-upgrade" />Upgrade to passport flow any time for full holder-tier experience.</label></li>
+        </ol>
+        <div class="vc-welcome-actions">
+          <a class="btn btn-secondary" href="./index.html#account-access">Open account access</a>
+          <a class="btn btn-secondary" href="./regional-shops.html">Discover shops</a>
+          <a class="btn btn-secondary" href="./buy-journey.html">Start buyer journey</a>
+        </div>
+        <div class="vc-welcome-actions">
+          <button type="button" id="acMarkAll" class="btn btn-secondary">Mark all complete</button>
+          <button type="button" id="acResetSteps" class="btn btn-secondary">Reset steps</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div id="vcConfettiLayer" class="vc-confetti-layer" aria-hidden="true"></div>
+  <script>
+    (function () {
+      var STEPS_KEY = "vibecart-account-end-steps-v1";
+      var CONFETTI_KEY = "vibecart-account-confetti-v1";
+      var params = new URLSearchParams(window.location.search || "");
+      var rawUser = localStorage.getItem("vibecart-public-auth-user");
+      var user = {};
+      try { user = rawUser ? JSON.parse(rawUser) : {}; } catch (e) { user = {}; }
+      var name = params.get("name") || user.fullName || "Member";
+      var email = params.get("email") || user.email || "";
+      var role = user.role || "buyer";
+      var memberId = "VC-" + String(user.id || Date.now()).slice(-8);
+      var nameNode = document.getElementById("acName");
+      var emailNode = document.getElementById("acEmail");
+      var roleNode = document.getElementById("acRole");
+      var idNode = document.getElementById("acMemberId");
+      var welcomeLine = document.getElementById("welcomeLine");
+      if (nameNode) nameNode.value = name;
+      if (emailNode) emailNode.value = email;
+      if (roleNode) roleNode.value = role;
+      if (idNode) idNode.value = memberId;
+      if (welcomeLine) {
+        var hour = new Date().getHours();
+        var dayPart = hour < 12 ? "Good morning" : (hour < 18 ? "Good afternoon" : "Good evening");
+        welcomeLine.textContent = dayPart + ", " + name + ". Congratulations, welcome to the VibeCart community.";
+      }
+      if (idNode) {
+        idNode.title = "Click to copy";
+        idNode.style.cursor = "copy";
+        idNode.addEventListener("click", function () {
+          var status = document.getElementById("acCopyStatus");
+          var text = String(idNode.value || "");
+          if (!text) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              if (status) status.textContent = "Member ID copied.";
+            }).catch(function () {
+              if (status) status.textContent = "Could not copy automatically. Please select and copy.";
+            });
+          }
+        });
+      }
+
+      var stepChecks = Array.prototype.slice.call(document.querySelectorAll(".vc-end-steps input[type='checkbox'][data-step]"));
+      function readSteps() {
+        try {
+          return JSON.parse(localStorage.getItem(STEPS_KEY) || "{}");
+        } catch (e) {
+          return {};
+        }
+      }
+      function writeSteps(state) {
+        try {
+          localStorage.setItem(STEPS_KEY, JSON.stringify(state || {}));
+        } catch (e) {}
+      }
+      var savedSteps = readSteps();
+      function updateProgressUi() {
+        var total = stepChecks.length || 1;
+        var done = stepChecks.filter(function (cb) { return cb.checked; }).length;
+        var pct = Math.round((done / total) * 100);
+        var ring = document.getElementById("acStepsProgress");
+        var ringText = document.getElementById("acStepsProgressText");
+        var summary = document.getElementById("acStepsSummary");
+        if (ring) ring.style.setProperty("--pct", pct + "%");
+        if (ringText) ringText.textContent = pct + "%";
+        if (summary) {
+          summary.textContent = done + " of " + total + " complete.";
+          summary.classList.toggle("vc-steps-complete", done === total);
+          if (done === total) {
+            summary.textContent = "All end steps complete. You are fully setup.";
+          }
+        }
+      }
+      stepChecks.forEach(function (cb) {
+        var key = String(cb.getAttribute("data-step") || "");
+        cb.checked = Boolean(savedSteps[key]);
+        cb.addEventListener("change", function () {
+          var next = readSteps();
+          next[key] = cb.checked;
+          writeSteps(next);
+          updateProgressUi();
+        });
+      });
+      updateProgressUi();
+      var markAllBtn = document.getElementById("acMarkAll");
+      var resetBtn = document.getElementById("acResetSteps");
+      if (markAllBtn) {
+        markAllBtn.addEventListener("click", function () {
+          var next = readSteps();
+          stepChecks.forEach(function (cb) {
+            cb.checked = true;
+            var key = String(cb.getAttribute("data-step") || "");
+            next[key] = true;
+          });
+          writeSteps(next);
+          updateProgressUi();
+        });
+      }
+      if (resetBtn) {
+        resetBtn.addEventListener("click", function () {
+          var next = {};
+          stepChecks.forEach(function (cb) {
+            cb.checked = false;
+            var key = String(cb.getAttribute("data-step") || "");
+            next[key] = false;
+          });
+          writeSteps(next);
+          updateProgressUi();
+        });
+      }
+
+      function runConfetti() {
+        var reduceMotion = false;
+        try {
+          reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        } catch (e) {}
+        if (reduceMotion) return;
+        var layer = document.getElementById("vcConfettiLayer");
+        if (!layer) return;
+        var colors = ["#e8a317", "#6ed2ff", "#b07eff", "#66ecc1", "#ffffff"];
+        for (var i = 0; i < 80; i++) {
+          var p = document.createElement("span");
+          p.className = "vc-confetti-piece";
+          p.style.left = Math.round(Math.random() * 100) + "vw";
+          p.style.background = colors[Math.floor(Math.random() * colors.length)];
+          p.style.setProperty("--dx", Math.round((Math.random() - 0.5) * 200) + "px");
+          p.style.animationDuration = (3.2 + Math.random() * 2.1).toFixed(2) + "s";
+          p.style.animationDelay = (Math.random() * 0.35).toFixed(2) + "s";
+          layer.appendChild(p);
+          (function (node) {
+            window.setTimeout(function () {
+              if (node && node.parentNode) node.parentNode.removeChild(node);
+            }, 6800);
+          })(p);
+        }
+      }
+      try {
+        if (localStorage.getItem(CONFETTI_KEY) !== "1") {
+          localStorage.setItem(CONFETTI_KEY, "1");
+          runConfetti();
+        }
+      } catch (e) {
+        runConfetti();
+      }
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

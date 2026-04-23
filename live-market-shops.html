@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live market shops · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260426biz1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./live-market.html">← Live market folders</a>
+    <a class="btn btn-primary" id="openFullMarketplaceTop" href="./live-market.html">Open full live marketplace</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Live market shops</h1>
+    <p class="note shops-lane-intro" id="liveMarketShopsIntro">Open a category to see multiple online shops, then choose your seller directly.</p>
+    <div class="admin-grid" style="max-width:32rem;margin-bottom:0.8rem">
+      <label for="liveMarketRegionSelect">Market region</label>
+      <select id="liveMarketRegionSelect" aria-label="Live market region targeting">
+        <option value="auto">Auto</option>
+        <option value="za">South Africa</option>
+        <option value="ke">Kenya</option>
+        <option value="zw">Zimbabwe</option>
+        <option value="eu">Europe</option>
+        <option value="gulf">Gulf</option>
+        <option value="asia">Asia</option>
+      </select>
+    </div>
+    <div class="hero-actions" id="liveMarketCategoryTabs" role="tablist" aria-label="Live market categories">
+      <button type="button" class="btn btn-secondary" data-live-cat="Electronics">Electronics</button>
+      <button type="button" class="btn btn-secondary" data-live-cat="Fashion">Fashion</button>
+      <button type="button" class="btn btn-secondary" data-live-cat="Books">Books</button>
+      <button type="button" class="btn btn-secondary" data-live-cat="Gaming">Gaming</button>
+    </div>
+    <section id="liveMarketFashionAssist" class="vc-fashion-assist hidden" aria-live="polite">
+      <div class="vc-fashion-assist-head">
+        <h2>Fashion lane assistant</h2>
+        <p class="note">Choose quick AI-style guidance or go straight to a fashion store.</p>
+      </div>
+      <div class="hero-actions">
+        <button type="button" id="fashionAdviceBtn" class="btn btn-secondary">Get fashion advice</button>
+        <button type="button" id="fashionShopNowBtn" class="btn btn-primary">Open fashion shops</button>
+      </div>
+      <p id="fashionAdviceOutput" class="note vc-fashion-assist-output"></p>
+      <div id="fashionTrendsRail" class="vc-fashion-trends-rail" aria-label="Fashion trend images"></div>
+    </section>
+    <div class="admin-grid" style="max-width:42rem;margin-bottom:0.8rem">
+      <label for="liveMarketShopSearch">Search any shop</label>
+      <input id="liveMarketShopSearch" type="text" placeholder="Type shop name, e.g. Amazon, Zara, Steam" />
+    </div>
+    <div class="hero-actions">
+      <button type="button" class="btn btn-secondary" id="liveMarketShopSearchBtn">Search shop</button>
+      <button type="button" class="btn btn-secondary" id="liveMarketShopResetBtn">Reset list</button>
+    </div>
+    <p class="note">
+      <input id="liveMarketDisclaimerAck" type="checkbox" />
+      I understand and accept the marketplace risk and legal responsibility disclaimer.
+    </p>
+    <p class="note" id="liveMarketShopSearchStatus" aria-live="polite"></p>
+    <div class="shop-bubble-grid" id="liveMarketShopGrid">
+    </div>
+  </main>
+  <script src="./live-market-shops.js?v=20260426shops5"></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Popular market · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./live-market.html">← Live market folders</a>
+    <a class="btn btn-primary" href="./index.html?flow=browse#categories">Open category grid</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Popular market</h1>
+    <p class="note shops-lane-intro">This lane focuses on trending categories and quick discovery.</p>
+    <div class="shop-bubble-grid">
+      <a class="shop" href="./live-market-shops.html?cat=Electronics"><h3>Electronics</h3><p>Phones, accessories, and campus tech picks.</p></a>
+      <a class="shop" href="./fashion-trends.html"><h3>Fashion</h3><p>Trend lane with moving hero and outfit links.</p></a>
+      <a class="shop" href="./live-market-shops.html?cat=Books"><h3>Books</h3><p>Study sets and learning materials.</p></a>
+      <a class="shop" href="./live-market-shops.html?cat=Gaming"><h3>Gaming</h3><p>Controllers, headsets, and gaming gear.</p></a>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var p = new URLSearchParams(window.location.search);
+      var cat = String(p.get("cat") || "").trim().toLowerCase();
+      if (!cat) return;
+      var cards = document.querySelectorAll(".shop-bubble-grid .shop h3");
+      cards.forEach(function (h3) {
+        if (String(h3.textContent || "").trim().toLowerCase() === cat) {
+          var card = h3.closest(".shop");
+          if (card) {
+            card.style.outline = "2px solid rgba(232, 163, 23, 0.72)";
+            card.style.outlineOffset = "2px";
+          }
+        }
+      });
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

@@ -11,13 +11,17 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Strict-Transport-Security = "max-age=63072000"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    X-Permitted-Cross-Domain-Policies = "none"
+    X-XSS-Protection = "0"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
     # Tighten over time (hashes for JSON-LD, drop unsafe-inline on script-src once hashed). Service worker registration is in script.js (no inline handlers).
-    Content-Security-Policy = "default-src 'self'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://vibecart-production.up.railway.app https://*.up.railway.app https://vibe-cart.com https://*.netlify.app https://images.unsplash.com; worker-src 'self'; manifest-src 'self'; media-src 'self' https:"
+    Content-Security-Policy = "default-src 'self'; base-uri 'self'; form-action 'self' https:; frame-ancestors 'none'; frame-src 'none'; object-src 'none'; block-all-mixed-content; upgrade-insecure-requests; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://vibecart-production.up.railway.app https://*.up.railway.app https://vibe-cart.com https://*.netlify.app https://images.unsplash.com; worker-src 'self'; manifest-src 'self'; media-src 'self' https:"
 
 # Avoid stale HTML after deploys (CSS/JS use ?v= cache-bust in markup).
 [[headers]]
@@ -35,6 +39,11 @@
   for = "/service-worker.js"
   [headers.values]
     Cache-Control = "no-store, max-age=0, must-revalidate"
+
+[[redirects]]
+  from = "/medication-support.html"
+  to = "/wellbeing.html"
+  status = 301
 
 [[redirects]]
   from = "/api/*"

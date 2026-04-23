@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guided buy · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260419flow1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./hot-picks.html">← Hot picks</a>
+    <a class="btn btn-primary" href="./index.html?flow=buy#market">Skip to marketplace</a>
+  </header>
+  <main class="section alt shops-lane-main vc-flow-shell" data-vc-flow-root="buy">
+    <h1 class="shops-lane-title">Buy in a straight line</h1>
+    <p class="note" data-flow-step-label style="margin-top: 0">Step 1 of 3</p>
+    <div class="vc-flow-progress-wrap" aria-hidden="true"><div class="vc-flow-progress-bar" data-flow-progress></div></div>
+
+    <div class="vc-flow-step-box" data-flow-step>
+      <h2>1 · Pick your lane</h2>
+      <p class="note">Regional folders help you discover trusted external shops; VibeCart checkout stays on the live marketplace.</p>
+      <p class="hero-actions">
+        <a class="btn btn-secondary" href="./regional-shops.html">Open regional lanes</a>
+        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden>
+      <h2>2 · Accept responsibility</h2>
+      <p class="note">On the marketplace you will tick the risk disclaimer once. That unlocks one-tap buy for the session.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <button type="button" class="btn btn-primary" data-flow-next>Continue</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden>
+      <h2>3 · Shop live listings</h2>
+      <p class="note">You are routed to Hot Picks with the buy flow flag so the hub keeps you in buyer context until you finish or leave.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
+        <a class="btn btn-primary" href="./index.html?flow=buy#market" data-flow-done>Enter marketplace</a>
+      </p>
+    </div>
+  </main>
+  <script src="./flow-shell.js?v=20260419haptic1" defer></script>
+</body>
+</html>

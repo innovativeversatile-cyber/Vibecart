@@ -69,9 +69,12 @@ const {
   logChatSafetyEvent,
   upsertCoachProfile,
   upsertWearableCoachPrefs,
-  addMedicationSchedule,
   logHealthCheckin,
   getCoachDashboard,
+  getCoachMonetizationState,
+  startCoachSubscription,
+  purchaseCoachAddon,
+  recordCoachPartnerEvent,
   listChatSafetyEvents,
   getCoachMetricsSummary,
   queueDailyHealthReminders
@@ -137,6 +140,10 @@ const STRIPE_SECRET_KEY = String(process.env.STRIPE_SECRET_KEY || "").trim();
 const STRIPE_PUBLISHABLE_KEY = String(process.env.STRIPE_PUBLISHABLE_KEY || "").trim();
 const STRIPE_WEBHOOK_SECRET = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
 const PAYMENT_INTENT_API_SECRET = String(process.env.PAYMENT_INTENT_API_SECRET || "").trim();
+const AFFILIATE_POSTBACK_TOKEN = String(process.env.AFFILIATE_POSTBACK_TOKEN || "").trim();
+const PAYPAL_CLIENT_ID = String(process.env.PAYPAL_CLIENT_ID || "").trim();
+const PAYPAL_CLIENT_SECRET = String(process.env.PAYPAL_CLIENT_SECRET || "").trim();
+const PAYPAL_API_BASE = String(process.env.PAYPAL_API_BASE || "https://api-m.paypal.com").trim().replace(/\/$/, "");
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 /** When unset: ON. Set AI_AUTOPILOT_ENABLED=false|0|off|no to disable. Set true|1|on|yes to force enable. */
 const AI_AUTOPILOT_ENABLED = (() => {
@@ -803,6 +810,125 @@ async function ensureOwnerMessageCenterTable() {
   ownerMessageCenterTableReady = true;
 }
 
+let publicUserPreferencesTableReady = false;
+async function ensurePublicUserPreferencesTable() {
+  if (publicUserPreferencesTableReady) {
+    return;
+  }
+  try {
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS user_preferences (
+        user_id BIGINT UNSIGNED PRIMARY KEY,
+        preferences_json JSON NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        CONSTRAINT fk_user_preferences_user
+          FOREIGN KEY (user_id) REFERENCES users(id)
+          ON DELETE CASCADE
+      )`
+    );
+  } catch {
+    await pool.execute(
+      `CREATE TABLE IF NOT EXISTS user_preferences (
+        user_id BIGINT UNSIGNED PRIMARY KEY,
+        preferences_json LONGTEXT NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )`
+    );
+  }
+  publicUserPreferencesTableReady = true;
+}
+
+async function handlePublicUserPreferencesGet(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  try {
+    await ensurePublicUserPreferencesTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "PREFERENCES_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  const [rows] = await pool.execute(
+    `SELECT preferences_json, updated_at
+     FROM user_preferences
+     WHERE user_id = ?
+     LIMIT 1`,
+    [Number(session.user_id)]
+  );
+  const row = rows[0];
+  if (!row) {
+    return sendJson(res, 200, { ok: true, preferences: {}, updatedAt: null });
+  }
+  let preferences = row.preferences_json;
+  if (typeof preferences === "string") {
+    try {
+      preferences = JSON.parse(preferences);
+    } catch {
+      preferences = {};
+    }
+  }
+  if (!preferences || typeof preferences !== "object") {
+    preferences = {};
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    preferences,
+    updatedAt: row.updated_at || null
+  });
+}
+
+async function handlePublicUserPreferencesUpsert(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const incoming = body && typeof body.preferences === "object" && body.preferences
+    ? body.preferences
+    : null;
+  if (!incoming) {
+    return sendJson(res, 400, { ok: false, code: "PREFERENCES_REQUIRED" });
+  }
+  const safePrefs = {
+    planViewMode: String(incoming.planViewMode || "merged").trim().toLowerCase().slice(0, 32)
+  };
+  try {
+    await ensurePublicUserPreferencesTable();
+    await pool.execute(
+      `INSERT INTO user_preferences (user_id, preferences_json)
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE
+         preferences_json = VALUES(preferences_json),
+         updated_at = CURRENT_TIMESTAMP`,
+      [Number(session.user_id), JSON.stringify(safePrefs)]
+    );
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "PREFERENCES_SAVE_FAILED",
+      message: String(error.message || error)
+    });
+  }
+  return sendJson(res, 200, { ok: true, preferences: safePrefs });
+}
+
 async function handleLogin(req, res, ip) {
   const body = await readJson(req);
   const meta = {
@@ -1409,6 +1535,356 @@ async function handleRecordAffiliateReferral(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function ensureDefaultAffiliatePartnerId() {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id FROM affiliate_partners WHERE active = 1 ORDER BY id ASC LIMIT 1`
+    );
+    if (Array.isArray(rows) && rows.length && Number(rows[0].id) > 0) {
+      return Number(rows[0].id);
+    }
+  } catch {
+    /* ignore and try create fallback */
+  }
+  try {
+    const created = await createAffiliatePartner(pool, {
+      partnerName: "VibeCart Internal",
+      partnerType: "internal",
+      contactEmail: "affiliate@vibe-cart.com",
+      defaultCommissionPercent: 0
+    });
+    if (created && Number(created.affiliatePartnerId) > 0) {
+      return Number(created.affiliatePartnerId);
+    }
+  } catch {
+    /* ignore and retry read */
+  }
+  const [retryRows] = await pool.execute(
+    `SELECT id FROM affiliate_partners WHERE active = 1 ORDER BY id ASC LIMIT 1`
+  );
+  if (Array.isArray(retryRows) && retryRows.length && Number(retryRows[0].id) > 0) {
+    return Number(retryRows[0].id);
+  }
+  throw new Error("AFFILIATE_PARTNER_NOT_AVAILABLE");
+}
+
+async function handlePublicShopRedirect(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const targetRaw = String(urlObj.searchParams.get("target") || "").trim();
+  const shopName = String(urlObj.searchParams.get("shop") || "").trim();
+  const category = String(urlObj.searchParams.get("cat") || "").trim();
+  const partnerName = String(urlObj.searchParams.get("partner") || "").trim();
+  const partnerIdRaw = Number(urlObj.searchParams.get("partnerId") || 0);
+  const partnerId = Number.isFinite(partnerIdRaw) && partnerIdRaw > 0 ? partnerIdRaw : 0;
+  const refFromQuery = String(urlObj.searchParams.get("ref") || "").trim();
+  const referredUserIdRaw = String(urlObj.searchParams.get("referredUserId") || "").trim();
+  const referredUserId = referredUserIdRaw ? Number(referredUserIdRaw) : null;
+  const fallback = "/live-market-shops.html";
+  let safeTarget = fallback;
+  let referenceCode = refFromQuery || `shop-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  try {
+    const parsed = new URL(targetRaw);
+    const proto = String(parsed.protocol || "").toLowerCase();
+    if (proto === "https:" || proto === "http:") {
+      safeTarget = parsed.toString();
+    }
+  } catch {
+    safeTarget = fallback;
+  }
+  try {
+    var resolvedPartnerId = partnerId > 0 ? partnerId : await ensureDefaultAffiliatePartnerId();
+    await recordAffiliateReferral(pool, {
+      partnerId: resolvedPartnerId,
+      referredUserId: Number.isFinite(referredUserId) ? referredUserId : null,
+      referenceCode,
+      conversionType: `click_out:${category || "general"}:${(partnerName || shopName || "shop").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      conversionValue: 0,
+      commissionAmount: 0,
+      currency: "EUR"
+    });
+  } catch {
+    /* ignore tracking failures and continue redirect */
+  }
+  try {
+    const targetUrl = new URL(safeTarget);
+    if (!targetUrl.searchParams.get("vc_ref")) {
+      targetUrl.searchParams.set("vc_ref", referenceCode);
+    }
+    safeTarget = targetUrl.toString();
+  } catch {
+    /* ignore */
+  }
+  res.statusCode = 302;
+  res.setHeader("Location", safeTarget);
+  res.end();
+}
+
+async function handlePublicAffiliateReferralsList(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const token = String(urlObj.searchParams.get("authToken") || req.headers["x-owner-auth-token"] || "").trim();
+  const session = await requireActiveSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  var limit = Number(urlObj.searchParams.get("limit") || 100);
+  if (!Number.isFinite(limit) || limit <= 0) {
+    limit = 100;
+  }
+  limit = Math.min(300, Math.floor(limit));
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, partner_id, referred_user_id, reference_code, conversion_type, conversion_value, commission_amount, currency, status
+       FROM affiliate_referrals
+       ORDER BY id DESC
+       LIMIT ?`,
+      [limit]
+    );
+    return sendJson(res, 200, { ok: true, count: rows.length, referrals: rows });
+  } catch {
+    return sendJson(res, 200, { ok: true, count: 0, referrals: [] });
+  }
+}
+
+async function ensureAffiliatePostbackEventsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS affiliate_postback_events (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      dedupe_key VARCHAR(190) NOT NULL,
+      ref_code VARCHAR(120) NOT NULL,
+      partner_id BIGINT UNSIGNED NULL,
+      status_label VARCHAR(30) NOT NULL,
+      payload_json JSON NULL,
+      received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_affiliate_postback_dedupe (dedupe_key),
+      INDEX idx_affiliate_postback_ref (ref_code, received_at)
+    )`
+  );
+}
+
+async function saveAffiliatePostbackEventOnce(params) {
+  await ensureAffiliatePostbackEventsTable();
+  const payloadJson = JSON.stringify(params.payload || {});
+  const [result] = await pool.execute(
+    `INSERT IGNORE INTO affiliate_postback_events
+      (dedupe_key, ref_code, partner_id, status_label, payload_json)
+     VALUES (?, ?, ?, ?, ?)`,
+    [
+      String(params.dedupeKey || "").slice(0, 190),
+      String(params.ref || "").slice(0, 120),
+      params.partnerId ? Number(params.partnerId) : null,
+      String(params.status || "").slice(0, 30),
+      payloadJson
+    ]
+  );
+  return Boolean(result && Number(result.affectedRows || 0) > 0);
+}
+
+function normalizeAffiliateStatus(input) {
+  const raw = String(input || "").trim().toLowerCase();
+  if (raw === "approved" || raw === "paid" || raw === "confirmed" || raw === "success") {
+    return "confirmed";
+  }
+  if (raw === "refunded" || raw === "reversed" || raw === "rejected" || raw === "chargeback" || raw === "cancelled") {
+    return "reversed";
+  }
+  return "pending";
+}
+
+async function handlePublicAffiliatePostback(req, res) {
+  if (!AFFILIATE_POSTBACK_TOKEN) {
+    return sendJson(res, 503, { ok: false, code: "AFFILIATE_POSTBACK_NOT_CONFIGURED" });
+  }
+  const urlObj = new URL(req.url, "http://localhost");
+  const token = String(
+    urlObj.searchParams.get("token") ||
+      req.headers["x-affiliate-postback-token"] ||
+      ""
+  ).trim();
+  if (!token || token !== AFFILIATE_POSTBACK_TOKEN) {
+    return sendJson(res, 401, { ok: false, code: "AFFILIATE_POSTBACK_UNAUTHORIZED" });
+  }
+  const ref = String(urlObj.searchParams.get("ref") || "").trim();
+  if (!ref) {
+    return sendJson(res, 400, { ok: false, code: "AFFILIATE_REF_REQUIRED" });
+  }
+  const partnerIdRaw = Number(urlObj.searchParams.get("partnerId") || 0);
+  const partnerId = Number.isFinite(partnerIdRaw) && partnerIdRaw > 0 ? partnerIdRaw : 0;
+  const value = Number(urlObj.searchParams.get("value") || 0);
+  const commission = Number(urlObj.searchParams.get("commission") || 0);
+  const currency = String(urlObj.searchParams.get("currency") || "EUR").trim().toUpperCase();
+  const status = normalizeAffiliateStatus(urlObj.searchParams.get("status") || "pending");
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const safeCommission = Number.isFinite(commission) ? commission : 0;
+  const dedupeKey = sha256(
+    [
+      ref,
+      String(partnerId || ""),
+      status,
+      safeValue.toFixed(2),
+      safeCommission.toFixed(2),
+      currency || "EUR"
+    ].join("|")
+  );
+  try {
+    const inserted = await saveAffiliatePostbackEventOnce({
+      dedupeKey,
+      ref,
+      partnerId,
+      status,
+      payload: {
+        ref,
+        partnerId,
+        value: safeValue,
+        commission: safeCommission,
+        currency,
+        status
+      }
+    });
+    if (!inserted) {
+      return sendJson(res, 200, {
+        ok: true,
+        postback: "duplicate_ignored",
+        referenceCode: ref
+      });
+    }
+    var resolvedPartnerId = partnerId > 0 ? partnerId : await ensureDefaultAffiliatePartnerId();
+    const result = await recordAffiliateReferral(pool, {
+      partnerId: resolvedPartnerId,
+      referredUserId: null,
+      referenceCode: ref + "-conv-" + status,
+      conversionType: "purchase_" + status,
+      conversionValue: safeValue,
+      commissionAmount: safeCommission,
+      currency: currency || "EUR"
+    });
+    return sendJson(res, 200, {
+      ok: true,
+      postback: "recorded",
+      referenceCode: ref,
+      affiliateReferralId: result.affiliateReferralId
+    });
+  } catch (error) {
+    return sendJson(res, 400, { ok: false, code: "AFFILIATE_POSTBACK_FAILED", message: String(error.message || error) });
+  }
+}
+
+async function handleOwnerAffiliateReconciliation(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const lookbackDaysRaw = Number(data.body.lookbackDays || 30);
+  const lookbackDays = Number.isFinite(lookbackDaysRaw) ? Math.max(1, Math.min(365, Math.floor(lookbackDaysRaw))) : 30;
+  const [rows] = await pool.execute(
+    `SELECT conversion_type, COALESCE(SUM(commission_amount), 0) AS commission_total, COUNT(*) AS items
+     FROM affiliate_referrals
+     WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+     GROUP BY conversion_type`,
+    [lookbackDays]
+  );
+  let clicks = 0;
+  let pending = 0;
+  let confirmed = 0;
+  let reversed = 0;
+  let commissionConfirmed = 0;
+  let commissionReversed = 0;
+  rows.forEach((row) => {
+    const kind = String(row.conversion_type || "").toLowerCase();
+    const items = Number(row.items || 0);
+    const amount = Number(row.commission_total || 0);
+    if (kind.indexOf("click_out:") === 0) {
+      clicks += items;
+      return;
+    }
+    if (kind.indexOf("purchase_pending") === 0) {
+      pending += items;
+      return;
+    }
+    if (kind.indexOf("purchase_confirmed") === 0) {
+      confirmed += items;
+      commissionConfirmed += amount;
+      return;
+    }
+    if (kind.indexOf("purchase_reversed") === 0) {
+      reversed += items;
+      commissionReversed += amount;
+    }
+  });
+  const conversionRate = clicks > 0 ? Number(((confirmed / clicks) * 100).toFixed(2)) : 0;
+  const reversalRate = confirmed > 0 ? Number(((Math.abs(reversed) / confirmed) * 100).toFixed(2)) : 0;
+  const warnings = [];
+  if (clicks >= 30 && conversionRate < 0.4) warnings.push("Low conversion rate from click-outs.");
+  if (confirmed >= 10 && reversalRate > 25) warnings.push("High reversal ratio on confirmed conversions.");
+  if (pending > confirmed * 2 && pending > 20) warnings.push("Large pending conversion backlog.");
+  return sendJson(res, 200, {
+    ok: true,
+    lookbackDays,
+    stats: {
+      clicks,
+      pending,
+      confirmed,
+      reversed,
+      conversionRatePercent: conversionRate,
+      reversalRatePercent: reversalRate,
+      commissionConfirmed: Number(commissionConfirmed.toFixed(2)),
+      commissionReversed: Number(commissionReversed.toFixed(2)),
+      commissionNet: Number((commissionConfirmed + commissionReversed).toFixed(2))
+    },
+    warnings
+  });
+}
+
+async function handleOwnerAffiliateLinkHealth(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const raw = Array.isArray(data.body.urls) ? data.body.urls : [];
+  const fallback = [
+    "https://www.amazon.de",
+    "https://www.takealot.com",
+    "https://www.jumia.co.ke",
+    "https://www.zalando.com",
+    "https://store.steampowered.com"
+  ];
+  const targets = (raw.length ? raw : fallback)
+    .map((u) => String(u || "").trim())
+    .filter(Boolean)
+    .slice(0, 40);
+  const checks = await Promise.all(
+    targets.map(async (target) => {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 7000);
+        const response = await fetch(target, { method: "GET", redirect: "follow", signal: controller.signal });
+        clearTimeout(timer);
+        const status = Number(response.status || 0);
+        const reachable = Boolean(response.ok || status === 403 || status === 405);
+        const classification = response.ok
+          ? "ok"
+          : status === 403
+            ? "blocked"
+            : status === 405
+              ? "method_not_allowed"
+              : "fail";
+        return { url: target, ok: response.ok, reachable, classification, status };
+      } catch {
+        return { url: target, ok: false, reachable: false, classification: "fail", status: 0 };
+      }
+    })
+  );
+  const okCount = checks.filter((c) => c.ok).length;
+  const reachableCount = checks.filter((c) => c.reachable).length;
+  return sendJson(res, 200, {
+    ok: true,
+    checked: checks.length,
+    okCount,
+    reachableCount,
+    failCount: checks.length - reachableCount,
+    checks
+  });
+}
+
 async function handleGetPricingGuardrails(req, res) {
   const data = await readBodyWithSession(req, res);
   if (!data) {
@@ -1670,15 +2146,16 @@ async function handlePublicCoachDashboard(req, res) {
   return sendJson(res, 200, result);
 }
 
-async function handlePublicCoachProfile(req, res) {
-  const body = await readJson(req);
-  const result = await upsertCoachProfile(pool, body || {});
+async function handlePublicCoachMonetization(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const userId = Number(urlObj.searchParams.get("userId") || 0);
+  const result = await getCoachMonetizationState(pool, { userId });
   return sendJson(res, 200, result);
 }
 
-async function handlePublicMedicationSchedule(req, res) {
+async function handlePublicCoachProfile(req, res) {
   const body = await readJson(req);
-  const result = await addMedicationSchedule(pool, body || {});
+  const result = await upsertCoachProfile(pool, body || {});
   return sendJson(res, 200, result);
 }
 
@@ -1691,6 +2168,24 @@ async function handlePublicHealthCheckin(req, res) {
 async function handlePublicWearableCoachPrefs(req, res) {
   const body = await readJson(req);
   const result = await upsertWearableCoachPrefs(pool, body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCoachSubscriptionStart(req, res) {
+  const body = await readJson(req);
+  const result = await startCoachSubscription(pool, body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCoachAddonPurchase(req, res) {
+  const body = await readJson(req);
+  const result = await purchaseCoachAddon(pool, body || {});
+  return sendJson(res, 200, result);
+}
+
+async function handlePublicCoachPartnerEvent(req, res) {
+  const body = await readJson(req);
+  const result = await recordCoachPartnerEvent(pool, body || {});
   return sendJson(res, 200, result);
 }
 
@@ -2537,6 +3032,345 @@ async function handlePublicCreatePaymentIntent(req, res) {
   return sendJson(res, 200, result);
 }
 
+function coachPlanMeta(plan) {
+  const p = String(plan || "").trim().toLowerCase();
+  if (p === "pro") return { plan: "pro", amount: 30, currency: "EUR", label: "Coach Pro" };
+  if (p === "plus") return { plan: "plus", amount: 18.5, currency: "EUR", label: "Coach Plus" };
+  if (p === "ai-home") return { plan: "ai-home", amount: 12.5, currency: "EUR", label: "AI Home Workout" };
+  return { plan: "starter", amount: 10.5, currency: "EUR", label: "Coach Starter" };
+}
+
+function resolveCheckoutAmount(flow, plan, addonPlan) {
+  const f = String(flow || "").trim().toLowerCase();
+  const p = String(plan || "").trim().toLowerCase();
+  const addon = String(addonPlan || "").trim().toLowerCase();
+  if (f === "coach") {
+    const primary = coachPlanMeta(p);
+    if (!addon || addon === primary.plan) {
+      return {
+        amount: primary.amount,
+        currency: primary.currency,
+        label: primary.label,
+        plans: [primary.plan]
+      };
+    }
+    const second = coachPlanMeta(addon);
+    const amount = Number((primary.amount + second.amount).toFixed(2));
+    return {
+      amount,
+      currency: "EUR",
+      label: `${primary.label} + ${second.label} Bundle`,
+      plans: [primary.plan, second.plan]
+    };
+  }
+  if (f === "insurance") {
+    if (p === "shield-pro") return { amount: 24.5, currency: "EUR", label: "Health Shield Pro" };
+    if (p === "family-protect") return { amount: 17.5, currency: "EUR", label: "Family Protect" };
+    return { amount: 10.5, currency: "EUR", label: "Student Lite" };
+  }
+  return { amount: 10, currency: "EUR", label: "Service Checkout" };
+}
+
+function resolveStripeCheckoutMoney(amountMeta, method) {
+  const selected = String(method || "").trim().toLowerCase();
+  let amount = Number(amountMeta.amount || 0);
+  let currency = String(amountMeta.currency || "USD").trim().toUpperCase();
+  // BLIK requires PLN in Stripe Checkout, so convert when needed.
+  if (selected === "blik" && currency !== "PLN") {
+    const fxToPln = {
+      USD: 4.0,
+      EUR: 4.3,
+      GBP: 5.0
+    };
+    const rate = Number(fxToPln[currency] || 4.0);
+    amount = amount * rate;
+    currency = "PLN";
+  }
+  return {
+    amount: Math.max(0, Number(amount.toFixed(2))),
+    currency
+  };
+}
+
+function resolveStripePaymentTypes(method) {
+  const selected = String(method || "").trim().toLowerCase();
+  if (selected === "blik") {
+    return ["blik", "card"];
+  }
+  if (selected === "paypal") {
+    return ["paypal", "card"];
+  }
+  if (selected === "revolut") {
+    return ["revolut_pay", "card"];
+  }
+  // Wallets like Apple Pay / Google Pay are served through card rails in Checkout.
+  return ["card"];
+}
+
+function stripeCheckoutCustomText() {
+  return {
+    submit: {
+      message:
+        "Final amount is calculated for your country at payment (taxes may apply). By continuing, you authorize the displayed total to be charged."
+    }
+  };
+}
+
+function buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan) {
+  const f = String(flow || "").trim().toLowerCase();
+  const p = String(plan || "").trim().toLowerCase();
+  const m = String(method || "card").trim().toLowerCase();
+  const addon = String(addonPlan || "").trim().toLowerCase();
+  if (f === "coach" || f === "insurance") {
+    return (
+      `${baseUrl}/plan-workspace.html?flow=${encodeURIComponent(f)}` +
+      `&plan=${encodeURIComponent(p || "standard")}` +
+      (addon ? `&addonPlan=${encodeURIComponent(addon)}` : "") +
+      `&provider=${encodeURIComponent(m || "card")}`
+    );
+  }
+  return `${baseUrl}/payment-confirmation.html?provider=${encodeURIComponent(m || "card")}`;
+}
+
+async function createStripePrefillCustomer(input) {
+  if (!stripe) {
+    return null;
+  }
+  const email = String(input.email || "").trim();
+  const name = String(input.name || "").trim();
+  const phone = String(input.phone || "").trim();
+  const line1 = String(input.addressLine1 || "").trim();
+  const city = String(input.city || "").trim();
+  const postalCode = String(input.postalCode || "").trim();
+  const country = String(input.country || "").trim().toUpperCase();
+  if (!email && !name) {
+    return null;
+  }
+  try {
+    const customer = await stripe.customers.create({
+      email: email || undefined,
+      name: name || undefined,
+      phone: phone || undefined,
+      address:
+        line1 || city || postalCode || country
+          ? {
+              line1: line1 || undefined,
+              city: city || undefined,
+              postal_code: postalCode || undefined,
+              country: country || undefined
+            }
+          : undefined
+    });
+    return customer && customer.id ? String(customer.id) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function createPaypalOrder(input) {
+  const creds = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
+  const tokenRes = await fetch(`${PAYPAL_API_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${creds}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "grant_type=client_credentials"
+  });
+  if (!tokenRes.ok) {
+    return { ok: false, code: "PAYPAL_AUTH_FAILED" };
+  }
+  const tokenBody = await tokenRes.json();
+  const accessToken = String(tokenBody.access_token || "");
+  if (!accessToken) {
+    return { ok: false, code: "PAYPAL_TOKEN_MISSING" };
+  }
+  const orderRes = await fetch(`${PAYPAL_API_BASE}/v2/checkout/orders`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          amount: {
+            currency_code: input.currency,
+            value: input.amount.toFixed(2)
+          },
+          description: input.label
+        }
+      ],
+      application_context: {
+        return_url: input.returnUrl,
+        cancel_url: input.cancelUrl
+      }
+    })
+  });
+  if (!orderRes.ok) {
+    return { ok: false, code: "PAYPAL_ORDER_CREATE_FAILED" };
+  }
+  const orderBody = await orderRes.json();
+  const approveLink = Array.isArray(orderBody.links)
+    ? orderBody.links.find((l) => String(l.rel || "").toLowerCase() === "approve")
+    : null;
+  if (!approveLink || !approveLink.href) {
+    return { ok: false, code: "PAYPAL_APPROVAL_LINK_MISSING" };
+  }
+  return { ok: true, orderId: String(orderBody.id || ""), redirectUrl: String(approveLink.href) };
+}
+
+async function handlePublicCheckoutStart(req, res) {
+  const body = await readJson(req);
+  const method = String(body.paymentMethod || "").trim().toLowerCase();
+  const flow = String(body.flow || "").trim().toLowerCase();
+  const plan = String(body.plan || "").trim().toLowerCase();
+  const addonPlan = String(body.addonPlan || "").trim().toLowerCase();
+  const amountMeta = resolveCheckoutAmount(flow, plan, addonPlan);
+  const money = resolveStripeCheckoutMoney(amountMeta, method);
+  const paymentTypes = resolveStripePaymentTypes(method);
+  if (!Number.isFinite(amountMeta.amount) || amountMeta.amount < 0) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_CHECKOUT_AMOUNT" });
+  }
+  if (amountMeta.amount === 0) {
+    return sendJson(res, 200, { ok: true, free: true, redirectUrl: "/payment-confirmation.html?provider=free" });
+  }
+  const host = req.headers.host || "vibe-cart.com";
+  const proto = String(req.headers["x-forwarded-proto"] || "https");
+  const baseUrl = `${proto}://${host}`;
+  const returnUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
+  const cancelUrl = `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
+
+  if (!stripe) {
+    return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
+  }
+  const customerId = await createStripePrefillCustomer({
+    email: body.customerEmail,
+    name: body.customerName,
+    phone: body.customerPhone,
+    addressLine1: body.customerAddress,
+    city: body.customerCity,
+    postalCode: body.customerPostalCode,
+    country: body.customerCountry
+  });
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelUrl,
+    billing_address_collection: "required",
+    automatic_tax: { enabled: true },
+    custom_text: stripeCheckoutCustomText(),
+    customer: customerId || undefined,
+    customer_email: customerId ? undefined : String(body.customerEmail || "").trim() || undefined,
+    payment_method_types: paymentTypes,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: money.currency.toLowerCase(),
+          unit_amount: Math.round(money.amount * 100),
+          product_data: {
+            name: amountMeta.label,
+            description: `Customer selected method: ${method || "card"}`
+          }
+        }
+      }
+    ],
+    metadata: {
+      flow,
+      plan,
+      addonPlan: addonPlan || "",
+      selectedMethod: method || "card",
+      route: "all-methods-to-stripe"
+    }
+  });
+  return sendJson(res, 200, {
+    ok: true,
+    provider: "stripe",
+    providerReference: String(session.id || ""),
+    redirectUrl: String(session.url || "")
+  });
+}
+
+async function handlePublicCheckoutRedirect(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const flow = String(urlObj.searchParams.get("flow") || "").trim().toLowerCase();
+  const plan = String(urlObj.searchParams.get("plan") || "").trim().toLowerCase();
+  const addonPlan = String(urlObj.searchParams.get("addonPlan") || "").trim().toLowerCase();
+  const method = String(urlObj.searchParams.get("paymentMethod") || "").trim().toLowerCase();
+  const customerName = String(urlObj.searchParams.get("customerName") || "").trim();
+  const customerEmail = String(urlObj.searchParams.get("customerEmail") || "").trim();
+  const customerPhone = String(urlObj.searchParams.get("customerPhone") || "").trim();
+  const customerAddress = String(urlObj.searchParams.get("customerAddress") || "").trim();
+  const customerCity = String(urlObj.searchParams.get("customerCity") || "").trim();
+  const customerPostalCode = String(urlObj.searchParams.get("customerPostalCode") || "").trim();
+  const customerCountry = String(urlObj.searchParams.get("customerCountry") || "").trim().toUpperCase();
+  const amountMeta = resolveCheckoutAmount(flow, plan, addonPlan);
+  const money = resolveStripeCheckoutMoney(amountMeta, method);
+  const paymentTypes = resolveStripePaymentTypes(method);
+  if (!Number.isFinite(amountMeta.amount) || amountMeta.amount < 0) {
+    res.statusCode = 302;
+    res.setHeader(
+      "Location",
+      `/payment-confirmation.html?provider=free&flow=${encodeURIComponent(flow || "service")}&plan=${encodeURIComponent(plan || "standard")}`
+    );
+    res.end();
+    return;
+  }
+  if (!stripe) {
+    return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
+  }
+  const customerId = await createStripePrefillCustomer({
+    email: customerEmail,
+    name: customerName,
+    phone: customerPhone,
+    addressLine1: customerAddress,
+    city: customerCity,
+    postalCode: customerPostalCode,
+    country: customerCountry
+  });
+  const host = req.headers.host || "vibe-cart.com";
+  const proto = String(req.headers["x-forwarded-proto"] || "https");
+  const baseUrl = `${proto}://${host}`;
+  const returnUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
+  const cancelUrl = `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: cancelUrl,
+    billing_address_collection: "required",
+    automatic_tax: { enabled: true },
+    custom_text: stripeCheckoutCustomText(),
+    customer: customerId || undefined,
+    customer_email: customerId ? undefined : customerEmail || undefined,
+    payment_method_types: paymentTypes,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: money.currency.toLowerCase(),
+          unit_amount: Math.round(money.amount * 100),
+          product_data: {
+            name: amountMeta.label,
+            description: `Customer selected method: ${method || "card"}`
+          }
+        }
+      }
+    ],
+    metadata: {
+      flow,
+      plan,
+      addonPlan: addonPlan || "",
+      selectedMethod: method || "card",
+      route: "all-methods-to-stripe"
+    }
+  });
+  res.statusCode = 302;
+  res.setHeader("Location", String(session.url || cancelUrl));
+  res.end();
+}
+
 async function handleStripeWebhook(req, res) {
   if (!stripe || !STRIPE_WEBHOOK_SECRET) {
     return sendJson(res, 500, { ok: false, code: "STRIPE_WEBHOOK_NOT_CONFIGURED" });
@@ -2638,6 +3472,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/public/coach/dashboard")) {
       return await handlePublicCoachDashboard(req, res);
     }
+    if (req.method === "GET" && req.url.startsWith("/api/public/coach/monetization")) {
+      return await handlePublicCoachMonetization(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/rewards/earn") {
       return await handlePublicRewardEarn(req, res);
     }
@@ -2652,6 +3489,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && pathname === "/api/public/auth/session") {
       return await handlePublicAuthSession(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/user/preferences") {
+      return await handlePublicUserPreferencesGet(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/user/preferences") {
+      return await handlePublicUserPreferencesUpsert(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/rewards/redeem") {
       return await handlePublicRewardRedeem(req, res);
@@ -2674,14 +3517,20 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/coach/profile/upsert") {
       return await handlePublicCoachProfile(req, res);
     }
-    if (req.method === "POST" && pathname === "/api/public/coach/medication/add") {
-      return await handlePublicMedicationSchedule(req, res);
-    }
     if (req.method === "POST" && pathname === "/api/public/coach/checkin/add") {
       return await handlePublicHealthCheckin(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/coach/wearable/prefs") {
       return await handlePublicWearableCoachPrefs(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/coach/subscription/start") {
+      return await handlePublicCoachSubscriptionStart(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/coach/addon/purchase") {
+      return await handlePublicCoachAddonPurchase(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/coach/partner/event") {
+      return await handlePublicCoachPartnerEvent(req, res);
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/platform-risk/scoreboard")) {
       return await handlePublicPlatformRiskScoreboard(req, res);
@@ -2745,6 +3594,21 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/payments/intent/create") {
       return await handlePublicCreatePaymentIntent(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/payments/checkout/start") {
+      return await handlePublicCheckoutStart(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/payments/checkout/redirect") {
+      return await handlePublicCheckoutRedirect(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/shop/redirect") {
+      return await handlePublicShopRedirect(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/affiliate/referrals") {
+      return await handlePublicAffiliateReferralsList(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/affiliate/postback") {
+      return await handlePublicAffiliatePostback(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/payments/webhook/stripe") {
       return await handleStripeWebhook(req, res);
@@ -2862,6 +3726,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/monetization/revenue/payout/status/update") {
       return await handleOwnerPayoutStatusUpdate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/affiliate/reconciliation/report") {
+      return await handleOwnerAffiliateReconciliation(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/affiliate/link-health/check") {
+      return await handleOwnerAffiliateLinkHealth(req, res);
     }
     if (req.method === "POST" && pathname === "/api/insurance/provider/create") {
       return await handleCreateInsuranceProvider(req, res);
