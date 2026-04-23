@@ -263,36 +263,55 @@ function saveCommissionOfferFilterMode(mode) {
   }
 }
 
-async function promoteGreenOffersToHomepage() {
-  const statusNode = document.getElementById("homepagePromotionStatus");
+function isValidTrackedOfferUrl(url) {
+  try {
+    const parsed = new URL(String(url || "").trim());
+    return /^https?:$/i.test(parsed.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function buildHomepageFeaturedOffers(mode) {
   const state = getCommissionValidationState();
-  const greenOffers = (state.offers || []).filter((offer) => {
-    if (String(offer.status || "traffic_only") !== "commission_enabled") {
-      return false;
+  const all = (state.offers || []).filter((offer) => isValidTrackedOfferUrl(offer.url));
+  const green = all.filter((offer) => String(offer.status || "traffic_only") === "commission_enabled");
+  const traffic = all.filter((offer) => String(offer.status || "traffic_only") === "traffic_only");
+  let selected = [];
+  if (mode === "green_only") {
+    selected = green.slice(0, 4);
+  } else {
+    // Traffic growth first: keep commission offers visible while preserving broader click-through volume.
+    selected = [...green.slice(0, 2), ...traffic.slice(0, 2)];
+    if (selected.length < 4) {
+      const usedIds = new Set(selected.map((offer) => String(offer.id || "")));
+      const fill = all.filter((offer) => !usedIds.has(String(offer.id || ""))).slice(0, 4 - selected.length);
+      selected = [...selected, ...fill];
     }
-    try {
-      const parsed = new URL(String(offer.url || "").trim());
-      return /^https?:$/i.test(parsed.protocol);
-    } catch {
-      return false;
-    }
-  });
-  if (!greenOffers.length) {
-    const msg = "No GREEN offers with valid tracking URLs found.";
+  }
+  return selected.slice(0, 4).map((offer) => ({
+    offerName: String(offer.offerName || "Offer"),
+    programName: String(offer.programName || offer.programId || "Partner"),
+    url: String(offer.url || "").trim(),
+    status: String(offer.status || "traffic_only"),
+    promotedAt: new Date().toISOString()
+  }));
+}
+
+async function promoteGreenOffersToHomepage(mode = "green_only") {
+  const statusNode = document.getElementById("homepagePromotionStatus");
+  const promoted = buildHomepageFeaturedOffers(mode);
+  if (!promoted.length) {
+    const msg = "No eligible offers with valid tracking URLs found.";
     if (statusNode) statusNode.textContent = `Homepage promotion: ${msg}`;
     setStatus(msg);
     return;
   }
-  const promoted = greenOffers.slice(0, 4).map((offer) => ({
-    offerName: String(offer.offerName || "Offer"),
-    programName: String(offer.programName || offer.programId || "Partner"),
-    url: String(offer.url || "").trim(),
-    promotedAt: new Date().toISOString()
-  }));
   const base = getStoredSettings();
   const payload = {
     ...base,
-    homeFeaturedOffers: promoted
+    homeFeaturedOffers: promoted,
+    homePromotionMode: mode === "green_only" ? "green_only" : "mixed_growth"
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   let cloudSaved = false;
@@ -303,8 +322,8 @@ async function promoteGreenOffersToHomepage() {
     cloudSaved = false;
   }
   const note = cloudSaved
-    ? `Homepage promotion: ${promoted.length} GREEN offers published to homepage cards.`
-    : `Homepage promotion: ${promoted.length} GREEN offers saved locally (cloud save unavailable right now).`;
+    ? `Homepage promotion: ${promoted.length} ${mode === "green_only" ? "GREEN-only" : "mixed growth"} offers published to homepage cards.`
+    : `Homepage promotion: ${promoted.length} offers saved locally (cloud save unavailable right now).`;
   if (statusNode) {
     statusNode.textContent = note;
   }
@@ -3300,7 +3319,10 @@ bindClick("markOfferCommissionValidated", () => {
   markOfferCommissionValidated();
 });
 bindClick("promoteGreenOffersHomepage", () => {
-  promoteGreenOffersToHomepage().catch((error) => setStatus(`Homepage promotion failed: ${error.message}`));
+  promoteGreenOffersToHomepage("green_only").catch((error) => setStatus(`Homepage promotion failed: ${error.message}`));
+});
+bindClick("promoteMixedOffersHomepage", () => {
+  promoteGreenOffersToHomepage("mixed_growth").catch((error) => setStatus(`Homepage promotion failed: ${error.message}`));
 });
 bindClick("generateOutreachDraft", () => {
   buildOutreachDraft();
@@ -3436,8 +3458,10 @@ const clickHandlers = {
     setStatus("Commission readiness check refreshed.");
   },
   markOfferCommissionValidated: () => markOfferCommissionValidated(),
+  promoteMixedOffersHomepage: () =>
+    promoteGreenOffersToHomepage("mixed_growth").catch((error) => setStatus(`Homepage promotion failed: ${error.message}`)),
   promoteGreenOffersHomepage: () =>
-    promoteGreenOffersToHomepage().catch((error) => setStatus(`Homepage promotion failed: ${error.message}`)),
+    promoteGreenOffersToHomepage("green_only").catch((error) => setStatus(`Homepage promotion failed: ${error.message}`)),
   generateOutreachDraft: () => buildOutreachDraft(),
   saveOutreachToInbox: () => saveOutreachDraftToInbox().catch(() => setStatus("Could not save outreach draft to inbox.")),
   sendOutreachEmail: () => sendOutreachEmailViaClient(),

@@ -232,7 +232,8 @@ function applyPromotedHomepageOffers(settings) {
     .map((entry) => ({
       offerName: String(entry?.offerName || "").trim(),
       programName: String(entry?.programName || "").trim(),
-      url: String(entry?.url || "").trim()
+      url: String(entry?.url || "").trim(),
+      status: String(entry?.status || "traffic_only").trim()
     }))
     .filter((entry) => entry.offerName && entry.url)
     .slice(0, HOMEPAGE_PROMOTED_OFFERS_LIMIT);
@@ -256,7 +257,7 @@ function applyPromotedHomepageOffers(settings) {
     }
     const noteNode = card.querySelector("p.note");
     if (noteNode) {
-      const tracked = isCommissionTrackedUrl(offer.url);
+      const tracked = offer.status === "commission_enabled" || isCommissionTrackedUrl(offer.url);
       noteNode.textContent = tracked
         ? "External checkout on source site. Commission-enabled partner."
         : "External checkout on source site. Traffic-only partner.";
