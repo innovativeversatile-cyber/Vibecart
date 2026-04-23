@@ -182,6 +182,8 @@ const QUICK_BUY_EMAIL_KEY = "vibecart-quick-buy-email";
 const QUICK_BUY_PASSWORD_KEY = "vibecart-quick-buy-password";
 const WEARABLE_PREF_KEY = "vibecart-wearable-prefs";
 const COACH_ENTITLEMENTS_CACHE_KEY = "vibecart-coach-entitlements-v1";
+const COACH_AUTO_RENEW_KEY = "vibecart-coach-auto-renew-v1";
+const PREMIUM_AUTO_RENEW_KEY = "vibecart-premium-auto-renew-v1";
 let coachMonetizationState = null;
 let coachEntitlements = new Set();
 const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
@@ -287,22 +289,9 @@ function initGlobalTapHijackGuard() {
       return;
     }
     const href = String(anchor.getAttribute("href") || "");
-    const isBridgeHref =
-      href === "#bridge-routes" ||
-      href === "./index.html#bridge-routes" ||
-      href.endsWith("/index.html#bridge-routes") ||
-      href.includes("bridge-hub.html");
+    const isBridgeHref = href === "#bridge-routes" || href === "./index.html#bridge-routes" || href.endsWith("/index.html#bridge-routes");
     const explicit = anchor.hasAttribute("data-allow-bridge-nav");
-    let giantOverlayAnchor = false;
-    try {
-      const rect = anchor.getBoundingClientRect();
-      giantOverlayAnchor =
-        rect.width >= Math.max(320, window.innerWidth * 0.82) &&
-        rect.height >= Math.max(200, window.innerHeight * 0.35);
-    } catch {
-      giantOverlayAnchor = false;
-    }
-    if ((isBridgeHref || giantOverlayAnchor) && !explicit) {
+    if (isBridgeHref && !explicit) {
       event.preventDefault();
       event.stopPropagation();
       if (typeof event.stopImmediatePropagation === "function") {
@@ -310,9 +299,31 @@ function initGlobalTapHijackGuard() {
       }
     }
   };
-  ["pointerdown", "touchstart", "click"].forEach((type) => {
-    document.addEventListener(type, blockIfSuspicious, true);
-  });
+  document.addEventListener("click", blockIfSuspicious, true);
+}
+
+function initFashionTrendsRouteGuard() {
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest("a[href]") : null;
+      if (!anchor) {
+        return;
+      }
+      const href = String(anchor.getAttribute("href") || "");
+      if (!href.includes("fashion-trends.html")) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      window.location.assign("./fashion-trends.html");
+    },
+    true
+  );
 }
 const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
 let pendingDisclaimerAction = null;
@@ -321,6 +332,7 @@ let disclaimerWatchdogTimer = null;
 const PUBLIC_USER_KEY = "vibecart-public-user-id";
 const PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
 const PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
+const PUBLIC_AUTH_JOURNEY_KEY = "vibecart-public-auth-journey";
 const easterKeyBuffer = [];
 const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "TZ", "UG", "RW", "BW", "ZM"]);
 const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
@@ -609,6 +621,74 @@ function initVibeVipSecrets() {
   });
 }
 
+function initPremiumSubscriptionExperience() {
+  const root = document.getElementById("topClassExperience");
+  const activateBtn = document.getElementById("activatePremiumExperience");
+  const autoRenewInput = document.getElementById("premiumAutoRenew");
+  const renewStatus = document.getElementById("premiumRenewStatus");
+  const priceChip = document.getElementById("premiumPlanPriceChip");
+  const lead = document.getElementById("premiumPlanLead");
+  if (!root) {
+    return;
+  }
+  let settings = { enabled: "1", price: 39.99, benefits: "" };
+  try {
+    const stored = JSON.parse(localStorage.getItem("vibecart-public-premium-plan-v1") || "{}");
+    settings = {
+      enabled: String(stored.enabled || "1"),
+      price: Number(stored.price || 39.99),
+      benefits: String(stored.benefits || "")
+    };
+  } catch {
+    /* ignore */
+  }
+  if (settings.enabled !== "1") {
+    root.classList.add("hidden");
+    return;
+  }
+  if (priceChip) {
+    priceChip.textContent = `EUR ${Math.max(1, Number(settings.price || 39.99)).toFixed(2)} / month`;
+  }
+  if (lead && settings.benefits) {
+    lead.textContent = settings.benefits;
+  }
+  if (autoRenewInput) {
+    var savedPremiumAutoRenew = localStorage.getItem(PREMIUM_AUTO_RENEW_KEY);
+    autoRenewInput.checked = savedPremiumAutoRenew === null ? true : savedPremiumAutoRenew === "1";
+    autoRenewInput.addEventListener("change", function () {
+      localStorage.setItem(PREMIUM_AUTO_RENEW_KEY, autoRenewInput.checked ? "1" : "0");
+      if (renewStatus) {
+        renewStatus.textContent = autoRenewInput.checked
+          ? "Automatic renewal is enabled for the top-class subscription."
+          : "Automatic renewal is off. You can still renew manually anytime.";
+      }
+    });
+    if (renewStatus) {
+      renewStatus.textContent = autoRenewInput.checked
+        ? "Automatic renewal is enabled for the top-class subscription."
+        : "Automatic renewal is off. You can still renew manually anytime.";
+    }
+  }
+  if (activateBtn) {
+    activateBtn.addEventListener("click", () => {
+      var autoRenew = autoRenewInput ? !!autoRenewInput.checked : true;
+      localStorage.setItem(PREMIUM_AUTO_RENEW_KEY, autoRenew ? "1" : "0");
+      unlockVibeVip("top-class subscription");
+      if (expressCheckoutStatus) {
+        expressCheckoutStatus.textContent = "Top-class experience activated. AI concierge and luxury lane are now live.";
+      }
+      if (renewStatus) {
+        renewStatus.textContent = autoRenew
+          ? "Top-class active with automatic renewal enabled."
+          : "Top-class active with manual renewal preference.";
+      }
+      activateBtn.textContent = "Top-Class Activated";
+      activateBtn.classList.remove("btn-primary");
+      activateBtn.classList.add("btn-secondary");
+    });
+  }
+}
+
 function initShopFolderConstellation() {
   const wrap = document.querySelector(".shop-folder-experience");
   const svg = document.getElementById("shopFolderConstellation");
@@ -852,7 +932,7 @@ function updateJurisdictionStrip() {
   const route = getPathLabel(activeBridgePath);
   const buyer = getBuyerDestinationLabel();
   const langHint = (navigator.language || "en").slice(0, 5);
-  vcJurisdictionLine.textContent = `Viewing: ${route} · ${buyer} · browser ${langHint}. Estimates are bands, not customs quotes.`;
+  vcJurisdictionLine.textContent = `Route: ${route} · Buyer mode: ${buyer} · Browser: ${langHint}.`;
   updateLaneWeatherQuiet();
 }
 
@@ -971,6 +1051,11 @@ function applyPersonaHint(persona) {
 }
 
 function initPathPersonaChooser() {
+  const routeByPersona = {
+    buyer: "./buy-journey.html?flow=buy&lane=fashion",
+    seller: "./sell-journey.html",
+    curious: "./browse-categories.html"
+  };
   document.querySelectorAll("[data-vc-persona]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const persona = btn.getAttribute("data-vc-persona") || "curious";
@@ -980,16 +1065,8 @@ function initPathPersonaChooser() {
         /* ignore */
       }
       applyPersonaHint(persona);
-      const target =
-        persona === "buyer"
-          ? "#market"
-          : persona === "seller"
-            ? "#sell"
-            : "#shops";
-      const el = document.querySelector(target);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+      const route = routeByPersona[persona] || "./browse-categories.html";
+      window.location.assign(route);
     });
   });
   try {
@@ -1109,6 +1186,7 @@ function initVibecartLanePack() {
   initLaneNoteDate();
   initUiSoundAndRitualSettings();
   initSignatureRitual();
+  initAiAssistantShortcuts();
   initVcExperiencePack();
 }
 
@@ -1593,7 +1671,8 @@ function initVcDeepLinkFromQuery() {
     }
     const hash = (window.location.hash || "").replace(/^#/, "").split("&")[0];
     const scrollDeferred = () => {
-      if (hash === "market" && (flow === "buy" || flow === "browse" || cat)) {
+      const explicitMarketJump = String(p.get("instant") || "") === "1";
+      if (hash === "market" && explicitMarketJump && (flow === "buy" || flow === "browse" || cat)) {
         const el = document.getElementById("market");
         if (!el) {
           return;
@@ -2295,6 +2374,14 @@ function initVibePassport() {
   };
   renderBadge();
   renderAura();
+  badge.style.cursor = "pointer";
+  badge.title = "Open Vibe Passport";
+  if (badge.dataset.vibePassportOpenBound !== "1") {
+    badge.dataset.vibePassportOpenBound = "1";
+    badge.addEventListener("click", () => {
+      window.location.assign("./lane-passport.html");
+    });
+  }
 
   cards.forEach((card) => {
     if (card.dataset.vibePassportBound === "1") {
@@ -2712,6 +2799,11 @@ function paintAuthLoggedIn(user) {
   const inn = document.getElementById("vcAuthLoggedIn");
   const welcome = document.getElementById("vcAuthWelcomeLine");
   const meta = document.getElementById("vcAuthMetaLine");
+  const memberAura = document.getElementById("vcMemberAura");
+  const guestAura = document.getElementById("vcGuestAura");
+  const memberAuraTitle = document.getElementById("vcMemberAuraTitle");
+  const memberAuraText = document.getElementById("vcMemberAuraText");
+  const memberAuraChip = document.getElementById("vcMemberAuraChip");
   if (out) {
     out.classList.add("hidden");
   }
@@ -2724,6 +2816,23 @@ function paintAuthLoggedIn(user) {
   const roleLabel =
     roleRaw === "seller" ? authT("accountPassport.roleSellerLabel") : authT("accountPassport.roleBuyerLabel");
   const cc = String(user.countryCode || "");
+  var stampCount = 0;
+  var isVip = false;
+  try {
+    stampCount = Number(localStorage.getItem(VIBE_PASSPORT_KEY) || "0");
+    isVip = localStorage.getItem(VIBE_VIP_KEY) === "1";
+  } catch {
+    stampCount = 0;
+    isVip = false;
+  }
+  var level = "Explorer";
+  if (isVip || stampCount >= 8) {
+    level = "Legend";
+  } else if (stampCount >= 5) {
+    level = "Elite";
+  } else if (stampCount >= 2) {
+    level = "Citizen";
+  }
   if (welcome) {
     const tpl = authT("accountPassport.welcome");
     welcome.textContent = tpl ? tpl.replace("{name}", name) : `Welcome, ${name}`;
@@ -2734,16 +2843,50 @@ function paintAuthLoggedIn(user) {
       ? tpl.replace("{email}", email).replace("{role}", roleLabel).replace("{country}", cc)
       : `${email} · ${roleLabel} · ${cc}`;
   }
+  if (memberAuraTitle) {
+    memberAuraTitle.textContent = `Welcome, ${name}. Your VibeCart passport is active.`;
+  }
+  if (memberAuraText) {
+    memberAuraText.textContent =
+      `Holder level: ${level}. You have ${stampCount} passport stamp${stampCount === 1 ? "" : "s"} on this device.`;
+  }
+  if (memberAuraChip) {
+    memberAuraChip.textContent = `VibeCart Passport Holder · ${level}`;
+  }
+  if (memberAura) {
+    memberAura.classList.remove("hidden");
+    memberAura.classList.remove("vc-member-aura--explorer", "vc-member-aura--citizen", "vc-member-aura--elite", "vc-member-aura--legend");
+    memberAura.classList.add(
+      level === "Legend"
+        ? "vc-member-aura--legend"
+        : level === "Elite"
+          ? "vc-member-aura--elite"
+          : level === "Citizen"
+            ? "vc-member-aura--citizen"
+            : "vc-member-aura--explorer"
+    );
+  }
+  if (guestAura) {
+    guestAura.classList.add("hidden");
+  }
 }
 
 function paintAuthLoggedOut() {
   const out = document.getElementById("vcAuthLoggedOut");
   const inn = document.getElementById("vcAuthLoggedIn");
+  const memberAura = document.getElementById("vcMemberAura");
+  const guestAura = document.getElementById("vcGuestAura");
   if (out) {
     out.classList.remove("hidden");
   }
   if (inn) {
     inn.classList.add("hidden");
+  }
+  if (memberAura) {
+    memberAura.classList.add("hidden");
+  }
+  if (guestAura) {
+    guestAura.classList.remove("hidden");
   }
 }
 
@@ -2817,6 +2960,11 @@ function initPublicAccountAuth() {
   const btnLogin = document.getElementById("vcAuthSubmitLogin");
   const btnLogout = document.getElementById("vcAuthLogout");
   const toggleRoleBtn = document.getElementById("vcAuthToggleRole");
+  const journeyInput = document.getElementById("vcAuthJourney");
+  const journeyPassportBtn = document.getElementById("vcAuthJourneyPassport");
+  const journeyAccountBtn = document.getElementById("vcAuthJourneyAccount");
+  const journeyHint = document.getElementById("vcAuthJourneyHint");
+  const createSubmitLabel = document.getElementById("vcAuthSubmitCreate");
 
   if (!panelCreate || !panelLogin) {
     return;
@@ -2834,6 +2982,25 @@ function initPublicAccountAuth() {
     panelLogin.removeAttribute("hidden");
   }
 
+  function refreshJourneyUi() {
+    const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
+    if (journeyPassportBtn) {
+      journeyPassportBtn.classList.toggle("is-active", journey === "passport");
+    }
+    if (journeyAccountBtn) {
+      journeyAccountBtn.classList.toggle("is-active", journey === "account");
+    }
+    if (createSubmitLabel) {
+      createSubmitLabel.textContent = journey === "passport" ? "Create passport" : "Create account";
+    }
+    if (journeyHint) {
+      journeyHint.textContent =
+        journey === "passport"
+          ? "Flow: Create passport -> Enter details -> Congratulations, welcome to the VibeCart family with your VibeCart passport."
+          : "Flow: Create account -> Enter details -> Congratulations, welcome to the VibeCart community.";
+    }
+  }
+
   linkToLogin?.addEventListener("click", (event) => {
     event.preventDefault();
     showLogin();
@@ -2841,6 +3008,18 @@ function initPublicAccountAuth() {
   linkToCreate?.addEventListener("click", (event) => {
     event.preventDefault();
     showCreate();
+  });
+  journeyPassportBtn?.addEventListener("click", () => {
+    if (journeyInput) {
+      journeyInput.value = "passport";
+    }
+    refreshJourneyUi();
+  });
+  journeyAccountBtn?.addEventListener("click", () => {
+    if (journeyInput) {
+      journeyInput.value = "account";
+    }
+    refreshJourneyUi();
   });
 
   toggleRoleBtn?.addEventListener("click", () => {
@@ -2860,7 +3039,11 @@ function initPublicAccountAuth() {
   if (roleInput) {
     roleInput.value = "buyer";
   }
+  if (journeyInput && !journeyInput.value) {
+    journeyInput.value = "passport";
+  }
   refreshAccountPassportLabels();
+  refreshJourneyUi();
 
   if (emailCreate && fullNameInput) {
     emailCreate.addEventListener("blur", () => {
@@ -2889,6 +3072,7 @@ function initPublicAccountAuth() {
     const email = String(document.getElementById("vcAuthEmail")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("vcAuthPassword")?.value || "");
     const role = String(roleInput?.value || "buyer");
+    const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
     const countryCode = String(country?.value || "ZA").toUpperCase();
     if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
       setAuthStatus(authT("accountPassport.errMissingFields"));
@@ -2927,10 +3111,24 @@ function initPublicAccountAuth() {
         return;
       }
       persistPublicAuth(body.token, body.user);
+      try {
+        localStorage.setItem(PUBLIC_AUTH_JOURNEY_KEY, journey);
+      } catch {
+        /* ignore */
+      }
       paintAuthLoggedIn(body.user);
-      setAuthStatus(authT("accountPassport.redirectingPassport"));
-      const passportUrl = `./passport-welcome.html?welcome=1&new=1&name=${encodeURIComponent(String(body.user?.fullName || fullName || ""))}&email=${encodeURIComponent(email)}`;
-      window.location.assign(passportUrl);
+      setAuthStatus(
+        journey === "passport"
+          ? "Congratulations, welcome to the VibeCart family with your VibeCart passport."
+          : "Congratulations, welcome to the VibeCart community."
+      );
+      const nextUrl =
+        journey === "passport"
+          ? `./passport-welcome.html?welcome=1&new=1&journey=passport&name=${encodeURIComponent(String(body.user?.fullName || fullName || ""))}&email=${encodeURIComponent(email)}`
+          : `./account-welcome.html?welcome=1&new=1&journey=account&name=${encodeURIComponent(String(body.user?.fullName || fullName || ""))}&email=${encodeURIComponent(email)}`;
+      window.setTimeout(() => {
+        window.location.assign(nextUrl);
+      }, 420);
     } catch {
       setAuthStatus(authT("accountPassport.errGeneric"));
     } finally {
@@ -3573,6 +3771,7 @@ initShopFolderKeyboardNav();
 initShopFolderConstellation();
 initDailyRouteFortune();
 initVibeVipSecrets();
+initPremiumSubscriptionExperience();
 initVibePassport();
 initVibeFlowMotion();
 initHeroCanvasFx();
@@ -3676,6 +3875,25 @@ function scoreProduct(product, preference) {
   if (preference.category === "All" || preference.category === product.category) {
     score += 5;
   }
+  const fashionWords = [
+    "fashion",
+    "clothes",
+    "clothing",
+    "outfit",
+    "dress",
+    "shoe",
+    "sneaker",
+    "jacket",
+    "night",
+    "wear",
+    "style",
+    "jeans",
+    "skirt",
+    "hoodie"
+  ];
+  if (needText && fashionWords.some((w) => needText.includes(w)) && product.category === "Fashion") {
+    score += 8;
+  }
   if (needText && (titleText.includes("phone") || needText.includes("phone")) && product.category === "Electronics") {
     score += 4;
   }
@@ -3684,6 +3902,13 @@ function scoreProduct(product, preference) {
   }
   if (needText && (needText.includes("game") || needText.includes("gaming")) && product.category === "Gaming") {
     score += 4;
+  }
+  const electronicsWords = ["laptop", "tablet", "charger", "headphone", "tech", "electronic", "usb", "camera"];
+  if (needText && electronicsWords.some((w) => needText.includes(w)) && product.category === "Electronics") {
+    score += 7;
+  }
+  if (needText && (needText.includes("read") || needText.includes("textbook")) && product.category === "Books") {
+    score += 5;
   }
   if (product.price <= preference.budget) {
     score += 6;
@@ -3813,15 +4038,17 @@ function initHeroChips() {
   };
   chips.forEach((chip) => {
     chip.addEventListener("click", () => {
-      const sel = String(chip.getAttribute("data-hero-chip-target") || "");
-      const target = sel ? document.querySelector(sel) : null;
+      const kind = String(chip.getAttribute("data-hero-chip") || "");
+      const route =
+        kind === "checkout"
+          ? "./buy-journey.html?flow=buy&lane=fashion"
+          : kind === "sellers"
+            ? "./regional-shops.html"
+            : "./orders-tracking.html";
       strip.querySelectorAll(".hero-chip").forEach((c) => c.classList.remove("hero-chip--active"));
       chip.classList.add("hero-chip--active");
-      if (target) {
-        vcScrollToSelector(sel);
-        flashTargetSection(target);
-      }
       announce(chip);
+      window.location.assign(route);
     });
   });
   const refreshHintIfChipActive = () => {
@@ -3870,10 +4097,17 @@ function getAISuggestions() {
     category: aiCategory.value || "All"
   };
 
-  const ranked = parseProductCards()
+  const cards = parseProductCards();
+  if (!cards.length) {
+    aiResult.textContent =
+      "No demo listings found on this page yet. Scroll to Live Marketplace above, then try again.";
+    return;
+  }
+
+  const scored = cards
     .map((product) => ({ ...product, score: scoreProduct(product, preference) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .sort((a, b) => b.score - a.score);
+  let ranked = scored.slice(0, 3);
 
   const L = currentUiLocale();
   const i18n = window.VibeCartI18n;
@@ -3881,9 +4115,24 @@ function getAISuggestions() {
     i18n && typeof i18n.t === "function"
       ? i18n.t(L, "ai.noMatch")
       : "No exact match yet. Try increasing budget or selecting 'Any' category for better suggestions.";
-  if (!ranked.length || ranked[0].score <= 0) {
+  if (!ranked.length) {
     aiResult.textContent = noMatch;
     return;
+  }
+
+  if (ranked[0].score <= 0) {
+    const budget = preference.budget;
+    ranked = scored
+      .map((p) => ({
+        ...p,
+        score: -Math.abs(p.price - budget)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+    if (!ranked.length) {
+      aiResult.textContent = noMatch;
+      return;
+    }
   }
 
   const lines = ranked.map(
@@ -3897,11 +4146,38 @@ function getAISuggestions() {
     i18n && typeof i18n.t === "function" ? i18n.t(L, "ai.resultFunPrefix") : "Vibe-ranked picks";
   const prefix = persona === "fun" ? funPrefix : effPrefix;
   const joiner = persona === "fun" ? " ✦ " : " | ";
-  aiResult.textContent = `${prefix}: ${lines.join(joiner)}`;
+  const relaxed =
+    scored[0].score <= 0 ? " (relaxed budget fit — refine your need text for tighter style matches)" : "";
+  aiResult.textContent = `${prefix}: ${lines.join(joiner)}${relaxed}`;
+  try {
+    aiAssistantSection?.scrollIntoView({ behavior: "smooth", block: "center" });
+    aiResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch {
+    /* ignore */
+  }
 }
 
 if (aiSuggest) {
-  aiSuggest.addEventListener("click", getAISuggestions);
+  aiSuggest.addEventListener("click", (event) => {
+    event.preventDefault();
+    getAISuggestions();
+  });
+}
+
+function initAiAssistantShortcuts() {
+  const run = (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    const t = event.target;
+    if (t !== aiNeed && t !== aiBudget) {
+      return;
+    }
+    event.preventDefault();
+    getAISuggestions();
+  };
+  aiNeed?.addEventListener("keydown", run);
+  aiBudget?.addEventListener("keydown", run);
 }
 
 function getSellerOnboardedCount() {
@@ -4338,24 +4614,62 @@ if (showBookingSlots) {
   showBookingSlots.addEventListener("click", renderBookingSlots);
 }
 
+const TRUSTED_INSURANCE_PROVIDER_DOMAINS = new Set([
+  "allianz.com",
+  "axa.com",
+  "cigna.com",
+  "bupa.com",
+  "discovery.co.za",
+  "oldmutual.co.za"
+]);
+
+function normalizeInsuranceUrl(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) {
+    return "";
+  }
+  try {
+    const url = new URL(value.startsWith("http") ? value : `https://${value}`);
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
+function isTrustedInsuranceWebsite(rawUrl) {
+  const href = normalizeInsuranceUrl(rawUrl);
+  if (!href) {
+    return false;
+  }
+  try {
+    const host = new URL(href).hostname.replace(/^www\./, "").toLowerCase();
+    return Array.from(TRUSTED_INSURANCE_PROVIDER_DOMAINS).some((domain) => host === domain || host.endsWith(`.${domain}`));
+  } catch {
+    return false;
+  }
+}
+
 const demoInsurancePlans = [
   {
-    provider: "CampusLife Assurance",
-    plan: "Student Life Basic",
+    provider: "Allianz",
+    website: "https://www.allianz.com",
+    plan: "Student Life Basic (illustrative)",
     type: "Life Cover",
     price: "EUR 4.99 / month",
     benefits: "Starter life protection and emergency support guidance."
   },
   {
-    provider: "WellNest Health Cover",
-    plan: "Student Health Shield",
+    provider: "AXA",
+    website: "https://www.axa.com",
+    plan: "Student Health Shield (illustrative)",
     type: "Health Cover",
     price: "EUR 6.99 / month",
     benefits: "Basic outpatient support and tele-health guidance."
   },
   {
-    provider: "FamilyCare Secure",
-    plan: "Funeral Family Plan",
+    provider: "Bupa",
+    website: "https://www.bupa.com",
+    plan: "Family Protect Plan (illustrative)",
     type: "Funeral Cover",
     price: "EUR 5.49 / month",
     benefits: "Affordable funeral support for student families."
@@ -4370,12 +4684,15 @@ function renderInsurancePlans() {
   demoInsurancePlans.forEach((item) => {
     const node = document.createElement("article");
     node.className = "shop";
+    const providerUrl = normalizeInsuranceUrl(item.website);
     node.innerHTML = `
       <h3>${escapeHtml(item.plan)}</h3>
       <p><strong>${escapeHtml(item.provider)}</strong> - ${escapeHtml(item.type)}</p>
       <p class="price">${escapeHtml(item.price)}</p>
       <p>${escapeHtml(item.benefits)}</p>
-      <button class="btn btn-primary insurance-action-btn">Request Plan Details</button>
+      <p>
+        <a class="btn btn-primary insurance-action-btn insurance-provider-link" data-provider-url="${escapeHtml(providerUrl)}" href="${escapeHtml(providerUrl)}" target="_blank" rel="noopener noreferrer">Visit provider website</a>
+      </p>
     `;
     insurancePlans.appendChild(node);
   });
@@ -4394,7 +4711,16 @@ async function loadPublicInsurancePlans() {
       return;
     }
     insurancePlans.innerHTML = "";
-    payload.plans.slice(0, 6).forEach((plan) => {
+    let rendered = 0;
+    payload.plans.slice(0, 12).forEach((plan) => {
+      const providerUrlRaw = plan.provider_website || plan.provider_url || plan.website_url || "";
+      if (!isTrustedInsuranceWebsite(providerUrlRaw)) {
+        return;
+      }
+      const providerUrl = normalizeInsuranceUrl(providerUrlRaw);
+      if (!providerUrl) {
+        return;
+      }
       const node = document.createElement("article");
       node.className = "shop";
       const summary = plan.summary_text || "Verified insurance plan for students and families.";
@@ -4403,10 +4729,16 @@ async function loadPublicInsurancePlans() {
         <p><strong>${escapeHtml(plan.provider_name)}</strong> - ${escapeHtml(plan.plan_type)}</p>
         <p class="price">${escapeHtml(plan.currency)} ${escapeHtml(Number(plan.monthly_premium).toFixed(2))} / month</p>
         <p>${escapeHtml(summary)}</p>
-        <button class="btn btn-primary insurance-action-btn">Request Plan Details</button>
+        <p>
+          <a class="btn btn-primary insurance-action-btn insurance-provider-link" data-provider-url="${escapeHtml(providerUrl)}" href="${escapeHtml(providerUrl)}" target="_blank" rel="noopener noreferrer">Visit provider website</a>
+        </p>
       `;
       insurancePlans.appendChild(node);
+      rendered += 1;
     });
+    if (!rendered) {
+      renderInsurancePlans();
+    }
   } catch {
     renderInsurancePlans();
   }
@@ -4508,6 +4840,7 @@ function wireInsuranceActionButtons() {
     button.dataset.guardReady = "1";
     button.addEventListener("click", async (event) => {
       event.preventDefault();
+      const providerUrl = String(button.getAttribute("data-provider-url") || button.getAttribute("href") || "").trim();
       if (!insuranceDisclaimerAck || !insuranceDisclaimerAck.checked) {
         openDisclaimerGate(
           "Before continuing, accept the insurance disclaimer checkbox in the insurance section.",
@@ -4518,7 +4851,10 @@ function wireInsuranceActionButtons() {
       }
       await recordDisclaimerAcceptance("insurance_subscription", true);
       if (wellbeingTips) {
-        wellbeingTips.textContent = "Insurance disclaimer accepted. You can continue to policy detail/subscription flow.";
+        wellbeingTips.textContent = "Insurance disclaimer accepted. Opening trusted provider website.";
+      }
+      if (providerUrl && isTrustedInsuranceWebsite(providerUrl)) {
+        window.open(normalizeInsuranceUrl(providerUrl), "_blank", "noopener,noreferrer");
       }
     });
   });
@@ -4620,6 +4956,10 @@ function renderCoachMonetizationUi(state) {
         <button type="button" id="coachAddonDeep" class="btn btn-secondary">Buy Deep Analysis (€2.99)</button>
         <button type="button" id="coachPartnerWellNest" class="btn btn-secondary">Open WellNest partner</button>
       </div>
+      <label class="note" style="display:flex;align-items:center;gap:.45rem;margin:.5rem 0 0;">
+        <input type="checkbox" id="coachAutoRenewChoice" checked />
+        Enable automatic renewal for coach subscription
+      </label>
       <p id="coachMonetizationStatus" class="note" aria-live="polite"></p>
     `;
     const anchor = coachDashboard ? coachDashboard.parentElement : section;
@@ -4637,6 +4977,14 @@ function renderCoachMonetizationUi(state) {
       trackCoachPartnerEvent("WellNest Health Cover", "click", "cpl", 0, { source: "health-coach-ui" }).catch(() => {});
       window.open("./insurance.html", "_blank", "noopener");
     });
+    var coachAutoRenewChoice = document.getElementById("coachAutoRenewChoice");
+    if (coachAutoRenewChoice) {
+      var savedAutoRenew = localStorage.getItem(COACH_AUTO_RENEW_KEY);
+      coachAutoRenewChoice.checked = savedAutoRenew === null ? true : savedAutoRenew === "1";
+      coachAutoRenewChoice.addEventListener("change", function () {
+        localStorage.setItem(COACH_AUTO_RENEW_KEY, coachAutoRenewChoice.checked ? "1" : "0");
+      });
+    }
   }
   const status = document.getElementById("coachMonetizationStatus");
   if (!status) {
@@ -4672,6 +5020,8 @@ async function startCoachSubscriptionCheckout(planCode) {
     return;
   }
   coachDashboard.textContent = `Starting ${planCode} subscription...`;
+  var autoRenewPref = localStorage.getItem(COACH_AUTO_RENEW_KEY);
+  var autoRenew = autoRenewPref === null ? true : autoRenewPref === "1";
   const response = await fetch("/api/public/coach/subscription/start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -4679,7 +5029,7 @@ async function startCoachSubscriptionCheckout(planCode) {
       userId: getPublicUserId(),
       planCode,
       source: "web-health-coach",
-      autoRenew: true
+      autoRenew: autoRenew
     })
   });
   const result = await response.json();
@@ -4687,7 +5037,7 @@ async function startCoachSubscriptionCheckout(planCode) {
     coachDashboard.textContent = "Could not start subscription right now.";
     return;
   }
-  coachDashboard.textContent = `${planCode} activated. Premium coach features are now available.`;
+  coachDashboard.textContent = `${planCode} activated. Premium coach features are now available. Auto-renew: ${autoRenew ? "on" : "off"}.`;
   await refreshCoachMonetizationState();
   await refreshCoachDashboard();
 }
@@ -5247,6 +5597,7 @@ if (onboardingClose) {
 
 initBridgeAntiHijackGuard();
 initGlobalTapHijackGuard();
+initFashionTrendsRouteGuard();
 initVibecartLanePack();
 initPublicAccountAuth();
 loadTrustCards();

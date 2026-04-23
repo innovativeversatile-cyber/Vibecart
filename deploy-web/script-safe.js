@@ -482,12 +482,8 @@
           if (!allowed[name]) {
             return;
           }
-          var dest = String(card.getAttribute("href") || "").trim();
-          if (dest.indexOf("fashion-trends.html") >= 0) {
-            return;
-          }
-          event.preventDefault();
-          go("./live-market-shops.html?cat=" + encodeURIComponent(name));
+          // Safe mode should not hijack link routing; keep category highlight only.
+          applyCategory(name);
         });
       });
 

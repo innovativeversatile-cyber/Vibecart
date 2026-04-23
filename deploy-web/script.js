@@ -289,22 +289,9 @@ function initGlobalTapHijackGuard() {
       return;
     }
     const href = String(anchor.getAttribute("href") || "");
-    const isBridgeHref =
-      href === "#bridge-routes" ||
-      href === "./index.html#bridge-routes" ||
-      href.endsWith("/index.html#bridge-routes") ||
-      href.includes("bridge-hub.html");
+    const isBridgeHref = href === "#bridge-routes" || href === "./index.html#bridge-routes" || href.endsWith("/index.html#bridge-routes");
     const explicit = anchor.hasAttribute("data-allow-bridge-nav");
-    let giantOverlayAnchor = false;
-    try {
-      const rect = anchor.getBoundingClientRect();
-      giantOverlayAnchor =
-        rect.width >= Math.max(320, window.innerWidth * 0.82) &&
-        rect.height >= Math.max(200, window.innerHeight * 0.35);
-    } catch {
-      giantOverlayAnchor = false;
-    }
-    if ((isBridgeHref || giantOverlayAnchor) && !explicit) {
+    if (isBridgeHref && !explicit) {
       event.preventDefault();
       event.stopPropagation();
       if (typeof event.stopImmediatePropagation === "function") {
@@ -312,9 +299,31 @@ function initGlobalTapHijackGuard() {
       }
     }
   };
-  ["pointerdown", "touchstart", "click"].forEach((type) => {
-    document.addEventListener(type, blockIfSuspicious, true);
-  });
+  document.addEventListener("click", blockIfSuspicious, true);
+}
+
+function initFashionTrendsRouteGuard() {
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest("a[href]") : null;
+      if (!anchor) {
+        return;
+      }
+      const href = String(anchor.getAttribute("href") || "");
+      if (!href.includes("fashion-trends.html")) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+      window.location.assign("./fashion-trends.html");
+    },
+    true
+  );
 }
 const NIGHT_NEON_KEY = "vibecart-night-neon-mode-v1";
 let pendingDisclaimerAction = null;
@@ -5588,6 +5597,7 @@ if (onboardingClose) {
 
 initBridgeAntiHijackGuard();
 initGlobalTapHijackGuard();
+initFashionTrendsRouteGuard();
 initVibecartLanePack();
 initPublicAccountAuth();
 loadTrustCards();
