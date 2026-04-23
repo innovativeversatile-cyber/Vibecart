@@ -356,6 +356,8 @@ a {
   position: sticky;
   top: 0;
   z-index: 20;
+  /* Let taps pass through the glass bar except real controls — avoids sticky header stealing hits on content below. */
+  pointer-events: none;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -370,6 +372,17 @@ a {
   border-bottom: 1px solid rgba(232, 163, 23, 0.22);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.topbar .brand,
+.topbar .shop-search,
+.topbar .nav-links a,
+.topbar .nav-links summary,
+.topbar .nav-more-menu a,
+.topbar .topbar-lang,
+.topbar .topbar-lang label,
+.topbar .topbar-lang select {
+  pointer-events: auto;
 }
 
 .topbar-rest {
@@ -1236,7 +1249,8 @@ body.luxe-instant.luxe-ready .section {
 
 .card,
 .shop,
-.product {
+.product,
+.vc-info-card {
   background: linear-gradient(165deg, rgba(42, 26, 58, 0.95), rgba(24, 14, 36, 0.92));
   border-radius: var(--radius);
   border: 1px solid rgba(232, 163, 23, 0.12);
@@ -1247,7 +1261,8 @@ body.luxe-instant.luxe-ready .section {
 
 .card:hover,
 .shop:hover,
-.product:hover {
+.product:hover,
+.vc-info-card:hover {
   transform: translateY(-3px);
   border-color: rgba(232, 163, 23, 0.45);
   box-shadow: 0 12px 40px rgba(232, 163, 23, 0.08);
@@ -2070,12 +2085,14 @@ body.vc-vip-mode .vc-top-class-shell {
   padding: 0.85rem 0.75rem 1rem;
 }
 
-.shop {
+.shop,
+.vc-info-card {
   padding: 1rem;
 }
 
 .shop p,
-.product p {
+.product p,
+.vc-info-card p {
   color: var(--muted);
 }
 
@@ -3258,6 +3275,8 @@ body.admin-surface .section {
     background: rgba(10, 14, 28, 0.94);
     border-top: 1px solid rgba(232, 163, 23, 0.25);
     backdrop-filter: blur(10px);
+    /* Let taps miss the bar chrome; only the four pills receive events (Explore → #categories sat under bridge taps). */
+    pointer-events: none;
   }
 
   .mobile-quick-nav a {
@@ -3271,6 +3290,7 @@ body.admin-surface .section {
     min-height: 44px;
     display: grid;
     place-items: center;
+    pointer-events: auto;
   }
 
   .mobile-quick-nav a.is-active {
@@ -3279,8 +3299,13 @@ body.admin-surface .section {
     color: #fffdf9;
   }
 
+  html {
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
   body {
-    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    /* Extra space so Trade Bridge / lower controls are not flush against the fixed tab bar. */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -4511,16 +4536,19 @@ body.vc-layout-exclusive .shop-search-input {
   font-size: 0.92rem;
 }
 
-.trust-cards-boring .shop {
+.trust-cards-boring .shop,
+.trust-cards-boring .vc-info-card {
   font-variant-numeric: tabular-nums;
 }
 
-.trust-cards-boring .shop h3 {
+.trust-cards-boring .shop h3,
+.trust-cards-boring .vc-info-card h3 {
   font-size: 1rem;
   letter-spacing: 0.01em;
 }
 
-.trust-cards-boring .shop p {
+.trust-cards-boring .shop p,
+.trust-cards-boring .vc-info-card p {
   font-size: 0.88rem;
   color: var(--muted, #a8b0c4);
 }

@@ -890,7 +890,7 @@
     bindGo("openOnboarding", "./buy-journey.html");
     bindGo("nextTrackingStep", "./orders-tracking.html");
     bindGo("openReturnWindow", "./orders-tracking.html");
-    bindGo("aiSuggest", "./hot-picks.html");
+    /* #aiSuggest: script.js runs on-page ranking — do not bindGo here or every tap also navigates away. */
     bindGo("sgRunPlan", "./seller-boost.html");
     bindGo("refreshAds", "./policy.html");
     bindGo("earnRewardPoints", "./rewards-hub.html");

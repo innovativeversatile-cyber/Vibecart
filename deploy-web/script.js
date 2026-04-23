@@ -1289,8 +1289,7 @@ function applyPersonaHint(persona) {
 function initPathPersonaChooser() {
   const routeByPersona = {
     buyer: "./buy-journey.html?flow=buy&lane=fashion",
-    seller: "./sell-journey.html",
-    curious: "./browse-categories.html"
+    seller: "./sell-journey.html"
   };
   document.querySelectorAll("[data-vc-persona]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1301,7 +1300,23 @@ function initPathPersonaChooser() {
         /* ignore */
       }
       applyPersonaHint(persona);
-      const route = routeByPersona[persona] || "./browse-categories.html";
+      if (persona === "curious") {
+        const el = document.getElementById("categories");
+        if (el) {
+          try {
+            const lenis = window.__vibecartLenis;
+            if (lenis && typeof lenis.scrollTo === "function") {
+              lenis.scrollTo(el, { offset: -88 });
+              return;
+            }
+          } catch {
+            /* ignore */
+          }
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        return;
+      }
+      const route = routeByPersona[persona] || "./buy-journey.html?flow=buy&lane=fashion";
       window.location.assign(route);
     });
   });
@@ -4960,7 +4975,7 @@ function renderInsurancePlans() {
   insurancePlans.innerHTML = "";
   demoInsurancePlans.forEach((item) => {
     const node = document.createElement("article");
-    node.className = "shop";
+    node.className = "vc-info-card";
     const providerUrl = normalizeInsuranceUrl(item.website);
     node.innerHTML = `
       <h3>${escapeHtml(item.plan)}</h3>
@@ -4999,7 +5014,7 @@ async function loadPublicInsurancePlans() {
         return;
       }
       const node = document.createElement("article");
-      node.className = "shop";
+      node.className = "vc-info-card";
       const summary = plan.summary_text || "Verified insurance plan for students and families.";
       node.innerHTML = `
         <h3>${escapeHtml(plan.plan_name)}</h3>
@@ -5626,7 +5641,7 @@ function renderTrustCards() {
   trustCards.innerHTML = "";
   trustEntities.forEach((item) => {
     const node = document.createElement("article");
-    node.className = "shop trust-card-boring";
+    node.className = "vc-info-card trust-card-boring";
     node.innerHTML = `
       <h3>${escapeHtml(item.name)}</h3>
       <p><span class="price">${escapeHtml(String(item.type))}</span> · trust band ${escapeHtml(String(item.score))}/100 (illustrative)</p>
@@ -5670,7 +5685,7 @@ async function loadTrustCards() {
     trustCards.innerHTML = "";
     payload.items.slice(0, 6).forEach((item) => {
       const node = document.createElement("article");
-      node.className = "shop trust-card-boring";
+      node.className = "vc-info-card trust-card-boring";
       const et = String(item.entity_type || "").toUpperCase();
       const eid = escapeHtml(item.entity_id);
       const ts = escapeHtml(Number(item.trust_score).toFixed(1));

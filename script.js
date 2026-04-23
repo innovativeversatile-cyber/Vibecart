@@ -1289,8 +1289,7 @@ function applyPersonaHint(persona) {
 function initPathPersonaChooser() {
   const routeByPersona = {
     buyer: "./buy-journey.html?flow=buy&lane=fashion",
-    seller: "./sell-journey.html",
-    curious: "./browse-categories.html"
+    seller: "./sell-journey.html"
   };
   document.querySelectorAll("[data-vc-persona]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1301,7 +1300,23 @@ function initPathPersonaChooser() {
         /* ignore */
       }
       applyPersonaHint(persona);
-      const route = routeByPersona[persona] || "./browse-categories.html";
+      if (persona === "curious") {
+        const el = document.getElementById("categories");
+        if (el) {
+          try {
+            const lenis = window.__vibecartLenis;
+            if (lenis && typeof lenis.scrollTo === "function") {
+              lenis.scrollTo(el, { offset: -88 });
+              return;
+            }
+          } catch {
+            /* ignore */
+          }
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        return;
+      }
+      const route = routeByPersona[persona] || "./buy-journey.html?flow=buy&lane=fashion";
       window.location.assign(route);
     });
   });
