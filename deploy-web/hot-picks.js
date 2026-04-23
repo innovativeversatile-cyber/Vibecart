@@ -77,15 +77,7 @@
         encodeURIComponent(target)
       );
     }
-    var fallback =
-      "./checkout-details.html?flow=buy&plan=market&item=" +
-      encodeURIComponent(item) +
-      "&cat=" +
-      encodeURIComponent(cat);
-    if (id) {
-      fallback += "&productId=" + encodeURIComponent(id);
-    }
-    return fallback;
+    return "";
   }
 
   function render(items) {
@@ -96,7 +88,8 @@
       var price = p.price != null ? String(p.price) : "";
       var currency = String(p.currency || "EUR");
       var target = pickTargetUrl(p);
-      var ctaLabel = target ? "Open source website" : "View offer";
+      var href = offerHref(p);
+      var ctaLabel = target ? "Open source website" : "Source unavailable";
       var html =
         '<article class="card">' +
         '<img src="' +
@@ -111,8 +104,10 @@
         escapeHtml(cat) +
         (price ? " · " + escapeHtml(currency + " " + price) : "") +
         "</p>" +
-        '<p class="hero-actions"><a class="btn btn-primary" href="' +
-        escapeHtml(offerHref(p)) +
+        '<p class="hero-actions"><a class="btn btn-primary' +
+        (href ? "" : " is-disabled") +
+        '" href="' +
+        escapeHtml(href || "#") +
         '">' +
         escapeHtml(ctaLabel) +
         "</a></p>" +

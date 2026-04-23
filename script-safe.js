@@ -950,7 +950,9 @@
           go(redirectUrl);
           return;
         }
-        go("./checkout-details.html?flow=buy&plan=market&item=" + encodeURIComponent(title) + "&cat=" + encodeURIComponent(cat));
+        if (status) {
+          status.textContent = "This offer has no external destination configured yet.";
+        }
       });
     });
   });

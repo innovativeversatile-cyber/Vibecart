@@ -2802,7 +2802,33 @@ function wireOneClickBuy() {
         }
         return;
       }
-      runLiveOneClickCheckoutWithExtras(String(btn.getAttribute("data-title") || "Selected item"));
+      var shop = String(btn.getAttribute("data-shop-name") || btn.getAttribute("data-title") || "Selected shop").trim();
+      var target = String(btn.getAttribute("data-shop-url") || "").trim();
+      var cat = "All";
+      try {
+        var card = btn.closest ? btn.closest(".product") : null;
+        if (card) {
+          cat = String(card.getAttribute("data-category") || "All").trim();
+        }
+      } catch {
+        cat = "All";
+      }
+      if (!target) {
+        if (expressCheckoutStatus) {
+          expressCheckoutStatus.textContent = "This listing has no external destination yet. Please choose another offer.";
+        }
+        return;
+      }
+      var redirectUrl =
+        "/api/public/shop/redirect?shop=" +
+        encodeURIComponent(shop) +
+        "&cat=" +
+        encodeURIComponent(cat) +
+        "&partner=" +
+        encodeURIComponent(shop) +
+        "&target=" +
+        encodeURIComponent(target);
+      window.location.assign(redirectUrl);
     });
   });
 }

@@ -129,6 +129,41 @@
       return;
     }
 
+    if (flow !== "coach") {
+      if (title) {
+        title.textContent = "External checkout only";
+      }
+      if (note) {
+        note.textContent = "Only Health Coach subscriptions are checked out on VibeCart. Other purchases are completed on partner websites.";
+      }
+      if (back) {
+        back.href = "./world-shop-experience.html";
+        back.textContent = "Back to world shop experience";
+      }
+      var targetRaw =
+        String(params.get("target") || "").trim() ||
+        String(params.get("shopUrl") || "").trim() ||
+        String(params.get("providerUrl") || "").trim() ||
+        String(params.get("url") || "").trim();
+      var target = "";
+      var lower = targetRaw.toLowerCase();
+      if (targetRaw && lower.indexOf("javascript:") !== 0 && lower.indexOf("data:") !== 0 && lower.indexOf("vbscript:") !== 0) {
+        target = targetRaw;
+      }
+      if (confirmBtn) {
+        confirmBtn.textContent = target ? "Open assigned website" : "Return to world shop";
+        confirmBtn.addEventListener("click", function () {
+          window.location.assign(target || "./world-shop-experience.html");
+        });
+      }
+      if (statusEl) {
+        statusEl.textContent = target
+          ? "This purchase is external. Continue on the assigned website."
+          : "No external destination was provided. Please return and pick another offer.";
+      }
+      return;
+    }
+
     if (flow === "coach") {
       if (typeEl) {
         typeEl.value = flow;
