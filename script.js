@@ -189,6 +189,7 @@ let coachEntitlements = new Set();
 const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
 const BRIDGE_TARGET_IDS = new Set(["bridge-routes", "bridgeTitle", "bridgeText", "bridgeShops"]);
 const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+const HOMEPAGE_TRAFFIC_GROWTH_KEY = "vibecart-homepage-traffic-growth-v1";
 const HOMEPAGE_PROMOTED_OFFERS_LIMIT = 4;
 
 function trackAffiliateClick(payload) {
@@ -266,6 +267,58 @@ function applyPromotedHomepageOffers(settings) {
     const detail = detailNodes.length ? detailNodes[0] : null;
     if (detail) {
       detail.textContent = `Featured from ${offer.programName || "Affiliate partner"} lane.`;
+    }
+  });
+}
+
+function trackHomepageTrafficEvent(eventName, targetLabel) {
+  try {
+    const raw = localStorage.getItem(HOMEPAGE_TRAFFIC_GROWTH_KEY);
+    const curr = raw ? JSON.parse(raw) : {};
+    const byEvent = curr.byEvent && typeof curr.byEvent === "object" ? curr.byEvent : {};
+    const byTarget = curr.byTarget && typeof curr.byTarget === "object" ? curr.byTarget : {};
+    const eventKey = String(eventName || "unknown").slice(0, 64);
+    const targetKey = String(targetLabel || "unknown").slice(0, 120);
+    byEvent[eventKey] = Number(byEvent[eventKey] || 0) + 1;
+    byTarget[targetKey] = Number(byTarget[targetKey] || 0) + 1;
+    const next = {
+      total: Number(curr.total || 0) + 1,
+      byEvent,
+      byTarget,
+      lastAt: new Date().toISOString()
+    };
+    localStorage.setItem(HOMEPAGE_TRAFFIC_GROWTH_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
+function initHomepageTrafficSignals() {
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const buyBtn = target.closest(".buy-now-btn");
+    if (buyBtn) {
+      trackHomepageTrafficEvent(
+        "buy_now_click",
+        String(buyBtn.getAttribute("data-shop-name") || buyBtn.getAttribute("data-title") || "homepage-offer")
+      );
+      return;
+    }
+    const link = target.closest("a[href]");
+    if (!link) return;
+    const href = String(link.getAttribute("href") || "").trim().toLowerCase();
+    if (!href) return;
+    if (href.includes("hot-picks.html")) {
+      trackHomepageTrafficEvent("hot_picks_click", href);
+      return;
+    }
+    if (href.includes("world-shop-experience.html")) {
+      trackHomepageTrafficEvent("world_shop_experience_click", href);
+      return;
+    }
+    if (href.includes("live-market-shops.html")) {
+      trackHomepageTrafficEvent("live_market_shops_click", href);
     }
   });
 }
@@ -4549,6 +4602,7 @@ if (openReturnWindow) {
   openReturnWindow.addEventListener("click", enableReturnWindow);
 }
 initializeTracking();
+initHomepageTrafficSignals();
 
 let deferredInstallPrompt = null;
 

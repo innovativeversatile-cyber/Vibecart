@@ -21,6 +21,7 @@ const AFFILIATE_LINK_HEALTH_HISTORY_KEY = "vibecart-affiliate-link-health-histor
 const AFFILIATE_ALERT_LAST_KEY = "vibecart-affiliate-alert-last-v1";
 const AFFILIATE_ALERT_SEVERITY_MODE_KEY = "vibecart-affiliate-alert-severity-mode-v1";
 const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+const HOMEPAGE_TRAFFIC_GROWTH_KEY = "vibecart-homepage-traffic-growth-v1";
 const BOOKKEEPING_LEDGER_KEY = "vibecart-bookkeeping-ledger-v1";
 const PREMIUM_PLAN_SETTINGS_KEY = "vibecart-premium-plan-settings-v1";
 const COMMISSION_VALIDATION_KEY = "vibecart-commission-validation-v1";
@@ -2394,6 +2395,48 @@ function renderAffiliatePartnerHealth() {
   }
 }
 
+function readHomepageTrafficSnapshot() {
+  try {
+    const raw = localStorage.getItem(HOMEPAGE_TRAFFIC_GROWTH_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed || typeof parsed !== "object") {
+      return { total: 0, byEvent: {}, byTarget: {}, lastAt: "" };
+    }
+    return {
+      total: Number(parsed.total || 0),
+      byEvent: parsed.byEvent && typeof parsed.byEvent === "object" ? parsed.byEvent : {},
+      byTarget: parsed.byTarget && typeof parsed.byTarget === "object" ? parsed.byTarget : {},
+      lastAt: String(parsed.lastAt || "")
+    };
+  } catch {
+    return { total: 0, byEvent: {}, byTarget: {}, lastAt: "" };
+  }
+}
+
+function renderHomepageTrafficSnapshot() {
+  const node = document.getElementById("homepageTrafficSnapshot");
+  if (!node) {
+    return;
+  }
+  const snap = readHomepageTrafficSnapshot();
+  if (!snap.total) {
+    node.textContent = "Homepage traffic snapshot: no data yet.";
+    return;
+  }
+  const topEvents = Object.entries(snap.byEvent || {})
+    .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+    .slice(0, 3)
+    .map(([key, value]) => `${key}=${Number(value || 0)}`)
+    .join(" | ");
+  const topTargets = Object.entries(snap.byTarget || {})
+    .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))
+    .slice(0, 3)
+    .map(([key, value]) => `${key} (${Number(value || 0)})`)
+    .join(" | ");
+  const last = snap.lastAt ? new Date(snap.lastAt).toLocaleString() : "unknown";
+  node.textContent = `Homepage clicks tracked: ${snap.total}. Last click: ${last}. Top events: ${topEvents || "n/a"}. Top targets: ${topTargets || "n/a"}.`;
+}
+
 function openAffiliatePartnerTargetInNewTab() {
   const click = readAffiliateLastClick();
   const target = String(click?.target || "").trim();
@@ -3302,6 +3345,10 @@ bindClick("refreshAffiliatePartnerHealth", () => {
   renderAffiliatePartnerHealth();
   setStatus("Affiliate partner health refreshed.");
 });
+bindClick("refreshHomepageTrafficSnapshot", () => {
+  renderHomepageTrafficSnapshot();
+  setStatus("Homepage traffic snapshot refreshed.");
+});
 bindClick("checkAffiliatePartnerTarget", () => {
   checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`));
 });
@@ -3448,6 +3495,10 @@ const clickHandlers = {
     renderAffiliatePartnerHealth();
     setStatus("Affiliate partner health refreshed.");
   },
+  refreshHomepageTrafficSnapshot: () => {
+    renderHomepageTrafficSnapshot();
+    setStatus("Homepage traffic snapshot refreshed.");
+  },
   checkAffiliatePartnerTarget: () =>
     checkAffiliatePartnerTargetReachability().catch((error) => setStatus(`Partner health check failed: ${error.message}`)),
   openAffiliatePartnerTarget: () => openAffiliatePartnerTargetInNewTab(),
@@ -3543,3 +3594,4 @@ if (commissionOfferFilterNode) {
 initializeOwnerSecurity();
 renderAiSuggestionsFeed();
 renderAffiliatePartnerHealth();
+renderHomepageTrafficSnapshot();
