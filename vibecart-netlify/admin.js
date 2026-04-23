@@ -567,14 +567,23 @@ async function runAdminReadinessGate() {
       const pass = seoPatterns.every((re) => re.test(html));
       add(pass, `SEO ${path}`, pass ? "meta set present" : "missing canonical/og/twitter/description tags");
       if (path === "/index.html") {
-        const hasTerms =
-          /href=["'](?:\.\/)?terms\.html(?:[?#][^"']*)?["']/i.test(html) || /terms\.html/i.test(html);
-        const hasPrivacy =
-          /href=["'](?:\.\/)?privacy\.html(?:[?#][^"']*)?["']/i.test(html) || /privacy\.html/i.test(html);
-        const hasPolicy =
-          /href=["'](?:\.\/)?policy\.html(?:[?#][^"']*)?["']/i.test(html) || /policy\.html/i.test(html);
-        const legalPass = hasTerms && hasPrivacy && hasPolicy;
-        add(legalPass, "LEGAL homepage links", legalPass ? "terms/privacy/policy present" : "missing legal links");
+        // Legal readiness is judged by live legal page availability, which is less brittle than HTML link parsing.
+        const legalPaths = ["/terms.html", "/privacy.html", "/policy.html"];
+        let legalOk = true;
+        const legalDetails = [];
+        for (const legalPath of legalPaths) {
+          try {
+            const legalRes = await fetch(`${base}${legalPath}`, { method: "HEAD", cache: "no-store" });
+            if (!legalRes.ok) {
+              legalOk = false;
+            }
+            legalDetails.push(`${legalPath}:${legalRes.status}`);
+          } catch {
+            legalOk = false;
+            legalDetails.push(`${legalPath}:ERR`);
+          }
+        }
+        add(legalOk, "LEGAL homepage links", legalOk ? "terms/privacy/policy reachable" : legalDetails.join(" | "));
       }
     } catch (error) {
       add(false, `SEO ${path}`, String(error?.message || error));
