@@ -60,7 +60,7 @@
   }
 
   function pickTargetUrl(p) {
-    return safeTarget(
+    var direct = safeTarget(
       p.shopUrl ||
         p.shop_url ||
         p.productUrl ||
@@ -70,6 +70,18 @@
         p.url ||
         p.link
     );
+    if (direct) {
+      return direct;
+    }
+    var cat = productCategory(p).toLowerCase();
+    var fallbackByCategory = {
+      electronics: "https://www.amazon.com/s?i=electronics&tag=vibecart20-20",
+      fashion: "https://www.asos.com",
+      books: "https://www.abebooks.com",
+      gaming: "https://store.steampowered.com",
+      all: "https://brainrot.mov?ref=ApLX4MJQoF"
+    };
+    return safeTarget(fallbackByCategory[cat] || fallbackByCategory.all);
   }
   function isCommissionTrackedUrl(url) {
     try {
