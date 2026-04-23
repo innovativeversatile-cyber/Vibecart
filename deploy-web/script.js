@@ -189,6 +189,7 @@ let coachEntitlements = new Set();
 const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
 const BRIDGE_TARGET_IDS = new Set(["bridge-routes", "bridgeTitle", "bridgeText", "bridgeShops"]);
 const AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+const HOMEPAGE_PROMOTED_OFFERS_LIMIT = 4;
 
 function trackAffiliateClick(payload) {
   try {
@@ -219,6 +220,53 @@ function isCommissionTrackedUrl(url) {
   } catch {
     return false;
   }
+}
+
+function applyPromotedHomepageOffers(settings) {
+  const cards = Array.from(document.querySelectorAll("#products .product"));
+  if (!cards.length) {
+    return;
+  }
+  const raw = Array.isArray(settings?.homeFeaturedOffers) ? settings.homeFeaturedOffers : [];
+  const promoted = raw
+    .map((entry) => ({
+      offerName: String(entry?.offerName || "").trim(),
+      programName: String(entry?.programName || "").trim(),
+      url: String(entry?.url || "").trim()
+    }))
+    .filter((entry) => entry.offerName && entry.url)
+    .slice(0, HOMEPAGE_PROMOTED_OFFERS_LIMIT);
+  if (!promoted.length) {
+    return;
+  }
+  promoted.forEach((offer, idx) => {
+    const card = cards[idx];
+    if (!card) {
+      return;
+    }
+    const titleNode = card.querySelector("h3");
+    if (titleNode) {
+      titleNode.textContent = offer.offerName;
+    }
+    const button = card.querySelector(".buy-now-btn");
+    if (button) {
+      button.setAttribute("data-title", offer.offerName);
+      button.setAttribute("data-shop-name", offer.offerName);
+      button.setAttribute("data-shop-url", offer.url);
+    }
+    const noteNode = card.querySelector("p.note");
+    if (noteNode) {
+      const tracked = isCommissionTrackedUrl(offer.url);
+      noteNode.textContent = tracked
+        ? "External checkout on source site. Commission-enabled partner."
+        : "External checkout on source site. Traffic-only partner.";
+    }
+    const detailNodes = Array.from(card.querySelectorAll("p")).filter((p) => !p.classList.contains("price") && !p.classList.contains("note"));
+    const detail = detailNodes.length ? detailNodes[0] : null;
+    if (detail) {
+      detail.textContent = `Featured from ${offer.programName || "Affiliate partner"} lane.`;
+    }
+  });
 }
 
 function clearLegacyBridgeNavOverlays() {
@@ -3620,6 +3668,7 @@ function applyOwnerSettings() {
   if (settings.bridgeText && bridgeText) {
     bridgeText.textContent = settings.bridgeText;
   }
+  applyPromotedHomepageOffers(settings);
 }
 
 async function hydrateOwnerSettingsFromCloud() {

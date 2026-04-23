@@ -263,6 +263,55 @@ function saveCommissionOfferFilterMode(mode) {
   }
 }
 
+async function promoteGreenOffersToHomepage() {
+  const statusNode = document.getElementById("homepagePromotionStatus");
+  const state = getCommissionValidationState();
+  const greenOffers = (state.offers || []).filter((offer) => {
+    if (String(offer.status || "traffic_only") !== "commission_enabled") {
+      return false;
+    }
+    try {
+      const parsed = new URL(String(offer.url || "").trim());
+      return /^https?:$/i.test(parsed.protocol);
+    } catch {
+      return false;
+    }
+  });
+  if (!greenOffers.length) {
+    const msg = "No GREEN offers with valid tracking URLs found.";
+    if (statusNode) statusNode.textContent = `Homepage promotion: ${msg}`;
+    setStatus(msg);
+    return;
+  }
+  const promoted = greenOffers.slice(0, 4).map((offer) => ({
+    offerName: String(offer.offerName || "Offer"),
+    programName: String(offer.programName || offer.programId || "Partner"),
+    url: String(offer.url || "").trim(),
+    promotedAt: new Date().toISOString()
+  }));
+  const base = getStoredSettings();
+  const payload = {
+    ...base,
+    homeFeaturedOffers: promoted
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  let cloudSaved = false;
+  try {
+    await authedPost("/api/owner/site-settings/upsert", { settings: payload });
+    cloudSaved = true;
+  } catch {
+    cloudSaved = false;
+  }
+  const note = cloudSaved
+    ? `Homepage promotion: ${promoted.length} GREEN offers published to homepage cards.`
+    : `Homepage promotion: ${promoted.length} GREEN offers saved locally (cloud save unavailable right now).`;
+  if (statusNode) {
+    statusNode.textContent = note;
+  }
+  setStatus(note);
+  updateOwnerCommandDeck("Homepage offers promoted");
+}
+
 function saveCommissionValidationState(state) {
   localStorage.setItem(
     COMMISSION_VALIDATION_KEY,
@@ -1400,6 +1449,18 @@ function renderCommissionValidatedOffers() {
   const filterNode = document.getElementById("commissionOfferFilterMode");
   if (filterNode) {
     filterNode.value = filterMode;
+  }
+  const promoNode = document.getElementById("homepagePromotionStatus");
+  if (promoNode) {
+    const greenTotal = offers.reduce(
+      (sum, offer) => (String(offer.status || "traffic_only") === "commission_enabled" ? sum + 1 : sum),
+      0
+    );
+    if (greenTotal === 0) {
+      promoNode.textContent = "Homepage promotion: no GREEN offers available yet.";
+    } else {
+      promoNode.textContent = `Homepage promotion: ${greenTotal} GREEN offer(s) ready.`;
+    }
   }
   const offerPriority = (offerStatus) => {
     if (offerStatus === "commission_enabled") return 0;
@@ -2656,6 +2717,7 @@ async function saveSettings() {
   updateOwnerCommandDeck("Saving site settings…");
   try {
     const payload = {
+      ...getStoredSettings(),
       title: (document.getElementById("setTitle")?.value || "").trim() || defaults.title,
       badge: (document.getElementById("setBadge")?.value || "").trim() || defaults.badge,
       headline: (document.getElementById("setHeadline")?.value || "").trim() || defaults.headline,
@@ -3237,6 +3299,9 @@ bindClick("runCommissionReadiness", () => {
 bindClick("markOfferCommissionValidated", () => {
   markOfferCommissionValidated();
 });
+bindClick("promoteGreenOffersHomepage", () => {
+  promoteGreenOffersToHomepage().catch((error) => setStatus(`Homepage promotion failed: ${error.message}`));
+});
 bindClick("generateOutreachDraft", () => {
   buildOutreachDraft();
 });
@@ -3371,6 +3436,8 @@ const clickHandlers = {
     setStatus("Commission readiness check refreshed.");
   },
   markOfferCommissionValidated: () => markOfferCommissionValidated(),
+  promoteGreenOffersHomepage: () =>
+    promoteGreenOffersToHomepage().catch((error) => setStatus(`Homepage promotion failed: ${error.message}`)),
   generateOutreachDraft: () => buildOutreachDraft(),
   saveOutreachToInbox: () => saveOutreachDraftToInbox().catch(() => setStatus("Could not save outreach draft to inbox.")),
   sendOutreachEmail: () => sendOutreachEmailViaClient(),
