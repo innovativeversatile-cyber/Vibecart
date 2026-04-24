@@ -17,7 +17,8 @@
     advancedBridgeFaqCopyV1: true,
     advancedDetailsMemoryV1: true,
     advancedMobileQuickNavV1: true,
-    advancedSellerReadinessV1: true
+    advancedSellerReadinessV1: true,
+    advancedCheckoutClarityV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1295,6 +1296,51 @@
     render();
   }
 
+  function initCheckoutClarityLite() {
+    var status = document.getElementById("expressCheckoutStatus");
+    var links = Array.prototype.slice.call(document.querySelectorAll("a.btn.btn-primary[href*='/api/public/shop/redirect']"));
+    if (!status || !links.length) return;
+
+    function partnerFromHref(href) {
+      try {
+        var parsed = new URL(href, window.location.origin);
+        var partner = String(parsed.searchParams.get("partner") || parsed.searchParams.get("shop") || "").trim();
+        return partner || "partner store";
+      } catch {
+        return "partner store";
+      }
+    }
+
+    function setStatus(link, mode) {
+      var partner = partnerFromHref(String(link.getAttribute("href") || ""));
+      if (mode === "focus") {
+        status.textContent = "Checkout for this item happens on " + partner + ".";
+        return;
+      }
+      status.textContent = "Opening external checkout on " + partner + "...";
+    }
+
+    links.forEach(function (link) {
+      if (!link.getAttribute("data-vc-checkout-note")) {
+        link.setAttribute("data-vc-checkout-note", "external");
+      }
+      var label = String(link.getAttribute("aria-label") || "").trim();
+      if (!label) {
+        link.setAttribute("aria-label", "Open external partner checkout");
+      }
+      link.setAttribute("title", "External partner checkout");
+      link.addEventListener("focus", function () {
+        setStatus(link, "focus");
+      });
+      link.addEventListener("mouseenter", function () {
+        setStatus(link, "focus");
+      });
+      link.addEventListener("click", function () {
+        setStatus(link, "click");
+      });
+    });
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1323,6 +1369,7 @@
       if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();
       if (featureOn("advancedMobileQuickNavV1")) initMobileQuickNavLite();
       if (featureOn("advancedSellerReadinessV1")) initSellerReadinessLite();
+      if (featureOn("advancedCheckoutClarityV1")) initCheckoutClarityLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

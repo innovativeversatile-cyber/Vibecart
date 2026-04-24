@@ -65,6 +65,8 @@ function main() {
   assertIncludes(lite, "initMobileQuickNavLite()", "mobile quick nav lite init");
   assertIncludes(lite, "advancedSellerReadinessV1", "seller readiness feature flag");
   assertIncludes(lite, "initSellerReadinessLite()", "seller readiness lite init");
+  assertIncludes(lite, "advancedCheckoutClarityV1", "checkout clarity feature flag");
+  assertIncludes(lite, "initCheckoutClarityLite()", "checkout clarity lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
