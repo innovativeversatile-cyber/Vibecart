@@ -5248,6 +5248,10 @@ function renderCoachMonetizationUi(state) {
         <button type="button" id="coachAddonDeep" class="btn btn-secondary">Buy Deep Analysis (€2.99)</button>
         <button type="button" id="coachPartnerWellNest" class="btn btn-secondary">Open WellNest partner</button>
       </div>
+      <label class="note" for="coachAddonQty" style="display:flex;align-items:center;gap:.45rem;margin:.5rem 0 0;">
+        Deep Analysis quantity
+        <input id="coachAddonQty" type="number" min="1" max="5" step="1" value="1" style="max-width:5.5rem;" />
+      </label>
       <label class="note" style="display:flex;align-items:center;gap:.45rem;margin:.5rem 0 0;">
         <input type="checkbox" id="coachAutoRenewChoice" checked />
         Enable automatic renewal for coach subscription
@@ -5263,7 +5267,10 @@ function renderCoachMonetizationUi(state) {
       startCoachSubscriptionCheckout("PRO").catch(() => {});
     });
     document.getElementById("coachAddonDeep")?.addEventListener("click", () => {
-      buyCoachAddonCheckout("DEEP_ANALYSIS").catch(() => {});
+      var qtyEl = document.getElementById("coachAddonQty");
+      var rawQty = qtyEl ? Number(qtyEl.value || 1) : 1;
+      var qty = Number.isFinite(rawQty) ? Math.max(1, Math.min(5, Math.round(rawQty))) : 1;
+      buyCoachAddonCheckout("DEEP_ANALYSIS", qty).catch(() => {});
     });
     document.getElementById("coachPartnerWellNest")?.addEventListener("click", () => {
       trackCoachPartnerEvent("WellNest Health Cover", "click", "cpl", 0, { source: "health-coach-ui" }).catch(() => {});
@@ -5334,26 +5341,41 @@ async function startCoachSubscriptionCheckout(planCode) {
   await refreshCoachDashboard();
 }
 
-async function buyCoachAddonCheckout(addonCode) {
+async function buyCoachAddonCheckout(addonCode, quantity) {
   if (!coachDashboard) {
     return;
   }
-  coachDashboard.textContent = "Processing add-on purchase...";
-  const response = await fetch("/api/public/coach/addon/purchase", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId: getPublicUserId(),
-      addonCode,
-      channel: "web"
-    })
-  });
-  const result = await response.json();
-  if (!result || !result.ok) {
+  const total = Number.isFinite(Number(quantity)) ? Math.max(1, Math.min(5, Math.round(Number(quantity)))) : 1;
+  coachDashboard.textContent = total > 1 ? `Processing ${total} add-on purchases...` : "Processing add-on purchase...";
+  let okCount = 0;
+  for (let i = 0; i < total; i += 1) {
+    try {
+      const response = await fetch("/api/public/coach/addon/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: getPublicUserId(),
+          addonCode,
+          channel: "web",
+          quantity: 1
+        })
+      });
+      const result = await response.json();
+      if (result && result.ok) {
+        okCount += 1;
+      }
+    } catch {
+      /* keep trying remaining purchases */
+    }
+  }
+  if (okCount <= 0) {
     coachDashboard.textContent = "Add-on purchase failed right now.";
     return;
   }
-  coachDashboard.textContent = "Add-on unlocked. Refreshing coach dashboard.";
+  coachDashboard.textContent =
+    okCount === total
+      ? `Add-on unlocked x${okCount}. Refreshing coach dashboard.`
+      : `Purchased ${okCount} of ${total} add-ons. You can retry the remaining ${total - okCount}.`;
   await refreshCoachMonetizationState();
   await refreshCoachDashboard();
 }

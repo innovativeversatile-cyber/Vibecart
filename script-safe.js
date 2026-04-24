@@ -420,37 +420,22 @@
 
     function initSafeHeroRouting() {
       var chipHint = document.getElementById("heroChipHint");
-      var chipRoutes = {
-        checkout: "./buy-journey.html",
-        sellers: "./regional-shops.html",
-        delivery: "./orders-tracking.html"
-      };
       Array.prototype.slice.call(document.querySelectorAll(".hero-chip[data-hero-chip]")).forEach(function (chip) {
         chip.addEventListener("click", function () {
-          var key = String(chip.getAttribute("data-hero-chip") || "").trim().toLowerCase();
-          var route = chipRoutes[key] || "./buy-journey.html";
+          var targetSelector = String(chip.getAttribute("data-hero-chip-target") || "").trim();
+          var target = targetSelector ? document.querySelector(targetSelector) : null;
           if (chipHint) {
-            chipHint.textContent = "Opening " + route.replace("./", "") + "...";
+            chipHint.textContent = target ? "Jumping to section..." : "Section is unavailable right now.";
           }
-          go(route);
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         });
       });
-
-      var trustRoutes = ["./checkout-details.html", "./orders-tracking.html", "./security-overview.html"];
       Array.prototype.slice.call(document.querySelectorAll(".hero-trust-row span")).forEach(function (pill, idx) {
-        var route = trustRoutes[idx] || "./security-overview.html";
-        pill.style.cursor = "pointer";
-        pill.setAttribute("role", "button");
-        pill.setAttribute("tabindex", "0");
-        pill.addEventListener("click", function () {
-          go(route);
-        });
-        pill.addEventListener("keydown", function (event) {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            go(route);
-          }
-        });
+        pill.style.cursor = "default";
+        pill.removeAttribute("role");
+        pill.removeAttribute("tabindex");
       });
     }
 
@@ -882,12 +867,6 @@
     }
     bindGo("refreshInsurance", "./insurance.html");
     bindGo("queueInsuranceTips", "./insurance.html");
-    bindGo("saveCoachProfile", "./wellbeing.html#coach-packages");
-    bindGo("saveWearablePrefs", "./wellbeing.html#coach-packages");
-    bindGo("syncWearableDemo", "./wellbeing.html#coach-packages");
-    bindGo("addHealthCheckin", "./wellbeing.html#coach-packages");
-    bindGo("refreshCoachDashboard", "./wellbeing.html#coach-packages");
-    bindGo("openOnboarding", "./buy-journey.html");
     bindGo("nextTrackingStep", "./orders-tracking.html");
     bindGo("openReturnWindow", "./orders-tracking.html");
     bindGo("aiSuggest", "./hot-picks.html");
