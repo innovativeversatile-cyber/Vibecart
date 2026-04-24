@@ -33,9 +33,28 @@
     });
   }
 
+  function initCategoryFilter() {
+    var filter = document.getElementById("categoryFilter");
+    if (!filter) return;
+    var products = Array.prototype.slice.call(document.querySelectorAll("#products .product[data-category]"));
+    if (!products.length) return;
+    function applyCategory(value) {
+      var chosen = String(value || "All").trim();
+      products.forEach(function (item) {
+        var cat = String(item.getAttribute("data-category") || "").trim();
+        item.style.display = chosen === "All" || cat === chosen ? "block" : "none";
+      });
+    }
+    filter.addEventListener("change", function () {
+      applyCategory(filter.value);
+    });
+    applyCategory(filter.value || "All");
+  }
+
   function boot() {
     initHashLinks();
     initOpenShopStatus();
+    initCategoryFilter();
   }
 
   if (document.readyState === "loading") {
