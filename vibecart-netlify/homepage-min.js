@@ -1,6 +1,10 @@
 "use strict";
 
 (function () {
+  if (window.__vibecartHomeLiteBooted === true) {
+    return;
+  }
+  window.__vibecartHomeLiteBooted = true;
   function safeScrollToHash(hash) {
     if (!hash || hash.length < 2) return;
     var id = String(hash).replace(/^#/, "").trim();
@@ -656,21 +660,25 @@
   }
 
   function boot() {
-    initShopSearchLite();
-    initHashLinks();
-    initOpenShopStatus();
-    initCategoryFilter();
-    initCategoryCards();
-    initBridgePathToggle();
-    initAiAssistantLite();
-    initTrackingLite();
-    initBookingLite();
-    initAdsLite();
-    initInsuranceLite();
-    initInsuranceTipsLite();
-    initHealthCoachLite();
-    initRewardsLite();
-    initCommunicationLite();
+    try {
+      initShopSearchLite();
+      initHashLinks();
+      initOpenShopStatus();
+      initCategoryFilter();
+      initCategoryCards();
+      initBridgePathToggle();
+      initAiAssistantLite();
+      initTrackingLite();
+      initBookingLite();
+      initAdsLite();
+      initInsuranceLite();
+      initInsuranceTipsLite();
+      initHealthCoachLite();
+      initRewardsLite();
+      initCommunicationLite();
+    } catch {
+      // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
+    }
   }
 
   if (document.readyState === "loading") {
