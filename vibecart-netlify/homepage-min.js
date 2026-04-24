@@ -286,6 +286,89 @@
     });
   }
 
+  function initHealthCoachLite() {
+    var saveBtn = document.getElementById("saveCoachProfile");
+    var addBtn = document.getElementById("addHealthCheckin");
+    var refreshBtn = document.getElementById("refreshCoachDashboard");
+    var dash = document.getElementById("coachDashboard");
+    if (!saveBtn || !addBtn || !refreshBtn || !dash) return;
+
+    function readProfile() {
+      return {
+        focus: String((document.getElementById("coachFocus") || {}).value || "general_fitness"),
+        goal: String((document.getElementById("coachGoalNotes") || {}).value || "").trim(),
+        baseline: String((document.getElementById("coachBaselineWeight") || {}).value || "").trim(),
+        target: String((document.getElementById("coachTargetWeight") || {}).value || "").trim(),
+        activity: String((document.getElementById("coachActivityGoal") || {}).value || "").trim()
+      };
+    }
+
+    function readCheckin() {
+      return {
+        type: String((document.getElementById("healthCheckinType") || {}).value || "wellbeing"),
+        metric: String((document.getElementById("healthCheckinValue") || {}).value || "").trim(),
+        notes: String((document.getElementById("healthCheckinNotes") || {}).value || "").trim(),
+        at: new Date().toISOString()
+      };
+    }
+
+    function loadStore() {
+      try {
+        return JSON.parse(localStorage.getItem("vibecart-home-lite-coach") || "{\"profile\":null,\"checkins\":[]}");
+      } catch {
+        return { profile: null, checkins: [] };
+      }
+    }
+
+    function saveStore(store) {
+      try {
+        localStorage.setItem("vibecart-home-lite-coach", JSON.stringify(store));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function render() {
+      var store = loadStore();
+      var profile = store.profile;
+      var checkins = Array.isArray(store.checkins) ? store.checkins : [];
+      var last = checkins.length ? checkins[checkins.length - 1] : null;
+      dash.textContent =
+        "Coach profile: " +
+        (profile ? "saved (" + profile.focus + ")" : "not saved yet") +
+        " | check-ins: " +
+        checkins.length +
+        (last ? " | latest: " + last.type + " - " + (last.metric || "no metric") : "");
+    }
+
+    saveBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var store = loadStore();
+      store.profile = readProfile();
+      saveStore(store);
+      render();
+    });
+
+    addBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var store = loadStore();
+      if (!Array.isArray(store.checkins)) store.checkins = [];
+      store.checkins.push(readCheckin());
+      if (store.checkins.length > 40) {
+        store.checkins = store.checkins.slice(-40);
+      }
+      saveStore(store);
+      render();
+    });
+
+    refreshBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      render();
+    });
+
+    render();
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -334,6 +417,7 @@
     initBookingLite();
     initAdsLite();
     initInsuranceTipsLite();
+    initHealthCoachLite();
   }
 
   if (document.readyState === "loading") {
