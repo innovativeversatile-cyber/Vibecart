@@ -614,9 +614,9 @@ main,
 }
 
 .page-group:hover {
-  transform: translateY(-2px);
+  transform: none;
   border-color: rgba(232, 163, 23, 0.24);
-  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.26);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.23);
 }
 
 .page-group--discover {
@@ -1063,9 +1063,9 @@ body.night-neon .signal-lens {
 }
 
 .btn:hover {
-  transform: translateY(-1px);
+  transform: none;
   filter: brightness(1.03);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary {

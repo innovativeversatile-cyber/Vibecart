@@ -130,6 +130,7 @@ const RITUAL_SESSION_KEY = "vibecart-session-ritual-shown";
 const BRIDGE_PASSPORT_STAMP_KEY = "vibecart-bridge-passport-stamp-v1";
 const LISTING_HEALTH_KEY = "vibecart-listing-health-v1";
 const SERENDIPITY_SESSION_KEY = "vibecart-serendipity-idx-v1";
+const SERENDIPITY_JUMP_ALLOW_KEY = "vibecart-serendipity-jump-allow-v1";
 
 const RADAR_HINTS = {
   en: [
@@ -1537,15 +1538,79 @@ function initSerendipityLane() {
         const target = document.getElementById(href.slice(1));
         const targetHidden = !!(target && (target.hidden || target.classList.contains("hidden")));
         if (!target || targetHidden) {
+          allowOneSerendipityJump();
           vcScrollToSelector("#sell");
           return;
         }
+        allowOneSerendipityJump();
         vcScrollToSelector(target);
         return;
       }
       window.location.assign(href);
     });
   }
+}
+
+function allowOneSerendipityJump() {
+  try {
+    sessionStorage.setItem(SERENDIPITY_JUMP_ALLOW_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+function consumeSerendipityJumpAllowance() {
+  try {
+    const ok = sessionStorage.getItem(SERENDIPITY_JUMP_ALLOW_KEY) === "1";
+    if (ok) {
+      sessionStorage.removeItem(SERENDIPITY_JUMP_ALLOW_KEY);
+    }
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+function initSerendipityAntiHijackGuard() {
+  const guardedHashes = new Set(["sell", "seller-growth-ai", "public-transparency"]);
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest("a[href^='#']") : null;
+      if (!anchor) {
+        return;
+      }
+      const hash = String(anchor.getAttribute("href") || "").replace(/^#/, "").trim();
+      if (!guardedHashes.has(hash)) {
+        return;
+      }
+      if (anchor.hasAttribute("data-allow-serendipity-nav")) {
+        allowOneSerendipityJump();
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+    },
+    true
+  );
+  window.addEventListener("hashchange", () => {
+    const hash = String(window.location.hash || "").replace(/^#/, "").trim();
+    if (!guardedHashes.has(hash)) {
+      return;
+    }
+    if (consumeSerendipityJumpAllowance()) {
+      return;
+    }
+    try {
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    } catch {
+      /* ignore */
+    }
+  });
 }
 
 async function runLiveOneClickCheckoutWithExtras(itemTitle) {
@@ -6006,6 +6071,7 @@ if (onboardingClose) {
 }
 
 initBridgeAntiHijackGuard();
+initSerendipityAntiHijackGuard();
 initGlobalTapHijackGuard();
 initFashionTrendsRouteGuard();
 initLanguageControlShield();
