@@ -118,6 +118,15 @@ This project includes frontend and data schema foundations. Production security 
 - active monitoring
 - secure chat moderation and abuse detection for buyer-seller messaging
 
+## Homepage Stability (Current Baseline)
+
+- Homepage is running on a stabilized interaction baseline.
+- See `HOMEPAGE_STABILITY_BASELINE.md` for:
+  - loaded scripts on homepage
+  - safe feature envelope
+  - smoke commands
+  - advanced feature re-enable rules
+
 ## SEO and Discovery
 
 - Canonical and sitemap URLs default to `https://vibe-cart.com/`. If you change hostname, replace that base URL in:
