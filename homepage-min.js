@@ -334,6 +334,18 @@
     render();
   }
 
+  function initShopSearchLite() {
+    var form = document.getElementById("shopSearchForm");
+    var input = document.getElementById("shopSearchInput");
+    if (!form || !input) return;
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var q = String(input.value || "").trim();
+      if (!q) return;
+      window.location.assign("./global-search.html?q=" + encodeURIComponent(q));
+    });
+  }
+
   function initHealthCoachLite() {
     var saveBtn = document.getElementById("saveCoachProfile");
     var addBtn = document.getElementById("addHealthCheckin");
@@ -614,6 +626,7 @@
   }
 
   function boot() {
+    initShopSearchLite();
     initHashLinks();
     initOpenShopStatus();
     initCategoryFilter();
