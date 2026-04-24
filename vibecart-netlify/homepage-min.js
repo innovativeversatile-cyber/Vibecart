@@ -21,7 +21,9 @@
     advancedCheckoutClarityV1: true,
     advancedSellerNextActionV1: true,
     advancedPartnerPinV1: true,
-    advancedBuyerQuickStartV1: true
+    advancedBuyerQuickStartV1: true,
+    advancedSellerMomentumV1: true,
+    advancedPartnerRecallV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1495,6 +1497,42 @@
     render();
   }
 
+  function initSellerMomentumLite() {
+    var output = document.getElementById("vcSellerNextAction");
+    var checks = Array.prototype.slice.call(document.querySelectorAll("input[data-vc-lh-key]"));
+    if (!output || !checks.length) return;
+
+    function render() {
+      var done = 0;
+      checks.forEach(function (input) {
+        if (input.checked === true) done += 1;
+      });
+      var total = Math.max(checks.length, 1);
+      var pct = Math.round((done / total) * 100);
+      var base = String(output.textContent || "").trim();
+      var clean = base.replace(/\s*\| Progress: \d+%$/, "");
+      output.textContent = clean + " | Progress: " + String(pct) + "%";
+    }
+
+    checks.forEach(function (input) {
+      input.addEventListener("change", render);
+    });
+    render();
+  }
+
+  function initPartnerRecallLite() {
+    var status = document.getElementById("expressCheckoutStatus");
+    if (!status) return;
+    var STORE_KEY = "vibecart-home-lite-preferred-partner";
+    try {
+      var preferred = String(localStorage.getItem(STORE_KEY) || "").trim();
+      if (!preferred) return;
+      status.textContent = "Welcome back. Preferred partner ready: " + preferred + ".";
+    } catch {
+      /* ignore */
+    }
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1527,6 +1565,8 @@
       if (featureOn("advancedSellerNextActionV1")) initSellerNextActionLite();
       if (featureOn("advancedPartnerPinV1")) initPartnerPinLite();
       if (featureOn("advancedBuyerQuickStartV1")) initBuyerQuickStartLite();
+      if (featureOn("advancedSellerMomentumV1")) initSellerMomentumLite();
+      if (featureOn("advancedPartnerRecallV1")) initPartnerRecallLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
