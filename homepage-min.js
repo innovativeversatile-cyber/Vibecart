@@ -322,8 +322,19 @@
       out.appendChild(title);
       slots.forEach(function (slot) {
         var row = document.createElement("div");
-        row.className = "note";
-        row.textContent = "• " + slot;
+        row.className = "hero-actions";
+        row.style.margin = "0.35rem 0";
+        var link = document.createElement("a");
+        link.className = "btn btn-secondary";
+        link.href =
+          "./service-provider-hub.html?service=" +
+          encodeURIComponent(pickedService) +
+          "&date=" +
+          encodeURIComponent(pickedDate || "today") +
+          "&slot=" +
+          encodeURIComponent(slot);
+        link.textContent = "Open " + slot + " options";
+        row.appendChild(link);
         out.appendChild(row);
       });
     });

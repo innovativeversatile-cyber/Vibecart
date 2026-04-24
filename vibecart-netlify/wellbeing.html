@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Health &amp; fitness coach · VibeCart</title>
   <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
+  <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
   <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
 </head>
 <body class="shops-lane-page">
@@ -30,24 +31,28 @@
       <h2>Coach packages</h2>
       <div class="shop-bubble-grid">
         <article class="shop package-card">
+          <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=900&h=520&q=75" alt="Starter coach preview" loading="lazy" />
           <h3>Starter Coach</h3>
           <p>Weekly AI goal check-ins, simple weight tracking, and reminders.</p>
           <p><strong data-base-eur="10.5" data-price-label="month">EUR 10.5/month</strong></p>
           <p><a class="btn btn-primary" href="./coach-experience.html?flow=coach&plan=starter">Choose Starter</a></p>
         </article>
         <article class="shop package-card">
+          <img src="https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=900&h=520&q=75" alt="AI home workout preview" loading="lazy" />
           <h3>AI Home Workout</h3>
           <p>Daily AI-built home workout program with routine updates and progress prompts.</p>
           <p><strong data-base-eur="12.5" data-price-label="month">EUR 12.5/month</strong></p>
           <p><a class="btn btn-primary" href="./coach-experience.html?flow=coach&plan=ai-home">Choose AI Home Workout</a></p>
         </article>
         <article class="shop package-card">
+          <img src="https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=900&h=520&q=75" alt="Coach plus preview" loading="lazy" />
           <h3>Coach Plus</h3>
           <p>Daily AI routines and wearable summary sync.</p>
           <p><strong data-base-eur="18.5" data-price-label="month">EUR 18.5/month</strong></p>
           <p><a class="btn btn-primary" href="./coach-experience.html?flow=coach&plan=plus">Choose Plus</a></p>
         </article>
         <article class="shop package-card">
+          <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&h=520&q=75" alt="Coach pro preview" loading="lazy" />
           <h3>Coach Pro</h3>
           <p>Advanced AI analytics, deeper reports, and partner referral rewards.</p>
           <p><strong data-base-eur="30" data-price-label="month">EUR 30/month</strong></p>
@@ -88,6 +93,29 @@
     <p class="note" style="margin-top: 0.75rem">
       After selecting your coach plan, continue to checkout directly above. You do not need to return to the home page.
     </p>
+    <section style="margin-top:1rem">
+      <h2>AI package matcher</h2>
+      <p class="note">Quickly get a coach package suggestion based on your current goal and commitment level.</p>
+      <div class="admin-grid" style="max-width:42rem">
+        <label for="coachGoalType">Goal type</label>
+        <select id="coachGoalType">
+          <option value="starter">Consistency + habits</option>
+          <option value="ai-home">Daily home workouts</option>
+          <option value="plus">Wearable-linked progress</option>
+          <option value="pro">Deep analytics + high accountability</option>
+        </select>
+        <label for="coachScheduleType">Weekly commitment</label>
+        <select id="coachScheduleType">
+          <option value="light">2-3 sessions</option>
+          <option value="balanced">4-5 sessions</option>
+          <option value="intense">6+ sessions</option>
+        </select>
+      </div>
+      <p class="hero-actions" style="margin-top:0.65rem">
+        <button id="coachMatchBtn" class="btn btn-primary" type="button">Generate coach recommendation</button>
+      </p>
+      <p id="coachMatchOut" class="note" aria-live="polite"></p>
+    </section>
   </main>
   <script src="./package-pricing.js?v=20260420flowfix17" defer></script>
   <script>
@@ -116,6 +144,32 @@
             "&addonPlan=" +
             encodeURIComponent(second)
         );
+      });
+    })();
+    (function () {
+      var goal = document.getElementById("coachGoalType");
+      var schedule = document.getElementById("coachScheduleType");
+      var btn = document.getElementById("coachMatchBtn");
+      var out = document.getElementById("coachMatchOut");
+      if (!goal || !schedule || !btn || !out) return;
+      btn.addEventListener("click", function () {
+        var plan = String(goal.value || "starter");
+        var intensity = String(schedule.value || "balanced");
+        var map = {
+          starter: "Starter Coach",
+          "ai-home": "AI Home Workout",
+          plus: "Coach Plus",
+          pro: "Coach Pro"
+        };
+        var note = intensity === "intense" ? "Choose a package with deeper analytics and recovery prompts." : "Focus on consistency first.";
+        out.innerHTML =
+          "AI recommendation: <strong>" +
+          (map[plan] || "Starter Coach") +
+          "</strong>. " +
+          note +
+          " <a class='btn btn-secondary' href='./coach-experience.html?flow=coach&plan=" +
+          encodeURIComponent(plan) +
+          "'>Open matching package</a>";
       });
     })();
   </script>

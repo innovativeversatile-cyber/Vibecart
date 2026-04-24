@@ -4,15 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Service Provider Hub · VibeCart</title>
+  <meta name="description" content="Set up beauty and service booking offers with visual service previews, package guidance, and prepayment-ready booking routes." />
+  <link rel="canonical" href="https://vibe-cart.com/service-provider-hub.html" />
   <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
 </head>
 <body>
   <header class="shops-lane-topbar">
     <a href="./index.html#beauty-booking" class="btn btn-secondary">Back</a>
-    <h1 class="shops-lane-title">Provider Booking Template</h1>
+    <h1 class="shops-lane-title" id="spHubTitle">Provider Booking Template</h1>
   </header>
   <main class="section">
-    <p class="note">Set your business details and prepayment route so clients pay before their date is secured.</p>
+    <p class="note" id="spHubLead">Set your business details and prepayment route so clients pay before their date is secured.</p>
+    <div class="vc-visual-hero">
+      <img src="./icon-maskable.svg" alt="service icon" width="72" height="72" />
+      <video controls muted loop playsinline preload="metadata" poster="./icon.svg">
+        <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
+      </video>
+    </div>
+    <div id="spVisualDeck" class="vc-visual-grid"></div>
     <div class="admin-grid">
       <label for="spBusinessName">Business name</label>
       <input id="spBusinessName" type="text" placeholder="Example: Papa Fresh Cuts" />
@@ -29,6 +38,7 @@
     </div>
     <div id="spStatus" class="ai-result"></div>
     <div id="spOutput" class="ai-result"></div>
+    <div id="spAiPolish" class="ai-result"></div>
   </main>
   <script>
     (function () {
@@ -39,13 +49,59 @@
       var dep = document.getElementById("spDepositAmount");
       var status = document.getElementById("spStatus");
       var out = document.getElementById("spOutput");
+      var aiPolish = document.getElementById("spAiPolish");
       var save = document.getElementById("spSave");
       var gen = document.getElementById("spGenerate");
+      var title = document.getElementById("spHubTitle");
+      var lead = document.getElementById("spHubLead");
+      var deck = document.getElementById("spVisualDeck");
+      var params = new URLSearchParams(window.location.search || "");
+      var serviceHint = String(params.get("service") || "").trim();
+      var slotHint = String(params.get("slot") || "").trim();
+      var serviceThemes = {
+        "Hair Styling": {
+          title: "Hair styling booking studio",
+          lead: "Showcuts, braid sessions, and treatment packages with visual expectations and timing clarity.",
+          bullets: ["Wash + treatment variations", "Protective style bundles", "Quick restyle slots"]
+        },
+        "Nails": {
+          title: "Nails booking studio",
+          lead: "Guide clients through finish style, refill timing, and care follow-up before they pay.",
+          bullets: ["Gel / acrylic choice guidance", "Fill vs full set pathways", "Aftercare highlights"]
+        },
+        "Makeup": {
+          title: "Makeup booking studio",
+          lead: "Package event, glam, and soft-look routes with clear prep notes and slot durations.",
+          bullets: ["Bridal / event flow", "Skin prep checklist", "Look references by occasion"]
+        },
+        "Barber": {
+          title: "Barber booking studio",
+          lead: "Highlight cuts, fades, beard work, and timing so walk-ins become booked clients.",
+          bullets: ["Fade and line-up tiers", "Beard detailing options", "Express vs full grooming"]
+        }
+      };
+      var activeTheme = serviceThemes[serviceHint] || serviceThemes["Hair Styling"];
+      if (title) title.textContent = activeTheme.title;
+      if (lead) {
+        lead.textContent =
+          activeTheme.lead + (slotHint ? " Selected slot context: " + slotHint + "." : "");
+      }
+      if (deck) {
+        deck.innerHTML = activeTheme.bullets
+          .map(function (item) {
+            return (
+              "<article class='vc-visual-step'><h3><img src='./icon.svg' alt='service step' />Service value</h3><p>" +
+              item +
+              "</p></article>"
+            );
+          })
+          .join("");
+      }
       function read() { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch { return {}; } }
       function write(v) { localStorage.setItem(KEY, JSON.stringify(v)); }
       var current = read();
       if (name) name.value = current.businessName || "";
-      if (service) service.value = current.serviceType || "";
+      if (service) service.value = serviceHint || current.serviceType || "";
       if (pay) pay.value = current.paymentUrl || "";
       if (dep) dep.value = current.depositAmount || "";
       if (save) save.addEventListener("click", function () {
@@ -69,6 +125,12 @@
           "&deposit=" + encodeURIComponent(data.depositAmount || "0") +
           "&payUrl=" + encodeURIComponent(data.paymentUrl);
         if (out) out.innerHTML = "Share this booking payment route:<br/><a class='btn btn-primary' href='" + link + "'>" + link + "</a>";
+        if (aiPolish) {
+          aiPolish.textContent =
+            "AI polish: " +
+            (data.serviceType || "Service") +
+            " route tuned. Emphasize before/after visuals, duration clarity, and one premium add-on in your listing text.";
+        }
       });
     })();
   </script>
