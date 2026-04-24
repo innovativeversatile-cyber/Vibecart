@@ -194,6 +194,45 @@
     render();
   }
 
+  function initBookingLite() {
+    var service = document.getElementById("bookingServiceType");
+    var date = document.getElementById("bookingDate");
+    var btn = document.getElementById("showBookingSlots");
+    var out = document.getElementById("bookingSlotsResult");
+    if (!service || !date || !btn || !out) return;
+
+    function sampleSlots(baseDate) {
+      var d = baseDate ? new Date(baseDate + "T09:00:00") : new Date();
+      var day = isNaN(d.getTime()) ? "today" : d.toLocaleDateString();
+      return [
+        "09:00",
+        "11:30",
+        "14:00",
+        "16:30"
+      ].map(function (t) {
+        return day + " at " + t;
+      });
+    }
+
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var pickedService = String(service.value || "Service").trim();
+      var pickedDate = String(date.value || "").trim();
+      var slots = sampleSlots(pickedDate);
+      out.innerHTML = "";
+      var title = document.createElement("p");
+      title.className = "note";
+      title.textContent = "Available " + pickedService + " slots:";
+      out.appendChild(title);
+      slots.forEach(function (slot) {
+        var row = document.createElement("div");
+        row.className = "note";
+        row.textContent = "• " + slot;
+        out.appendChild(row);
+      });
+    });
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -239,6 +278,7 @@
     initBridgePathToggle();
     initAiAssistantLite();
     initTrackingLite();
+    initBookingLite();
   }
 
   if (document.readyState === "loading") {
