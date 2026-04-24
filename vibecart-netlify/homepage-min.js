@@ -1671,6 +1671,13 @@
       hint.textContent = "VibeCart app installed successfully.";
     });
 
+    function showManualHint() {
+      var hint = ensureHint();
+      hint.textContent =
+        "Install tip: use browser menu -> Install app (Android/desktop) or Share -> Add to Home Screen on iPhone Safari.";
+      btn.classList.remove("hidden");
+    }
+
     btn.addEventListener("click", function () {
       if (deferredPrompt && deferredPrompt.prompt) {
         deferredPrompt.prompt();
@@ -1684,10 +1691,7 @@
           });
         return;
       }
-      var hint = ensureHint();
-      hint.textContent =
-        "Install tip: in browser menu choose 'Install app' (Android/desktop) or 'Add to Home Screen' on iPhone Safari.";
-      btn.classList.remove("hidden");
+      showManualHint();
     });
 
     var ua = String((window.navigator && window.navigator.userAgent) || "").toLowerCase();
@@ -1695,7 +1699,17 @@
     if (isIos) {
       btn.classList.remove("hidden");
       btn.textContent = "How to install app";
+      showManualHint();
+      return;
     }
+
+    // If native prompt is not fired quickly, surface the manual path.
+    window.setTimeout(function () {
+      if (!deferredPrompt) {
+        btn.textContent = "How to install app";
+        showManualHint();
+      }
+    }, 4500);
   }
 
   function initPwaBootstrapLite() {
