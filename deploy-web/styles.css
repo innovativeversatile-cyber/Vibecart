@@ -6010,3 +6010,32 @@ body.vc-luxe-surprise::after {
   position: relative;
   z-index: 1;
 }
+
+.vc-visual-hero {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  margin: 0.7rem 0 1rem;
+}
+.vc-visual-hero video {
+  width: min(360px, 100%);
+  border-radius: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.vc-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+.vc-visual-step {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.7rem;
+  padding: 0.75rem;
+  background: rgba(14, 18, 32, 0.68);
+}
+.vc-visual-step img {
+  width: 26px;
+  height: 26px;
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}

@@ -23,7 +23,8 @@
     advancedPartnerPinV1: true,
     advancedBuyerQuickStartV1: true,
     advancedSellerMomentumV1: true,
-    advancedPartnerRecallV1: true
+    advancedPartnerRecallV1: true,
+    advancedVisualJourneyV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -170,32 +171,56 @@
     var out = document.getElementById("aiResult");
     if (!btn || !need || !budget || !category || !out) return;
 
+    var smartCatalog = [
+      { tag: "phone", brand: "Samsung Galaxy A55", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=samsung+galaxy+a55" },
+      { tag: "phone", brand: "iPhone 13", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=iphone+13" },
+      { tag: "laptop", brand: "Lenovo ThinkPad E14", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=lenovo+thinkpad+e14" },
+      { tag: "laptop", brand: "ASUS Vivobook 15", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=asus+vivobook+15" },
+      { tag: "shoes", brand: "Nike Air Max", shop: "Zalando", category: "Fashion", target: "https://www.zalando.com/catalog/?q=nike+air+max" },
+      { tag: "shoes", brand: "Adidas Ultraboost", shop: "Zalando", category: "Fashion", target: "https://www.zalando.com/catalog/?q=adidas+ultraboost" },
+      { tag: "book", brand: "Atomic Habits", shop: "AbeBooks", category: "Books", target: "https://www.abebooks.com/servlet/SearchResults?kn=atomic+habits" },
+      { tag: "book", brand: "Deep Work", shop: "AbeBooks", category: "Books", target: "https://www.abebooks.com/servlet/SearchResults?kn=deep+work" },
+      { tag: "game", brand: "EA Sports FC 25", shop: "Steam Store", category: "Gaming", target: "https://store.steampowered.com/search/?term=ea+sports+fc+25" },
+      { tag: "game", brand: "Forza Horizon 5", shop: "Steam Store", category: "Gaming", target: "https://store.steampowered.com/search/?term=forza+horizon+5" }
+    ];
+
     function toNum(v) {
       var n = Number(v);
       return Number.isFinite(n) ? n : 0;
     }
 
-    function parseProducts() {
-      var nodes = Array.prototype.slice.call(document.querySelectorAll("#products .product"));
-      return nodes.map(function (node) {
-        var titleEl = node.querySelector("h3");
-        var priceEl = node.querySelector(".price");
-        var lineEl = node.querySelector("p:not(.price)");
-        var title = titleEl ? String(titleEl.textContent || "").trim() : "Item";
-        var cat = String(node.getAttribute("data-category") || "All").trim();
-        var priceText = priceEl ? String(priceEl.textContent || "") : "";
-        var price = toNum((priceText.match(/(\d+(\.\d+)?)/) || [])[1] || 0);
-        var shipping = lineEl ? String(lineEl.textContent || "").trim() : "";
-        return { title: title, category: cat, price: price, shipping: shipping };
-      });
+    function keywordFor(needText) {
+      var v = String(needText || "").toLowerCase();
+      if (v.indexOf("phone") >= 0 || v.indexOf("smart") >= 0 || v.indexOf("mobile") >= 0) return "phone";
+      if (v.indexOf("laptop") >= 0 || v.indexOf("computer") >= 0) return "laptop";
+      if (v.indexOf("shoe") >= 0 || v.indexOf("sneaker") >= 0) return "shoes";
+      if (v.indexOf("book") >= 0 || v.indexOf("read") >= 0) return "book";
+      if (v.indexOf("game") >= 0 || v.indexOf("gaming") >= 0) return "game";
+      return "";
     }
 
-    function score(item, pref) {
-      var s = 0;
-      if (pref.category === "All" || item.category === pref.category) s += 30;
-      if (pref.budget > 0) s += Math.max(0, 30 - Math.abs(item.price - pref.budget));
-      if (pref.need && item.title.toLowerCase().indexOf(pref.need.toLowerCase()) >= 0) s += 40;
-      return s;
+    function rowFor(item) {
+      var href =
+        "/api/public/shop/redirect?shop=" +
+        encodeURIComponent(item.shop) +
+        "&cat=" +
+        encodeURIComponent(item.category) +
+        "&partner=" +
+        encodeURIComponent(item.shop) +
+        "&target=" +
+        encodeURIComponent(item.target);
+      return (
+        "<article class=\"vc-info-card\">" +
+        "<h3>" +
+        item.brand +
+        "</h3><p>" +
+        item.category +
+        " · " +
+        item.shop +
+        "</p><a class=\"btn btn-secondary\" href=\"" +
+        href +
+        "\">Open option</a></article>"
+      );
     }
 
     btn.addEventListener("click", function (event) {
@@ -205,30 +230,21 @@
         budget: toNum(budget.value || 0),
         category: String(category.value || "All").trim() || "All"
       };
-      var ranked = parseProducts()
-        .map(function (p) {
-          return { item: p, score: score(p, pref) };
-        })
-        .sort(function (a, b) {
-          return b.score - a.score;
-        })
-        .slice(0, 3)
-        .map(function (row, idx) {
-          var i = row.item;
-          return (
-            String(idx + 1) +
-            ". " +
-            i.title +
-            " (" +
-            i.category +
-            ") · EUR " +
-            Number(i.price || 0).toFixed(2) +
-            (i.shipping ? " · " + i.shipping : "")
-          );
+      var key = keywordFor(pref.need);
+      var options = smartCatalog.filter(function (item) {
+        if (pref.category !== "All" && item.category !== pref.category) return false;
+        if (key && item.tag !== key) return false;
+        return true;
+      });
+      if (!options.length) {
+        options = smartCatalog.filter(function (item) {
+          return pref.category === "All" || item.category === pref.category;
         });
-      out.textContent = ranked.length
-        ? "Ranked matches: " + ranked.join(" | ")
-        : "No local matches yet. Try broadening category or budget.";
+      }
+      options = options.slice(0, 6);
+      out.innerHTML =
+        "<p class=\"note\">Smart suggestions with brand options and direct shop links:</p>" +
+        options.map(rowFor).join("");
     });
   }
 
@@ -329,14 +345,17 @@
       ads.forEach(function (ad) {
         var card = document.createElement("article");
         card.className = "vc-info-card";
-        card.innerHTML =
-          "<h3>" +
-          ad.title +
-          "</h3><p>" +
-          ad.note +
-          "</p><a class=\"btn btn-secondary\" href=\"" +
-          ad.href +
-          "\">Open</a>";
+        card.innerHTML = "<h3>" + ad.title + "</h3><p>" + ad.note + "</p>";
+        var openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.className = "btn btn-secondary";
+        openBtn.textContent = "Open";
+        openBtn.addEventListener("click", function (event) {
+          event.preventDefault();
+          if (!ad.href) return;
+          window.location.assign(ad.href);
+        });
+        card.appendChild(openBtn);
         slots.appendChild(card);
       });
     }
@@ -346,6 +365,29 @@
       render();
     });
     render();
+  }
+
+  function initVisualJourneyLite() {
+    var host = document.getElementById("vcVisualJourneyGrid");
+    if (!host) return;
+    var steps = [
+      { title: "1. Discover", note: "Use categories and quick filters to narrow options." },
+      { title: "2. Compare", note: "See brand choices with route-aware seller context." },
+      { title: "3. Verify", note: "Check shipping, policy, and trust notes before opening shop." },
+      { title: "4. Open Shop", note: "Checkout continues on the partner site for secure payment." },
+      { title: "5. Track", note: "Return to VibeCart for tracking, support, and rewards." }
+    ];
+    host.innerHTML = steps
+      .map(function (s) {
+        return (
+          "<article class=\"vc-visual-step\"><h3><img src=\"./icon-maskable.svg\" alt=\"step\" />" +
+          s.title +
+          "</h3><p>" +
+          s.note +
+          "</p></article>"
+        );
+      })
+      .join("");
   }
 
   function initInsuranceTipsLite() {
@@ -1567,6 +1609,7 @@
       if (featureOn("advancedBuyerQuickStartV1")) initBuyerQuickStartLite();
       if (featureOn("advancedSellerMomentumV1")) initSellerMomentumLite();
       if (featureOn("advancedPartnerRecallV1")) initPartnerRecallLite();
+      if (featureOn("advancedVisualJourneyV1")) initVisualJourneyLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

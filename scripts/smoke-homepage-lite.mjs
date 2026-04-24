@@ -77,6 +77,8 @@ function main() {
   assertIncludes(lite, "initSellerMomentumLite()", "seller momentum lite init");
   assertIncludes(lite, "advancedPartnerRecallV1", "partner recall feature flag");
   assertIncludes(lite, "initPartnerRecallLite()", "partner recall lite init");
+  assertIncludes(lite, "advancedVisualJourneyV1", "visual journey feature flag");
+  assertIncludes(lite, "initVisualJourneyLite()", "visual journey lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");

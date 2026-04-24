@@ -29,8 +29,9 @@ function assertMirrorEqual(aRel, bRel) {
 
 function checkLocationAssignUsage(lite) {
   const matches = lite.match(/window\.location\.assign\(/g) || [];
-  assert(matches.length === 1, `Expected exactly 1 window.location.assign usage, found ${matches.length}`);
-  assertIncludes(lite, 'window.location.assign("./global-search.html?q=" + encodeURIComponent(q));', "search-only assign");
+  assert(matches.length === 2, `Expected exactly 2 window.location.assign usage, found ${matches.length}`);
+  assertIncludes(lite, 'window.location.assign("./global-search.html?q=" + encodeURIComponent(q));', "search assign");
+  assertIncludes(lite, "window.location.assign(ad.href);", "ads open reliability assign");
 }
 
 function main() {
