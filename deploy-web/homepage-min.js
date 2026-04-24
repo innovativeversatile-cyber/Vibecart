@@ -13,7 +13,8 @@
     advancedVisualRhythmV1: true,
     advancedAtmosphereDeckV1: true,
     advancedPersonaChooserV1: true,
-    advancedListingHealthV1: true
+    advancedListingHealthV1: true,
+    advancedBridgeFaqCopyV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1087,6 +1088,61 @@
     render();
   }
 
+  function initBridgeFaqCopyLite() {
+    var list = document.querySelector(".vc-bridge-faq-list");
+    if (!list) return;
+    var items = Array.prototype.slice.call(list.querySelectorAll("li"));
+    if (!items.length) return;
+    var announce = document.createElement("p");
+    announce.className = "note";
+    announce.setAttribute("aria-live", "polite");
+    announce.textContent = "";
+    list.parentNode.appendChild(announce);
+
+    function writeClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      return new Promise(function (resolve, reject) {
+        try {
+          var area = document.createElement("textarea");
+          area.value = text;
+          area.setAttribute("readonly", "readonly");
+          area.style.position = "absolute";
+          area.style.left = "-9999px";
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand("copy");
+          document.body.removeChild(area);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    items.forEach(function (li) {
+      var copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "btn btn-secondary";
+      copyBtn.style.marginTop = "0.35rem";
+      copyBtn.textContent = "Copy snippet";
+      copyBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        var text = String(li.textContent || "").trim();
+        if (!text) return;
+        writeClipboard(text)
+          .then(function () {
+            announce.textContent = "Copied FAQ snippet.";
+          })
+          .catch(function () {
+            announce.textContent = "Copy failed on this browser.";
+          });
+      });
+      li.appendChild(copyBtn);
+    });
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1111,6 +1167,7 @@
       if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
       if (featureOn("advancedPersonaChooserV1")) initPersonaChooserLite();
       if (featureOn("advancedListingHealthV1")) initListingHealthLite();
+      if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

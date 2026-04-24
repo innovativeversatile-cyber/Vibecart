@@ -57,6 +57,8 @@ function main() {
   assertIncludes(lite, "initPersonaChooserLite()", "persona chooser lite init");
   assertIncludes(lite, "advancedListingHealthV1", "listing health feature flag");
   assertIncludes(lite, "initListingHealthLite()", "listing health lite init");
+  assertIncludes(lite, "advancedBridgeFaqCopyV1", "bridge faq copy feature flag");
+  assertIncludes(lite, "initBridgeFaqCopyLite()", "bridge faq copy lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
