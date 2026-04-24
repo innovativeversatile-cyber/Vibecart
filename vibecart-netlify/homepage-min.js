@@ -286,6 +286,54 @@
     });
   }
 
+  function initInsuranceLite() {
+    var refreshBtn = document.getElementById("refreshInsurance");
+    var host = document.getElementById("insurancePlans");
+    if (!refreshBtn || !host) return;
+
+    var plans = [
+      {
+        name: "AXA Student Protect",
+        line: "International insurer. Confirm local policy availability on AXA official channels.",
+        href: "https://www.axa.com/"
+      },
+      {
+        name: "Discovery Health Flex",
+        line: "Regional health support options with country-specific eligibility checks.",
+        href: "https://www.discovery.co.za/"
+      },
+      {
+        name: "Old Mutual Starter Cover",
+        line: "Life and funeral support plans. Verify underwriting terms before payment.",
+        href: "https://www.oldmutual.com/"
+      }
+    ];
+
+    function render() {
+      host.innerHTML = "";
+      plans.forEach(function (p) {
+        var card = document.createElement("article");
+        card.className = "vc-info-card";
+        card.innerHTML =
+          "<h3>" +
+          p.name +
+          "</h3><p>" +
+          p.line +
+          "</p><a class=\"btn btn-secondary\" href=\"" +
+          p.href +
+          "\" target=\"_blank\" rel=\"noopener noreferrer\">Open provider</a>";
+        host.appendChild(card);
+      });
+    }
+
+    refreshBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      render();
+    });
+
+    render();
+  }
+
   function initHealthCoachLite() {
     var saveBtn = document.getElementById("saveCoachProfile");
     var addBtn = document.getElementById("addHealthCheckin");
@@ -575,6 +623,7 @@
     initTrackingLite();
     initBookingLite();
     initAdsLite();
+    initInsuranceLite();
     initInsuranceTipsLite();
     initHealthCoachLite();
     initRewardsLite();
