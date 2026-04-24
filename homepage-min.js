@@ -11,7 +11,8 @@
     advancedShockReelV1: true,
     advancedEpicCarouselV1: true,
     advancedVisualRhythmV1: true,
-    advancedAtmosphereDeckV1: true
+    advancedAtmosphereDeckV1: true,
+    advancedPersonaChooserV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -987,6 +988,52 @@
     });
   }
 
+  function initPersonaChooserLite() {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll("[data-vc-persona]"));
+    var hint = document.getElementById("vcPersonaHint");
+    if (!buttons.length || !hint) return;
+    var STORE_KEY = "vibecart-home-lite-persona";
+    var hints = {
+      buyer: "Buyer lane selected. Focus mode: categories, live market, and order tracking.",
+      seller: "Seller lane selected. Focus mode: listing steps, growth tools, and policy rails.",
+      curious: "Browsing lane selected. Focus mode: quick tour, highlights, and category discovery."
+    };
+
+    function apply(persona) {
+      var active = Object.prototype.hasOwnProperty.call(hints, persona) ? persona : "buyer";
+      buttons.forEach(function (btn) {
+        var me = String(btn.getAttribute("data-vc-persona") || "").trim();
+        var on = me === active;
+        btn.classList.toggle("btn-primary", on);
+        btn.classList.toggle("btn-secondary", !on);
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+      hint.hidden = false;
+      hint.textContent = hints[active];
+      try {
+        localStorage.setItem(STORE_KEY, active);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        apply(String(btn.getAttribute("data-vc-persona") || "buyer").trim());
+      });
+    });
+
+    var initial = "buyer";
+    try {
+      var stored = String(localStorage.getItem(STORE_KEY) || "").trim();
+      if (stored && Object.prototype.hasOwnProperty.call(hints, stored)) initial = stored;
+    } catch {
+      /* ignore */
+    }
+    apply(initial);
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1009,6 +1056,7 @@
       if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
       if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
       if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
+      if (featureOn("advancedPersonaChooserV1")) initPersonaChooserLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

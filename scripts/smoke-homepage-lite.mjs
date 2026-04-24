@@ -53,6 +53,8 @@ function main() {
   assertIncludes(lite, "initVisualRhythmLite()", "visual rhythm lite init");
   assertIncludes(lite, "advancedAtmosphereDeckV1", "atmosphere deck feature flag");
   assertIncludes(lite, "initAtmosphereDeckLite()", "atmosphere deck lite init");
+  assertIncludes(lite, "advancedPersonaChooserV1", "persona chooser feature flag");
+  assertIncludes(lite, "initPersonaChooserLite()", "persona chooser lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
