@@ -16,7 +16,8 @@
     advancedListingHealthV1: true,
     advancedBridgeFaqCopyV1: true,
     advancedDetailsMemoryV1: true,
-    advancedMobileQuickNavV1: true
+    advancedMobileQuickNavV1: true,
+    advancedSellerReadinessV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1230,6 +1231,49 @@
     onScroll();
   }
 
+  function initSellerReadinessLite() {
+    var summary = document.getElementById("vcSellerReadinessSummary");
+    var checks = Array.prototype.slice.call(document.querySelectorAll("input[data-vc-lh-key]"));
+    if (!summary || !checks.length) return;
+    var personaButtons = Array.prototype.slice.call(document.querySelectorAll("[data-vc-persona]"));
+    var persona = "buyer";
+
+    function currentPersona() {
+      for (var i = 0; i < personaButtons.length; i += 1) {
+        if (personaButtons[i].getAttribute("aria-pressed") === "true") {
+          var value = String(personaButtons[i].getAttribute("data-vc-persona") || "").trim();
+          if (value) return value;
+        }
+      }
+      return persona;
+    }
+
+    function render() {
+      var done = 0;
+      checks.forEach(function (input) {
+        if (input.checked === true) done += 1;
+      });
+      var total = checks.length;
+      var activePersona = currentPersona();
+      var lane = activePersona === "seller" ? "Seller lane" : "General lane";
+      var readiness = done === total ? "ready to publish" : "still preparing";
+      summary.textContent =
+        lane + ": " + String(done) + "/" + String(total) + " listing checks complete - " + readiness + ".";
+    }
+
+    checks.forEach(function (input) {
+      input.addEventListener("change", render);
+    });
+    personaButtons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        persona = String(btn.getAttribute("data-vc-persona") || "buyer").trim() || "buyer";
+        render();
+      });
+    });
+
+    render();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1257,6 +1301,7 @@
       if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
       if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();
       if (featureOn("advancedMobileQuickNavV1")) initMobileQuickNavLite();
+      if (featureOn("advancedSellerReadinessV1")) initSellerReadinessLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

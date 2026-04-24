@@ -63,6 +63,8 @@ function main() {
   assertIncludes(lite, "initDetailsMemoryLite()", "details memory lite init");
   assertIncludes(lite, "advancedMobileQuickNavV1", "mobile quick nav feature flag");
   assertIncludes(lite, "initMobileQuickNavLite()", "mobile quick nav lite init");
+  assertIncludes(lite, "advancedSellerReadinessV1", "seller readiness feature flag");
+  assertIncludes(lite, "initSellerReadinessLite()", "seller readiness lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
