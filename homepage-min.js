@@ -233,6 +233,59 @@
     });
   }
 
+  function initAdsLite() {
+    var btn = document.getElementById("refreshAds");
+    var slots = document.getElementById("adSlots");
+    if (!btn || !slots) return;
+
+    var ads = [
+      { title: "Campus Headsets", note: "Student-friendly audio deals.", href: "./hot-picks.html?lane=Electronics" },
+      { title: "Wireless Pro Controllers", note: "Gaming accessories, quick ship lanes.", href: "./hot-picks.html?lane=Gaming" },
+      { title: "Cross-border Trade Base", note: "Starter resources for legal route planning.", href: "./bridge-hub.html" }
+    ];
+
+    function render() {
+      slots.innerHTML = "";
+      ads.forEach(function (ad) {
+        var card = document.createElement("article");
+        card.className = "vc-info-card";
+        card.innerHTML =
+          "<h3>" +
+          ad.title +
+          "</h3><p>" +
+          ad.note +
+          "</p><a class=\"btn btn-secondary\" href=\"" +
+          ad.href +
+          "\">Open</a>";
+        slots.appendChild(card);
+      });
+    }
+
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      render();
+    });
+    render();
+  }
+
+  function initInsuranceTipsLite() {
+    var tipsBtn = document.getElementById("queueInsuranceTips");
+    var out = document.getElementById("wellbeingTips");
+    if (!tipsBtn || !out) return;
+
+    var tips = [
+      "Compare policy terms, not just monthly price.",
+      "Keep claim contact numbers saved offline.",
+      "Confirm country-specific exclusions before payment.",
+      "Use licensed providers only and verify renewal terms."
+    ];
+
+    tipsBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      out.textContent = "Well-being and protection tips: " + tips.join(" | ");
+    });
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -279,6 +332,8 @@
     initAiAssistantLite();
     initTrackingLite();
     initBookingLite();
+    initAdsLite();
+    initInsuranceTipsLite();
   }
 
   if (document.readyState === "loading") {
