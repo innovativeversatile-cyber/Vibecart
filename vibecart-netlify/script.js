@@ -1289,7 +1289,7 @@ function applyPersonaHint(persona) {
 
 function initPathPersonaChooser() {
   const routeByPersona = {
-    buyer: "./buy-journey.html?flow=buy&lane=fashion",
+    buyer: "#market",
     seller: "./sell-journey.html"
   };
   document.querySelectorAll("[data-vc-persona]").forEach((btn) => {
@@ -1317,7 +1317,23 @@ function initPathPersonaChooser() {
         }
         return;
       }
-      const route = routeByPersona[persona] || "./buy-journey.html?flow=buy&lane=fashion";
+      const route = routeByPersona[persona] || "#market";
+      if (route === "#market") {
+        const el = document.getElementById("market");
+        if (el) {
+          try {
+            const lenis = window.__vibecartLenis;
+            if (lenis && typeof lenis.scrollTo === "function") {
+              lenis.scrollTo(el, { offset: -88 });
+              return;
+            }
+          } catch {
+            /* ignore */
+          }
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        return;
+      }
       window.location.assign(route);
     });
   });
@@ -4335,7 +4351,7 @@ function initHeroChips() {
       const kind = String(chip.getAttribute("data-hero-chip") || "");
       const route =
         kind === "checkout"
-          ? "./buy-journey.html?flow=buy&lane=fashion"
+          ? "./checkout-details.html"
           : kind === "sellers"
             ? "./regional-shops.html"
             : "./orders-tracking.html";
@@ -4389,7 +4405,20 @@ function initHeroShopNowButton() {
   }
   heroShopNowBtn.dataset.boundHeroBuy = "1";
   heroShopNowBtn.addEventListener("click", () => {
-    window.location.assign("./buy-journey.html?flow=buy&lane=fashion");
+    const target = document.getElementById("market");
+    if (!target) {
+      return;
+    }
+    try {
+      const lenis = window.__vibecartLenis;
+      if (lenis && typeof lenis.scrollTo === "function") {
+        lenis.scrollTo(target, { offset: -88 });
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
