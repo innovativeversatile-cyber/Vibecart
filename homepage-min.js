@@ -369,6 +369,87 @@
     render();
   }
 
+  function initRewardsLite() {
+    var earnBtn = document.getElementById("earnRewardPoints");
+    var redeemBtn = document.getElementById("redeemReward");
+    var pointsEl = document.getElementById("rewardPoints");
+    var tierEl = document.getElementById("rewardTier");
+    var streakEl = document.getElementById("rewardStreak");
+    var barEl = document.getElementById("rewardProgressBar");
+    var statusEl = document.getElementById("rewardStatus");
+    if (!earnBtn || !redeemBtn || !pointsEl || !tierEl || !streakEl || !barEl || !statusEl) return;
+
+    function load() {
+      try {
+        var raw = JSON.parse(localStorage.getItem("vibecart-home-lite-rewards") || "{}");
+        return {
+          points: Number(raw.points || 120),
+          streak: Number(raw.streak || 3)
+        };
+      } catch {
+        return { points: 120, streak: 3 };
+      }
+    }
+
+    function save(state) {
+      try {
+        localStorage.setItem("vibecart-home-lite-rewards", JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function tierFor(points) {
+      if (points >= 600) return "Legend";
+      if (points >= 360) return "Pro";
+      if (points >= 220) return "Campus Pro Saver";
+      return "Starter";
+    }
+
+    function nextTierGoal(points) {
+      if (points < 220) return 220;
+      if (points < 360) return 360;
+      if (points < 600) return 600;
+      return 800;
+    }
+
+    function render(state, note) {
+      var points = Math.max(0, Number(state.points || 0));
+      var streak = Math.max(0, Number(state.streak || 0));
+      var goal = nextTierGoal(points);
+      var base = goal <= 220 ? 0 : goal <= 360 ? 220 : goal <= 600 ? 360 : 600;
+      var pct = Math.max(0, Math.min(100, ((points - base) / Math.max(goal - base, 1)) * 100));
+
+      pointsEl.textContent = String(points);
+      tierEl.textContent = tierFor(points);
+      streakEl.textContent = String(streak) + " weeks";
+      barEl.style.width = pct.toFixed(2) + "%";
+      statusEl.textContent = note || ("Keep going. " + Math.max(goal - points, 0) + " points to unlock " + tierFor(goal) + " tier.");
+    }
+
+    var state = load();
+    render(state);
+
+    earnBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      state.points += 20;
+      state.streak += 1;
+      save(state);
+      render(state, "Points earned. Streak increased.");
+    });
+
+    redeemBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      if (state.points < 80) {
+        render(state, "Not enough points to redeem yet.");
+        return;
+      }
+      state.points -= 80;
+      save(state);
+      render(state, "Reward redeemed successfully.");
+    });
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -418,6 +499,7 @@
     initAdsLite();
     initInsuranceTipsLite();
     initHealthCoachLite();
+    initRewardsLite();
   }
 
   if (document.readyState === "loading") {
