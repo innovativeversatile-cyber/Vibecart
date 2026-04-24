@@ -59,6 +59,8 @@ function main() {
   assertIncludes(lite, "initListingHealthLite()", "listing health lite init");
   assertIncludes(lite, "advancedBridgeFaqCopyV1", "bridge faq copy feature flag");
   assertIncludes(lite, "initBridgeFaqCopyLite()", "bridge faq copy lite init");
+  assertIncludes(lite, "advancedDetailsMemoryV1", "details memory feature flag");
+  assertIncludes(lite, "initDetailsMemoryLite()", "details memory lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");

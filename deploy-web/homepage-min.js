@@ -14,7 +14,8 @@
     advancedAtmosphereDeckV1: true,
     advancedPersonaChooserV1: true,
     advancedListingHealthV1: true,
-    advancedBridgeFaqCopyV1: true
+    advancedBridgeFaqCopyV1: true,
+    advancedDetailsMemoryV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1143,6 +1144,45 @@
     });
   }
 
+  function initDetailsMemoryLite() {
+    var nodes = [];
+    var sense = document.getElementById("vcSenseDeck");
+    if (sense && sense.tagName === "DETAILS") nodes.push({ node: sense, key: "senseDeck" });
+    var faq = document.querySelector(".vc-bridge-faq");
+    if (faq && faq.tagName === "DETAILS") nodes.push({ node: faq, key: "bridgeFaq" });
+    if (!nodes.length) return;
+
+    var STORE_KEY = "vibecart-home-lite-details-memory";
+
+    function loadState() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState(next) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    var state = loadState();
+    nodes.forEach(function (entry) {
+      if (state[entry.key] === true || state[entry.key] === false) {
+        entry.node.open = state[entry.key] === true;
+      }
+      entry.node.addEventListener("toggle", function () {
+        state[entry.key] = entry.node.open === true;
+        saveState(state);
+      });
+    });
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1168,6 +1208,7 @@
       if (featureOn("advancedPersonaChooserV1")) initPersonaChooserLite();
       if (featureOn("advancedListingHealthV1")) initListingHealthLite();
       if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
+      if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
