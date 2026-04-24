@@ -20,7 +20,8 @@
     advancedSellerReadinessV1: true,
     advancedCheckoutClarityV1: true,
     advancedSellerNextActionV1: true,
-    advancedPartnerPinV1: true
+    advancedPartnerPinV1: true,
+    advancedBuyerQuickStartV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1464,6 +1465,36 @@
     render();
   }
 
+  function initBuyerQuickStartLite() {
+    var out = document.getElementById("vcBuyerQuickStart");
+    var filter = document.getElementById("categoryFilter");
+    if (!out || !filter) return;
+    var CATEGORY_KEY = "vibecart-home-lite-category";
+    var PARTNER_KEY = "vibecart-home-lite-preferred-partner";
+
+    function readPref(key) {
+      try {
+        return String(localStorage.getItem(key) || "").trim();
+      } catch {
+        return "";
+      }
+    }
+
+    function render() {
+      var category = readPref(CATEGORY_KEY) || String(filter.value || "All").trim() || "All";
+      var partner = readPref(PARTNER_KEY);
+      var catLabel = category === "All" ? "all categories" : category;
+      if (partner) {
+        out.textContent = "Quick start: continue in " + catLabel + " with your pinned partner " + partner + ".";
+        return;
+      }
+      out.textContent = "Quick start: continue browsing in " + catLabel + " and pin a preferred partner if you return often.";
+    }
+
+    filter.addEventListener("change", render);
+    render();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1495,6 +1526,7 @@
       if (featureOn("advancedCheckoutClarityV1")) initCheckoutClarityLite();
       if (featureOn("advancedSellerNextActionV1")) initSellerNextActionLite();
       if (featureOn("advancedPartnerPinV1")) initPartnerPinLite();
+      if (featureOn("advancedBuyerQuickStartV1")) initBuyerQuickStartLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
