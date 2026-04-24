@@ -24,7 +24,12 @@
     advancedBuyerQuickStartV1: true,
     advancedSellerMomentumV1: true,
     advancedPartnerRecallV1: true,
-    advancedVisualJourneyV1: true
+    advancedVisualJourneyV1: true,
+    advancedInstallPromptV1: true,
+    advancedPwaBootstrapV1: true,
+    advancedCommunicationIntelV1: true,
+    advancedHealthCoachIntelV1: true,
+    advancedSellerGrowthIntelV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -172,16 +177,21 @@
     if (!btn || !need || !budget || !category || !out) return;
 
     var smartCatalog = [
-      { tag: "phone", brand: "Samsung Galaxy A55", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=samsung+galaxy+a55" },
-      { tag: "phone", brand: "iPhone 13", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=iphone+13" },
-      { tag: "laptop", brand: "Lenovo ThinkPad E14", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=lenovo+thinkpad+e14" },
-      { tag: "laptop", brand: "ASUS Vivobook 15", shop: "Amazon Electronics", category: "Electronics", target: "https://www.amazon.com/s?k=asus+vivobook+15" },
-      { tag: "shoes", brand: "Nike Air Max", shop: "Zalando", category: "Fashion", target: "https://www.zalando.com/catalog/?q=nike+air+max" },
-      { tag: "shoes", brand: "Adidas Ultraboost", shop: "Zalando", category: "Fashion", target: "https://www.zalando.com/catalog/?q=adidas+ultraboost" },
-      { tag: "book", brand: "Atomic Habits", shop: "AbeBooks", category: "Books", target: "https://www.abebooks.com/servlet/SearchResults?kn=atomic+habits" },
-      { tag: "book", brand: "Deep Work", shop: "AbeBooks", category: "Books", target: "https://www.abebooks.com/servlet/SearchResults?kn=deep+work" },
-      { tag: "game", brand: "EA Sports FC 25", shop: "Steam Store", category: "Gaming", target: "https://store.steampowered.com/search/?term=ea+sports+fc+25" },
-      { tag: "game", brand: "Forza Horizon 5", shop: "Steam Store", category: "Gaming", target: "https://store.steampowered.com/search/?term=forza+horizon+5" }
+      { tag: "phone", brand: "Samsung Galaxy A55", shop: "Amazon Electronics", category: "Electronics", eur: 389, target: "https://www.amazon.com/s?k=samsung+galaxy+a55" },
+      { tag: "phone", brand: "iPhone 13", shop: "Amazon Electronics", category: "Electronics", eur: 599, target: "https://www.amazon.com/s?k=iphone+13" },
+      { tag: "phone", brand: "Xiaomi Redmi Note 13", shop: "Amazon Electronics", category: "Electronics", eur: 249, target: "https://www.amazon.com/s?k=redmi+note+13" },
+      { tag: "laptop", brand: "Lenovo ThinkPad E14", shop: "Amazon Electronics", category: "Electronics", eur: 779, target: "https://www.amazon.com/s?k=lenovo+thinkpad+e14" },
+      { tag: "laptop", brand: "ASUS Vivobook 15", shop: "Amazon Electronics", category: "Electronics", eur: 649, target: "https://www.amazon.com/s?k=asus+vivobook+15" },
+      { tag: "laptop", brand: "Acer Aspire 5", shop: "Amazon Electronics", category: "Electronics", eur: 569, target: "https://www.amazon.com/s?k=acer+aspire+5" },
+      { tag: "shoes", brand: "Nike Air Max", shop: "Zalando", category: "Fashion", eur: 130, target: "https://www.zalando.com/catalog/?q=nike+air+max" },
+      { tag: "shoes", brand: "Adidas Ultraboost", shop: "Zalando", category: "Fashion", eur: 155, target: "https://www.zalando.com/catalog/?q=adidas+ultraboost" },
+      { tag: "shoes", brand: "New Balance 574", shop: "Zalando", category: "Fashion", eur: 110, target: "https://www.zalando.com/catalog/?q=new+balance+574" },
+      { tag: "book", brand: "Atomic Habits", shop: "AbeBooks", category: "Books", eur: 18, target: "https://www.abebooks.com/servlet/SearchResults?kn=atomic+habits" },
+      { tag: "book", brand: "Deep Work", shop: "AbeBooks", category: "Books", eur: 16, target: "https://www.abebooks.com/servlet/SearchResults?kn=deep+work" },
+      { tag: "book", brand: "The Psychology of Money", shop: "AbeBooks", category: "Books", eur: 17, target: "https://www.abebooks.com/servlet/SearchResults?kn=psychology+of+money" },
+      { tag: "game", brand: "EA Sports FC 25", shop: "Steam Store", category: "Gaming", eur: 69, target: "https://store.steampowered.com/search/?term=ea+sports+fc+25" },
+      { tag: "game", brand: "Forza Horizon 5", shop: "Steam Store", category: "Gaming", eur: 59, target: "https://store.steampowered.com/search/?term=forza+horizon+5" },
+      { tag: "game", brand: "Helldivers 2", shop: "Steam Store", category: "Gaming", eur: 39, target: "https://store.steampowered.com/search/?term=helldivers+2" }
     ];
 
     function toNum(v) {
@@ -197,6 +207,20 @@
       if (v.indexOf("book") >= 0 || v.indexOf("read") >= 0) return "book";
       if (v.indexOf("game") >= 0 || v.indexOf("gaming") >= 0) return "game";
       return "";
+    }
+
+    function scoreFor(item, pref, key) {
+      var s = 0;
+      if (pref.category === "All" || item.category === pref.category) s += 25;
+      if (key && item.tag === key) s += 45;
+      if (pref.budget > 0) {
+        var delta = Math.abs(Number(item.eur || 0) - pref.budget);
+        s += Math.max(0, 25 - Math.floor(delta / 25));
+      } else {
+        s += 10;
+      }
+      if (pref.need && String(item.brand || "").toLowerCase().indexOf(pref.need.toLowerCase()) >= 0) s += 20;
+      return s;
     }
 
     function rowFor(item) {
@@ -217,6 +241,8 @@
         item.category +
         " · " +
         item.shop +
+        " · ~EUR " +
+        String(Number(item.eur || 0).toFixed(0)) +
         "</p><a class=\"btn btn-secondary\" href=\"" +
         href +
         "\">Open option</a></article>"
@@ -234,6 +260,7 @@
       var options = smartCatalog.filter(function (item) {
         if (pref.category !== "All" && item.category !== pref.category) return false;
         if (key && item.tag !== key) return false;
+        if (pref.budget > 0 && Number(item.eur || 0) > pref.budget * 1.4) return false;
         return true;
       });
       if (!options.length) {
@@ -241,9 +268,19 @@
           return pref.category === "All" || item.category === pref.category;
         });
       }
-      options = options.slice(0, 6);
+      options = options
+        .map(function (item) {
+          return { item: item, score: scoreFor(item, pref, key) };
+        })
+        .sort(function (a, b) {
+          return b.score - a.score;
+        })
+        .slice(0, 6)
+        .map(function (row) {
+          return row.item;
+        });
       out.innerHTML =
-        "<p class=\"note\">Smart suggestions with brand options and direct shop links:</p>" +
+        "<p class=\"note\">Exceptional suggestions: ranked brand options with direct partner links.</p>" +
         options.map(rowFor).join("");
     });
   }
@@ -644,6 +681,20 @@
   }
 
   function initCommunicationLite() {
+    function smartSellerReply(text, shop) {
+      var t = String(text || "").toLowerCase();
+      if (t.indexOf("price") >= 0 || t.indexOf("discount") >= 0) {
+        return "Pricing update from " + shop + ": we can confirm current price bands and available offers today.";
+      }
+      if (t.indexOf("ship") >= 0 || t.indexOf("delivery") >= 0 || t.indexOf("when") >= 0) {
+        return "Shipping update from " + shop + ": shared tracked lanes usually show 7-21 day windows depending on route.";
+      }
+      if (t.indexOf("photo") >= 0 || t.indexOf("condition") >= 0 || t.indexOf("real") >= 0) {
+        return "Listing note from " + shop + ": we can provide condition details and current photos before you open checkout.";
+      }
+      return "Received by " + shop + ". We can confirm stock, shipping band, and condition details next.";
+    }
+
     var input = document.getElementById("chatInput");
     var sendBtn = document.getElementById("chatSend");
     var box = document.getElementById("messagesBox");
@@ -711,8 +762,7 @@
       var shop = currentShop();
       var rows = readThread(shop);
       rows.push({ who: "buyer", text: text, at: new Date().toISOString() });
-      // simple echo so thread feels alive in safe local mode
-      rows.push({ who: "seller", text: "Received. We will reply soon.", at: new Date().toISOString() });
+      rows.push({ who: "seller", text: smartSellerReply(text, shop), at: new Date().toISOString() });
       saveThread(shop, rows);
       input.value = "";
       render(shop);
@@ -1586,6 +1636,144 @@
     }
   }
 
+  function initInstallPromptLite() {
+    var btn = document.getElementById("installAppBtn");
+    if (!btn) return;
+    var deferredPrompt = null;
+    var isStandalone =
+      (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+      window.navigator.standalone === true;
+    if (isStandalone) {
+      btn.classList.add("hidden");
+      return;
+    }
+
+    function ensureHint() {
+      var existing = document.getElementById("installAppHint");
+      if (existing) return existing;
+      var p = document.createElement("p");
+      p.id = "installAppHint";
+      p.className = "note";
+      p.setAttribute("aria-live", "polite");
+      btn.parentNode.appendChild(p);
+      return p;
+    }
+
+    window.addEventListener("beforeinstallprompt", function (event) {
+      event.preventDefault();
+      deferredPrompt = event;
+      btn.classList.remove("hidden");
+    });
+
+    window.addEventListener("appinstalled", function () {
+      btn.classList.add("hidden");
+      var hint = ensureHint();
+      hint.textContent = "VibeCart app installed successfully.";
+    });
+
+    btn.addEventListener("click", function () {
+      if (deferredPrompt && deferredPrompt.prompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice
+          .then(function () {
+            btn.classList.add("hidden");
+            deferredPrompt = null;
+          })
+          .catch(function () {
+            deferredPrompt = null;
+          });
+        return;
+      }
+      var hint = ensureHint();
+      hint.textContent =
+        "Install tip: in browser menu choose 'Install app' (Android/desktop) or 'Add to Home Screen' on iPhone Safari.";
+      btn.classList.remove("hidden");
+    });
+
+    var ua = String((window.navigator && window.navigator.userAgent) || "").toLowerCase();
+    var isIos = ua.indexOf("iphone") >= 0 || ua.indexOf("ipad") >= 0;
+    if (isIos) {
+      btn.classList.remove("hidden");
+      btn.textContent = "How to install app";
+    }
+  }
+
+  function initPwaBootstrapLite() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("./service-worker.js?v=20260424freeze1").catch(function () {
+      /* ignore */
+    });
+  }
+
+  function initHealthCoachIntelLite() {
+    var dash = document.getElementById("coachDashboard");
+    var refreshBtn = document.getElementById("refreshCoachDashboard");
+    if (!dash || !refreshBtn) return;
+    var STORE_KEY = "vibecart-home-lite-coach";
+
+    function loadStore() {
+      try {
+        return JSON.parse(localStorage.getItem(STORE_KEY) || "{\"profile\":null,\"checkins\":[]}");
+      } catch {
+        return { profile: null, checkins: [] };
+      }
+    }
+
+    function recommendationFor(profile, count) {
+      if (!profile) return "AI coach tip: save your profile to get a tailored weekly routine recommendation.";
+      var focus = String(profile.focus || "general_fitness");
+      if (focus === "weight_loss") return "AI coach recommendation: 4 sessions/week + daily steps target. Keep a calorie-aware meal rhythm.";
+      if (focus === "weight_gain") return "AI coach recommendation: 3 strength-focused sessions + surplus nutrition consistency.";
+      if (focus === "muscle_gain") return "AI coach recommendation: progressive overload split with protein timing and sleep priority.";
+      if (count < 3) return "AI coach recommendation: add at least 3 check-ins this week to unlock trend guidance.";
+      return "AI coach recommendation: maintain your current cadence and review your weekly trend dashboard.";
+    }
+
+    function appendIntel() {
+      var store = loadStore();
+      var profile = store.profile || null;
+      var checkins = Array.isArray(store.checkins) ? store.checkins : [];
+      var rec = recommendationFor(profile, checkins.length);
+      var text = String(dash.textContent || "").replace(/\s*\| AI coach recommendation:.*$/, "");
+      dash.textContent = text + " | " + rec;
+    }
+
+    refreshBtn.addEventListener("click", function () {
+      window.setTimeout(appendIntel, 0);
+    });
+    appendIntel();
+  }
+
+  function initSellerGrowthIntelLite() {
+    var runBtn = document.getElementById("sgRunPlan");
+    var out = document.getElementById("sgPlanOut");
+    if (!runBtn || !out) return;
+    var niche = document.getElementById("sgNiche");
+    var region = document.getElementById("sgRegion");
+    var channel = document.getElementById("sgChannel");
+    var owner = document.getElementById("sgOwnerName");
+
+    runBtn.addEventListener("click", function () {
+      var n = String((niche && niche.value) || "general goods").trim();
+      var r = String((region && region.value) || "core region").trim();
+      var c = String((channel && channel.value) || "mixed").trim();
+      var o = String((owner && owner.value) || "Owner").trim();
+      out.innerHTML =
+        "<strong>AI growth plan (exceptional mode)</strong>" +
+        "<p>1) " +
+        o +
+        ": recruit 3 micro-sellers in " +
+        r +
+        " for " +
+        n +
+        " within 10 days.</p>" +
+        "<p>2) Use " +
+        c +
+        " outreach daily and run one trust-proof content drop every 72 hours.</p>" +
+        "<p>3) Convert at least 2 sellers/week into listing-health-complete status before scaling ad spend.</p>";
+    });
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1621,6 +1809,10 @@
       if (featureOn("advancedSellerMomentumV1")) initSellerMomentumLite();
       if (featureOn("advancedPartnerRecallV1")) initPartnerRecallLite();
       if (featureOn("advancedVisualJourneyV1")) initVisualJourneyLite();
+      if (featureOn("advancedPwaBootstrapV1")) initPwaBootstrapLite();
+      if (featureOn("advancedInstallPromptV1")) initInstallPromptLite();
+      if (featureOn("advancedHealthCoachIntelV1")) initHealthCoachIntelLite();
+      if (featureOn("advancedSellerGrowthIntelV1")) initSellerGrowthIntelLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

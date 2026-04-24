@@ -79,6 +79,14 @@ function main() {
   assertIncludes(lite, "initPartnerRecallLite()", "partner recall lite init");
   assertIncludes(lite, "advancedVisualJourneyV1", "visual journey feature flag");
   assertIncludes(lite, "initVisualJourneyLite()", "visual journey lite init");
+  assertIncludes(lite, "advancedInstallPromptV1", "install prompt feature flag");
+  assertIncludes(lite, "initInstallPromptLite()", "install prompt lite init");
+  assertIncludes(lite, "advancedPwaBootstrapV1", "pwa bootstrap feature flag");
+  assertIncludes(lite, "initPwaBootstrapLite()", "pwa bootstrap lite init");
+  assertIncludes(lite, "advancedHealthCoachIntelV1", "health coach intel feature flag");
+  assertIncludes(lite, "initHealthCoachIntelLite()", "health coach intel lite init");
+  assertIncludes(lite, "advancedSellerGrowthIntelV1", "seller growth intel feature flag");
+  assertIncludes(lite, "initSellerGrowthIntelLite()", "seller growth intel lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
