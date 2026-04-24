@@ -8,7 +8,8 @@
   var FLAG_STORE_KEY = "vibecart-home-lite-flags";
   var defaultFlags = Object.freeze({
     advancedSmartTourV1: true,
-    advancedShockReelV1: true
+    advancedShockReelV1: true,
+    advancedEpicCarouselV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -833,6 +834,76 @@
     startTimer();
   }
 
+  function initEpicCarouselLite() {
+    var track = document.getElementById("vcEpicTrack");
+    var dotsWrap = document.getElementById("vcEpicDots");
+    if (!track || !dotsWrap) return;
+    var cards = Array.prototype.slice.call(track.querySelectorAll("[data-epic-index]"));
+    if (!cards.length) return;
+
+    var active = 0;
+    var intervalMs = 5200;
+    var timer = null;
+    var dots = [];
+
+    function render() {
+      cards.forEach(function (card, idx) {
+        var on = idx === active;
+        card.classList.toggle("is-active", on);
+      });
+      dots.forEach(function (dot, idx) {
+        var on = idx === active;
+        dot.classList.toggle("is-active", on);
+        dot.setAttribute("aria-selected", on ? "true" : "false");
+      });
+    }
+
+    function goTo(idx) {
+      active = (idx + cards.length) % cards.length;
+      render();
+    }
+
+    function next() {
+      goTo(active + 1);
+    }
+
+    function clearTimer() {
+      if (!timer) return;
+      window.clearInterval(timer);
+      timer = null;
+    }
+
+    function startTimer() {
+      clearTimer();
+      timer = window.setInterval(next, intervalMs);
+    }
+
+    dotsWrap.innerHTML = "";
+    cards.forEach(function (card, idx) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "vc-epic-dot";
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-label", "Epic scene " + String(idx + 1));
+      btn.setAttribute("aria-selected", idx === active ? "true" : "false");
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        goTo(idx);
+        startTimer();
+      });
+      dotsWrap.appendChild(btn);
+      dots.push(btn);
+    });
+
+    track.addEventListener("mouseenter", clearTimer);
+    track.addEventListener("mouseleave", startTimer);
+    track.addEventListener("focusin", clearTimer);
+    track.addEventListener("focusout", startTimer);
+
+    render();
+    startTimer();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -852,6 +923,7 @@
       initCommunicationLite();
       if (featureOn("advancedSmartTourV1")) initSmartTourLite();
       if (featureOn("advancedShockReelV1")) initShockReelLite();
+      if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

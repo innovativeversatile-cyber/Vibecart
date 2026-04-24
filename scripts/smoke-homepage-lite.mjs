@@ -47,6 +47,8 @@ function main() {
   assertIncludes(lite, "initCommunicationLite()", "communication lite init");
   assertIncludes(lite, "advancedShockReelV1", "shock reel feature flag");
   assertIncludes(lite, "initShockReelLite()", "shock reel lite init");
+  assertIncludes(lite, "advancedEpicCarouselV1", "epic carousel feature flag");
+  assertIncludes(lite, "initEpicCarouselLite()", "epic carousel lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
