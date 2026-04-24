@@ -15,7 +15,8 @@
     advancedPersonaChooserV1: true,
     advancedListingHealthV1: true,
     advancedBridgeFaqCopyV1: true,
-    advancedDetailsMemoryV1: true
+    advancedDetailsMemoryV1: true,
+    advancedMobileQuickNavV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1183,6 +1184,52 @@
     });
   }
 
+  function initMobileQuickNavLite() {
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav) return;
+    var links = Array.prototype.slice.call(nav.querySelectorAll("a[data-quick-target]"));
+    if (!links.length) return;
+
+    var targets = links
+      .map(function (link) {
+        var key = String(link.getAttribute("data-quick-target") || "").trim();
+        var node = key ? document.getElementById(key) : null;
+        return { link: link, key: key, node: node };
+      })
+      .filter(function (row) {
+        return row.node;
+      });
+    if (!targets.length) return;
+
+    function setActive(key) {
+      links.forEach(function (link) {
+        var on = String(link.getAttribute("data-quick-target") || "").trim() === key;
+        link.classList.toggle("is-active", on);
+        if (on) link.setAttribute("aria-current", "true");
+        else link.removeAttribute("aria-current");
+      });
+    }
+
+    var ticking = false;
+    function onScroll() {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(function () {
+        var cutoff = window.scrollY + Math.max(window.innerHeight * 0.32, 120);
+        var active = targets[0].key;
+        targets.forEach(function (row) {
+          if (row.node.offsetTop <= cutoff) active = row.key;
+        });
+        setActive(active);
+        ticking = false;
+      });
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    onScroll();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1209,6 +1256,7 @@
       if (featureOn("advancedListingHealthV1")) initListingHealthLite();
       if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
       if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();
+      if (featureOn("advancedMobileQuickNavV1")) initMobileQuickNavLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
