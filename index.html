@@ -218,7 +218,7 @@
             </span>
           </p>
           <div class="hero-actions">
-            <button id="heroShopNowBtn" type="button" class="btn btn-primary" data-i18n="hero.shopNow">Shop Now</button>
+            <a href="#market" class="btn btn-primary" data-i18n="hero.shopNow">Shop Now</a>
             <a href="./sell-journey.html" class="btn btn-secondary" data-i18n="hero.listItem">List an Item</a>
             <button id="openOnboarding" class="btn btn-secondary" type="button" data-i18n="hero.smartTour">Start Smart Tour</button>
             <button id="installAppBtn" class="btn btn-secondary hidden" type="button" data-i18n="hero.installApp">Install App</button>
@@ -933,7 +933,7 @@
             <p>Live electronics listings</p>
             <p class="note">External checkout on source site.</p>
             <p class="vc-photo-promise"><span class="vc-photo-promise-mark" aria-hidden="true">✓</span> <span data-i18n="photoPromise.short">Photo = this listing’s unit</span></p>
-            <button class="btn btn-primary buy-now-btn" data-title="Amazon Electronics" data-shop-name="Amazon Electronics" data-shop-url="https://www.amazon.com/s?i=electronics&tag=vibecart20-20">Open shop</button>
+            <a class="btn btn-primary" href="/api/public/shop/redirect?shop=Amazon%20Electronics&cat=Electronics&partner=Amazon%20Electronics&target=https%3A%2F%2Fwww.amazon.com%2Fs%3Fi%3Delectronics%26tag%3Dvibecart20-20">Open shop</a>
           </article>
           <article class="product" data-category="Fashion">
             <img
@@ -949,7 +949,7 @@
             <p>Live fashion listings</p>
             <p class="note">External checkout on source site.</p>
             <p class="vc-photo-promise"><span class="vc-photo-promise-mark" aria-hidden="true">✓</span> <span data-i18n="photoPromise.short">Photo = this listing’s unit</span></p>
-            <button class="btn btn-primary buy-now-btn" data-title="Zalando" data-shop-name="Zalando" data-shop-url="https://www.zalando.com">Open shop</button>
+            <a class="btn btn-primary" href="/api/public/shop/redirect?shop=Zalando&cat=Fashion&partner=Zalando&target=https%3A%2F%2Fwww.zalando.com">Open shop</a>
           </article>
           <article class="product" data-category="Books">
             <img
@@ -964,7 +964,7 @@
             <p class="price">Real shop</p>
             <p>Live book and textbook listings</p>
             <p class="note">External checkout on source site.</p>
-            <button class="btn btn-primary buy-now-btn" data-title="AbeBooks" data-shop-name="AbeBooks" data-shop-url="https://www.abebooks.com">Open shop</button>
+            <a class="btn btn-primary" href="/api/public/shop/redirect?shop=AbeBooks&cat=Books&partner=AbeBooks&target=https%3A%2F%2Fwww.abebooks.com">Open shop</a>
           </article>
           <article class="product" data-category="Gaming">
             <img
@@ -979,7 +979,7 @@
             <p class="price">Real shop</p>
             <p>Live gaming listings</p>
             <p class="note">External checkout on source site.</p>
-            <button class="btn btn-primary buy-now-btn" data-title="Steam Store" data-shop-name="Steam Store" data-shop-url="https://store.steampowered.com">Open shop</button>
+            <a class="btn btn-primary" href="/api/public/shop/redirect?shop=Steam%20Store&cat=Gaming&partner=Steam%20Store&target=https%3A%2F%2Fstore.steampowered.com">Open shop</a>
           </article>
         </div>
         <p class="note">Open shop takes you to the retailer to finish checkout, shipping, and payment.</p>
@@ -1668,12 +1668,6 @@
 
     <div id="vcSealedToast" class="vc-sealed-toast" role="status" aria-live="polite" data-i18n="sealed.word">Sealed.</div>
 
-    <script src="./i18n.js?v=20260426langhotfix6"></script>
-    <script src="./vendor/lenis.min.js?v=20260423phone1"></script>
-    <script src="./script.js?v=20260424tapguard6" defer></script>
-    <script src="./script-safe.js?v=20260424tapguard6"></script>
-    <script src="./epic-home.js?v=20260422epic1" defer></script>
-    <script src="./wow-home.js?v=20260426wow2" defer></script>
-    <script src="./mobile-app-shell.js?v=20260419nav1" defer></script>
+    <!-- Emergency static safe mode: interactive scripts temporarily disabled to prevent click hijacks. -->
   </body>
 </html>
