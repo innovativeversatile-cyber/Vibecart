@@ -49,6 +49,8 @@ function main() {
   assertIncludes(lite, "initShockReelLite()", "shock reel lite init");
   assertIncludes(lite, "advancedEpicCarouselV1", "epic carousel feature flag");
   assertIncludes(lite, "initEpicCarouselLite()", "epic carousel lite init");
+  assertIncludes(lite, "advancedVisualRhythmV1", "visual rhythm feature flag");
+  assertIncludes(lite, "initVisualRhythmLite()", "visual rhythm lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");

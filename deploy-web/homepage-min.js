@@ -9,7 +9,8 @@
   var defaultFlags = Object.freeze({
     advancedSmartTourV1: true,
     advancedShockReelV1: true,
-    advancedEpicCarouselV1: true
+    advancedEpicCarouselV1: true,
+    advancedVisualRhythmV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -904,6 +905,30 @@
     startTimer();
   }
 
+  function initVisualRhythmLite() {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    var body = document.body;
+    if (!body) return;
+    var classes = ["vc-rhythm-dawn", "vc-rhythm-day", "vc-rhythm-evening", "vc-rhythm-night"];
+
+    function applyRhythm() {
+      var hour = new Date().getHours();
+      var next = "vc-rhythm-night";
+      if (hour >= 5 && hour < 11) next = "vc-rhythm-dawn";
+      else if (hour >= 11 && hour < 17) next = "vc-rhythm-day";
+      else if (hour >= 17 && hour < 22) next = "vc-rhythm-evening";
+      classes.forEach(function (c) {
+        body.classList.toggle(c, c === next);
+      });
+      body.setAttribute("data-vc-rhythm", next);
+    }
+
+    applyRhythm();
+    window.setInterval(applyRhythm, 60 * 1000);
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -924,6 +949,7 @@
       if (featureOn("advancedSmartTourV1")) initSmartTourLite();
       if (featureOn("advancedShockReelV1")) initShockReelLite();
       if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
+      if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
