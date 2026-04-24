@@ -775,6 +775,7 @@
     var intervalMs = 4500;
     var timer = null;
     var dots = [];
+    var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
     function renderProgress(idx) {
       if (!progressBar) return;
@@ -812,6 +813,7 @@
     }
 
     function startTimer() {
+      if (reduceMotion || document.hidden) return;
       clearTimer();
       timer = window.setInterval(next, intervalMs);
     }
@@ -837,6 +839,11 @@
     reel.addEventListener("mouseleave", startTimer);
     reel.addEventListener("focusin", clearTimer);
     reel.addEventListener("focusout", startTimer);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) clearTimer();
+      else startTimer();
+    });
+    window.addEventListener("pagehide", clearTimer, { once: true });
 
     render();
     startTimer();
@@ -853,6 +860,7 @@
     var intervalMs = 5200;
     var timer = null;
     var dots = [];
+    var reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
     function render() {
       cards.forEach(function (card, idx) {
@@ -882,6 +890,7 @@
     }
 
     function startTimer() {
+      if (reduceMotion || document.hidden) return;
       clearTimer();
       timer = window.setInterval(next, intervalMs);
     }
@@ -907,6 +916,11 @@
     track.addEventListener("mouseleave", startTimer);
     track.addEventListener("focusin", clearTimer);
     track.addEventListener("focusout", startTimer);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) clearTimer();
+      else startTimer();
+    });
+    window.addEventListener("pagehide", clearTimer, { once: true });
 
     render();
     startTimer();
@@ -933,7 +947,14 @@
     }
 
     applyRhythm();
-    window.setInterval(applyRhythm, 60 * 1000);
+    var rhythmTimer = window.setInterval(applyRhythm, 60 * 1000);
+    window.addEventListener(
+      "pagehide",
+      function () {
+        window.clearInterval(rhythmTimer);
+      },
+      { once: true }
+    );
   }
 
   function initAtmosphereDeckLite() {
