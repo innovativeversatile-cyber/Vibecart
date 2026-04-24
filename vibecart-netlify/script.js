@@ -58,6 +58,7 @@ const installAppBtn = document.getElementById("installAppBtn");
 const expressCheckoutStatus = document.getElementById("expressCheckoutStatus");
 const interactionMode = document.getElementById("interactionMode");
 const siteLanguage = document.getElementById("siteLanguage");
+const heroShopNowBtn = document.getElementById("heroShopNowBtn");
 const aiAssistantSection = document.getElementById("ai-assistant");
 const communicationSection = document.getElementById("communication");
 const trackingSection = document.getElementById("tracking");
@@ -4069,6 +4070,8 @@ initHeroCanvasFx();
 initShopSearch();
 initHeroChips();
 initBrandHomeLink();
+initHeroShopNowButton();
+initBuyJourneyMisclickGuard();
 
 window.addEventListener("keydown", (event) => {
   easterKeyBuffer.push(String(event.key || "").toLowerCase());
@@ -4375,6 +4378,48 @@ function initBrandHomeLink() {
     }
     window.scrollTo(0, 0);
   });
+}
+
+function initHeroShopNowButton() {
+  if (!heroShopNowBtn) {
+    return;
+  }
+  if (heroShopNowBtn.dataset.boundHeroBuy === "1") {
+    return;
+  }
+  heroShopNowBtn.dataset.boundHeroBuy = "1";
+  heroShopNowBtn.addEventListener("click", () => {
+    window.location.assign("./buy-journey.html?flow=buy&lane=fashion");
+  });
+}
+
+function initBuyJourneyMisclickGuard() {
+  if (!document.getElementById("scene-top")) {
+    return;
+  }
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest("a[href]") : null;
+      if (!anchor) {
+        return;
+      }
+      const href = String(anchor.getAttribute("href") || "").toLowerCase();
+      if (!href.includes("buy-journey.html")) {
+        return;
+      }
+      if (anchor.hasAttribute("data-allow-buy-route")) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+    },
+    true
+  );
 }
 
 function getAISuggestions() {
@@ -4975,7 +5020,7 @@ function renderInsurancePlans() {
   insurancePlans.innerHTML = "";
   demoInsurancePlans.forEach((item) => {
     const node = document.createElement("article");
-    node.className = "shop";
+    node.className = "vc-info-card";
     const providerUrl = normalizeInsuranceUrl(item.website);
     node.innerHTML = `
       <h3>${escapeHtml(item.plan)}</h3>
@@ -5014,7 +5059,7 @@ async function loadPublicInsurancePlans() {
         return;
       }
       const node = document.createElement("article");
-      node.className = "shop";
+      node.className = "vc-info-card";
       const summary = plan.summary_text || "Verified insurance plan for students and families.";
       node.innerHTML = `
         <h3>${escapeHtml(plan.plan_name)}</h3>
@@ -5663,7 +5708,7 @@ function renderTrustCards() {
   trustCards.innerHTML = "";
   trustEntities.forEach((item) => {
     const node = document.createElement("article");
-    node.className = "shop trust-card-boring";
+    node.className = "vc-info-card trust-card-boring";
     node.innerHTML = `
       <h3>${escapeHtml(item.name)}</h3>
       <p><span class="price">${escapeHtml(String(item.type))}</span> · trust band ${escapeHtml(String(item.score))}/100 (illustrative)</p>
@@ -5707,7 +5752,7 @@ async function loadTrustCards() {
     trustCards.innerHTML = "";
     payload.items.slice(0, 6).forEach((item) => {
       const node = document.createElement("article");
-      node.className = "shop trust-card-boring";
+      node.className = "vc-info-card trust-card-boring";
       const et = String(item.entity_type || "").toUpperCase();
       const eid = escapeHtml(item.entity_id);
       const ts = escapeHtml(Number(item.trust_score).toFixed(1));

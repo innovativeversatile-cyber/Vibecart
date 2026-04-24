@@ -58,6 +58,7 @@ const installAppBtn = document.getElementById("installAppBtn");
 const expressCheckoutStatus = document.getElementById("expressCheckoutStatus");
 const interactionMode = document.getElementById("interactionMode");
 const siteLanguage = document.getElementById("siteLanguage");
+const heroShopNowBtn = document.getElementById("heroShopNowBtn");
 const aiAssistantSection = document.getElementById("ai-assistant");
 const communicationSection = document.getElementById("communication");
 const trackingSection = document.getElementById("tracking");
@@ -4069,6 +4070,8 @@ initHeroCanvasFx();
 initShopSearch();
 initHeroChips();
 initBrandHomeLink();
+initHeroShopNowButton();
+initBuyJourneyMisclickGuard();
 
 window.addEventListener("keydown", (event) => {
   easterKeyBuffer.push(String(event.key || "").toLowerCase());
@@ -4375,6 +4378,48 @@ function initBrandHomeLink() {
     }
     window.scrollTo(0, 0);
   });
+}
+
+function initHeroShopNowButton() {
+  if (!heroShopNowBtn) {
+    return;
+  }
+  if (heroShopNowBtn.dataset.boundHeroBuy === "1") {
+    return;
+  }
+  heroShopNowBtn.dataset.boundHeroBuy = "1";
+  heroShopNowBtn.addEventListener("click", () => {
+    window.location.assign("./buy-journey.html?flow=buy&lane=fashion");
+  });
+}
+
+function initBuyJourneyMisclickGuard() {
+  if (!document.getElementById("scene-top")) {
+    return;
+  }
+  document.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target;
+      const anchor = target && target.closest ? target.closest("a[href]") : null;
+      if (!anchor) {
+        return;
+      }
+      const href = String(anchor.getAttribute("href") || "").toLowerCase();
+      if (!href.includes("buy-journey.html")) {
+        return;
+      }
+      if (anchor.hasAttribute("data-allow-buy-route")) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === "function") {
+        event.stopImmediatePropagation();
+      }
+    },
+    true
+  );
 }
 
 function getAISuggestions() {
