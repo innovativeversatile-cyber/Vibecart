@@ -1510,6 +1510,10 @@ function initSerendipityLane() {
   if (!host) {
     return;
   }
+  // Emergency safety mode: disable Serendipity interactions until tap-hijack reports are fully resolved.
+  host.innerHTML = "";
+  host.hidden = true;
+  return;
   let idx = 0;
   try {
     const raw = sessionStorage.getItem(SERENDIPITY_SESSION_KEY);
