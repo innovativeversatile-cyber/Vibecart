@@ -152,6 +152,48 @@
     });
   }
 
+  function initTrackingLite() {
+    var timeline = document.getElementById("trackingTimeline");
+    var nextBtn = document.getElementById("nextTrackingStep");
+    var returnBtn = document.getElementById("openReturnWindow");
+    var returnInfo = document.getElementById("returnWindowInfo");
+    if (!timeline || !nextBtn || !returnBtn || !returnInfo) return;
+
+    var steps = [
+      "Order received",
+      "Payment verified",
+      "Packed by seller",
+      "Courier picked up",
+      "In transit",
+      "Out for delivery",
+      "Delivered"
+    ];
+    var idx = 0;
+    var returnOpen = false;
+
+    function render() {
+      timeline.innerHTML = "";
+      for (var i = 0; i <= idx; i += 1) {
+        var row = document.createElement("div");
+        row.className = "note";
+        row.textContent = "• " + steps[i];
+        timeline.appendChild(row);
+      }
+      returnInfo.textContent = "Return/refuse window status: " + (returnOpen ? "open" : "closed");
+    }
+
+    nextBtn.addEventListener("click", function () {
+      if (idx < steps.length - 1) idx += 1;
+      render();
+    });
+    returnBtn.addEventListener("click", function () {
+      returnOpen = true;
+      render();
+    });
+
+    render();
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -196,6 +238,7 @@
     initCategoryCards();
     initBridgePathToggle();
     initAiAssistantLite();
+    initTrackingLite();
   }
 
   if (document.readyState === "loading") {
