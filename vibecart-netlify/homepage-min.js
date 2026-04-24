@@ -7,7 +7,8 @@
   window.__vibecartHomeLiteBooted = true;
   var FLAG_STORE_KEY = "vibecart-home-lite-flags";
   var defaultFlags = Object.freeze({
-    advancedSmartTourV1: true
+    advancedSmartTourV1: true,
+    advancedShockReelV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -753,6 +754,85 @@
     });
   }
 
+  function initShockReelLite() {
+    var reel = document.getElementById("vcShockReel");
+    var dotsWrap = document.getElementById("vcShockDots");
+    var progressBar = document.getElementById("vcShockProgressBar");
+    if (!reel || !dotsWrap) return;
+    var scenes = Array.prototype.slice.call(reel.querySelectorAll("[data-shock-scene]"));
+    if (!scenes.length) return;
+
+    var active = 0;
+    var intervalMs = 4500;
+    var timer = null;
+    var dots = [];
+
+    function renderProgress(idx) {
+      if (!progressBar) return;
+      var total = Math.max(scenes.length, 1);
+      var pct = ((idx + 1) / total) * 100;
+      progressBar.style.width = pct.toFixed(2) + "%";
+    }
+
+    function render() {
+      scenes.forEach(function (scene, idx) {
+        var on = idx === active;
+        scene.classList.toggle("is-active", on);
+      });
+      dots.forEach(function (dot, idx) {
+        var on = idx === active;
+        dot.classList.toggle("is-active", on);
+        dot.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      renderProgress(active);
+    }
+
+    function goTo(idx) {
+      active = (idx + scenes.length) % scenes.length;
+      render();
+    }
+
+    function next() {
+      goTo(active + 1);
+    }
+
+    function clearTimer() {
+      if (!timer) return;
+      window.clearInterval(timer);
+      timer = null;
+    }
+
+    function startTimer() {
+      clearTimer();
+      timer = window.setInterval(next, intervalMs);
+    }
+
+    dotsWrap.innerHTML = "";
+    scenes.forEach(function (scene, idx) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "vc-shock-dot";
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-label", "Shock scene " + String(idx + 1));
+      btn.setAttribute("aria-selected", idx === active ? "true" : "false");
+      btn.addEventListener("click", function (event) {
+        event.preventDefault();
+        goTo(idx);
+        startTimer();
+      });
+      dotsWrap.appendChild(btn);
+      dots.push(btn);
+    });
+
+    reel.addEventListener("mouseenter", clearTimer);
+    reel.addEventListener("mouseleave", startTimer);
+    reel.addEventListener("focusin", clearTimer);
+    reel.addEventListener("focusout", startTimer);
+
+    render();
+    startTimer();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -771,6 +851,7 @@
       initRewardsLite();
       initCommunicationLite();
       if (featureOn("advancedSmartTourV1")) initSmartTourLite();
+      if (featureOn("advancedShockReelV1")) initShockReelLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

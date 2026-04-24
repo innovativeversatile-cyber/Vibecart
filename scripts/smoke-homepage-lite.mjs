@@ -45,6 +45,8 @@ function main() {
   assertIncludes(lite, "initHealthCoachLite()", "health coach lite init");
   assertIncludes(lite, "initRewardsLite()", "rewards lite init");
   assertIncludes(lite, "initCommunicationLite()", "communication lite init");
+  assertIncludes(lite, "advancedShockReelV1", "shock reel feature flag");
+  assertIncludes(lite, "initShockReelLite()", "shock reel lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
