@@ -5811,6 +5811,18 @@ body.vc-luxe-surprise::after {
   animation: none !important;
 }
 
+/* Emergency logo safety: disable cinematic logo layer entirely. */
+#cinematicIntro,
+.cinematic-intro,
+.cinematic-logo-stack,
+.cinematic-logo-pulse,
+.cinematic-logo-letter,
+.cinematic-ring {
+  display: none !important;
+  animation: none !important;
+  pointer-events: none !important;
+}
+
 /* --- Fashion trends lane (fashion-trends.html) --- */
 .vc-fashion-trends-page .vc-fashion-hero {
   padding: 0.75rem 1rem 1.25rem;
