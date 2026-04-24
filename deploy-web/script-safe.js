@@ -889,14 +889,7 @@
         var cat = "All";
         var directShopUrl = String(btn.getAttribute("data-shop-url") || "").trim();
         var directShopName = String(btn.getAttribute("data-shop-name") || title).trim();
-        var disclaimer = document.getElementById("marketDisclaimerAck");
         var status = document.getElementById("expressCheckoutStatus");
-        if (disclaimer && !disclaimer.checked) {
-          if (status) {
-            status.textContent = "Please accept the marketplace disclaimer first.";
-          }
-          return;
-        }
         try {
           var card = btn.closest ? btn.closest(".product") : null;
           var heading = card ? card.querySelector("h3") : null;
@@ -934,5 +927,46 @@
         }
       });
     });
+
+    // Failsafe: if other layers/scripts intercept taps, force Open shop buttons to still work.
+    document.addEventListener(
+      "click",
+      function (event) {
+        var target = event.target;
+        var btn = target && target.closest ? target.closest(".buy-now-btn") : null;
+        if (!btn) {
+          return;
+        }
+        var directShopUrl = String(btn.getAttribute("data-shop-url") || "").trim();
+        if (!directShopUrl) {
+          return;
+        }
+        var title = String(btn.getAttribute("data-title") || "item");
+        var directShopName = String(btn.getAttribute("data-shop-name") || title).trim();
+        var cat = "All";
+        try {
+          var card = btn.closest ? btn.closest(".product") : null;
+          cat = card ? String(card.getAttribute("data-category") || "All").trim() : "All";
+        } catch {
+          cat = "All";
+        }
+        var redirectUrl =
+          "/api/public/shop/redirect?shop=" +
+          encodeURIComponent(directShopName) +
+          "&cat=" +
+          encodeURIComponent(cat) +
+          "&partner=" +
+          encodeURIComponent(directShopName) +
+          "&target=" +
+          encodeURIComponent(directShopUrl);
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof event.stopImmediatePropagation === "function") {
+          event.stopImmediatePropagation();
+        }
+        go(redirectUrl);
+      },
+      true
+    );
   });
 })();
