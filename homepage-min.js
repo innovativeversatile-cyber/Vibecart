@@ -5,6 +5,50 @@
     return;
   }
   window.__vibecartHomeLiteBooted = true;
+  var FLAG_STORE_KEY = "vibecart-home-lite-flags";
+  var defaultFlags = Object.freeze({
+    advancedSmartTourV1: true
+  });
+  var flags = loadFeatureFlags();
+
+  function loadFeatureFlags() {
+    var out = {};
+    Object.keys(defaultFlags).forEach(function (k) {
+      out[k] = defaultFlags[k] === true;
+    });
+    try {
+      var raw = JSON.parse(localStorage.getItem(FLAG_STORE_KEY) || "{}");
+      if (raw && typeof raw === "object") {
+        Object.keys(defaultFlags).forEach(function (k) {
+          if (typeof raw[k] === "boolean") out[k] = raw[k];
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var queryValue = String(params.get("vcflags") || "").trim();
+      if (queryValue) {
+        queryValue.split(",").forEach(function (entry) {
+          var token = String(entry || "").trim();
+          if (!token) return;
+          var enabled = token.charAt(0) !== "-";
+          var key = enabled ? token : token.slice(1);
+          if (Object.prototype.hasOwnProperty.call(defaultFlags, key)) {
+            out[key] = enabled;
+          }
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+    return out;
+  }
+
+  function featureOn(flagName) {
+    return flags[flagName] === true;
+  }
   function safeScrollToHash(hash) {
     if (!hash || hash.length < 2) return;
     var id = String(hash).replace(/^#/, "").trim();
@@ -659,6 +703,56 @@
     apply(initial);
   }
 
+  function initSmartTourLite() {
+    var openBtn = document.getElementById("openOnboarding");
+    var modal = document.getElementById("onboardingModal");
+    var text = document.getElementById("onboardingText");
+    var nextBtn = document.getElementById("onboardingNext");
+    var closeBtn = document.getElementById("onboardingClose");
+    if (!openBtn || !modal || !text || !nextBtn || !closeBtn) return;
+
+    var steps = [
+      "Welcome. This quick tour helps you shop safely, save money, and use trusted sellers.",
+      "Step 1: Use categories and market filters to narrow options before opening a shop.",
+      "Step 2: Open shop takes you to the partner retailer for checkout, shipping, and payment.",
+      "Step 3: Use tracking, rewards, and support sections to stay in control after purchase."
+    ];
+    var idx = 0;
+
+    function render() {
+      text.textContent = steps[idx] || steps[0];
+      nextBtn.textContent = idx >= steps.length - 1 ? "Finish" : "Next";
+    }
+
+    function openModal() {
+      idx = 0;
+      render();
+      modal.classList.remove("hidden");
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+    }
+
+    openBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      openModal();
+    });
+    nextBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      if (idx < steps.length - 1) {
+        idx += 1;
+        render();
+        return;
+      }
+      closeModal();
+    });
+    closeBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      closeModal();
+    });
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -676,6 +770,7 @@
       initHealthCoachLite();
       initRewardsLite();
       initCommunicationLite();
+      if (featureOn("advancedSmartTourV1")) initSmartTourLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
