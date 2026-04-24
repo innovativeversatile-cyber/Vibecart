@@ -51,6 +51,37 @@
     applyCategory(filter.value || "All");
   }
 
+  function initCategoryCards() {
+    var cards = Array.prototype.slice.call(document.querySelectorAll("[data-filter]"));
+    var filter = document.getElementById("categoryFilter");
+    if (!cards.length || !filter) return;
+    cards.forEach(function (card) {
+      card.addEventListener("click", function (event) {
+        var chosen = String(card.getAttribute("data-filter") || "All").trim();
+        if (!chosen) return;
+        event.preventDefault();
+        filter.value = chosen;
+        var changeEvt;
+        try {
+          changeEvt = new Event("change", { bubbles: true });
+        } catch {
+          changeEvt = document.createEvent("Event");
+          changeEvt.initEvent("change", true, true);
+        }
+        filter.dispatchEvent(changeEvt);
+        cards.forEach(function (item) {
+          var on = item === card;
+          item.classList.toggle("vc-cat-selected", on);
+          item.setAttribute("aria-current", on ? "true" : "false");
+        });
+        var market = document.getElementById("market");
+        if (market) {
+          market.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -92,6 +123,7 @@
     initHashLinks();
     initOpenShopStatus();
     initCategoryFilter();
+    initCategoryCards();
     initBridgePathToggle();
   }
 
