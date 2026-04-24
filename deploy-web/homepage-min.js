@@ -38,17 +38,33 @@
     if (!filter) return;
     var products = Array.prototype.slice.call(document.querySelectorAll("#products .product[data-category]"));
     if (!products.length) return;
+    var CATEGORY_KEY = "vibecart-home-lite-category";
     function applyCategory(value) {
       var chosen = String(value || "All").trim();
       products.forEach(function (item) {
         var cat = String(item.getAttribute("data-category") || "").trim();
         item.style.display = chosen === "All" || cat === chosen ? "block" : "none";
       });
+      try {
+        localStorage.setItem(CATEGORY_KEY, chosen);
+      } catch {
+        /* ignore */
+      }
     }
     filter.addEventListener("change", function () {
       applyCategory(filter.value);
     });
-    applyCategory(filter.value || "All");
+    var initial = filter.value || "All";
+    try {
+      var stored = localStorage.getItem(CATEGORY_KEY);
+      if (stored) {
+        initial = stored;
+        filter.value = stored;
+      }
+    } catch {
+      /* ignore */
+    }
+    applyCategory(initial);
   }
 
   function initCategoryCards() {
@@ -594,6 +610,7 @@
     if (!switchWrap || !status) return;
     var buttons = Array.prototype.slice.call(switchWrap.querySelectorAll("[data-bridge-path]"));
     if (!buttons.length) return;
+    var BRIDGE_KEY = "vibecart-home-lite-bridge-path";
 
     function labelFor(path) {
       return path === "from-africa" ? "From Africa to Europe" : "From Europe to Africa";
@@ -607,6 +624,11 @@
         btn.classList.toggle("btn-secondary", !on);
       });
       status.textContent = "Current route: " + labelFor(active) + ".";
+      try {
+        localStorage.setItem(BRIDGE_KEY, active);
+      } catch {
+        /* ignore */
+      }
     }
 
     buttons.forEach(function (btn) {
@@ -616,6 +638,14 @@
     });
 
     var initial = "from-europe";
+    try {
+      var storedPath = localStorage.getItem(BRIDGE_KEY);
+      if (storedPath === "from-africa" || storedPath === "from-europe") {
+        initial = storedPath;
+      }
+    } catch {
+      /* ignore */
+    }
     for (var i = 0; i < buttons.length; i += 1) {
       if (buttons[i].classList.contains("btn-primary")) {
         initial = String(buttons[i].getAttribute("data-bridge-path") || "from-europe");
