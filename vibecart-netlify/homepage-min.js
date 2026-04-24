@@ -10,7 +10,8 @@
     advancedSmartTourV1: true,
     advancedShockReelV1: true,
     advancedEpicCarouselV1: true,
-    advancedVisualRhythmV1: true
+    advancedVisualRhythmV1: true,
+    advancedAtmosphereDeckV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -929,6 +930,63 @@
     window.setInterval(applyRhythm, 60 * 1000);
   }
 
+  function initAtmosphereDeckLite() {
+    var chronoBtn = document.getElementById("vcChronoToggle");
+    var depthBtn = document.getElementById("vcDepthToggle");
+    if (!chronoBtn || !depthBtn) return;
+    var body = document.body;
+    if (!body) return;
+    var STORE_KEY = "vibecart-home-lite-atmosphere";
+
+    function load() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+        return {
+          chrono: raw.chrono !== false,
+          depth: raw.depth !== false
+        };
+      } catch {
+        return { chrono: true, depth: true };
+      }
+    }
+
+    function save(state) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function render(state) {
+      var chronoOn = state.chrono === true;
+      var depthOn = state.depth === true;
+      chronoBtn.textContent = "Rhythm tint: " + (chronoOn ? "on" : "off");
+      depthBtn.textContent = "Hero depth tilt: " + (depthOn ? "on" : "off");
+      chronoBtn.setAttribute("aria-pressed", chronoOn ? "true" : "false");
+      depthBtn.setAttribute("aria-pressed", depthOn ? "true" : "false");
+      body.setAttribute("data-vc-chrono-enabled", chronoOn ? "1" : "0");
+      body.setAttribute("data-vc-depth-enabled", depthOn ? "1" : "0");
+    }
+
+    var state = load();
+    render(state);
+
+    chronoBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      state.chrono = !state.chrono;
+      save(state);
+      render(state);
+    });
+
+    depthBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      state.depth = !state.depth;
+      save(state);
+      render(state);
+    });
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -950,6 +1008,7 @@
       if (featureOn("advancedShockReelV1")) initShockReelLite();
       if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
       if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
+      if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
