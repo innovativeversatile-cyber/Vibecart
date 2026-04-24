@@ -126,6 +126,9 @@ This project includes frontend and data schema foundations. Production security 
   - safe feature envelope
   - smoke commands
   - advanced feature re-enable rules
+  - post-freeze guardrails and 24-hour watch checklist
+- Run homepage freeze gate after homepage changes:
+  - `npm run freeze:homepage`
 
 ## SEO and Discovery
 

@@ -47,6 +47,34 @@ Run these before each deploy:
 
 1. `npm run smoke:homepage-lite`
 2. `node scripts/verify-launch-flows.mjs`
+3. `npm run freeze:homepage`
+
+## Freeze Guardrails (Post-RC)
+
+- Freeze tag: `homepage-rc-20260424-freeze`
+- Guardrail automation: `scripts/homepage-freeze-gate.mjs`
+- The freeze gate enforces:
+  - homepage script surface (`script-safe.js` + `homepage-min.js`, not `script.js`)
+  - no reintroduction of legacy `buy-journey`/internal checkout shortcuts
+  - `window.location.assign` remains search-only in homepage lite code
+  - mirror sync across `deploy-web/`, repo root, and `vibecart-netlify/`
+
+## 24-Hour Stability Watch
+
+Run this watch sequence after production changes touching homepage:
+
+1. `npm run freeze:homepage`
+2. `npm run smoke:homepage-lite`
+3. `node scripts/verify-launch-flows.mjs`
+4. `npm run health`
+
+Manual spot checks (mobile-first):
+
+- Tap `Shop Now` and category cards (must only in-page scroll/filter).
+- Tap `Open shop` buttons (must route directly to `/api/public/shop/redirect?...`).
+- Verify no unexpected jumps to seller sections on idle/scroll.
+- Verify quick-nav highlighting updates with scroll but does not block link taps.
+- Verify homepage remains responsive after tab hide/return.
 
 ## Advanced Re-enable Rules
 
