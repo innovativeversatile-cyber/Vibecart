@@ -19,7 +19,8 @@
     advancedMobileQuickNavV1: true,
     advancedSellerReadinessV1: true,
     advancedCheckoutClarityV1: true,
-    advancedSellerNextActionV1: true
+    advancedSellerNextActionV1: true,
+    advancedPartnerPinV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1391,6 +1392,78 @@
     render();
   }
 
+  function initPartnerPinLite() {
+    var status = document.getElementById("expressCheckoutStatus");
+    var links = Array.prototype.slice.call(document.querySelectorAll("a.btn.btn-primary[href*='/api/public/shop/redirect']"));
+    if (!status || !links.length) return;
+    var STORE_KEY = "vibecart-home-lite-preferred-partner";
+
+    function partnerFromHref(href) {
+      try {
+        var parsed = new URL(href, window.location.origin);
+        return String(parsed.searchParams.get("partner") || parsed.searchParams.get("shop") || "").trim() || "";
+      } catch {
+        return "";
+      }
+    }
+
+    function loadPreferred() {
+      try {
+        return String(localStorage.getItem(STORE_KEY) || "").trim();
+      } catch {
+        return "";
+      }
+    }
+
+    function savePreferred(name) {
+      try {
+        if (!name) localStorage.removeItem(STORE_KEY);
+        else localStorage.setItem(STORE_KEY, name);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function render() {
+      var preferred = loadPreferred();
+      links.forEach(function (link) {
+        var partner = partnerFromHref(String(link.getAttribute("href") || ""));
+        var on = !!partner && partner === preferred;
+        link.classList.toggle("vc-partner-preferred", on);
+        link.setAttribute("aria-pressed", on ? "true" : "false");
+        var pin = link.parentNode ? link.parentNode.querySelector("[data-vc-pin-for]") : null;
+        if (pin) {
+          pin.textContent = on ? "Preferred partner pinned" : "Pin preferred partner";
+          pin.setAttribute("aria-pressed", on ? "true" : "false");
+        }
+      });
+    }
+
+    links.forEach(function (link) {
+      var partner = partnerFromHref(String(link.getAttribute("href") || ""));
+      if (!partner || !link.parentNode) return;
+      if (link.parentNode.querySelector("[data-vc-pin-for]")) return;
+      var pinBtn = document.createElement("button");
+      pinBtn.type = "button";
+      pinBtn.className = "btn btn-secondary";
+      pinBtn.style.marginLeft = "0.45rem";
+      pinBtn.setAttribute("data-vc-pin-for", partner);
+      pinBtn.setAttribute("aria-pressed", "false");
+      pinBtn.textContent = "Pin preferred partner";
+      pinBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        var current = loadPreferred();
+        var next = current === partner ? "" : partner;
+        savePreferred(next);
+        render();
+        status.textContent = next ? "Preferred partner set to " + next + "." : "Preferred partner cleared.";
+      });
+      link.insertAdjacentElement("afterend", pinBtn);
+    });
+
+    render();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1421,6 +1494,7 @@
       if (featureOn("advancedSellerReadinessV1")) initSellerReadinessLite();
       if (featureOn("advancedCheckoutClarityV1")) initCheckoutClarityLite();
       if (featureOn("advancedSellerNextActionV1")) initSellerNextActionLite();
+      if (featureOn("advancedPartnerPinV1")) initPartnerPinLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
