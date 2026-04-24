@@ -51,10 +51,48 @@
     applyCategory(filter.value || "All");
   }
 
+  function initBridgePathToggle() {
+    var switchWrap = document.getElementById("bridgePathSwitch");
+    var status = document.getElementById("bridgePathStatus");
+    if (!switchWrap || !status) return;
+    var buttons = Array.prototype.slice.call(switchWrap.querySelectorAll("[data-bridge-path]"));
+    if (!buttons.length) return;
+
+    function labelFor(path) {
+      return path === "from-africa" ? "From Africa to Europe" : "From Europe to Africa";
+    }
+
+    function apply(path) {
+      var active = path === "from-africa" ? "from-africa" : "from-europe";
+      buttons.forEach(function (btn) {
+        var on = String(btn.getAttribute("data-bridge-path") || "") === active;
+        btn.classList.toggle("btn-primary", on);
+        btn.classList.toggle("btn-secondary", !on);
+      });
+      status.textContent = "Current route: " + labelFor(active) + ".";
+    }
+
+    buttons.forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        apply(String(btn.getAttribute("data-bridge-path") || "from-europe"));
+      });
+    });
+
+    var initial = "from-europe";
+    for (var i = 0; i < buttons.length; i += 1) {
+      if (buttons[i].classList.contains("btn-primary")) {
+        initial = String(buttons[i].getAttribute("data-bridge-path") || "from-europe");
+        break;
+      }
+    }
+    apply(initial);
+  }
+
   function boot() {
     initHashLinks();
     initOpenShopStatus();
     initCategoryFilter();
+    initBridgePathToggle();
   }
 
   if (document.readyState === "loading") {
