@@ -450,6 +450,84 @@
     });
   }
 
+  function initCommunicationLite() {
+    var input = document.getElementById("chatInput");
+    var sendBtn = document.getElementById("chatSend");
+    var box = document.getElementById("messagesBox");
+    var shopInput = document.getElementById("chatShopInput");
+    var status = document.getElementById("chatDispatchStatus");
+    if (!input || !sendBtn || !box || !shopInput || !status) return;
+
+    function keyFor(shop) {
+      var safe = String(shop || "general")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 64);
+      return "vibecart-home-lite-chat-" + (safe || "general");
+    }
+
+    function readThread(shop) {
+      try {
+        var raw = JSON.parse(localStorage.getItem(keyFor(shop)) || "[]");
+        return Array.isArray(raw) ? raw : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveThread(shop, rows) {
+      try {
+        localStorage.setItem(keyFor(shop), JSON.stringify(rows.slice(-80)));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function render(shop) {
+      var rows = readThread(shop);
+      box.innerHTML = "";
+      rows.forEach(function (row) {
+        var line = document.createElement("div");
+        line.className = row.who === "seller" ? "msg msg-seller" : "msg msg-buyer";
+        line.textContent = String(row.text || "");
+        box.appendChild(line);
+      });
+      status.textContent = rows.length
+        ? "Loaded private thread with " + shop + "."
+        : "No private messages with " + shop + " yet.";
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function currentShop() {
+      var s = String(shopInput.value || "").trim();
+      return s || "General";
+    }
+
+    shopInput.addEventListener("change", function () {
+      render(currentShop());
+    });
+
+    sendBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var text = String(input.value || "").trim();
+      if (!text) {
+        status.textContent = "Type a message first.";
+        return;
+      }
+      var shop = currentShop();
+      var rows = readThread(shop);
+      rows.push({ who: "buyer", text: text, at: new Date().toISOString() });
+      // simple echo so thread feels alive in safe local mode
+      rows.push({ who: "seller", text: "Received. We will reply soon.", at: new Date().toISOString() });
+      saveThread(shop, rows);
+      input.value = "";
+      render(shop);
+    });
+
+    render(currentShop());
+  }
+
   function initBridgePathToggle() {
     var switchWrap = document.getElementById("bridgePathSwitch");
     var status = document.getElementById("bridgePathStatus");
@@ -500,6 +578,7 @@
     initInsuranceTipsLite();
     initHealthCoachLite();
     initRewardsLite();
+    initCommunicationLite();
   }
 
   if (document.readyState === "loading") {
