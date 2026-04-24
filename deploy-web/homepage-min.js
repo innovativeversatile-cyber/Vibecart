@@ -18,7 +18,8 @@
     advancedDetailsMemoryV1: true,
     advancedMobileQuickNavV1: true,
     advancedSellerReadinessV1: true,
-    advancedCheckoutClarityV1: true
+    advancedCheckoutClarityV1: true,
+    advancedSellerNextActionV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1341,6 +1342,55 @@
     });
   }
 
+  function initSellerNextActionLite() {
+    var output = document.getElementById("vcSellerNextAction");
+    var checks = Array.prototype.slice.call(document.querySelectorAll("input[data-vc-lh-key]"));
+    if (!output || !checks.length) return;
+    var labels = {
+      photos: "Add clear hero photos with condition notes.",
+      shipping: "Set realistic shipping ranges per route.",
+      policy: "Confirm returns/customs disclosure text."
+    };
+
+    function currentPersona() {
+      var active = document.querySelector("[data-vc-persona][aria-pressed='true']");
+      var value = String((active && active.getAttribute("data-vc-persona")) || "").trim();
+      return value || "buyer";
+    }
+
+    function firstMissingKey() {
+      for (var i = 0; i < checks.length; i += 1) {
+        if (checks[i].checked !== true) {
+          return String(checks[i].getAttribute("data-vc-lh-key") || "").trim();
+        }
+      }
+      return "";
+    }
+
+    function render() {
+      var missing = firstMissingKey();
+      var persona = currentPersona();
+      if (!missing) {
+        output.textContent =
+          persona === "seller"
+            ? "Next action: listing health complete. Continue to seller tools below."
+            : "Next action: listing health complete. Seller setup is ready.";
+        return;
+      }
+      var prefix = persona === "seller" ? "Next seller action: " : "Seller prep tip: ";
+      output.textContent = prefix + (labels[missing] || "Complete remaining listing checks.");
+    }
+
+    checks.forEach(function (input) {
+      input.addEventListener("change", render);
+    });
+    Array.prototype.slice.call(document.querySelectorAll("[data-vc-persona]")).forEach(function (btn) {
+      btn.addEventListener("click", render);
+    });
+
+    render();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1370,6 +1420,7 @@
       if (featureOn("advancedMobileQuickNavV1")) initMobileQuickNavLite();
       if (featureOn("advancedSellerReadinessV1")) initSellerReadinessLite();
       if (featureOn("advancedCheckoutClarityV1")) initCheckoutClarityLite();
+      if (featureOn("advancedSellerNextActionV1")) initSellerNextActionLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }
