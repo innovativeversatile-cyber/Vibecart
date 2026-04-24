@@ -12,7 +12,8 @@
     advancedEpicCarouselV1: true,
     advancedVisualRhythmV1: true,
     advancedAtmosphereDeckV1: true,
-    advancedPersonaChooserV1: true
+    advancedPersonaChooserV1: true,
+    advancedListingHealthV1: true
   });
   var flags = loadFeatureFlags();
 
@@ -1034,6 +1035,58 @@
     apply(initial);
   }
 
+  function initListingHealthLite() {
+    var checks = Array.prototype.slice.call(document.querySelectorAll("input[data-vc-lh-key]"));
+    var bars = Array.prototype.slice.call(document.querySelectorAll(".vc-lh-bar[data-vc-lh]"));
+    if (!checks.length || !bars.length) return;
+    var STORE_KEY = "vibecart-home-lite-listing-health";
+
+    function load() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function save(state) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function render() {
+      var state = {};
+      checks.forEach(function (input) {
+        var key = String(input.getAttribute("data-vc-lh-key") || "").trim();
+        if (!key) return;
+        state[key] = input.checked === true;
+      });
+      bars.forEach(function (bar) {
+        var key = String(bar.getAttribute("data-vc-lh") || "").trim();
+        var on = state[key] === true;
+        bar.classList.toggle("is-on", on);
+        bar.setAttribute("aria-hidden", "true");
+      });
+      save(state);
+    }
+
+    var initial = load();
+    checks.forEach(function (input) {
+      var key = String(input.getAttribute("data-vc-lh-key") || "").trim();
+      if (!key) return;
+      if (initial[key] === true || initial[key] === false) {
+        input.checked = initial[key] === true;
+      }
+      input.addEventListener("change", render);
+    });
+
+    render();
+  }
+
   function boot() {
     try {
       initShopSearchLite();
@@ -1057,6 +1110,7 @@
       if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
       if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
       if (featureOn("advancedPersonaChooserV1")) initPersonaChooserLite();
+      if (featureOn("advancedListingHealthV1")) initListingHealthLite();
     } catch {
       // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
     }

@@ -55,6 +55,8 @@ function main() {
   assertIncludes(lite, "initAtmosphereDeckLite()", "atmosphere deck lite init");
   assertIncludes(lite, "advancedPersonaChooserV1", "persona chooser feature flag");
   assertIncludes(lite, "initPersonaChooserLite()", "persona chooser lite init");
+  assertIncludes(lite, "advancedListingHealthV1", "listing health feature flag");
+  assertIncludes(lite, "initListingHealthLite()", "listing health lite init");
 
   // Guard against accidental reintroduction of old risky route.
   assertNotIncludes(lite, "buy-journey.html?flow=buy&lane=fashion", "legacy fashion-lane redirect");
