@@ -1484,7 +1484,7 @@ const SERENDIPITY_POOL = [
   {
     title: "Campus pickup fantasy",
     sub: "When the lane allows pickup, state it clearly — buyers love honest handoffs.",
-    href: "#seller-growth-ai"
+    href: "#sell"
   },
   {
     title: "Transparency first",
@@ -1522,8 +1522,30 @@ function initSerendipityLane() {
     idx = Math.floor(Math.random() * SERENDIPITY_POOL.length);
   }
   const pick = SERENDIPITY_POOL[idx];
-  host.innerHTML = `<p class="vc-serendipity-eyebrow">Serendipity lane</p><p class="vc-serendipity-title">${escapeHtml(pick.title)}</p><p class="vc-serendipity-sub">${escapeHtml(pick.sub)}</p><a class="btn btn-secondary" href="${safeUrlHref(pick.href)}">Try this angle</a>`;
+  host.innerHTML = `<p class="vc-serendipity-eyebrow">Serendipity lane</p><p class="vc-serendipity-title">${escapeHtml(pick.title)}</p><p class="vc-serendipity-sub">${escapeHtml(pick.sub)}</p><button type="button" class="btn btn-secondary vc-serendipity-cta" data-serendipity-href="${escapeHtml(
+    safeUrlHref(pick.href)
+  )}">Try this angle</button>`;
   host.hidden = false;
+  const cta = host.querySelector(".vc-serendipity-cta");
+  if (cta) {
+    cta.addEventListener("click", () => {
+      const href = String(cta.getAttribute("data-serendipity-href") || "").trim();
+      if (!href) {
+        return;
+      }
+      if (href.startsWith("#")) {
+        const target = document.getElementById(href.slice(1));
+        const targetHidden = !!(target && (target.hidden || target.classList.contains("hidden")));
+        if (!target || targetHidden) {
+          vcScrollToSelector("#sell");
+          return;
+        }
+        vcScrollToSelector(target);
+        return;
+      }
+      window.location.assign(href);
+    });
+  }
 }
 
 async function runLiveOneClickCheckoutWithExtras(itemTitle) {

@@ -1249,7 +1249,8 @@ body.luxe-instant.luxe-ready .section {
 
 .card,
 .shop,
-.product {
+.product,
+.vc-info-card {
   background: linear-gradient(165deg, rgba(42, 26, 58, 0.95), rgba(24, 14, 36, 0.92));
   border-radius: var(--radius);
   border: 1px solid rgba(232, 163, 23, 0.12);
@@ -1260,7 +1261,8 @@ body.luxe-instant.luxe-ready .section {
 
 .card:hover,
 .shop:hover,
-.product:hover {
+.product:hover,
+.vc-info-card:hover {
   transform: translateY(-3px);
   border-color: rgba(232, 163, 23, 0.45);
   box-shadow: 0 12px 40px rgba(232, 163, 23, 0.08);
@@ -2083,12 +2085,14 @@ body.vc-vip-mode .vc-top-class-shell {
   padding: 0.85rem 0.75rem 1rem;
 }
 
-.shop {
+.shop,
+.vc-info-card {
   padding: 1rem;
 }
 
 .shop p,
-.product p {
+.product p,
+.vc-info-card p {
   color: var(--muted);
 }
 
@@ -4532,16 +4536,19 @@ body.vc-layout-exclusive .shop-search-input {
   font-size: 0.92rem;
 }
 
-.trust-cards-boring .shop {
+.trust-cards-boring .shop,
+.trust-cards-boring .vc-info-card {
   font-variant-numeric: tabular-nums;
 }
 
-.trust-cards-boring .shop h3 {
+.trust-cards-boring .shop h3,
+.trust-cards-boring .vc-info-card h3 {
   font-size: 1rem;
   letter-spacing: 0.01em;
 }
 
-.trust-cards-boring .shop p {
+.trust-cards-boring .shop p,
+.trust-cards-boring .vc-info-card p {
   font-size: 0.88rem;
   color: var(--muted, #a8b0c4);
 }
@@ -5070,6 +5077,18 @@ body.vc-layout-exclusive .shop-search-input {
   }
 }
 
+@media (hover: none) {
+  .page-group:hover {
+    transform: none;
+    box-shadow: 0 4px 40px rgba(0, 0, 0, 0.2);
+  }
+  .btn:hover {
+    transform: none;
+    filter: none;
+    box-shadow: none;
+  }
+}
+
 .vc-jurisdiction-meta-row {
   max-width: 1120px;
   margin: 0 auto;
@@ -5108,6 +5127,7 @@ body.vc-layout-exclusive .shop-search-input {
   border-radius: 12px;
   border: 1px solid rgba(232, 163, 23, 0.22);
   background: rgba(8, 10, 20, 0.55);
+  pointer-events: none;
 }
 
 .vc-serendipity[hidden] {
@@ -5135,6 +5155,10 @@ body.vc-layout-exclusive .shop-search-input {
   font-size: 0.88rem;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.vc-serendipity .vc-serendipity-cta {
+  pointer-events: auto;
 }
 
 .vc-photo-promise {
