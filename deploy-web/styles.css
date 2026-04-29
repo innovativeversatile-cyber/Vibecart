@@ -8598,6 +8598,15 @@ body.health-coach-page .vc-site-chrome-search {
   display: none !important;
 }
 
+/* If luxe reveal ran before skip (cache), keep coach sections fully visible and tappable. */
+body.health-coach-page main section.vc-luxe-reveal,
+body.health-coach-page main section.vc-luxe-reveal-in {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none;
+  pointer-events: auto;
+}
+
 body.health-coach-page #bundleCheckoutBtn.is-disabled {
   pointer-events: none;
   opacity: 0.55;

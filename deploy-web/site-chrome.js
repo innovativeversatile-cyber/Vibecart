@@ -328,6 +328,11 @@
     if (!("IntersectionObserver" in window)) {
       return;
     }
+    /* Coach / wellbeing: bottom sections often never satisfy the IO rootMargin; they stay at
+       opacity ~0 from .vc-luxe-reveal and taps never reach "Generate recommendation". */
+    if (document.body && document.body.classList.contains("health-coach-page")) {
+      return;
+    }
     var nodes = Array.prototype.slice.call(
       document.querySelectorAll("main section, .hero-card, .card, .shop-folder-card, .pill-card, .settings-card, .command-card")
     );
