@@ -750,6 +750,70 @@
     paint();
   }
 
+  function initFirstFiveSecondsBar() {
+    if (document.getElementById("vcFirst5Bar")) return;
+    var bar = document.createElement("div");
+    bar.id = "vcFirst5Bar";
+    bar.className = "vc-first5-bar";
+    bar.innerHTML =
+      "<a class='vc-first5-pill' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
+      "<a class='vc-first5-pill' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='vc-first5-pill' href='./sell-journey.html'>Start hustle</a>";
+    document.body.appendChild(bar);
+  }
+
+  function initMissionHud() {
+    if (document.getElementById("vcMissionHud")) return;
+    var key = "vibecart-mobile-mission-v1";
+    var state = { step: 0 };
+    try {
+      state = JSON.parse(localStorage.getItem(key) || "{\"step\":0}") || { step: 0 };
+    } catch {
+      state = { step: 0 };
+    }
+    var hud = document.createElement("button");
+    hud.type = "button";
+    hud.id = "vcMissionHud";
+    hud.className = "vc-mission-hud";
+    function paint() {
+      hud.textContent = "Mission " + Math.min(3, Math.max(0, Number(state.step || 0))) + "/3";
+    }
+    hud.addEventListener("click", function () {
+      state.step = (Number(state.step || 0) + 1) % 4;
+      try {
+        localStorage.setItem(key, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 16, 8]);
+      } catch {
+        /* ignore */
+      }
+    });
+    paint();
+    document.body.appendChild(hud);
+  }
+
+  function initSmartPrefetch() {
+    var urls = [
+      "./live-market-shops.html?cat=All&view=global&deal=best",
+      "./hot-picks.html",
+      "./sell-journey.html",
+      "./orders-tracking.html"
+    ];
+    urls.forEach(function (u) {
+      var id = "vc-prefetch-" + u.replace(/[^a-z0-9]/gi, "_");
+      if (document.getElementById(id)) return;
+      var link = document.createElement("link");
+      link.id = id;
+      link.rel = "prefetch";
+      link.href = u;
+      document.head.appendChild(link);
+    });
+  }
+
   function boot() {
     const root = document.documentElement;
     if (detectPhoneLikeContext()) {
@@ -799,6 +863,9 @@
       initSwipeSaveDeals();
       initSocialPulseTicker();
       initVibeThemeSwitch();
+      initFirstFiveSecondsBar();
+      initMissionHud();
+      initSmartPrefetch();
     }
   }
 
