@@ -2136,6 +2136,46 @@ body.night-neon .signal-lens {
   font-size: 0.8rem;
 }
 
+.hero-left-upgrade-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.hero-left-card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 0.7rem;
+  background: linear-gradient(145deg, rgba(8, 14, 26, 0.84), rgba(24, 11, 36, 0.8));
+}
+
+.hero-left-card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.96rem;
+}
+
+.hero-trust-pulse {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.hero-trust-pulse span {
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.24rem 0.48rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(16, 24, 42, 0.86);
+  color: rgba(217, 230, 255, 0.92);
+}
+
+.hero-trust-pulse span.is-live {
+  border-color: rgba(102, 236, 193, 0.65);
+  color: #d9fff2;
+  box-shadow: 0 0 0 1px rgba(102, 236, 193, 0.24) inset;
+}
+
 #heroShopNowBtn {
   position: relative;
   border: 1px solid rgba(255, 230, 175, 0.85);
@@ -4679,6 +4719,10 @@ body.admin-surface .section {
   }
 
   .hero-social-proof {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-left-upgrade-grid {
     grid-template-columns: 1fr;
   }
 

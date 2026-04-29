@@ -2298,6 +2298,116 @@
     Array.prototype.forEach.call(document.querySelectorAll(".shop-folder-card-title"), attachLogoToHeading);
   }
 
+  function initHeroLeftHardPassUpgrades() {
+    var conciergeLine = document.getElementById("vcHeroConciergeLine");
+    var conciergeGo = document.getElementById("vcHeroConciergeGo");
+    var trustPulse = document.getElementById("vcHeroTrustPulse");
+    var prestigePreview = document.getElementById("vcHeroPrestigePreview");
+    var prestigeLine = document.getElementById("vcHeroPrestigeLine");
+    var mission = document.getElementById("vcHeroMission");
+    var missionApply = document.getElementById("vcHeroMissionApply");
+    var status = document.getElementById("expressCheckoutStatus");
+    if (!conciergeLine && !trustPulse && !mission) return;
+
+    function activePersona() {
+      var active = document.querySelector("[data-vc-persona][aria-pressed='true']");
+      return String((active && active.getAttribute("data-vc-persona")) || "buyer").trim() || "buyer";
+    }
+
+    function topClassActive() {
+      try {
+        var raw = JSON.parse(localStorage.getItem("vibecart-top-class-membership-v1") || "{}");
+        return !!(raw && raw.active === true);
+      } catch {
+        return false;
+      }
+    }
+
+    function paintConcierge() {
+      var persona = activePersona();
+      if (!conciergeLine || !conciergeGo) return;
+      if (persona === "seller") {
+        conciergeLine.textContent = "Seller route: tighten listing health, then launch to live market in one motion.";
+        conciergeGo.href = "./sell-journey.html";
+        return;
+      }
+      if (persona === "curious") {
+        conciergeLine.textContent = "Discovery route: start with visual lanes, then compare two promo regions.";
+        conciergeGo.href = "./live-market-shops.html?cat=All&view=global";
+        return;
+      }
+      conciergeLine.textContent = "Buyer route: open top live promotions first, then lock best-value offer.";
+      conciergeGo.href = "./live-market-shops.html?cat=All&view=global&deal=best";
+    }
+
+    function paintTrustPulse() {
+      if (!trustPulse) return;
+      var beats = [
+        "Verified route",
+        "Policy check ready",
+        "Safer checkout path"
+      ];
+      trustPulse.innerHTML = beats.map(function (b) {
+        return "<span>" + b + "</span>";
+      }).join("");
+      var idx = 0;
+      window.setInterval(function () {
+        idx = (idx + 1) % beats.length;
+        var nodes = trustPulse.querySelectorAll("span");
+        for (var i = 0; i < nodes.length; i += 1) {
+          nodes[i].classList.toggle("is-live", i === idx);
+        }
+      }, 2600);
+    }
+
+    function paintPrestigePreview() {
+      if (!prestigePreview || !prestigeLine) return;
+      if (topClassActive()) {
+        prestigePreview.classList.add("hidden");
+        return;
+      }
+      prestigePreview.classList.remove("hidden");
+      prestigeLine.textContent = "Locked: concierge-first support, prestige visuals, and autonomous AI suite.";
+    }
+
+    function paintMission() {
+      if (!mission) return;
+      var persona = activePersona();
+      if (persona === "seller") {
+        mission.textContent = "Mission: complete one high-trust listing and publish before end of day.";
+      } else if (persona === "curious") {
+        mission.textContent = "Mission: compare 2 regions and save the best offer path.";
+      } else {
+        mission.textContent = "Mission: open 2 top promo shops and choose the stronger value lane.";
+      }
+    }
+
+    missionApply &&
+      missionApply.addEventListener("click", function () {
+        var persona = activePersona();
+        if (persona === "seller") {
+          window.location.assign("./sell-journey.html");
+          return;
+        }
+        window.location.assign("./live-market-shops.html?cat=All&view=global&deal=best");
+      });
+
+    document.querySelectorAll("[data-vc-persona]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        paintConcierge();
+        paintMission();
+      });
+    });
+
+    paintConcierge();
+    paintTrustPulse();
+    paintPrestigePreview();
+    paintMission();
+    if (status) {
+      status.textContent = "Hero intelligence active: concierge route, trust pulse, prestige preview, and AI mission card.";
+    }
+  }
+
   function boot() {
     function safeInit(name, fn) {
       try {
@@ -2354,6 +2464,7 @@
     if (featureOn("advancedHealthCoachIntelV1")) safeInit("initHealthCoachIntelLite", initHealthCoachIntelLite);
     if (featureOn("advancedSellerGrowthIntelV1")) safeInit("initSellerGrowthIntelLite", initSellerGrowthIntelLite);
     safeInit("initUniversalShopLogosLite", initUniversalShopLogosLite);
+    safeInit("initHeroLeftHardPassUpgrades", initHeroLeftHardPassUpgrades);
   }
 
   if (document.readyState === "loading") {
