@@ -5901,12 +5901,51 @@ html.vc-mobile-focus #settings-hub {
   padding: 10px;
 }
 
+.vc-quick-action-sheet:not(.is-open) {
+  pointer-events: none;
+}
+
 .vc-quick-action-card {
   width: min(96vw, 520px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: linear-gradient(150deg, rgba(16, 10, 28, 0.98), rgba(10, 20, 40, 0.96));
   padding: 0.85rem;
+}
+
+.vc-deal-draft-composer {
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 118px);
+  z-index: 133;
+}
+
+.vc-deal-draft-fab {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(16, 24, 42, 0.9);
+  color: #e9f0ff;
+  font-size: 0.74rem;
+  padding: 0.36rem 0.58rem;
+}
+
+.vc-deal-draft-panel {
+  margin-top: 0.4rem;
+  width: min(88vw, 320px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(10, 14, 26, 0.96);
+  padding: 0.5rem;
+}
+
+.vc-deal-draft-panel textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 6, 16, 0.88);
+  color: #eef4ff;
+  font: inherit;
+  padding: 0.42rem 0.5rem;
 }
 
 .vc-story-rail {

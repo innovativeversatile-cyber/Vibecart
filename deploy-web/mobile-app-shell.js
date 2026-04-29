@@ -567,8 +567,13 @@
       "</div>";
     document.body.appendChild(sheet);
     var close = document.getElementById("vcQuickActionClose");
+    var openLockUntil = 0;
+    var dragStartY = 0;
     function open() {
+      var now = Date.now();
+      if (now < openLockUntil) return;
       sheet.hidden = false;
+      sheet.classList.add("is-open");
       try {
         if (navigator && navigator.vibrate) navigator.vibrate([12, 30, 12]);
       } catch {
@@ -577,11 +582,41 @@
     }
     function hide() {
       sheet.hidden = true;
+      sheet.classList.remove("is-open");
+      openLockUntil = Date.now() + 420;
     }
-    close && close.addEventListener("click", hide);
+    close && close.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      hide();
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (!ev) return;
+      if (String(ev.key || "") === "Escape" && sheet.hidden === false) {
+        hide();
+      }
+    });
     sheet.addEventListener("click", function (ev) {
       if (ev.target === sheet) hide();
     });
+    sheet.addEventListener("click", function (ev) {
+      var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+      if (!link) return;
+      hide();
+    });
+    sheet.addEventListener("touchstart", function (ev) {
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      dragStartY = Number(t.clientY || 0);
+    }, { passive: true });
+    sheet.addEventListener("touchend", function (ev) {
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      var endY = Number(t.clientY || 0);
+      if (endY - dragStartY > 44) {
+        hide();
+      }
+    }, { passive: true });
     var timer = 0;
     nav.addEventListener("touchstart", function () {
       window.clearTimeout(timer);
@@ -590,9 +625,63 @@
     nav.addEventListener("touchend", function () {
       window.clearTimeout(timer);
     }, { passive: true });
+    nav.addEventListener("touchcancel", function () {
+      window.clearTimeout(timer);
+    }, { passive: true });
+    window.addEventListener("scroll", function () {
+      window.clearTimeout(timer);
+    }, { passive: true });
     nav.addEventListener("contextmenu", function (ev) {
       ev.preventDefault();
       open();
+    });
+  }
+
+  function initDealDraftComposer() {
+    if (document.getElementById("vcDealDraftComposer")) return;
+    var shell = document.createElement("div");
+    shell.id = "vcDealDraftComposer";
+    shell.className = "vc-deal-draft-composer";
+    shell.innerHTML =
+      "<button type='button' class='vc-deal-draft-fab' aria-expanded='false'>＋ Deal note</button>" +
+      "<div class='vc-deal-draft-panel' hidden>" +
+      "<p class='badge'>Deal draft</p>" +
+      "<textarea id='vcDealDraftText' rows='2' maxlength='240' placeholder='Drop a quick note: what deal are you chasing?'></textarea>" +
+      "<div class='hero-actions'>" +
+      "<button type='button' class='btn btn-primary' id='vcDealDraftSave'>Save</button>" +
+      "<button type='button' class='btn btn-secondary' id='vcDealDraftClose'>Close</button>" +
+      "</div>" +
+      "</div>";
+    document.body.appendChild(shell);
+    var fab = shell.querySelector(".vc-deal-draft-fab");
+    var panel = shell.querySelector(".vc-deal-draft-panel");
+    var text = shell.querySelector("#vcDealDraftText");
+    var save = shell.querySelector("#vcDealDraftSave");
+    var close = shell.querySelector("#vcDealDraftClose");
+    function toggle(open) {
+      panel.hidden = !open;
+      fab.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    fab && fab.addEventListener("click", function () {
+      toggle(panel.hidden);
+    });
+    close && close.addEventListener("click", function () {
+      toggle(false);
+    });
+    save && save.addEventListener("click", function () {
+      var v = String((text && text.value) || "").trim();
+      if (!v) return;
+      try {
+        var key = "vibecart-mobile-deal-draft-v1";
+        var prev = JSON.parse(localStorage.getItem(key) || "[]");
+        if (!Array.isArray(prev)) prev = [];
+        prev.push({ t: Date.now(), note: v });
+        localStorage.setItem(key, JSON.stringify(prev.slice(-60)));
+      } catch {
+        /* ignore */
+      }
+      text.value = "";
+      toggle(false);
     });
   }
 
@@ -866,6 +955,7 @@
       initFirstFiveSecondsBar();
       initMissionHud();
       initSmartPrefetch();
+      initDealDraftComposer();
     }
   }
 
