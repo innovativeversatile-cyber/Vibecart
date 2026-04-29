@@ -8740,3 +8740,35 @@ body.health-coach-page .vc-site-chrome-search {
     min-height: 240px !important;
   }
 }
+
+/* Mobile WebView stability: disable always-on cinematic animations that commonly
+   cause visible flicker/jank on iOS/Android in-app browsers (GPU + backdrop churn). */
+html.vc-mobile-app .hero,
+html.vc-phone .hero,
+html.vc-mobile-app .hero *,
+html.vc-phone .hero *,
+html.vc-mobile-app .vc-mobile-hero-aurora,
+html.vc-phone .vc-mobile-hero-aurora,
+html.vc-mobile-app .vc-mobile-ai__pulse,
+html.vc-phone .vc-mobile-ai__pulse {
+  animation: none !important;
+  transition: none !important;
+}
+
+html.vc-mobile-app .hero,
+html.vc-phone .hero,
+html.vc-mobile-app .hero *,
+html.vc-phone .hero * {
+  filter: none !important;
+}
+
+html.vc-mobile-app body,
+html.vc-phone body {
+  filter: none !important;
+}
+
+@media (max-width: 1024px) {
+  .mobile-quick-nav {
+    backdrop-filter: none !important;
+  }
+}

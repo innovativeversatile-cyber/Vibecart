@@ -13,6 +13,36 @@
     }
   }
 
+  function isDocumentHidden() {
+    try {
+      return typeof document !== "undefined" && document.hidden === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function startVisibilityAwareInterval(fn, ms) {
+    var id = 0;
+    function loop() {
+      window.clearInterval(id);
+      if (isDocumentHidden()) {
+        return;
+      }
+      id = window.setInterval(function () {
+        if (isDocumentHidden()) {
+          window.clearInterval(id);
+          return;
+        }
+        fn();
+      }, ms);
+    }
+    loop();
+    document.addEventListener("visibilitychange", loop, { passive: true });
+    return function stop() {
+      window.clearInterval(id);
+    };
+  }
+
   function readApiBase() {
     try {
       const el = document.querySelector('meta[name="vibecart-api-base"]');
@@ -185,7 +215,7 @@
     }
 
     renderAiCard();
-    setInterval(renderAiCard, 12000);
+    startVisibilityAwareInterval(renderAiCard, 12000);
 
     orb?.addEventListener("click", () => {
       const open = panel?.hasAttribute("hidden");
@@ -884,7 +914,7 @@
       i += 1;
     }
     paint();
-    window.setInterval(paint, 3400);
+    startVisibilityAwareInterval(paint, 3400);
   }
 
   function initVibeThemeSwitch() {
