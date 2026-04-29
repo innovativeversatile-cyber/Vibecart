@@ -562,7 +562,8 @@
     var sheet = document.createElement("div");
     sheet.id = "vcQuickActionSheet";
     sheet.className = "vc-quick-action-sheet";
-    sheet.hidden = true;
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.display = "none";
     sheet.innerHTML =
       "<div class='vc-quick-action-card'>" +
       "<p class='badge'>Quick actions</p>" +
@@ -584,14 +585,15 @@
     var pressing = false;
     var navMoveAbort = false;
     function isOpen() {
-      return sheet.hidden === false;
+      return sheet.classList.contains("is-open");
     }
     function open() {
       var now = Date.now();
       if (now < openLockUntil) return;
       if (isOpen()) return;
-      sheet.hidden = false;
+      sheet.style.display = "grid";
       sheet.classList.add("is-open");
+      sheet.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
       try {
         if (navigator && navigator.vibrate) navigator.vibrate([12, 30, 12]);
@@ -600,8 +602,9 @@
       }
     }
     function hide() {
-      sheet.hidden = true;
       sheet.classList.remove("is-open");
+      sheet.style.display = "none";
+      sheet.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";
       openLockUntil = Date.now() + 420;
     }
@@ -618,12 +621,7 @@
     close && close.addEventListener("click", forceClose);
     close && close.addEventListener("touchend", forceClose, { passive: false });
     close && close.addEventListener("pointerup", forceClose);
-    trigger.addEventListener("click", function (ev) {
-      if (Date.now() - lastTriggerTouchAt < 650) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        return;
-      }
+    function onTriggerActivate(ev) {
       ev.preventDefault();
       ev.stopPropagation();
       if (isOpen()) {
@@ -631,20 +629,19 @@
       } else {
         open();
       }
+    }
+    trigger.addEventListener("pointerup", onTriggerActivate);
+    trigger.addEventListener("click", function (ev) {
+      if (Date.now() - lastTriggerTouchAt < 650) return;
+      onTriggerActivate(ev);
     });
     trigger.addEventListener("touchend", function (ev) {
       lastTriggerTouchAt = Date.now();
-      ev.preventDefault();
-      ev.stopPropagation();
-      if (isOpen()) {
-        hide();
-      } else {
-        open();
-      }
+      onTriggerActivate(ev);
     }, { passive: false });
     document.addEventListener("keydown", function (ev) {
       if (!ev) return;
-      if (String(ev.key || "") === "Escape" && sheet.hidden === false) {
+      if (String(ev.key || "") === "Escape" && isOpen()) {
         hide();
       }
     });
