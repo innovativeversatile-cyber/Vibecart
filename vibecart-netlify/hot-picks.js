@@ -202,7 +202,21 @@
   async function boot() {
     var lane = laneFromQuery().toLowerCase();
     try {
-      var response = await fetch("/api/public/products/live");
+      var fromCountry = "";
+      try {
+        var rawUser = localStorage.getItem("vibecart-public-auth-user");
+        var user = rawUser ? JSON.parse(rawUser) : null;
+        fromCountry = String((user && user.countryCode) || "").trim().toUpperCase();
+      } catch {
+        fromCountry = "";
+      }
+
+      var url = "/api/public/products/live";
+      if (fromCountry && fromCountry.length === 2) {
+        url += "?fromCountry=" + encodeURIComponent(fromCountry);
+      }
+
+      var response = await fetch(url);
       var body = await response.json();
       var all = normalizePayload(body);
       var filtered = all;

@@ -160,6 +160,67 @@
     return "africa";
   }
 
+  function getStoredAuthUser() {
+    try {
+      var PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
+      var PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
+      var token = String(localStorage.getItem(PUBLIC_AUTH_TOKEN_KEY) || "").trim();
+      var rawUser = localStorage.getItem(PUBLIC_AUTH_USER_KEY);
+      var user = rawUser ? JSON.parse(rawUser) : null;
+      return { token: token, user: user };
+    } catch {
+      return { token: "", user: null };
+    }
+  }
+
+  function inferRegionFromCountryCode(countryCode) {
+    var cc = String(countryCode || "").trim().toUpperCase();
+    if (!cc || cc.length !== 2) return "";
+
+    switch (cc) {
+      case "ZA":
+        return "za";
+      case "KE":
+        return "ke";
+      case "NG":
+        return "ng";
+      case "GH":
+        return "gh";
+      case "ZW":
+        return "zw";
+      case "EG":
+        return "eg";
+      case "MA":
+        return "ma";
+      // Gulf
+      case "AE":
+      case "SA":
+      case "KW":
+      case "QA":
+      case "BH":
+      case "OM":
+        return "gulf";
+      // Asia
+      case "SG":
+      case "JP":
+      case "KR":
+      case "HK":
+      case "IN":
+      case "MY":
+      case "ID":
+      case "PH":
+      case "TH":
+      case "VN":
+      case "CN":
+        return "asia";
+    }
+
+    // EU/UK-ish approximation used by the existing shop promo pools.
+    var EU_CODES = ["PL", "DE", "FR", "GB", "IE", "NL", "ES", "SE", "NO", "DK", "IT", "AT", "CH", "BE", "LU", "CZ", "HU", "RO", "BG", "HR", "GR"];
+    if (EU_CODES.indexOf(cc) >= 0) return "eu";
+    return "";
+  }
+
   function readRegionMode() {
     try {
       return String(localStorage.getItem(REGION_KEY) || "auto").trim().toLowerCase() || "auto";
@@ -176,7 +237,16 @@
   }
 
   var regionMode = readRegionMode();
-  var resolvedRegion = regionMode === "auto" ? inferRegionFromTimezone() : regionMode;
+  var resolvedRegion = regionMode === "auto" ? (() => {
+    try {
+      var auth = getStoredAuthUser();
+      var cc = auth && auth.user ? auth.user.countryCode : "";
+      var byCc = inferRegionFromCountryCode(cc);
+      return byCc || inferRegionFromTimezone();
+    } catch {
+      return inferRegionFromTimezone();
+    }
+  })() : regionMode;
   var map = mapByRegion[resolvedRegion] || mapByRegion.africa;
   var categories = Object.keys(map);
   var cat = requested === "All" ? "All" : categories.indexOf(requested) >= 0 ? requested : "Electronics";

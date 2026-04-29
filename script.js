@@ -1589,6 +1589,12 @@ function initSerendipityAntiHijackGuard() {
       if (!guardedHashes.has(hash)) {
         return;
       }
+      // Serendipity is in emergency “disabled” mode on some builds.
+      // When it's disabled, we must not hijack normal internal navigation.
+      const serendipityLane = document.getElementById("vcSerendipityLane");
+      if (!serendipityLane || serendipityLane.hidden) {
+        return;
+      }
       if (anchor.hasAttribute("data-allow-serendipity-nav")) {
         allowOneSerendipityJump();
         return;
@@ -1604,6 +1610,10 @@ function initSerendipityAntiHijackGuard() {
   window.addEventListener("hashchange", () => {
     const hash = String(window.location.hash || "").replace(/^#/, "").trim();
     if (!guardedHashes.has(hash)) {
+      return;
+    }
+    const serendipityLane = document.getElementById("vcSerendipityLane");
+    if (!serendipityLane || serendipityLane.hidden) {
       return;
     }
     if (consumeSerendipityJumpAllowance()) {
