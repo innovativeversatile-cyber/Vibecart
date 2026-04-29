@@ -1364,6 +1364,102 @@
     apply(initial);
   }
 
+  function initExperienceModeLite() {
+    var fullBtn = document.getElementById("vcPersonaFun");
+    var homeBtn = document.getElementById("vcPersonaEff");
+    var status = document.getElementById("vcPersonaStatus");
+    var modeSelect = document.getElementById("interactionMode");
+    var marketMode = document.getElementById("marketMode");
+    if (!fullBtn || !homeBtn) return;
+    var STORE_KEY = "vibecart-home-lite-experience-mode";
+
+    function apply(mode) {
+      var isFull = mode === "full";
+      document.body.classList.toggle("vc-layout-aura", isFull);
+      document.body.classList.toggle("vc-layout-exclusive", !isFull);
+      document.body.classList.toggle("vc-mode-full-experience", isFull);
+      document.body.classList.toggle("vc-mode-home-focused", !isFull);
+      fullBtn.classList.toggle("btn-primary", isFull);
+      fullBtn.classList.toggle("btn-secondary", !isFull);
+      homeBtn.classList.toggle("btn-primary", !isFull);
+      homeBtn.classList.toggle("btn-secondary", isFull);
+      fullBtn.setAttribute("aria-pressed", isFull ? "true" : "false");
+      homeBtn.setAttribute("aria-pressed", isFull ? "false" : "true");
+      if (status) {
+        status.textContent = isFull
+          ? "Full experience live — richer visuals and expanded context are active."
+          : "Home focused live — cleaner layout and reduced visual noise are active.";
+      }
+      if (marketMode) {
+        marketMode.textContent = isFull
+          ? "Market mode: Full experience. All AI, communication, and control panels are active."
+          : "Market mode: Home focused. Simplified interface with fewer blocks and faster path to shops.";
+      }
+      if (modeSelect) {
+        modeSelect.value = isFull ? "pro" : "simple";
+      }
+      try {
+        localStorage.setItem(STORE_KEY, isFull ? "full" : "home");
+      } catch {
+        /* ignore */
+      }
+    }
+
+    fullBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      apply("full");
+    });
+    homeBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      apply("home");
+    });
+    if (modeSelect) {
+      modeSelect.addEventListener("change", function () {
+        var val = String(modeSelect.value || "guided");
+        apply(val === "pro" ? "full" : "home");
+      });
+    }
+    var initial = "home";
+    try {
+      var stored = String(localStorage.getItem(STORE_KEY) || "").trim();
+      if (stored === "full" || stored === "home") initial = stored;
+    } catch {
+      /* ignore */
+    }
+    apply(initial);
+  }
+
+  function initAutonomousDebugLite() {
+    var runBtn = document.getElementById("vcRunAutoDebug");
+    var out = document.getElementById("vcAutoDebugOutput");
+    if (!runBtn || !out) return;
+    function run() {
+      var checks = [];
+      function add(ok, name, detail) {
+        checks.push({ ok: !!ok, name: name, detail: String(detail || "") });
+      }
+      add(!!document.getElementById("openOnboarding"), "Smart Tour trigger", "Start button visible");
+      add(!!document.getElementById("vcPersonaFun") && !!document.getElementById("vcPersonaEff"), "Experience toggles", "Both mode buttons mounted");
+      add(!!document.getElementById("interactionMode"), "Interaction selector", "Mode select mounted");
+      var links = Array.prototype.slice.call(document.querySelectorAll("a[href]"));
+      var bad = links.filter(function (a) {
+        var href = String(a.getAttribute("href") || "").trim().toLowerCase();
+        return href.indexOf("javascript:") === 0 || href === "";
+      });
+      add(bad.length === 0, "Unsafe links", bad.length ? String(bad.length) + " unsafe href(s)" : "No unsafe hrefs");
+      var failed = checks.filter(function (c) { return !c.ok; }).length;
+      var lines = ["Autonomous Debug Copilot: " + String(checks.length - failed) + "/" + String(checks.length) + " checks passed."];
+      checks.forEach(function (c) {
+        lines.push((c.ok ? "PASS" : "FAIL") + " - " + c.name + ": " + c.detail);
+      });
+      out.textContent = lines.join("\n");
+    }
+    runBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      run();
+    });
+  }
+
   function initListingHealthLite() {
     var checks = Array.prototype.slice.call(document.querySelectorAll("input[data-vc-lh-key]"));
     var bars = Array.prototype.slice.call(document.querySelectorAll(".vc-lh-bar[data-vc-lh]"));
@@ -2093,12 +2189,14 @@
       initCommunicationLite();
       initHomepageFocusLite();
       initRequestedSectionSwapsLite();
-      if (featureOn("advancedSmartTourV1")) initSmartTourLite();
+      initSmartTourLite();
       if (featureOn("advancedShockReelV1")) initShockReelLite();
       if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
       if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
       if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
-      if (featureOn("advancedPersonaChooserV1")) initPersonaChooserLite();
+      initPersonaChooserLite();
+      initExperienceModeLite();
+      initAutonomousDebugLite();
       if (featureOn("advancedListingHealthV1")) initListingHealthLite();
       if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
       if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();

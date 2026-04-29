@@ -37,7 +37,10 @@
       Fashion: [
         { name: "Superbalist", url: "https://www.superbalist.com", promoUrl: "https://superbalist.com/sale", desc: "South Africa fashion and lifestyle." },
         { name: "Jumia Fashion", url: "https://www.jumia.com/fashion", promoUrl: "https://www.jumia.com/fashion-by-jumia/", desc: "Fashion shops across African market lanes." },
-        { name: "Konga Fashion", url: "https://www.konga.com", promoUrl: "https://www.konga.com/sale", desc: "Nigeria fashion and marketplace deals." }
+        { name: "Konga Fashion", url: "https://www.konga.com", promoUrl: "https://www.konga.com/sale", desc: "Nigeria fashion and marketplace deals." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fast-fashion promotions accessible in many African routes." },
+        { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Global Zara sale lane with cross-border options." },
+        { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M markdown lane for cross-border fashion deals." }
       ],
       Books: [
         { name: "Exclusive Books", url: "https://www.exclusivebooks.co.za", promoUrl: "https://www.exclusivebooks.co.za/collections/deals", desc: "South Africa books and educational material." },
@@ -56,7 +59,10 @@
       ],
       Fashion: [
         { name: "Superbalist", url: "https://www.superbalist.com", promoUrl: "https://superbalist.com/sale", desc: "South Africa fashion marketplace." },
-        { name: "Bash", url: "https://bash.com", promoUrl: "https://bash.com/sale", desc: "South Africa online fashion destination." }
+        { name: "Bash", url: "https://bash.com", promoUrl: "https://bash.com/sale", desc: "South Africa online fashion destination." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Cross-border fast-fashion promotions." },
+        { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Zara sale lane for South Africa shoppers." },
+        { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M markdown lane for South Africa shoppers." }
       ],
       Books: [{ name: "Exclusive Books", url: "https://www.exclusivebooks.co.za", promoUrl: "https://www.exclusivebooks.co.za/collections/deals", desc: "Books and educational materials." }],
       Gaming: [{ name: "BT Games", url: "https://www.btgames.co.za", promoUrl: "https://www.btgames.co.za/specials", desc: "Gaming and console deals." }]
