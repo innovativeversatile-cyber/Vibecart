@@ -592,21 +592,16 @@
     function forceClose(ev) {
       if (ev) {
         ev.preventDefault();
+        if (typeof ev.stopImmediatePropagation === "function") {
+          ev.stopImmediatePropagation();
+        }
         ev.stopPropagation();
       }
       hide();
     }
     close && close.addEventListener("click", forceClose);
     close && close.addEventListener("touchend", forceClose, { passive: false });
-    document.addEventListener(
-      "click",
-      function (ev) {
-        var closeHit = ev.target && ev.target.closest ? ev.target.closest("#vcQuickActionClose") : null;
-        if (!closeHit) return;
-        forceClose(ev);
-      },
-      true
-    );
+    close && close.addEventListener("pointerup", forceClose);
     document.addEventListener("keydown", function (ev) {
       if (!ev) return;
       if (String(ev.key || "") === "Escape" && sheet.hidden === false) {
@@ -619,7 +614,13 @@
     sheet.addEventListener("click", function (ev) {
       var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
       if (!link) return;
+      ev.preventDefault();
+      var href = String(link.getAttribute("href") || "").trim();
       hide();
+      if (!href) return;
+      window.setTimeout(function () {
+        window.location.assign(href);
+      }, 16);
     });
     sheet.addEventListener("touchstart", function (ev) {
       var t = ev.changedTouches && ev.changedTouches[0];
