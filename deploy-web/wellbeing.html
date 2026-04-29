@@ -6,7 +6,7 @@
   <title>Health &amp; fitness coach · VibeCart</title>
   <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
   <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260430quickmatchtap1" />
+  <link rel="stylesheet" href="./styles.css?v=20260430coachclean1" />
 </head>
 <body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
@@ -139,6 +139,9 @@
       </div>
       <p class="hero-actions" style="margin-top:0.65rem">
         <button id="coachMatchBtn" class="btn btn-primary" type="button">Generate coach recommendation</button>
+      </p>
+      <p class="note" id="coachMatcherHint" style="margin-top: 0.35rem; font-size: 0.85rem">
+        Tip: tick the coach disclaimer above first, then tap generate. Weights are optional but improve the match.
       </p>
       <p id="coachMatchOut" class="note" aria-live="polite"></p>
     </section>
@@ -287,22 +290,11 @@
             "h. Add current and target weight (kg) for a tighter match.";
         renderMatch(recommendedPlan, note);
       }
-      var skipMatchClick = false;
-      btn.addEventListener("touchend", function (ev) {
-        skipMatchClick = true;
-        ev.preventDefault();
-        runMatch();
-      }, { passive: false });
       btn.addEventListener("click", function () {
-        if (skipMatchClick) {
-          skipMatchClick = false;
-          return;
-        }
         runMatch();
       });
     })();
   </script>
-  <script src="./mobile-app-shell.js?v=20260430quickmatchtap1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

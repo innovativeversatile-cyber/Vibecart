@@ -1132,6 +1132,10 @@
     if (!isApp && !isPhone) {
       return;
     }
+    /* Health & coach lane: no floating Quick / mission / streak — keeps the page calm for forms + checkout. */
+    if (document.body && document.body.classList.contains("health-coach-page")) {
+      return;
+    }
     if (isApp) {
       document.body.classList.add("vc-mobile-shell");
       ensureAiCoach();
