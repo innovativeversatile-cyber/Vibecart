@@ -261,6 +261,39 @@
     });
   }
 
+  function initBackToTop() {
+    if (document.getElementById("vcBackTop")) return;
+    var backTop = document.createElement("button");
+    backTop.id = "vcBackTop";
+    backTop.type = "button";
+    backTop.className = "vc-back-top";
+    backTop.setAttribute("aria-label", "Back to top");
+    backTop.textContent = "↑ Top";
+    document.body.appendChild(backTop);
+    function paint() {
+      backTop.classList.toggle("is-visible", Number(window.scrollY || 0) > 420);
+    }
+    backTop.addEventListener("click", function () {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+    window.addEventListener("scroll", paint, { passive: true });
+    paint();
+  }
+
+  function initDeadEndLinkGuard() {
+    if (document.body.getAttribute("data-vc-deadend-guard") === "1") return;
+    document.body.setAttribute("data-vc-deadend-guard", "1");
+    document.addEventListener(
+      "click",
+      function (event) {
+        var anchor = event.target && event.target.closest ? event.target.closest("a[href='#']") : null;
+        if (!anchor) return;
+        event.preventDefault();
+      },
+      true
+    );
+  }
+
   function applyLuxeClasses(on) {
     document.body.classList.toggle("vc-luxe-on", !!on);
     document.body.classList.toggle("vc-luxe-off", !on);
@@ -597,6 +630,8 @@
   bootLuxeMode();
   initLaneScrollRestore();
   initTopbarAutoHide();
+  initBackToTop();
+  initDeadEndLinkGuard();
   var sceneDirector = initSceneDirector();
   initRevealEffects();
   initPointerAmbience();

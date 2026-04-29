@@ -2868,6 +2868,43 @@
     });
   }
 
+  function initBackToTopLite() {
+    if (document.getElementById("vcBackTop")) return;
+    var backTop = document.createElement("button");
+    backTop.id = "vcBackTop";
+    backTop.type = "button";
+    backTop.className = "vc-back-top";
+    backTop.setAttribute("aria-label", "Back to top");
+    backTop.textContent = "↑ Top";
+    document.body.appendChild(backTop);
+    function paint() {
+      backTop.classList.toggle("is-visible", Number(window.scrollY || 0) > 420);
+    }
+    backTop.addEventListener("click", function () {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+    window.addEventListener("scroll", paint, { passive: true });
+    paint();
+  }
+
+  function initDeadEndLinkGuardLite() {
+    if (document.body.getAttribute("data-vc-deadend-guard") === "1") return;
+    document.body.setAttribute("data-vc-deadend-guard", "1");
+    document.addEventListener(
+      "click",
+      function (event) {
+        var anchor = event.target && event.target.closest ? event.target.closest("a[href='#']") : null;
+        if (!anchor) return;
+        event.preventDefault();
+        var status = document.getElementById("expressCheckoutStatus");
+        if (status) {
+          status.textContent = "This action is not available on this screen yet. Use a visible lane button.";
+        }
+      },
+      true
+    );
+  }
+
   function initHardPassPublishPreflightLite() {
     if (!featureOn("hardPass_publishPreflight_v1")) return;
     var hint = document.getElementById("vcHardPassPublishHint");
@@ -2952,6 +2989,8 @@
     if (featureOn("hardPass_publishPreflight_v1")) safeInit("initHardPassPublishPreflightLite", initHardPassPublishPreflightLite);
     if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassMissionJourneyLite", initHardPassMissionJourneyLite);
     safeInit("initNavAutoHideLite", initNavAutoHideLite);
+    safeInit("initBackToTopLite", initBackToTopLite);
+    safeInit("initDeadEndLinkGuardLite", initDeadEndLinkGuardLite);
   }
 
   if (document.readyState === "loading") {

@@ -3344,6 +3344,30 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   pointer-events: none;
 }
 
+.vc-back-top {
+  position: fixed;
+  right: 14px;
+  bottom: 16px;
+  z-index: 120;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(10, 14, 26, 0.92);
+  color: rgba(240, 246, 255, 0.95);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.vc-back-top.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
 .shops-lane-main {
   max-width: min(1180px, 94vw);
   margin: 1rem auto 2.5rem;

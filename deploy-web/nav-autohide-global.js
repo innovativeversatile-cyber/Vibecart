@@ -83,4 +83,40 @@
     }
     lastY = Math.max(0, Math.round(window.scrollY || 0));
   });
+
+  function initBackToTop() {
+    if (document.getElementById("vcBackTop")) return;
+    var btn = document.createElement("button");
+    btn.id = "vcBackTop";
+    btn.type = "button";
+    btn.className = "vc-back-top";
+    btn.setAttribute("aria-label", "Back to top");
+    btn.textContent = "↑ Top";
+    document.body.appendChild(btn);
+    function paint() {
+      btn.classList.toggle("is-visible", Number(window.scrollY || 0) > 420);
+    }
+    btn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+    window.addEventListener("scroll", paint, { passive: true });
+    paint();
+  }
+
+  function initDeadEndLinkGuard() {
+    if (document.body.getAttribute("data-vc-deadend-guard") === "1") return;
+    document.body.setAttribute("data-vc-deadend-guard", "1");
+    document.addEventListener(
+      "click",
+      function (event) {
+        var anchor = event.target && event.target.closest ? event.target.closest("a[href='#']") : null;
+        if (!anchor) return;
+        event.preventDefault();
+      },
+      true
+    );
+  }
+
+  initBackToTop();
+  initDeadEndLinkGuard();
 })();
