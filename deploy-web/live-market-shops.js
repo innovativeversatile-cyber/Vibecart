@@ -113,9 +113,15 @@
       ],
       Fashion: [
         { name: "Zalando", url: "https://www.zalando.com", promoUrl: "https://www.zalando.com/sale/", desc: "EU fashion and lifestyle." },
-        { name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "EU youth fashion." }
+        { name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "EU youth fashion." },
+        { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Global Zara sale lane for EU shoppers." },
+        { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_eur/sale.html", desc: "H&M seasonal promotions in EU lanes." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Fast-fashion flash campaigns." }
       ],
-      Books: [{ name: "Empik", url: "https://www.empik.com", promoUrl: "https://www.empik.com/promocje", desc: "Books and study resources in Poland." }],
+      Books: [
+        { name: "Empik", url: "https://www.empik.com", promoUrl: "https://www.empik.com/promocje", desc: "Books and study resources in Poland." },
+        { name: "Notino", url: "https://www.notino.com", promoUrl: "https://www.notino.com/sale/", desc: "Beauty and fragrance discounts popular across EU markets." }
+      ],
       Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "EU gaming demand and bundles." }]
     },
     gulf: {
@@ -129,14 +135,26 @@
         { name: "Shopee", url: "https://shopee.sg", promoUrl: "https://shopee.sg/m/flash-deals", desc: "Asia mobile electronics demand." },
         { name: "Lazada", url: "https://www.lazada.sg", promoUrl: "https://www.lazada.sg/shop-electronics/", desc: "Southeast Asia electronics marketplace." }
       ],
-      Fashion: [{ name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Asia-driven fast fashion trends." }],
+      Fashion: [
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Asia-driven fast fashion trends." },
+        { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Zara global sale lane for Asia shoppers." },
+        { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_asia/sale.html", desc: "H&M markdown lane in Asia routes." }
+      ],
       Books: [{ name: "Rakuten Books", url: "https://books.rakuten.co.jp", promoUrl: "https://books.rakuten.co.jp/event/book/", desc: "Japan books and manga." }],
       Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "Asia regional gaming demand." }]
     },
     global: {
       Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/s?i=electronics", promoUrl: "https://www.amazon.com/gp/goldbox", desc: "Global electronics marketplace." }],
-      Fashion: [{ name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "Global youth fashion." }],
-      Books: [{ name: "AbeBooks", url: "https://www.abebooks.com", promoUrl: "https://www.abebooks.com/books/bestsellers/", desc: "Global books and textbooks." }],
+      Fashion: [
+        { name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "Global youth fashion." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fashion promotions and coupons." },
+        { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Global Zara sale lane." },
+        { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M global markdown lane." }
+      ],
+      Books: [
+        { name: "AbeBooks", url: "https://www.abebooks.com", promoUrl: "https://www.abebooks.com/books/bestsellers/", desc: "Global books and textbooks." },
+        { name: "Notino", url: "https://www.notino.com", promoUrl: "https://www.notino.com/sale/", desc: "Global beauty and fragrance sale lane." }
+      ],
       Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "Global gaming marketplace." }]
     }
   };

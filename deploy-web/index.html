@@ -1628,7 +1628,7 @@
                 Full Aura embrace: gradients, pulse logo, softer corners — tuned for phones first.
               </p>
               <button type="button" class="btn btn-primary" id="vcPersonaFun" aria-pressed="false" data-i18n="orbit.personaFun">
-                Aura
+                Full experience
               </button>
             </div>
             <div class="vc-orbit-card">
@@ -1636,7 +1636,7 @@
                 Exclusive layout: minimal chrome, crisp grids, faster visual rhythm on small screens.
               </p>
               <button type="button" class="btn btn-secondary" id="vcPersonaEff" aria-pressed="true" data-i18n="orbit.personaEff">
-                Exclusive
+                Back to home focused
               </button>
             </div>
           </div>
@@ -2187,6 +2187,18 @@
                 <span data-i18n="settingsHub.calmMoment">Calm moment after browsing (one short screen per session — respects reduced motion)</span>
               </label>
             </div>
+          </article>
+          <article class="settings-card settings-card--wide">
+            <span class="vc-icon vc-icon-security" aria-hidden="true"></span>
+            <h3>Autonomous Debug Copilot</h3>
+            <p class="note">
+              Run automatic platform checks for broken flows, hidden blockers, and unsafe links. This gives a fast bug
+              report before manual QA.
+            </p>
+            <div class="hero-actions">
+              <button id="vcRunAutoDebug" type="button" class="btn btn-primary">Run full debug sweep</button>
+            </div>
+            <pre id="vcAutoDebugOutput" class="vc-auto-debug-output" aria-live="polite">No debug sweep has run yet.</pre>
           </article>
         </div>
 

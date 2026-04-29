@@ -5792,6 +5792,34 @@ body.vc-layout-exclusive .shop-search-input {
   background: rgba(5, 7, 12, 0.95);
 }
 
+body.vc-mode-full-experience .hero {
+  box-shadow: 0 18px 44px rgba(255, 98, 180, 0.22);
+}
+
+body.vc-mode-home-focused .hero,
+body.vc-interaction-simple .hero {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+body.vc-interaction-simple .page-group--grow,
+body.vc-interaction-simple #seller-ai-toolkit,
+body.vc-interaction-simple #seller-marketing {
+  opacity: 0.88;
+}
+
+.vc-auto-debug-output {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 8, 16, 0.8);
+  color: rgba(212, 243, 255, 0.95);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 860px) {
   .topbar-primary {
     flex-direction: column;
