@@ -482,17 +482,7 @@
         if (searchStatus) searchStatus.textContent = "This listing link is unavailable.";
         return;
       }
-      var targetUrl = String(shop.url || "").trim();
-      var redirectedHref =
-        "/api/public/shop/redirect?shop=" +
-        encodeURIComponent(String(shop.name || "Shop")) +
-        "&cat=" +
-        encodeURIComponent(String(category || "All")) +
-        "&partner=" +
-        encodeURIComponent(String(shop.name || "Shop")) +
-        "&target=" +
-        encodeURIComponent(targetUrl);
-      a.href = redirectedHref;
+      a.href = String(shop.url || "").trim();
       if (disclaimerAck && !disclaimerAck.checked) {
         if (searchStatus) searchStatus.textContent = "Tip: tick the marketplace disclaimer for safer buying guidance.";
       }
@@ -556,15 +546,7 @@
       var card = document.createElement("article");
       card.className = "vc-promo-card";
       var promoTarget = String(promo.promoUrl || promo.shopUrl || "").trim();
-      var promoHref =
-        "/api/public/shop/redirect?shop=" +
-        encodeURIComponent(String(promo.shop || "Shop")) +
-        "&cat=" +
-        encodeURIComponent(String(promo.category || "All")) +
-        "&partner=" +
-        encodeURIComponent(String(promo.shop || "Shop")) +
-        "&target=" +
-        encodeURIComponent(promoTarget);
+      var promoHref = promoTarget;
       card.innerHTML =
         "<img src='" + promo.image + "' alt='" + promo.shop + " promotion image' loading='lazy' />" +
         "<div class='vc-promo-card-copy'>" +

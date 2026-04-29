@@ -1038,14 +1038,21 @@
       nextBtn.textContent = idx >= steps.length - 1 ? "Finish" : "Next";
     }
 
+    var status = document.getElementById("expressCheckoutStatus");
+
     function openModal() {
       idx = 0;
       render();
       modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      if (status) {
+        status.textContent = "Smart Tour: quick guide for safer shopping and faster decisions.";
+      }
     }
 
     function closeModal() {
       modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
     }
 
     openBtn.addEventListener("click", function (event) {
@@ -1427,6 +1434,134 @@
       /* ignore */
     }
     apply(initial);
+  }
+
+  function initTopClassActivationLite() {
+    var activateBtn = document.getElementById("activatePremiumExperience");
+    var autoRenew = document.getElementById("premiumAutoRenew");
+    var renewStatus = document.getElementById("premiumRenewStatus");
+    var planHeadline = document.getElementById("premiumPlanHeadline");
+    var planLead = document.getElementById("premiumPlanLead");
+    var priceChip = document.getElementById("premiumPlanPriceChip");
+    var expressStatus = document.getElementById("expressCheckoutStatus");
+    if (!activateBtn) return;
+
+    var STORE_KEY = "vibecart-top-class-membership-v1";
+    var FLOW_KEY = "vibecart-top-class-flow-step-v1";
+
+    function readState() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function writeState(state) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function readStep() {
+      try {
+        return String(localStorage.getItem(FLOW_KEY) || "idle").trim() || "idle";
+      } catch {
+        return "idle";
+      }
+    }
+
+    function writeStep(step) {
+      try {
+        localStorage.setItem(FLOW_KEY, String(step || "idle"));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function applyActivatedUi(active) {
+      document.body.classList.toggle("vc-top-class-active", active === true);
+      if (!planHeadline || !planLead || !priceChip) return;
+      if (active) {
+        planHeadline.textContent = "Top-Class active: ultra-premium commerce lane unlocked.";
+        planLead.textContent =
+          "You now have concierge-first routing, elevated cinematic interface, and priority support treatment across critical flows.";
+        priceChip.textContent = "Top-Class active";
+        return;
+      }
+      planHeadline.textContent = "A completely sophisticated luxury lane.";
+      planLead.textContent =
+        "Unlock premium visuals, AI concierge support, priority routing, and advanced discovery signals.";
+      priceChip.textContent = "EUR 39.99 / month";
+    }
+
+    function paintFlow(step, active) {
+      if (active) {
+        activateBtn.textContent = "Top-Class activated";
+        activateBtn.disabled = true;
+        activateBtn.setAttribute("aria-disabled", "true");
+        if (renewStatus) {
+          renewStatus.textContent = "Top-Class is active. Premium interface and perks are now live.";
+        }
+        if (expressStatus) {
+          expressStatus.textContent = "Top-Class active. Concierge checkout and priority routes enabled.";
+        }
+        return;
+      }
+      activateBtn.disabled = false;
+      activateBtn.removeAttribute("aria-disabled");
+      if (step === "confirm") {
+        activateBtn.textContent = "Step 2 of 2: Confirm purchase";
+        if (renewStatus) {
+          renewStatus.textContent = "Step 2 pending: confirm purchase to unlock Top-Class interface now.";
+        }
+        return;
+      }
+      activateBtn.textContent = "Step 1 of 2: Start Top-Class purchase";
+      if (renewStatus) {
+        renewStatus.textContent = "Two-step purchase: start purchase, then confirm to activate.";
+      }
+    }
+
+    var state = readState();
+    var active = state.active === true;
+    var step = readStep();
+    applyActivatedUi(active);
+    paintFlow(step, active);
+
+    if (autoRenew) {
+      autoRenew.checked = state.autoRenew !== false;
+      autoRenew.addEventListener("change", function () {
+        var next = readState();
+        next.autoRenew = autoRenew.checked === true;
+        writeState(next);
+      });
+    }
+
+    activateBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var current = readState();
+      if (current.active === true) return;
+      var currentStep = readStep();
+      if (currentStep !== "confirm") {
+        writeStep("confirm");
+        paintFlow("confirm", false);
+        if (expressStatus) {
+          expressStatus.textContent = "Purchase step 1 complete. Click again to confirm Top-Class activation.";
+        }
+        return;
+      }
+      current.active = true;
+      current.activatedAt = new Date().toISOString();
+      current.autoRenew = autoRenew ? autoRenew.checked === true : true;
+      writeState(current);
+      writeStep("done");
+      applyActivatedUi(true);
+      paintFlow("done", true);
+    });
   }
 
   function initAutonomousDebugLite() {
@@ -2185,6 +2320,7 @@
     // Critical paths first, each isolated from unrelated failures.
     safeInit("initSmartTourLite", initSmartTourLite);
     safeInit("initExperienceModeLite", initExperienceModeLite);
+    safeInit("initTopClassActivationLite", initTopClassActivationLite);
     safeInit("initAutonomousDebugLite", initAutonomousDebugLite);
     safeInit("initPersonaChooserLite", initPersonaChooserLite);
     safeInit("initHashLinks", initHashLinks);

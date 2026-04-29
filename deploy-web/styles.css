@@ -6920,6 +6920,7 @@ html.vc-mobile-kinetic main .page-group {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   background: linear-gradient(155deg, rgba(16, 20, 32, 0.9), rgba(10, 12, 22, 0.95));
+  padding: 1rem;
 }
 
 .vc-visual-splash-title {
@@ -6932,8 +6933,8 @@ html.vc-mobile-kinetic main .page-group {
 
 .vc-visual-splash-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .vc-epic-experience {
@@ -6941,6 +6942,7 @@ html.vc-mobile-kinetic main .page-group {
   border-radius: 14px;
   background: linear-gradient(155deg, rgba(12, 14, 26, 0.96), rgba(8, 10, 18, 0.98));
   overflow: hidden;
+  padding: 0.85rem;
 }
 
 .vc-epic-head {
@@ -7130,9 +7132,15 @@ html.vc-mobile-kinetic main .page-group {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  min-height: 170px;
+  min-height: 210px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+@media (min-width: 1200px) {
+  .vc-visual-splash-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .vc-visual-tile img,
@@ -7163,16 +7171,17 @@ html.vc-mobile-kinetic main .page-group {
     display: none;
   }
   .vc-visual-splash-grid {
-    display: flex;
-    overflow-x: auto;
-    gap: 0.55rem;
-    padding-bottom: 0.2rem;
-    scroll-snap-type: x mandatory;
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: visible;
+    gap: 0.65rem;
+    padding-bottom: 0;
+    scroll-snap-type: none;
   }
   .vc-visual-tile {
-    min-width: 78%;
+    min-width: 100%;
     min-height: 190px;
-    scroll-snap-align: start;
+    scroll-snap-align: none;
   }
   .vc-epic-track {
     min-height: 360px;
@@ -7210,6 +7219,25 @@ html.vc-mobile-kinetic main .page-group {
   .vc-mobile-rail-sub {
     display: none;
   }
+}
+
+body.vc-top-class-active {
+  background:
+    radial-gradient(120% 85% at 10% 0%, rgba(255, 196, 120, 0.18), transparent 60%),
+    radial-gradient(120% 90% at 90% 0%, rgba(102, 236, 193, 0.16), transparent 62%),
+    linear-gradient(180deg, #07050f 0%, #0b0818 45%, #08060f 100%);
+}
+
+body.vc-top-class-active .hero,
+body.vc-top-class-active .section {
+  border-color: rgba(255, 214, 130, 0.32);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 214, 130, 0.12) inset;
+}
+
+body.vc-top-class-active .vc-visual-tile,
+body.vc-top-class-active .vc-epic-experience {
+  transform: translateZ(0) scale(1.01);
+  border-color: rgba(102, 236, 193, 0.38);
 }
 
 .vc-experience-shell {
