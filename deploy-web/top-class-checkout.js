@@ -41,8 +41,8 @@
 
     activateBtn.hidden = true;
     startBtn.hidden = false;
-    statusEl.textContent = "Step 1: continue to Stripe checkout to pay and unlock Top-Class.";
-    startBtn.addEventListener("click", function () {
+    statusEl.textContent = "Step 1: continue to secure checkout to pay and unlock Top-Class.";
+    startBtn.addEventListener("click", async function () {
       var method = String((methodEl && methodEl.value) || "card").trim() || "card";
       var email = String((emailEl && emailEl.value) || "").trim();
       var name = String((nameEl && nameEl.value) || "").trim();
@@ -50,15 +50,31 @@
         statusEl.textContent = "Enter a valid email before checkout.";
         return;
       }
-      statusEl.textContent = "Opening Stripe checkout...";
-      var target =
-        "/api/public/payments/checkout/redirect?flow=top_class&plan=prestige&paymentMethod=" +
-        encodeURIComponent(method) +
-        "&customerEmail=" +
-        encodeURIComponent(email) +
-        "&customerName=" +
-        encodeURIComponent(name);
-      window.location.assign(target);
+      startBtn.disabled = true;
+      statusEl.textContent = "Opening secure checkout...";
+      try {
+        var response = await fetch("/api/public/payments/checkout/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            flow: "top_class",
+            plan: "prestige",
+            paymentMethod: method,
+            customerEmail: email,
+            customerName: name
+          })
+        });
+        var payload = await response.json().catch(function () { return {}; });
+        if (!response.ok || !payload.ok || !payload.redirectUrl) {
+          statusEl.textContent = "Checkout is temporarily unavailable. Please retry in a moment.";
+          startBtn.disabled = false;
+          return;
+        }
+        window.location.assign(String(payload.redirectUrl));
+      } catch {
+        statusEl.textContent = "Could not open checkout right now. Please retry.";
+        startBtn.disabled = false;
+      }
     });
   }
 

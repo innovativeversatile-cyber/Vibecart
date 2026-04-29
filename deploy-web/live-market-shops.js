@@ -38,7 +38,7 @@
         { name: "Superbalist", url: "https://www.superbalist.com", promoUrl: "https://superbalist.com/sale", desc: "South Africa fashion and lifestyle." },
         { name: "Jumia Fashion", url: "https://www.jumia.com/fashion", promoUrl: "https://www.jumia.com/fashion-by-jumia/", desc: "Fashion shops across African market lanes." },
         { name: "Konga Fashion", url: "https://www.konga.com", promoUrl: "https://www.konga.com/sale", desc: "Nigeria fashion and marketplace deals." },
-        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fast-fashion promotions accessible in many African routes." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Global fast-fashion promotions accessible in many African routes." },
         { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Global Zara sale lane with cross-border options." },
         { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M markdown lane for cross-border fashion deals." }
       ],
@@ -60,7 +60,7 @@
       Fashion: [
         { name: "Superbalist", url: "https://www.superbalist.com", promoUrl: "https://superbalist.com/sale", desc: "South Africa fashion marketplace." },
         { name: "Bash", url: "https://bash.com", promoUrl: "https://bash.com/sale", desc: "South Africa online fashion destination." },
-        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Cross-border fast-fashion promotions." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Cross-border fast-fashion promotions." },
         { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Zara sale lane for South Africa shoppers." },
         { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M markdown lane for South Africa shoppers." }
       ],
@@ -108,7 +108,7 @@
     },
     zw: {
       Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/electronics", promoUrl: "https://www.amazon.com/gp/goldbox", desc: "Global electronics with Zimbabwe-compatible delivery lanes." }],
-      Fashion: [{ name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fashion promotions." }],
+      Fashion: [{ name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Global fashion promotions." }],
       Books: [{ name: "AbeBooks", url: "https://www.abebooks.com", promoUrl: "https://www.abebooks.com/books/bestsellers/", desc: "Books and textbooks across global routes." }],
       Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "PC gaming storefront." }]
     },
@@ -122,7 +122,7 @@
         { name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "EU youth fashion." },
         { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Global Zara sale lane for EU shoppers." },
         { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_eur/sale.html", desc: "H&M seasonal promotions in EU lanes." },
-        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Fast-fashion flash campaigns." }
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Fast-fashion flash campaigns." }
       ],
       Books: [
         { name: "Empik", url: "https://www.empik.com", promoUrl: "https://www.empik.com/promocje", desc: "Books and study resources in Poland." },
@@ -142,7 +142,7 @@
         { name: "Lazada", url: "https://www.lazada.sg", promoUrl: "https://www.lazada.sg/shop-electronics/", desc: "Southeast Asia electronics marketplace." }
       ],
       Fashion: [
-        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Asia-driven fast fashion trends." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Asia-driven fast fashion trends." },
         { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Zara global sale lane for Asia shoppers." },
         { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_asia/sale.html", desc: "H&M markdown lane in Asia routes." }
       ],
@@ -153,7 +153,7 @@
       Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/s?i=electronics", promoUrl: "https://www.amazon.com/gp/goldbox", desc: "Global electronics marketplace." }],
       Fashion: [
         { name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "Global youth fashion." },
-        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fashion promotions and coupons." },
+        { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Global fashion promotions and coupons." },
         { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Global Zara sale lane." },
         { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M global markdown lane." }
       ],
@@ -167,7 +167,7 @@
 
   function ensureFrequentFashionShopsEverywhere() {
     var fallbackFashion = [
-      { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fast-fashion promotions." },
+      { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/", desc: "Global fast-fashion promotions." },
       { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Zara global sale lane." },
       { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M markdown lane with seasonal campaigns." },
       { name: "Notino", url: "https://www.notino.com", promoUrl: "https://www.notino.com/sale/", desc: "Beauty and fragrance promotions." }

@@ -58,7 +58,7 @@
     if (!promoGrid || !shopGrid) return;
 
     var critical = [
-      { name: "SHEIN", promoUrl: "https://www.shein.com/campaigns/sale" },
+      { name: "SHEIN", promoUrl: "https://www.shein.com/" },
       { name: "Zara", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html" },
       { name: "H&M", promoUrl: "https://www2.hm.com/en_gb/sale.html" },
       { name: "Notino", promoUrl: "https://www.notino.com/sale/" }

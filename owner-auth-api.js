@@ -3489,6 +3489,10 @@ async function handlePublicCheckoutStart(req, res) {
     custom_text: stripeCheckoutCustomText(),
     customer: customerId || undefined,
     customer_email: customerId ? undefined : String(body.customerEmail || "").trim() || undefined,
+    customer_update: {
+      address: "auto",
+      name: "auto"
+    },
     payment_method_types: paymentTypes,
     line_items: [
       {
@@ -3573,6 +3577,10 @@ async function handlePublicCheckoutRedirect(req, res) {
     custom_text: stripeCheckoutCustomText(),
     customer: customerId || undefined,
     customer_email: customerId ? undefined : customerEmail || undefined,
+    customer_update: {
+      address: "auto",
+      name: "auto"
+    },
     payment_method_types: paymentTypes,
     line_items: [
       {
