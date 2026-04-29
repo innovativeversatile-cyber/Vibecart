@@ -8809,19 +8809,6 @@ html.vc-phone:not(.vc-motion-rich) body {
     backface-visibility: hidden;
   }
 
-  html.vc-mobile-app.vc-motion-rich .hero-captivate-bg,
-  html.vc-phone.vc-motion-rich .hero-captivate-bg {
-    mix-blend-mode: normal !important;
-    background-blend-mode: normal !important;
-  }
-
-  html.vc-mobile-app.vc-motion-rich .hero-captivate-bg::before,
-  html.vc-phone.vc-motion-rich .hero-captivate-bg::before,
-  html.vc-mobile-app.vc-motion-rich .hero-captivate-bg::after,
-  html.vc-phone.vc-motion-rich .hero-captivate-bg::after {
-    mix-blend-mode: normal !important;
-  }
-
   /* Keep large hero imagery from animating filters (still allows transform/opacity animations). */
   html.vc-mobile-app.vc-motion-rich .hero-showpiece,
   html.vc-phone.vc-motion-rich .hero-showpiece,

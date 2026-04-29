@@ -1022,9 +1022,9 @@
     var key = "vibecart-mobile-motion-v1";
     function read() {
       try {
-        return String(localStorage.getItem(key) || "stable").trim().toLowerCase();
+        return String(localStorage.getItem(key) || "auto").trim().toLowerCase();
       } catch {
-        return "stable";
+        return "auto";
       }
     }
     function write(v) {
@@ -1038,8 +1038,18 @@
       var mode = read();
       var rich = mode === "rich";
       document.documentElement.classList.toggle("vc-motion-rich", rich);
-      btn.textContent = rich ? "Motion: Rich" : "Motion: Stable";
-      btn.setAttribute("aria-pressed", rich ? "true" : "false");
+      document.documentElement.classList.toggle("vc-motion-stable", mode === "stable");
+      document.documentElement.classList.toggle("vc-motion-auto", mode === "auto");
+      if (mode === "auto") {
+        btn.textContent = "Motion: Auto";
+        btn.setAttribute("aria-pressed", "mixed");
+      } else if (mode === "rich") {
+        btn.textContent = "Motion: Rich";
+        btn.setAttribute("aria-pressed", "true");
+      } else {
+        btn.textContent = "Motion: Stable";
+        btn.setAttribute("aria-pressed", "false");
+      }
     }
     var btn = document.createElement("button");
     btn.type = "button";
@@ -1047,7 +1057,8 @@
     btn.className = "vc-motion-mode-btn";
     btn.setAttribute("aria-label", "Toggle cinematic motion");
     btn.addEventListener("click", function () {
-      var next = read() === "rich" ? "stable" : "rich";
+      var cur = read();
+      var next = cur === "auto" ? "stable" : cur === "stable" ? "rich" : "auto";
       write(next);
       apply();
       try {
