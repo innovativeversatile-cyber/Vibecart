@@ -16,7 +16,7 @@
     { title: "Regional shops", url: "./regional-shops.html", keywords: "africa europe asia regional shops folders" },
     { title: "Europe shops", url: "./shops-europe.html", keywords: "fashion europe beauty allegro zara hm poland uk ireland" },
     { title: "Asia shops", url: "./shops-asia.html", keywords: "asia shopee shein fashion electronics" },
-    { title: "Global shops", url: "./shops-global.html", keywords: "global amazon asos worldwide" },
+    { title: "Global shops", url: "./shops-global.html", keywords: "global amazon asos worldwide ebay shein temu aliexpress walmart target best buy" },
     { title: "Mama Africa shops", url: "./shops-mama-africa.html", keywords: "africa takealot jumia nigeria kenya zimbabwe" },
     { title: "Scents and beauty", url: "./shops-scents.html", keywords: "perfume fragrance beauty cosmetics sephora cult" },
     { title: "Wellbeing coach", url: "./wellbeing.html", keywords: "wellbeing fitness ai coach health goals" },
@@ -24,7 +24,7 @@
     { title: "Account hub", url: "./account-hub.html", keywords: "account bookings profile passport login register" },
     { title: "Trade bridge hub", url: "./bridge-hub.html", keywords: "bridge trade africa europe asia communication route" },
     { title: "Browse categories", url: "./browse-categories.html", keywords: "categories browse lanes" },
-    { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks live offers trending now" },
+    { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks live offers trending now ebay shein amazon temu aliexpress" },
     { title: "Rewards hub", url: "./rewards-hub.html", keywords: "rewards points loyalty" },
     { title: "Orders tracking", url: "./orders-tracking.html", keywords: "orders tracking delivery shipment" },
     { title: "Coach subscription checkout", url: "./checkout-details.html?flow=coach&plan=starter", keywords: "coach checkout subscription payment" },
@@ -59,6 +59,22 @@
     }
   }
 
+  function scoreMatch(item, tokens) {
+    var hay = (item.title + " " + item.keywords + " " + item.url).toLowerCase();
+    var score = 0;
+    for (var i = 0; i < tokens.length; i += 1) {
+      var t = tokens[i];
+      if (!t) continue;
+      if (hay.indexOf(t) >= 0) {
+        score += 1;
+      }
+      if (item.title.toLowerCase().indexOf(t) >= 0) {
+        score += 1;
+      }
+    }
+    return score;
+  }
+
   function paint(query) {
     if (!results || !status) {
       return;
@@ -69,13 +85,23 @@
       status.textContent = "";
       return;
     }
-    var matches = siteIndex.filter(function (item) {
-      var hay = (item.title + " " + item.keywords + " " + item.url).toLowerCase();
-      return hay.indexOf(q) >= 0;
+    var tokens = q.split(/\s+/).filter(Boolean);
+    var ranked = siteIndex
+      .map(function (item) {
+        return { item: item, score: scoreMatch(item, tokens) };
+      })
+      .filter(function (row) {
+        return row.score > 0 || row.item.title.toLowerCase().indexOf(q) >= 0;
+      })
+      .sort(function (a, b) {
+        return b.score - a.score;
+      });
+    var matches = ranked.slice(0, 20).map(function (row) {
+      return row.item;
     });
     status.textContent = matches.length
       ? matches.length + " VibeCart results found."
-      : "No direct site match. Use web search buttons below.";
+      : "No exact site match yet. Try a broader term or use web search below.";
     results.innerHTML = "";
     matches.forEach(function (item) {
       var row = document.createElement("a");

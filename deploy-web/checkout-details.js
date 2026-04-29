@@ -59,6 +59,9 @@
       if (p === "family-protect") return 17.5;
       return 10.5;
     }
+    if (f === "service_booking") {
+      return 10;
+    }
     return 10;
   }
 
@@ -78,23 +81,32 @@
     var fastFields = document.getElementById("checkoutFastTrackFields");
     var newFields = document.getElementById("checkoutNewUserFields");
     var accountEmailEl = document.getElementById("checkoutAccountEmail");
-    var passcodeEl = document.getElementById("checkoutPasscode");
     var confirmBtn = document.getElementById("checkoutConfirmBtn");
     var statusEl = document.getElementById("checkoutStatus");
     var paymentMethodEl = document.getElementById("checkoutPaymentMethod");
     var autoRenewEl = document.getElementById("checkoutAutoRenew");
     var taxDisclosureEl = document.getElementById("checkoutTaxDisclosure");
+    var saveLaterLink = document.getElementById("checkoutSaveLaterLink");
 
     var params = new URLSearchParams(window.location.search || "");
     var flow = String(params.get("flow") || "").toLowerCase();
     var plan = String(params.get("plan") || "").trim();
     var addonPlan = String(params.get("addonPlan") || "").trim().toLowerCase();
     var requestedAutoRenew = String(params.get("autoRenew") || "").trim();
+    var requestedMethod = String(params.get("paymentMethod") || "").trim().toLowerCase();
     if (autoRenewEl) {
       if (requestedAutoRenew === "0") {
         autoRenewEl.checked = false;
       } else if (requestedAutoRenew === "1") {
         autoRenewEl.checked = true;
+      }
+    }
+    if (paymentMethodEl && requestedMethod) {
+      var hasOption = Array.prototype.some.call(paymentMethodEl.options || [], function (opt) {
+        return String(opt.value || "").toLowerCase() === requestedMethod;
+      });
+      if (hasOption) {
+        paymentMethodEl.value = requestedMethod;
       }
     }
 
@@ -129,7 +141,7 @@
       return;
     }
 
-    if (flow !== "coach") {
+    if (flow !== "coach" && flow !== "service_booking") {
       if (title) {
         title.textContent = "External checkout only";
       }
@@ -144,6 +156,7 @@
         String(params.get("target") || "").trim() ||
         String(params.get("shopUrl") || "").trim() ||
         String(params.get("providerUrl") || "").trim() ||
+        String(params.get("payUrl") || "").trim() ||
         String(params.get("url") || "").trim();
       var target = "";
       var lower = targetRaw.toLowerCase();
@@ -164,19 +177,23 @@
       return;
     }
 
-    if (flow === "coach") {
+    if (flow === "coach" || flow === "service_booking") {
       if (typeEl) {
         typeEl.value = flow;
       }
       if (title) {
-        title.textContent = "Secure coach checkout";
+        title.textContent = flow === "service_booking" ? "Secure service booking checkout" : "Secure coach checkout";
       }
       if (note) {
         var bundleText = addonPlan ? " + " + addonPlan : "";
-        note.textContent = "Selected package: " + (plan || "standard") + bundleText + ". Complete payment details below.";
+        var selectedPlan = plan || (flow === "service_booking" ? "service deposit" : "standard");
+        note.textContent = "Selected package: " + selectedPlan + bundleText + ". Complete payment details below.";
       }
       if (back) {
-        back.href = "./buy-journey.html?flow=" + encodeURIComponent(flow) + "&plan=" + encodeURIComponent(plan);
+        back.href =
+          flow === "service_booking"
+            ? "./service-provider-hub.html"
+            : "./buy-journey.html?flow=" + encodeURIComponent(flow) + "&plan=" + encodeURIComponent(plan);
       }
     }
 
@@ -201,6 +218,12 @@
       }
       if (newFields) {
         newFields.hidden = mode === "fast";
+      }
+      if (statusEl) {
+        statusEl.textContent =
+          mode === "fast"
+            ? "Fast track active: enter account email, choose payment option, then continue."
+            : "";
       }
     };
     if (modeEl) {
@@ -281,6 +304,32 @@
     }
     updateTaxDisclosure();
 
+    if (saveLaterLink) {
+      saveLaterLink.addEventListener("click", function () {
+        var mode = modeEl ? String(modeEl.value || "new") : "new";
+        var draft = {
+          flow: typeEl ? typeEl.value : flow || "coach",
+          plan: plan || "standard",
+          checkoutMode: mode,
+          paymentMethod: String((paymentMethodEl && paymentMethodEl.value) || "card").trim(),
+          autoRenew: !!(autoRenewEl && autoRenewEl.checked),
+          accountEmail: String((accountEmailEl && accountEmailEl.value) || "").trim(),
+          fullName: String((nameEl && nameEl.value) || "").trim(),
+          email: String((emailEl && emailEl.value) || "").trim(),
+          phone: String((phoneEl && phoneEl.value) || "").trim(),
+          city: String((cityEl && cityEl.value) || "").trim(),
+          postalCode: String((postalEl && postalEl.value) || "").trim(),
+          country: String((countryEl && countryEl.value) || "").trim().toUpperCase(),
+          savedAt: new Date().toISOString()
+        };
+        try {
+          sessionStorage.setItem("vibecart-checkout-draft", JSON.stringify(draft));
+        } catch {
+          /* ignore */
+        }
+      });
+    }
+
     if (confirmBtn) {
       confirmBtn.addEventListener("click", function () {
         var mode = modeEl ? String(modeEl.value || "new") : "new";
@@ -294,16 +343,21 @@
         };
         if (mode === "fast") {
           var accEmail = String((accountEmailEl && accountEmailEl.value) || "").trim();
-          var pass = String((passcodeEl && passcodeEl.value) || "").trim();
-          if (!isValidEmail(accEmail) || pass.length < 4) {
+          if (!isValidEmail(accEmail)) {
             if (statusEl) {
-              statusEl.textContent = "Fast track requires a valid account email and passcode.";
+              statusEl.textContent = "Fast track requires a valid account email.";
             }
             return;
           }
           payload.name = "Existing account";
           payload.email = accEmail;
           payload.fastTrack = true;
+          // Fast-track is account-holder flow: backend resolves address/profile from account.
+          payload.phone = "";
+          payload.address = "";
+          payload.city = "";
+          payload.postalCode = "";
+          payload.country = "";
         } else {
           var nm = String((nameEl && nameEl.value) || "").trim();
           var em = String((emailEl && emailEl.value) || "").trim();
@@ -360,7 +414,9 @@
             "&customerPostalCode=" +
             encodeURIComponent(payload.postalCode || "") +
             "&customerCountry=" +
-            encodeURIComponent(payload.country || "")
+            encodeURIComponent(payload.country || "") +
+            "&fastTrack=" +
+            encodeURIComponent(payload.fastTrack ? "1" : "0")
         );
       });
     }

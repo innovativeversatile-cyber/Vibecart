@@ -1,7 +1,8 @@
 (function () {
-  var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
   var params = new URLSearchParams(window.location.search || "");
   var requested = String(params.get("cat") || "").trim();
+  var viewMode = String(params.get("view") || "").trim().toLowerCase();
+  var dealMode = String(params.get("deal") || "").trim().toLowerCase();
   var topCta = document.getElementById("openFullMarketplaceTop");
   var grid = document.getElementById("liveMarketShopGrid");
   var intro = document.getElementById("liveMarketShopsIntro");
@@ -17,146 +18,138 @@
   var fashionShopNowBtn = document.getElementById("fashionShopNowBtn");
   var fashionAdviceOutput = document.getElementById("fashionAdviceOutput");
   var fashionTrendsRail = document.getElementById("fashionTrendsRail");
+  var promoGrid = document.getElementById("livePromoGrid");
+  var promoLead = document.getElementById("livePromoFeedLead");
+  var promoSlider = document.getElementById("livePromoSlider");
+  var promoPrevBtn = document.getElementById("livePromoPrevBtn");
+  var promoNextBtn = document.getElementById("livePromoNextBtn");
   var REGION_KEY = "vibecart-market-region";
+
+  if (!grid) return;
+
   var mapByRegion = {
-    eu: {
+    africa: {
       Electronics: [
-        { name: "Amazon Germany", url: "https://www.amazon.de", desc: "EU electronics and creator gear." },
-        { name: "MediaMarkt", url: "https://www.mediamarkt.de", desc: "Electronics in Germany and EU." },
-        { name: "Currys", url: "https://www.currys.co.uk", desc: "UK electronics and accessories." },
-        { name: "RTV Euro AGD", url: "https://www.euro.com.pl", desc: "Poland electronics marketplace." }
+        { name: "Jumia (Africa)", url: "https://www.jumia.com", promoUrl: "https://www.jumia.com/deals/", desc: "Pan-African marketplace with cross-border deal lanes." },
+        { name: "Takealot", url: "https://www.takealot.com", promoUrl: "https://www.takealot.com/all?_sb=1&_r=1&_si=ec4d6f4ec6a4b1b82f7d1e4a8f9e5a6a&qsearch=deals", desc: "South Africa electronics and home tech." },
+        { name: "Kilimall", url: "https://www.kilimall.co.ke", promoUrl: "https://www.kilimall.co.ke/new/flashSale", desc: "East Africa mobile-first e-commerce platform." }
       ],
       Fashion: [
-        { name: "Zalando", url: "https://www.zalando.com", desc: "EU fashion and lifestyle." },
-        { name: "Reserved", url: "https://www.reserved.com", desc: "Central EU fashion brand." },
-        { name: "About You", url: "https://www.aboutyou.com", desc: "Germany-based style platform." },
-        { name: "Allegro Fashion", url: "https://allegro.pl", desc: "Poland fashion sellers." }
+        { name: "Superbalist", url: "https://www.superbalist.com", promoUrl: "https://superbalist.com/sale", desc: "South Africa fashion and lifestyle." },
+        { name: "Jumia Fashion", url: "https://www.jumia.com/fashion", promoUrl: "https://www.jumia.com/fashion-by-jumia/", desc: "Fashion shops across African market lanes." },
+        { name: "Konga Fashion", url: "https://www.konga.com", promoUrl: "https://www.konga.com/sale", desc: "Nigeria fashion and marketplace deals." }
       ],
       Books: [
-        { name: "Empik", url: "https://www.empik.com", desc: "Books and study resources in Poland." },
-        { name: "Fnac", url: "https://www.fnac.com", desc: "France books and media." },
-        { name: "Bol Books", url: "https://www.bol.com", desc: "Benelux books and learning content." },
-        { name: "Allegro Books", url: "https://allegro.pl", desc: "Regional book listings in Poland." }
+        { name: "Exclusive Books", url: "https://www.exclusivebooks.co.za", promoUrl: "https://www.exclusivebooks.co.za/collections/deals", desc: "South Africa books and educational material." },
+        { name: "Text Book Centre", url: "https://textbookcentre.com", promoUrl: "https://textbookcentre.com/promotions", desc: "Kenya book and school supply platform." },
+        { name: "Jumia Books", url: "https://www.jumia.com.ng/books-movies-and-music/", promoUrl: "https://www.jumia.com.ng/books-movies-and-music/", desc: "Books category offers in major African lanes." }
       ],
       Gaming: [
-        { name: "Steam Store", url: "https://store.steampowered.com", desc: "EU gaming demand and bundles." },
-        { name: "PlayStation Store", url: "https://store.playstation.com", desc: "Console titles and add-ons." },
-        { name: "Xbox Store", url: "https://www.xbox.com/games/store", desc: "Xbox games and subscriptions." },
-        { name: "GOG", url: "https://www.gog.com", desc: "Poland-based DRM-free games." }
+        { name: "BT Games", url: "https://www.btgames.co.za", promoUrl: "https://www.btgames.co.za/specials", desc: "South Africa gaming and console store." },
+        { name: "Incredible Connection Gaming", url: "https://www.incredible.co.za/gaming", promoUrl: "https://www.incredible.co.za/deals", desc: "Gaming accessories and bundles." }
       ]
     },
     za: {
       Electronics: [
-        { name: "Takealot Tech", url: "https://www.takealot.com", desc: "South Africa tech and accessories." },
-        { name: "Incredible Connection", url: "https://www.incredible.co.za", desc: "South Africa computing and electronics." },
-        { name: "Game South Africa", url: "https://www.game.co.za", desc: "Electronics and appliances in South Africa." }
+        { name: "Takealot", url: "https://www.takealot.com", promoUrl: "https://www.takealot.com/all?_sb=1&_r=1&_si=ec4d6f4ec6a4b1b82f7d1e4a8f9e5a6a&qsearch=deals", desc: "South Africa electronics marketplace." },
+        { name: "Incredible Connection", url: "https://www.incredible.co.za", promoUrl: "https://www.incredible.co.za/deals", desc: "South Africa computing and electronics." }
       ],
       Fashion: [
-        { name: "Superbalist", url: "https://www.superbalist.com", desc: "South Africa youth fashion." },
-        { name: "H&M South Africa", url: "https://www.hm.com/za", desc: "South Africa fashion storefront." },
-        { name: "Zara South Africa", url: "https://www.zara.com/za/", desc: "South Africa seasonal drops." }
+        { name: "Superbalist", url: "https://www.superbalist.com", promoUrl: "https://superbalist.com/sale", desc: "South Africa fashion marketplace." },
+        { name: "Bash", url: "https://bash.com", promoUrl: "https://bash.com/sale", desc: "South Africa online fashion destination." }
       ],
-      Books: [
-        { name: "Takealot Books", url: "https://www.takealot.com", desc: "South Africa books and study sets." },
-        { name: "Exclusive Books", url: "https://www.exclusivebooks.co.za", desc: "South Africa books and education." }
-      ],
-      Gaming: [
-        { name: "BT Games", url: "https://www.btgames.co.za", desc: "South Africa games and consoles." },
-        { name: "Game South Africa", url: "https://www.game.co.za", desc: "Gaming accessories and deals." }
-      ]
+      Books: [{ name: "Exclusive Books", url: "https://www.exclusivebooks.co.za", promoUrl: "https://www.exclusivebooks.co.za/collections/deals", desc: "Books and educational materials." }],
+      Gaming: [{ name: "BT Games", url: "https://www.btgames.co.za", promoUrl: "https://www.btgames.co.za/specials", desc: "Gaming and console deals." }]
     },
     ke: {
       Electronics: [
-        { name: "Jumia Kenya", url: "https://www.jumia.co.ke", desc: "Kenya electronics and mobile-first deals." },
-        { name: "Kilimall Kenya", url: "https://www.kilimall.co.ke", desc: "Kenya online electronics marketplace." }
+        { name: "Jumia Kenya", url: "https://www.jumia.co.ke", promoUrl: "https://www.jumia.co.ke/deals/", desc: "Kenya electronics and home marketplace." },
+        { name: "Kilimall Kenya", url: "https://www.kilimall.co.ke", promoUrl: "https://www.kilimall.co.ke/new/flashSale", desc: "Kenya marketplace with flash deals." }
       ],
-      Fashion: [
-        { name: "Jumia Fashion KE", url: "https://www.jumia.co.ke", desc: "Kenya fashion listings." },
-        { name: "Kilimall Fashion KE", url: "https://www.kilimall.co.ke", desc: "Kenya youth fashion options." }
+      Fashion: [{ name: "Jumia Fashion KE", url: "https://www.jumia.co.ke/fashion", promoUrl: "https://www.jumia.co.ke/fashion-by-jumia/", desc: "Kenya fashion marketplace deals." }],
+      Books: [{ name: "Text Book Centre", url: "https://textbookcentre.com", promoUrl: "https://textbookcentre.com/promotions", desc: "Books and school supply deals." }],
+      Gaming: [{ name: "Jumia Gaming KE", url: "https://www.jumia.co.ke/video-games/", promoUrl: "https://www.jumia.co.ke/deals/", desc: "Gaming accessories in Kenya lanes." }]
+    },
+    ng: {
+      Electronics: [
+        { name: "Jumia Nigeria", url: "https://www.jumia.com.ng", promoUrl: "https://www.jumia.com.ng/deals/", desc: "Nigeria electronics and household goods." },
+        { name: "Konga", url: "https://www.konga.com", promoUrl: "https://www.konga.com/sale", desc: "Nigeria online marketplace." }
       ],
-      Books: [
-        { name: "Nuria Kenya", url: "https://nuriakenya.com", desc: "Kenya books and educational resources." },
-        { name: "Text Book Centre", url: "https://textbookcentre.com", desc: "Kenya books and school materials." }
+      Fashion: [{ name: "Jumia Fashion NG", url: "https://www.jumia.com.ng/fashion", promoUrl: "https://www.jumia.com.ng/fashion-by-jumia/", desc: "Nigeria fashion offers." }],
+      Books: [{ name: "Jumia Books NG", url: "https://www.jumia.com.ng/books-movies-and-music/", promoUrl: "https://www.jumia.com.ng/deals/", desc: "Books and study category promotions." }],
+      Gaming: [{ name: "Konga Gaming", url: "https://www.konga.com", promoUrl: "https://www.konga.com/sale", desc: "Gaming categories on Nigeria market lanes." }]
+    },
+    gh: {
+      Electronics: [{ name: "Jumia Ghana", url: "https://www.jumia.com.gh", promoUrl: "https://www.jumia.com.gh/deals/", desc: "Ghana electronics and marketplace deals." }],
+      Fashion: [{ name: "Jumia Fashion GH", url: "https://www.jumia.com.gh/fashion", promoUrl: "https://www.jumia.com.gh/fashion-by-jumia/", desc: "Ghana fashion lane offers." }],
+      Books: [{ name: "Jumia Books GH", url: "https://www.jumia.com.gh/books/", promoUrl: "https://www.jumia.com.gh/deals/", desc: "Books and learning items in Ghana lanes." }],
+      Gaming: [{ name: "Jumia Gaming GH", url: "https://www.jumia.com.gh/video-games/", promoUrl: "https://www.jumia.com.gh/deals/", desc: "Gaming category deals in Ghana." }]
+    },
+    eg: {
+      Electronics: [
+        { name: "Jumia Egypt", url: "https://www.jumia.com.eg", promoUrl: "https://www.jumia.com.eg/deals/", desc: "Egypt electronics and household marketplace." },
+        { name: "Noon Egypt", url: "https://www.noon.com/egypt-en/", promoUrl: "https://www.noon.com/egypt-en/deals/", desc: "Egypt e-commerce promotions and offers." }
       ],
-      Gaming: [
-        { name: "Jumia Gaming KE", url: "https://www.jumia.co.ke", desc: "Kenya gaming accessories." },
-        { name: "Kilimall Gaming KE", url: "https://www.kilimall.co.ke", desc: "Kenya gaming product listings." }
-      ]
+      Fashion: [{ name: "Noon Fashion Egypt", url: "https://www.noon.com/egypt-en/fashion/", promoUrl: "https://www.noon.com/egypt-en/fashion/women/sale/", desc: "Fashion promotions in Egypt lanes." }],
+      Books: [{ name: "Noon Books Egypt", url: "https://www.noon.com/egypt-en/books/", promoUrl: "https://www.noon.com/egypt-en/books/", desc: "Books and educational material in Egypt." }],
+      Gaming: [{ name: "Noon Gaming Egypt", url: "https://www.noon.com/egypt-en/electronics-and-mobiles/video-games/", promoUrl: "https://www.noon.com/egypt-en/electronics-and-mobiles/video-games/", desc: "Gaming products and bundles." }]
+    },
+    ma: {
+      Electronics: [{ name: "Jumia Morocco", url: "https://www.jumia.ma", promoUrl: "https://www.jumia.ma/deals/", desc: "Morocco electronics and marketplace offers." }],
+      Fashion: [{ name: "Jumia Fashion MA", url: "https://www.jumia.ma/fashion", promoUrl: "https://www.jumia.ma/fashion-by-jumia/", desc: "Morocco fashion deal lanes." }],
+      Books: [{ name: "Jumia Books MA", url: "https://www.jumia.ma/books/", promoUrl: "https://www.jumia.ma/deals/", desc: "Morocco books and study lanes." }],
+      Gaming: [{ name: "Jumia Gaming MA", url: "https://www.jumia.ma/video-games/", promoUrl: "https://www.jumia.ma/deals/", desc: "Gaming deals in Morocco market." }]
     },
     zw: {
+      Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/electronics", promoUrl: "https://www.amazon.com/gp/goldbox", desc: "Global electronics with Zimbabwe-compatible delivery lanes." }],
+      Fashion: [{ name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fashion promotions." }],
+      Books: [{ name: "AbeBooks", url: "https://www.abebooks.com", promoUrl: "https://www.abebooks.com/books/bestsellers/", desc: "Books and textbooks across global routes." }],
+      Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "PC gaming storefront." }]
+    },
+    eu: {
       Electronics: [
-        { name: "Amazon Electronics", url: "https://www.amazon.com/electronics", desc: "Global electronics with broad shipping options." },
-        { name: "AliExpress Electronics", url: "https://www.aliexpress.com/category/44/consumer-electronics.html", desc: "Global electronics marketplace." }
+        { name: "Amazon Germany", url: "https://www.amazon.de", promoUrl: "https://www.amazon.de/gp/goldbox", desc: "EU electronics and creator gear." },
+        { name: "MediaMarkt", url: "https://www.mediamarkt.de", promoUrl: "https://www.mediamarkt.de/de/category/deals-478.html", desc: "Electronics in Germany and EU." }
       ],
       Fashion: [
-        { name: "Zara", url: "https://www.zara.com", desc: "Global seasonal fashion drops." },
-        { name: "SHEIN", url: "https://www.shein.com", desc: "Youth fashion and trend picks." }
+        { name: "Zalando", url: "https://www.zalando.com", promoUrl: "https://www.zalando.com/sale/", desc: "EU fashion and lifestyle." },
+        { name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "EU youth fashion." }
       ],
-      Books: [
-        { name: "Amazon Books", url: "https://www.amazon.com/books-used-books-textbooks", desc: "Books and study resources." },
-        { name: "AbeBooks", url: "https://www.abebooks.com", desc: "Global books and textbooks." }
-      ],
-      Gaming: [
-        { name: "Steam Store", url: "https://store.steampowered.com", desc: "PC gaming storefront." },
-        { name: "PlayStation Store", url: "https://store.playstation.com", desc: "Console titles and add-ons." }
-      ]
+      Books: [{ name: "Empik", url: "https://www.empik.com", promoUrl: "https://www.empik.com/promocje", desc: "Books and study resources in Poland." }],
+      Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "EU gaming demand and bundles." }]
     },
     gulf: {
-      Electronics: [
-        { name: "Noon Tech", url: "https://www.noon.com", desc: "Gulf electronics and gadget demand." },
-        { name: "Sharaf DG UAE", url: "https://uae.sharafdg.com", desc: "UAE electronics store." },
-        { name: "Amazon UAE Electronics", url: "https://www.amazon.ae", desc: "UAE online electronics catalog." }
-      ],
-      Fashion: [
-        { name: "Namshi", url: "https://en-ae.namshi.com", desc: "Gulf fashion and lifestyle." },
-        { name: "Noon Fashion", url: "https://www.noon.com/uae-en/fashion", desc: "UAE fashion listings." }
-      ],
-      Books: [
-        { name: "Amazon UAE Books", url: "https://www.amazon.ae/books-used-books-textbooks", desc: "UAE books and personal development." },
-        { name: "Kinokuniya UAE", url: "https://uae.kinokuniya.com", desc: "Books and manga in UAE." }
-      ],
-      Gaming: [
-        { name: "Virgin Megastore UAE", url: "https://www.virginmegastore.ae", desc: "Gaming and entertainment in UAE." },
-        { name: "Noon Gaming", url: "https://www.noon.com/uae-en/electronics-and-mobiles/video-games", desc: "Gulf gaming listings." }
-      ]
+      Electronics: [{ name: "Noon", url: "https://www.noon.com", promoUrl: "https://www.noon.com/uae-en/deals/", desc: "Gulf electronics and gadget demand." }],
+      Fashion: [{ name: "Namshi", url: "https://en-ae.namshi.com", promoUrl: "https://en-ae.namshi.com/women-sale/", desc: "Gulf fashion and lifestyle." }],
+      Books: [{ name: "Amazon UAE Books", url: "https://www.amazon.ae/books-used-books-textbooks", promoUrl: "https://www.amazon.ae/gp/goldbox", desc: "UAE books and personal development." }],
+      Gaming: [{ name: "Virgin Megastore UAE", url: "https://www.virginmegastore.ae", promoUrl: "https://www.virginmegastore.ae/en/gaming/c/n0403", desc: "Gaming and entertainment in UAE." }]
     },
     asia: {
       Electronics: [
-        { name: "Shopee", url: "https://shopee.sg", desc: "Asia mobile electronics demand." },
-        { name: "Lazada", url: "https://www.lazada.sg", desc: "Southeast Asia electronics marketplace." },
-        { name: "Rakuten", url: "https://www.rakuten.co.jp", desc: "Japan online marketplace." }
+        { name: "Shopee", url: "https://shopee.sg", promoUrl: "https://shopee.sg/m/flash-deals", desc: "Asia mobile electronics demand." },
+        { name: "Lazada", url: "https://www.lazada.sg", promoUrl: "https://www.lazada.sg/shop-electronics/", desc: "Southeast Asia electronics marketplace." }
       ],
-      Fashion: [
-        { name: "SHEIN", url: "https://www.shein.com", desc: "Asia-driven fast fashion trends." },
-        { name: "Lazada Fashion", url: "https://www.lazada.sg/shop-fashion", desc: "SEA fashion listings." }
-      ],
-      Books: [
-        { name: "Rakuten Books", url: "https://books.rakuten.co.jp", desc: "Japan books and manga." },
-        { name: "Dangdang", url: "https://www.dangdang.com", desc: "China books and media." }
-      ],
-      Gaming: [
-        { name: "Steam Store", url: "https://store.steampowered.com", desc: "Asia regional gaming demand." },
-        { name: "PlayStation Asia", url: "https://store.playstation.com/en-sg/pages/latest", desc: "Asia console games and add-ons." }
-      ]
+      Fashion: [{ name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Asia-driven fast fashion trends." }],
+      Books: [{ name: "Rakuten Books", url: "https://books.rakuten.co.jp", promoUrl: "https://books.rakuten.co.jp/event/book/", desc: "Japan books and manga." }],
+      Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "Asia regional gaming demand." }]
     },
     global: {
-      Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/s?i=electronics&tag=vibecart20-20", desc: "Global electronics marketplace." }],
-      Fashion: [{ name: "ASOS", url: "https://www.asos.com", desc: "Global youth fashion." }],
-      Books: [{ name: "AbeBooks", url: "https://www.abebooks.com", desc: "Global books and textbooks." }],
-      Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", desc: "Global gaming marketplace." }]
+      Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/s?i=electronics", promoUrl: "https://www.amazon.com/gp/goldbox", desc: "Global electronics marketplace." }],
+      Fashion: [{ name: "ASOS", url: "https://www.asos.com", promoUrl: "https://www.asos.com/women/sale/cat/", desc: "Global youth fashion." }],
+      Books: [{ name: "AbeBooks", url: "https://www.abebooks.com", promoUrl: "https://www.abebooks.com/books/bestsellers/", desc: "Global books and textbooks." }],
+      Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", promoUrl: "https://store.steampowered.com/specials/", desc: "Global gaming marketplace." }]
     }
   };
-  mapByRegion.global.Electronics.push({
-    name: "Brainrot Studio",
-    url: "https://brainrot.mov?ref=ApLX4MJQoF",
-    desc: "AI creator studio partner (external checkout)."
-  });
 
   function inferRegionFromTimezone() {
     try {
       var tz = String((Intl.DateTimeFormat().resolvedOptions().timeZone || "")).toLowerCase();
       if (tz.indexOf("johannesburg") >= 0 || tz.indexOf("cape_town") >= 0) return "za";
       if (tz.indexOf("nairobi") >= 0) return "ke";
+      if (tz.indexOf("lagos") >= 0) return "ng";
+      if (tz.indexOf("accra") >= 0) return "gh";
+      if (tz.indexOf("cairo") >= 0) return "eg";
+      if (tz.indexOf("casablanca") >= 0) return "ma";
       if (tz.indexOf("harare") >= 0) return "zw";
       if (tz.indexOf("warsaw") >= 0 || tz.indexOf("berlin") >= 0 || tz.indexOf("london") >= 0 || tz.indexOf("paris") >= 0) return "eu";
       if (tz.indexOf("dubai") >= 0 || tz.indexOf("riyadh") >= 0) return "gulf";
@@ -164,7 +157,7 @@
     } catch {
       /* ignore */
     }
-    return "global";
+    return "africa";
   }
 
   function readRegionMode() {
@@ -174,7 +167,6 @@
       return "auto";
     }
   }
-
   function writeRegionMode(mode) {
     try {
       localStorage.setItem(REGION_KEY, mode);
@@ -185,35 +177,13 @@
 
   var regionMode = readRegionMode();
   var resolvedRegion = regionMode === "auto" ? inferRegionFromTimezone() : regionMode;
-  var map = mapByRegion[resolvedRegion] || mapByRegion.global;
+  var map = mapByRegion[resolvedRegion] || mapByRegion.africa;
   var categories = Object.keys(map);
-  var cat = categories.indexOf(requested) >= 0 ? requested : "Electronics";
-  var trustedHosts = buildTrustedHostSet(mapByRegion);
-  var fashionTrends = [
-    {
-      src: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=540&h=340&q=75",
-      href: "https://www.zalando.com",
-      title: "EU street layers"
-    },
-    {
-      src: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=540&h=340&q=75",
-      href: "https://www.asos.com",
-      title: "Everyday smart casual"
-    },
-    {
-      src: "https://images.unsplash.com/photo-1464863979621-258859e62245?auto=format&fit=crop&w=540&h=340&q=75",
-      href: "https://www2.hm.com",
-      title: "Minimal capsule edits"
-    },
-    {
-      src: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=540&h=340&q=75",
-      href: "https://www.shein.com",
-      title: "Fast trend refresh"
-    }
-  ];
-  if (!grid) {
-    return;
-  }
+  var cat = requested === "All" ? "All" : categories.indexOf(requested) >= 0 ? requested : "Electronics";
+  if (dealMode === "fashion") cat = "Fashion";
+  if (dealMode === "electronics") cat = "Electronics";
+  if (dealMode === "books") cat = "Books";
+
   function extractHost(url) {
     try {
       return String(new URL(url).hostname || "").toLowerCase();
@@ -221,194 +191,244 @@
       return "";
     }
   }
-  function buildTrustedHostSet(allMaps) {
-    var set = {};
-    Object.keys(allMaps || {}).forEach(function (regionKey) {
-      var regionMap = allMaps[regionKey] || {};
-      Object.keys(regionMap).forEach(function (category) {
-        (regionMap[category] || []).forEach(function (entry) {
-          var host = extractHost(entry.url);
-          if (host) {
-            set[host] = true;
-          }
-        });
-      });
-    });
-    return set;
-  }
+
   function isTrustedShopUrl(url) {
-    var host = extractHost(url);
-    return !!(host && trustedHosts[host]);
-  }
-  function isCommissionTrackedUrl(url) {
     try {
       var parsed = new URL(String(url || ""));
-      if (!/^https?:$/i.test(parsed.protocol)) return false;
-      var keys = ["tag", "ref", "aff", "affiliate", "affid", "subid", "clickid", "irclickid", "pub_id", "publisher_id"];
-      for (var i = 0; i < keys.length; i += 1) {
-        if (parsed.searchParams.get(keys[i])) return true;
-      }
-      return false;
+      return /^https?:$/i.test(parsed.protocol);
     } catch {
       return false;
     }
   }
+
+  function scoreEntry(entry) {
+    var name = String(entry.shop.name || "").toLowerCase();
+    var trust = /jumia|takealot|amazon|asos|zalando|steam|noon|lazada|shopee|konga|superbalist|empik/.test(name) ? 5 : 3;
+    var speed = /deals|sale|flash|goldbox|specials/.test(String(entry.shop.promoUrl || "").toLowerCase()) ? 4 : 2;
+    return { trust: trust, speed: speed, total: trust * 3 + speed * 2 };
+  }
+
+  function rankEntries(items) {
+    return items.slice().sort(function (a, b) {
+      var sa = scoreEntry(a);
+      var sb = scoreEntry(b);
+      if (sb.total !== sa.total) return sb.total - sa.total;
+      return String(a.shop.name || "").localeCompare(String(b.shop.name || ""));
+    });
+  }
+
   function buildShopLink(shop, category) {
     var a = document.createElement("a");
     a.className = "shop";
     var trusted = isTrustedShopUrl(shop.url);
-    var commissionEnabled = isCommissionTrackedUrl(shop.url);
-    a.href =
-      "/api/public/shop/redirect?shop=" +
-      encodeURIComponent(shop.name) +
-      "&cat=" +
-      encodeURIComponent(category) +
-      "&partner=" +
-      encodeURIComponent(shop.name) +
-      "&target=" +
-      encodeURIComponent(shop.url);
-    if (!trusted) {
-      a.href = "#";
-      a.classList.add("is-disabled");
-    }
-    a.setAttribute("data-aff-shop", shop.name);
-    a.setAttribute("data-aff-cat", category);
-    a.setAttribute("data-aff-commission", commissionEnabled ? "1" : "0");
-    a.innerHTML =
-      "<h3>" +
-      shop.name +
-      "</h3><p>" +
-      shop.desc +
-      (trusted
-        ? " · External checkout on source site. · " + (commissionEnabled ? "Commission-enabled." : "Traffic-only.")
-        : " (link unavailable)") +
-      "</p>";
+    a.href = trusted ? String(shop.url || "#") : "#";
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    if (!trusted) a.classList.add("is-disabled");
+
+    var logo = document.createElement("img");
+    logo.className = "shop-logo";
+    logo.alt = shop.name + " logo";
+    logo.loading = "lazy";
+    logo.decoding = "async";
+    var host = extractHost(shop.url);
+    var initials = String(shop.name || "VC")
+      .split(/\s+/).filter(Boolean).slice(0, 2)
+      .map(function (part) { return String(part).charAt(0).toUpperCase(); })
+      .join("") || "VC";
+    var placeholderSvg =
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        "<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'><rect width='100%' height='100%' rx='16' fill='%23111b37'/><text x='50%' y='56%' text-anchor='middle' font-size='34' font-family='Arial,sans-serif' fill='%23f9b233'>" +
+          initials +
+          "</text></svg>"
+      );
+    logo.src = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(host || "vibe-cart.com") + "&sz=128";
+    logo.onerror = function () {
+      logo.src = placeholderSvg;
+      logo.onerror = null;
+    };
+
+    var title = document.createElement("h3");
+    title.textContent = shop.name;
+    var body = document.createElement("p");
+    body.textContent = shop.desc + " · Opens official shop directly.";
+    var meta = document.createElement("p");
+    meta.className = "shop-meta-badges";
+    meta.textContent = "Trusted lane · " + category;
+
+    a.appendChild(logo);
+    a.appendChild(title);
+    a.appendChild(body);
+    a.appendChild(meta);
     a.addEventListener("click", function (event) {
       if (!trusted) {
         event.preventDefault();
-        if (searchStatus) {
-          searchStatus.textContent = "This listing is temporarily disabled until the shop link is verified.";
-        }
+        if (searchStatus) searchStatus.textContent = "This listing link is unavailable.";
         return;
       }
       if (disclaimerAck && !disclaimerAck.checked) {
         event.preventDefault();
-        if (searchStatus) {
-          searchStatus.textContent = "Please accept the marketplace disclaimer first.";
-        }
-        return;
-      }
-      try {
-        localStorage.setItem(
-          AFFILIATE_LAST_CLICK_KEY,
-          JSON.stringify({
-            at: new Date().toISOString(),
-            source: "live-market-shops",
-            shop: String(shop.name || ""),
-            target: String(shop.url || ""),
-            commissionEligible: commissionEnabled
-          })
-        );
-      } catch {
-        /* ignore */
+        if (searchStatus) searchStatus.textContent = "Please accept the marketplace disclaimer first.";
       }
     });
     return a;
   }
 
-  function renderList(items, message) {
-    grid.innerHTML = "";
-    if (!items.length) {
-      if (searchStatus) {
-        searchStatus.textContent = message || "No shops found for that search.";
-      }
-      return;
-    }
-    items.forEach(function (entry) {
-      grid.appendChild(buildShopLink(entry.shop, entry.category));
+  function updatePromoButtons() {
+    if (!promoSlider || !promoPrevBtn || !promoNextBtn) return;
+    var atStart = promoSlider.scrollLeft <= 0;
+    var atEnd = promoSlider.scrollLeft + promoSlider.clientWidth >= promoSlider.scrollWidth - 4;
+    promoPrevBtn.disabled = atStart;
+    promoNextBtn.disabled = atEnd;
+  }
+
+  function renderPromoFeed(items, activeCategory) {
+    if (!promoGrid) return;
+    var promoImages = {
+      Fashion: [
+        "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&h=560&q=78",
+        "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=900&h=560&q=78"
+      ],
+      Electronics: [
+        "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&h=560&q=78",
+        "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=900&h=560&q=78"
+      ],
+      Books: [
+        "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&h=560&q=78",
+        "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=900&h=560&q=78"
+      ],
+      Gaming: [
+        "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&h=560&q=78",
+        "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=900&h=560&q=78"
+      ]
+    };
+    var promos = items.slice(0, 8).map(function (entry, idx) {
+      var categoryImages = promoImages[entry.category] || promoImages[activeCategory] || promoImages.Gaming;
+      var hint =
+        /goldbox|deals|sale|special/i.test(String(entry.shop.promoUrl || ""))
+          ? "Up to 50% off"
+          : "Featured promotion";
+      return {
+        shop: entry.shop.name,
+        category: entry.category,
+        promoUrl: entry.shop.promoUrl || entry.shop.url,
+        discountHint: hint,
+        image: categoryImages[idx % categoryImages.length]
+      };
     });
-    if (searchStatus) {
-      searchStatus.textContent = message || ("Showing " + items.length + " shop result(s).");
+    promoGrid.innerHTML = "";
+    promos.forEach(function (promo) {
+      var card = document.createElement("article");
+      card.className = "vc-promo-card";
+      card.innerHTML =
+        "<img src='" + promo.image + "' alt='" + promo.shop + " promotion image' loading='lazy' />" +
+        "<div class='vc-promo-card-copy'>" +
+        "<p class='vc-promo-kicker'>Live promo lane · " + promo.category + "</p>" +
+        "<h3>" + promo.shop + " deals</h3>" +
+        "<p class='vc-promo-kicker'>" + promo.discountHint + "</p>" +
+        "<p>Direct link to the active promotion/deals section.</p>" +
+        "<a class='btn btn-secondary' target='_blank' rel='noopener noreferrer' href='" + promo.promoUrl + "'>Open live promotion page</a>" +
+        "</div>";
+      promoGrid.appendChild(card);
+    });
+    if (promoSlider) {
+      promoSlider.scrollLeft = 0;
+      updatePromoButtons();
+    }
+    if (promoLead) {
+      promoLead.textContent = "Direct official promo sections for " + activeCategory + ". No fake generated discounts.";
     }
   }
 
   function listForCategory(category) {
+    if (category === "All") {
+      var all = [];
+      categories.forEach(function (c) {
+        (map[c] || []).forEach(function (shop) {
+          all.push({ shop: shop, category: c });
+        });
+      });
+      return all;
+    }
     return (map[category] || []).map(function (shop) {
       return { shop: shop, category: category };
     });
   }
 
+  function listAcrossWorld(category) {
+    var merged = [];
+    Object.keys(mapByRegion).forEach(function (regionKey) {
+      var regionMap = mapByRegion[regionKey] || {};
+      if (category === "All") {
+        Object.keys(regionMap).forEach(function (catKey) {
+          (regionMap[catKey] || []).forEach(function (shop) {
+            merged.push({ shop: shop, category: catKey });
+          });
+        });
+      } else {
+        (regionMap[category] || []).forEach(function (shop) {
+          merged.push({ shop: shop, category: category });
+        });
+      }
+    });
+    var seen = {};
+    return merged.filter(function (entry) {
+      var key = String(entry.shop.name || "") + "::" + String(entry.shop.url || "");
+      if (seen[key]) return false;
+      seen[key] = true;
+      return true;
+    });
+  }
+
+  function currentListFor(category) {
+    var raw = viewMode === "global" ? listAcrossWorld(category) : listForCategory(category);
+    return rankEntries(raw);
+  }
+
   function paintCategoryUi(active) {
     if (intro) {
-      intro.textContent = "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
+      intro.textContent =
+        "Live market shops for " + active + (viewMode === "global" ? " across world lanes." : ".") + " Real shops only.";
     }
     if (topCta) {
-      topCta.setAttribute("href", "./live-market.html");
-      topCta.textContent = "Open live market folders";
+      topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global");
+      topCta.textContent = "Open global live marketplace";
     }
     if (tabsWrap) {
       Array.prototype.slice.call(tabsWrap.querySelectorAll("[data-live-cat]")).forEach(function (btn) {
         var isActive = String(btn.getAttribute("data-live-cat") || "") === active;
         btn.classList.toggle("btn-primary", isActive);
         btn.classList.toggle("btn-secondary", !isActive);
-        btn.setAttribute("aria-selected", isActive ? "true" : "false");
       });
     }
-    if (regionSelect) {
-      regionSelect.value = regionMode;
-    }
+    if (regionSelect) regionSelect.value = regionMode;
     if (fashionAssist) {
       fashionAssist.classList.toggle("hidden", active !== "Fashion");
     }
   }
-  function renderFashionTrends() {
-    if (!fashionTrendsRail) {
+
+  function renderList(items, message) {
+    grid.innerHTML = "";
+    if (!items.length) {
+      if (searchStatus) searchStatus.textContent = message || "No shops found for that search.";
+      renderPromoFeed([], cat);
       return;
     }
-    fashionTrendsRail.innerHTML = "";
-    fashionTrends.forEach(function (trend) {
-      var card = document.createElement("a");
-      card.className = "vc-fashion-trend-link";
-      card.href = trend.href;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer";
-      card.innerHTML = '<img loading="lazy" src="' + trend.src + '" alt="' + trend.title + '" /><span>' + trend.title + "</span>";
-      fashionTrendsRail.appendChild(card);
+    items.forEach(function (entry) {
+      grid.appendChild(buildShopLink(entry.shop, entry.category));
     });
-  }
-  function randomFashionAdvice() {
-    var tones = [
-      "Start with one hero piece, then keep two neutral layers for balance.",
-      "For cross-border buys, prioritize fit notes and fabric blend over only photos.",
-      "Pick one accent color and repeat it in shoes or bag for a cleaner look.",
-      "Use lightweight layers for day and add one structured top layer at night."
-    ];
-    var regionHints = {
-      eu: "EU lanes: minimalist cuts and quality basics convert best.",
-      za: "South Africa lanes: bold color accents and practical fabrics move faster.",
-      ke: "Kenya lanes: breathable street-smart styles perform well across day wear.",
-      zw: "Zimbabwe lanes: flexible basics plus one standout item keeps value high.",
-      gulf: "Gulf lanes: smart casual and premium accessories trend strongly.",
-      asia: "Asia lanes: fast-rotation trend pieces plus essentials work best.",
-      global: "Global lane: combine timeless basics with one fresh trend piece."
-    };
-    var line = tones[Math.floor(Math.random() * tones.length)];
-    var hint = regionHints[resolvedRegion] || regionHints.global;
-    return line + " " + hint;
+    renderPromoFeed(items, cat);
+    if (searchStatus) searchStatus.textContent = message || ("Showing " + items.length + " shop result(s).");
   }
 
   function runSearch() {
     var q = String((searchInput && searchInput.value) || "").trim().toLowerCase();
     if (!q) {
-      renderList(listForCategory(cat), "Showing " + cat + " shops.");
+      renderList(currentListFor(cat), "Showing " + cat + " shops" + (viewMode === "global" ? " from global lanes." : "."));
       return;
     }
-    var all = [];
-    categories.forEach(function (category) {
-      (map[category] || []).forEach(function (shop) {
-        all.push({ shop: shop, category: category });
-      });
-    });
+    var all = currentListFor("All");
     var matches = all.filter(function (entry) {
       var hay = (entry.shop.name + " " + entry.shop.desc + " " + entry.category).toLowerCase();
       return hay.indexOf(q) >= 0;
@@ -420,15 +440,11 @@
     Array.prototype.slice.call(tabsWrap.querySelectorAll("[data-live-cat]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         var next = String(btn.getAttribute("data-live-cat") || "").trim();
-        if (!next || categories.indexOf(next) < 0) {
-          return;
-        }
+        if (!next || (next !== "All" && categories.indexOf(next) < 0)) return;
         cat = next;
-        if (searchInput) {
-          searchInput.value = "";
-        }
+        if (searchInput) searchInput.value = "";
         paintCategoryUi(cat);
-        renderList(listForCategory(cat), "Showing " + cat + " shops.");
+        renderList(currentListFor(cat), "Showing " + cat + " shops" + (viewMode === "global" ? " from global lanes." : "."));
         try {
           var url = new URL(window.location.href);
           url.searchParams.set("cat", cat);
@@ -441,23 +457,8 @@
   }
 
   paintCategoryUi(cat);
-  renderList(listForCategory(cat), "Showing " + cat + " shops.");
-  renderFashionTrends();
-  if (fashionAdviceBtn) {
-    fashionAdviceBtn.addEventListener("click", function () {
-      if (fashionAdviceOutput) {
-        fashionAdviceOutput.textContent = randomFashionAdvice();
-      }
-    });
-  }
-  if (fashionShopNowBtn) {
-    fashionShopNowBtn.addEventListener("click", function () {
-      cat = "Fashion";
-      paintCategoryUi(cat);
-      renderList(listForCategory(cat), "Showing Fashion shops.");
-      grid.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
+  renderList(currentListFor(cat), "Showing " + cat + " shops" + (viewMode === "global" ? " from global lanes." : "."));
+
   if (regionSelect) {
     regionSelect.value = regionMode;
     regionSelect.addEventListener("change", function () {
@@ -466,9 +467,7 @@
       window.location.reload();
     });
   }
-  if (searchBtn) {
-    searchBtn.addEventListener("click", runSearch);
-  }
+  if (searchBtn) searchBtn.addEventListener("click", runSearch);
   if (searchInput) {
     searchInput.addEventListener("keydown", function (event) {
       if (event.key === "Enter") {
@@ -479,10 +478,41 @@
   }
   if (resetBtn) {
     resetBtn.addEventListener("click", function () {
-      if (searchInput) {
-        searchInput.value = "";
-      }
-      renderList(listForCategory(cat), "Showing " + cat + " shops.");
+      if (searchInput) searchInput.value = "";
+      renderList(currentListFor(cat), "Showing " + cat + " shops" + (viewMode === "global" ? " from global lanes." : "."));
     });
+  }
+  if (promoPrevBtn && promoSlider) {
+    promoPrevBtn.addEventListener("click", function () {
+      promoSlider.scrollBy({ left: -280, behavior: "smooth" });
+      setTimeout(updatePromoButtons, 240);
+    });
+  }
+  if (promoNextBtn && promoSlider) {
+    promoNextBtn.addEventListener("click", function () {
+      promoSlider.scrollBy({ left: 280, behavior: "smooth" });
+      setTimeout(updatePromoButtons, 240);
+    });
+    promoSlider.addEventListener("scroll", updatePromoButtons, { passive: true });
+  }
+  if (fashionAdviceBtn) {
+    fashionAdviceBtn.addEventListener("click", function () {
+      if (fashionAdviceOutput) {
+        fashionAdviceOutput.textContent = "For cross-border fashion value: check sale lane, shipping policy, return terms, and size chart before checkout.";
+      }
+    });
+  }
+  if (fashionShopNowBtn) {
+    fashionShopNowBtn.addEventListener("click", function () {
+      cat = "Fashion";
+      paintCategoryUi(cat);
+      renderList(currentListFor(cat), "Showing Fashion shops" + (viewMode === "global" ? " from global lanes." : "."));
+      grid.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+  if (fashionTrendsRail) {
+    fashionTrendsRail.innerHTML =
+      "<a class='vc-fashion-trend-link' target='_blank' rel='noopener noreferrer' href='https://superbalist.com/sale'><img loading='lazy' src='https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=540&h=340&q=75' alt='African fashion deals' /><span>African fashion deals</span></a>" +
+      "<a class='vc-fashion-trend-link' target='_blank' rel='noopener noreferrer' href='https://www.zalando.com/sale/'><img loading='lazy' src='https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=540&h=340&q=75' alt='EU sale lane' /><span>EU sale lane</span></a>";
   }
 })();

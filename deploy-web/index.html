@@ -50,8 +50,14 @@
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..600&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
-    <link rel="stylesheet" href="./styles.css?v=20260424logosafe1" />
+    <link rel="stylesheet" href="./styles.css?v=20260428wowtrust1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -81,7 +87,7 @@
       }
     </script>
   </head>
-  <body class="vc-layout-exclusive" data-site-revision="deploy-20260426-no-receipt-legacy">
+  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260426-no-receipt-legacy">
     <div id="vcVipRibbon" class="vc-vip-ribbon hidden" aria-hidden="true"><span>VIP lane</span></div>
     <header class="topbar" id="siteTopbar">
       <div class="topbar-primary">
@@ -108,30 +114,11 @@
       </div>
       <div class="topbar-rest">
         <nav class="nav-links" aria-label="Primary">
-          <a class="nav-primary" href="#categories" data-i18n="nav.categories">Categories</a>
-          <a class="nav-primary" href="./regional-shops.html" data-i18n="nav.shops">Regional shops</a>
+          <a class="nav-primary" href="./live-market-shops.html?cat=All&view=global">Global Market</a>
           <a class="nav-primary" href="./wellbeing.html" data-i18n="nav.wellbeing">Health coach</a>
+          <a class="nav-primary" href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
+          <a class="nav-primary" href="./service-provider-hub.html">MyBusiness</a>
           <a class="nav-primary" href="./account-hub.html" data-i18n="nav.account">Account</a>
-
-          <a class="nav-extra" href="./hot-picks.html" data-i18n="nav.hot">Hot Picks</a>
-          <a class="nav-extra" href="./rewards-hub.html" data-i18n="nav.rewards">Rewards</a>
-          <a class="nav-extra" href="./insurance.html" data-i18n="nav.insurance">Insurance</a>
-          <a class="nav-extra nav-settings" href="./legal-settings.html" data-i18n="nav.settings">Settings</a>
-          <a class="nav-extra" href="./seller-boost.html" data-i18n="nav.sellerBoost">Seller Boost</a>
-          <a class="nav-extra hidden" href="#communication" id="vcPrivateInboxTop" aria-label="Private inbox">✉ Inbox</a>
-          <a class="nav-extra cta-small" href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
-
-          <details class="nav-more">
-            <summary>More</summary>
-            <div class="nav-more-menu">
-              <a href="./hot-picks.html" data-i18n="nav.hot">Hot Picks</a>
-              <a href="./rewards-hub.html" data-i18n="nav.rewards">Rewards</a>
-              <a href="./insurance.html" data-i18n="nav.insurance">Insurance</a>
-              <a href="./legal-settings.html" data-i18n="nav.settings">Settings</a>
-              <a href="./seller-boost.html" data-i18n="nav.sellerBoost">Seller Boost</a>
-              <a href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
-            </div>
-          </details>
         </nav>
         <div class="topbar-lang">
           <label for="siteLanguage" data-i18n="lang.label">Language</label>
@@ -192,27 +179,93 @@
       <section class="hero hero--hue-drift" id="scene-top" data-vc-scene="intro" data-vc-frag-k="K">
         <div class="hero-captivate-bg" aria-hidden="true">
           <canvas id="heroCanvasFx" class="hero-canvas-fx"></canvas>
+          <img class="hero-showpiece" src="./hero-masterpiece-afro-euro-asia.svg" alt="" />
+          <div class="hero-masterpiece">
+            <svg viewBox="0 0 640 360" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="heroMasterLane" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ffd98a" />
+                  <stop offset="45%" stop-color="#0cd6ff" />
+                  <stop offset="100%" stop-color="#ff3f9f" />
+                </linearGradient>
+              </defs>
+              <rect width="640" height="360" fill="rgba(8,10,24,0.28)" />
+              <path d="M18 292 C 160 132, 308 126, 442 188 S 566 272, 626 78" fill="none" stroke="url(#heroMasterLane)" stroke-width="10" stroke-linecap="round" stroke-dasharray="30 18" class="hero-master-line hero-master-line--a"/>
+              <path d="M20 332 C 182 214, 330 208, 462 258 S 582 334, 634 150" fill="none" stroke="#9ef7ff" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 14" class="hero-master-line hero-master-line--b"/>
+              <circle cx="88" cy="250" r="8" fill="#fff" class="hero-master-node"/>
+              <circle cx="252" cy="172" r="7" fill="#fff" class="hero-master-node hero-master-node--b"/>
+              <circle cx="430" cy="216" r="8" fill="#fff" class="hero-master-node hero-master-node--c"/>
+              <circle cx="602" cy="110" r="9" fill="#fff" class="hero-master-node hero-master-node--d"/>
+            </svg>
+          </div>
+          <svg class="hero-bg-scene" viewBox="0 0 900 520" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="heroBridgeGlow" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6f2bff" />
+                <stop offset="52%" stop-color="#0cd6ff" />
+                <stop offset="100%" stop-color="#ff3f9f" />
+              </linearGradient>
+            </defs>
+            <path class="hero-bg-lane hero-bg-lane--main" d="M20 430 C 180 300, 340 250, 470 300 S 760 410, 880 180" stroke="url(#heroBridgeGlow)" stroke-width="11" />
+            <path class="hero-bg-lane hero-bg-lane--alt" d="M42 470 C 190 360, 338 326, 470 360 S 760 468, 888 262" stroke="rgba(174,247,255,0.82)" stroke-width="6" />
+            <path class="hero-bg-lane hero-bg-lane--orbit" d="M54 362 C 196 212, 378 170, 560 230 S 822 364, 892 122" stroke="rgba(255,214,142,0.86)" stroke-width="4" />
+            <polygon class="hero-bg-emblem" points="452,226 486,248 486,292 452,314 418,292 418,248" fill="rgba(255,255,255,0.2)" />
+            <circle class="hero-bg-node hero-bg-node--a" cx="128" cy="406" r="8" />
+            <circle class="hero-bg-node hero-bg-node--b" cx="320" cy="302" r="7" />
+            <circle class="hero-bg-node hero-bg-node--c" cx="510" cy="320" r="8" />
+            <circle class="hero-bg-node hero-bg-node--d" cx="716" cy="398" r="7" />
+            <circle class="hero-bg-node hero-bg-node--e" cx="872" cy="188" r="8" />
+          </svg>
+          <span class="hero-aura-bridge"></span>
+          <span class="hero-aura-trail"></span>
+          <span class="hero-aura-pattern"></span>
           <span class="bg-orb bg-orb-a"></span>
           <span class="bg-orb bg-orb-b"></span>
           <span class="bg-orb bg-orb-c"></span>
         </div>
         <div class="hero-copy">
-          <p id="heroBadge" class="badge" data-i18n="hero.badge">Africa-Europe-Asia Trade Bridge</p>
-          <h1 id="heroTitle" data-i18n="hero.title">Discover bold finds. Buy fast. Sell globally.</h1>
+          <p id="heroBadge" class="badge" data-i18n="hero.badge">Africa-Europe-Asia Trade Bridge Marketplace</p>
+          <h1 id="heroTitle" data-i18n="hero.title">Find real bargains in seconds. Trade safely across Africa, Europe, and Asia.</h1>
           <p id="heroSubtitle">
             <span id="regionHeadline" data-i18n="hero.regionHeadline"
-              >VibeCart is your verified cross-border marketplace with fast checkout and clear, trusted buying flows.</span>
+              >VibeCart is where Africa, Europe, Dubai, and Asia meet to buy and sell safely.</span>
             <span data-i18n="hero.subtitleExtended">
-              Discover top categories fast, compare regional pricing, and open seller pages in fewer taps. Trade in both
-              directions across Africa, Europe, and selected global lanes using approved logistics and trusted payment options.
-              AI supports discovery and safety checks while you stay in control of final decisions.
+              Discover verified sellers, pay with confidence, and track every shipment. Build your own cross-border business from one account and one trusted marketplace flow.
             </span>
           </p>
           <div class="hero-actions">
-            <a href="#market" class="btn btn-primary" data-i18n="hero.shopNow">Shop Now</a>
+            <a href="./live-market-shops.html?cat=All&view=global" class="btn btn-primary" id="heroShopNowBtn" data-i18n="hero.shopNow">Browse global market now</a>
             <a href="./sell-journey.html" class="btn btn-secondary" data-i18n="hero.listItem">List an Item</a>
             <button id="openOnboarding" class="btn btn-secondary" type="button" data-i18n="hero.smartTour">Start Smart Tour</button>
             <button id="installAppBtn" class="btn btn-secondary hidden" type="button" data-i18n="hero.installApp">Install App</button>
+          </div>
+          <div class="hero-quick-lanes" aria-label="Quick bargain lanes">
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=All&view=global&deal=best">Best bargains</a>
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Fashion&view=global&deal=fashion">Fashion deals</a>
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Electronics&view=global&deal=electronics">Electronics offers</a>
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Books&view=global&deal=books">Books and study</a>
+          </div>
+          <div class="hero-social-proof" aria-label="Social proof">
+            <article>
+              <strong>12K+</strong>
+              <span>verified listings</span>
+            </article>
+            <article>
+              <strong>4.8/5</strong>
+              <span>buyer trust rating</span>
+            </article>
+            <article>
+              <strong>42</strong>
+              <span>active bridge routes</span>
+            </article>
+          </div>
+          <div class="hero-bridge-welcome" aria-label="How VibeCart works">
+            <p>Welcome to the Bridge: one clear flow from discovery to delivery.</p>
+            <ul>
+              <li>Choose your lane: Europe, Mama Africa, Asia &amp; Gulf, Scents, or Global.</li>
+              <li>Buy with protected checkout and real delivery tracking.</li>
+              <li>Or switch to seller mode and start trading across borders.</li>
+            </ul>
           </div>
           <div class="hero-trust-row">
             <span data-i18n="hero.trust1">Trusted payments</span>
@@ -255,15 +308,205 @@
           </div>
           <p id="heroChipHint" class="hero-chip-hint note" aria-live="polite"></p>
         </div>
-        <div class="hero-image">
-          <img
-            src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&h=800&q=80"
-            width="1200"
-            height="800"
-            decoding="async"
-            fetchpriority="high"
-            alt="Colourful artisan crafts and textiles at a market"
-          />
+        <div class="hero-image vc-hero-art" aria-label="VibeCart signature art">
+          <svg viewBox="0 0 640 460" role="img" aria-labelledby="vcHeroArtTitle vcHeroArtDesc">
+            <title id="vcHeroArtTitle">VibeCart route constellation art</title>
+            <desc id="vcHeroArtDesc">Custom abstract artwork representing Africa, Europe, Dubai, and Asia trade routes.</desc>
+            <defs>
+              <linearGradient id="vcg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#6f2bff"/>
+                <stop offset="50%" stop-color="#0cd6ff"/>
+                <stop offset="100%" stop-color="#ff3f9f"/>
+              </linearGradient>
+              <radialGradient id="vcg2" cx="30%" cy="20%" r="70%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect x="0" y="0" width="640" height="460" rx="26" fill="#0d0a1f"/>
+            <circle cx="160" cy="130" r="120" fill="url(#vcg2)"/>
+            <path
+              class="vc-route-primary"
+              pathLength="1000"
+              d="M76 332 C 150 230, 260 198, 330 250 S 520 330, 584 182"
+              stroke="url(#vcg1)"
+              stroke-width="12"
+              fill="none"
+              stroke-linecap="round"
+            />
+            <path
+              class="vc-route-secondary"
+              pathLength="1000"
+              d="M95 168 C 190 96, 260 122, 338 176 S 500 244, 560 112"
+              stroke="#8f7bff"
+              stroke-opacity="0.55"
+              stroke-width="7"
+              fill="none"
+              stroke-linecap="round"
+            />
+            <g fill="#fff">
+              <circle cx="90" cy="338" r="8"/><circle cx="228" cy="238" r="8"/><circle cx="346" cy="254" r="8"/><circle cx="494" cy="302" r="8"/><circle cx="582" cy="184" r="8"/>
+            </g>
+            <g
+              class="vc-hero-route-labels"
+              fill="#aef7ff"
+              font-family="Syne, system-ui, sans-serif"
+              font-size="14"
+              font-weight="700"
+              letter-spacing="0.1em"
+            >
+              <text x="68" y="366">AFRICA</text>
+              <text x="208" y="198">EUROPE</text>
+              <text x="332" y="246">DUBAI</text>
+              <text x="474" y="332">ASIA</text>
+            </g>
+          </svg>
+        </div>
+      </section>
+
+      <section class="section vc-signature-moments" aria-labelledby="vcSignatureMomentsTitle">
+        <div class="vc-signature-head">
+          <p class="badge">VibeCart Signature</p>
+          <h2 id="vcSignatureMomentsTitle">Built as a living trade canvas, not a template storefront</h2>
+          <p class="note">Custom visual language: lane geometry, pulse lighting, and route-native motion.</p>
+        </div>
+        <div class="vc-signature-grid">
+          <article class="vc-signature-card vc-signature-card--aurora">
+            <span class="vc-sig-icon" aria-hidden="true">◉</span>
+            <h3>Aurora lane identity</h3>
+            <p>Hero chroma and depth are tuned as a branded navigation signal, not decorative wallpaper.</p>
+          </article>
+          <article class="vc-signature-card vc-signature-card--bridge">
+            <span class="vc-sig-icon" aria-hidden="true">⟟</span>
+            <h3>Route-native architecture</h3>
+            <p>Each commerce path carries its own visual weight so Africa, Europe, Dubai, and Asia context stays clear.</p>
+          </article>
+          <article class="vc-signature-card vc-signature-card--rhythm">
+            <span class="vc-sig-icon" aria-hidden="true">✦</span>
+            <h3>Motion with intent</h3>
+            <p>Micro-interactions choreograph decision flow speed, confidence, and transition hierarchy.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section alt vc-noosphere-lattice" aria-labelledby="vcNoosphereTitle">
+        <div class="vc-noosphere-head">
+          <p class="badge">Noosphere lattice</p>
+          <h2 id="vcNoosphereTitle">Why buying on VibeCart is smoother</h2>
+          <p class="note">
+            A proprietary lattice of clearance corridors, vault pulses, and orbital ledgers. Rendered inline as geometry you will not find on any other marketplace shell.
+          </p>
+        </div>
+        <div class="vc-noosphere-grid">
+          <article class="vc-noosphere-panel">
+            <div class="vc-noosphere-canvas" aria-hidden="true">
+              <svg viewBox="0 0 640 400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="">
+                <defs>
+                  <linearGradient id="vcN0g" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0a0614" />
+                    <stop offset="55%" stop-color="#12082a" />
+                    <stop offset="100%" stop-color="#041a22" />
+                  </linearGradient>
+                  <linearGradient id="vcN0line" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#e8a317" stop-opacity="0.15" />
+                    <stop offset="50%" stop-color="#66ecc1" stop-opacity="0.55" />
+                    <stop offset="100%" stop-color="#7aa8ff" stop-opacity="0.2" />
+                  </linearGradient>
+                  <filter id="vcN0glow">
+                    <feGaussianBlur stdDeviation="2.2" result="b" />
+                    <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+                <rect width="640" height="400" fill="url(#vcN0g)" />
+                <g stroke="url(#vcN0line)" stroke-width="1.2" fill="none" opacity="0.85">
+                  <path d="M40 320 L200 80 L420 120 L600 40" />
+                  <path d="M0 200 L180 360 L440 280 L640 340" />
+                  <path d="M120 0 L260 200 L520 40 L580 400" />
+                </g>
+                <g fill="#66ecc1" filter="url(#vcN0glow)">
+                  <circle cx="200" cy="80" r="5" />
+                  <circle cx="420" cy="120" r="4" />
+                  <circle cx="180" cy="360" r="4.5" />
+                  <circle cx="440" cy="280" r="5" />
+                </g>
+                <g fill="#e8a317" opacity="0.9">
+                  <path d="M48 88 h44 l22 38 h-88 z" transform="rotate(-8 70 106)" />
+                  <path d="M500 300 h52 l26 44 h-104 z" transform="rotate(6 526 322)" />
+                </g>
+                <text x="36" y="48" fill="#cfe8ff" font-size="11" font-family="system-ui,sans-serif" letter-spacing="0.35em">CLEARANCE</text>
+              </svg>
+            </div>
+            <div class="vc-noosphere-caption">
+              <h3>Lattice clearance</h3>
+              <p>Topology of permissioned trade paths — luminous, strict, readable.</p>
+            </div>
+          </article>
+          <article class="vc-noosphere-panel vc-noosphere-panel--accent">
+            <div class="vc-noosphere-canvas" aria-hidden="true">
+              <svg viewBox="0 0 640 400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="">
+                <defs>
+                  <radialGradient id="vcN1r" cx="35%" cy="40%" r="70%">
+                    <stop offset="0%" stop-color="#1a1430" />
+                    <stop offset="100%" stop-color="#04060c" />
+                  </radialGradient>
+                  <linearGradient id="vcN1w" x1="0%" y1="50%" x2="100%" y2="50%">
+                    <stop offset="0%" stop-color="#e8a317" stop-opacity="0" />
+                    <stop offset="50%" stop-color="#66ecc1" stop-opacity="0.9" />
+                    <stop offset="100%" stop-color="#e8a317" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <rect width="640" height="400" fill="url(#vcN1r)" />
+                <g stroke="rgba(255,255,255,0.06)" fill="none">
+                  <circle cx="320" cy="200" r="160" /><circle cx="320" cy="200" r="120" /><circle cx="320" cy="200" r="80" />
+                </g>
+                <path d="M0 200 Q160 80 320 200 T640 200" fill="none" stroke="url(#vcN1w)" stroke-width="3" opacity="0.85" />
+                <path d="M0 240 Q200 360 320 240 T640 220" fill="none" stroke="url(#vcN1w)" stroke-width="2" opacity="0.5" />
+                <g fill="#66ecc1">
+                  <rect x="312" y="32" width="16" height="6" rx="2" opacity="0.7" />
+                  <rect x="520" y="188" width="22" height="6" rx="2" opacity="0.55" />
+                  <rect x="98" y="292" width="18" height="6" rx="2" opacity="0.6" />
+                </g>
+                <text x="36" y="52" fill="#e8d6ff" font-size="11" font-family="system-ui,sans-serif" letter-spacing="0.28em">VAULT PULSE</text>
+              </svg>
+            </div>
+            <div class="vc-noosphere-caption">
+              <h3>Vault pulse</h3>
+              <p>Cross-border resonance drawn as wavefronts, not lifestyle photos.</p>
+            </div>
+          </article>
+          <article class="vc-noosphere-panel">
+            <div class="vc-noosphere-canvas" aria-hidden="true">
+              <svg viewBox="0 0 640 400" preserveAspectRatio="xMidYMid slice" role="img" aria-label="">
+                <defs>
+                  <linearGradient id="vcN2sky" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#0c1028" />
+                    <stop offset="100%" stop-color="#020308" />
+                  </linearGradient>
+                </defs>
+                <rect width="640" height="400" fill="url(#vcN2sky)" />
+                <ellipse cx="320" cy="220" rx="220" ry="90" fill="none" stroke="#66ecc1" stroke-opacity="0.25" stroke-width="1.5" />
+                <ellipse cx="320" cy="220" rx="160" ry="65" fill="none" stroke="#e8a317" stroke-opacity="0.35" stroke-width="1.2" />
+                <ellipse cx="320" cy="220" rx="100" ry="42" fill="none" stroke="#8ab4ff" stroke-opacity="0.3" />
+                <g stroke="#e8a317" stroke-width="2" fill="none" opacity="0.85">
+                  <path d="M120 300 A200 200 0 0 1 520 140" />
+                </g>
+                <g fill="#66ecc1" opacity="0.9">
+                  <circle cx="520" cy="140" r="6" />
+                  <circle cx="280" cy="118" r="4" />
+                  <circle cx="160" cy="260" r="4.5" />
+                </g>
+                <g fill="rgba(255,255,255,0.08)">
+                  <rect x="260" y="168" width="120" height="36" rx="6" />
+                </g>
+                <text x="274" y="192" fill="#cfe8ff" font-size="12" font-family="system-ui,sans-serif" letter-spacing="0.2em">LEDGER</text>
+                <text x="36" y="48" fill="#b8c8ff" font-size="11" font-family="system-ui,sans-serif" letter-spacing="0.32em">ORBIT TRACE</text>
+              </svg>
+            </div>
+            <div class="vc-noosphere-caption">
+              <h3>Orbit ledger</h3>
+              <p>Settlement rhythm as orbital mechanics — signature, not generic UI chrome.</p>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -308,7 +551,30 @@
         </div>
         <div id="vcShockReel" class="vc-shock-reel" aria-live="polite">
           <article class="vc-shock-scene is-active" data-shock-scene="0">
-            <img src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="vcS0bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#080410" />
+                  <stop offset="100%" stop-color="#12082a" />
+                </linearGradient>
+                <linearGradient id="vcS0grid" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#ff3cac" stop-opacity="0" />
+                  <stop offset="45%" stop-color="#66ecc1" stop-opacity="0.45" />
+                  <stop offset="100%" stop-color="#7aa8ff" stop-opacity="0.15" />
+                </linearGradient>
+              </defs>
+              <rect width="900" height="600" fill="url(#vcS0bg)" />
+              <g stroke="url(#vcS0grid)" stroke-width="1.1" opacity="0.9">
+                <path d="M0 480 L900 120 M0 360 L900 0 M120 600 L780 0 M-40 200 L520 600" />
+                <path d="M0 520 L320 0 M580 600 L900 80" />
+              </g>
+              <g fill="#66ecc1" opacity="0.95">
+                <circle cx="220" cy="380" r="7" /><circle cx="520" cy="220" r="5" /><circle cx="700" cy="340" r="6" />
+              </g>
+              <g fill="#e8a317" opacity="0.85">
+                <circle cx="380" cy="180" r="4" /><circle cx="640" cy="140" r="5" />
+              </g>
+            </svg>
             <div class="vc-shock-overlay">
               <h3>Neon Market Gravity</h3>
               <p>High-energy live picks in seconds.</p>
@@ -316,7 +582,28 @@
             </div>
           </article>
           <article class="vc-shock-scene" data-shock-scene="1">
-            <img src="https://images.unsplash.com/photo-1556740749-887f6717d7e4?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <radialGradient id="vcS1r" cx="50%" cy="50%" r="65%">
+                  <stop offset="0%" stop-color="#1a1028" />
+                  <stop offset="100%" stop-color="#040208" />
+                </radialGradient>
+                <linearGradient id="vcS1beam" x1="50%" y1="50%" x2="100%" y2="50%">
+                  <stop offset="0%" stop-color="#e8a317" stop-opacity="0.9" />
+                  <stop offset="100%" stop-color="#66ecc1" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <rect width="900" height="600" fill="url(#vcS1r)" />
+              <g stroke="rgba(255,255,255,0.07)" fill="none">
+                <circle cx="450" cy="300" r="260" /><circle cx="450" cy="300" r="180" /><circle cx="450" cy="300" r="100" />
+              </g>
+              <g stroke="url(#vcS1beam)" stroke-width="2.2" fill="none" opacity="0.75">
+                <path d="M450 300 L900 40" /><path d="M450 300 L60 80" /><path d="M450 300 L200 600" /><path d="M450 300 L780 560" />
+                <path d="M450 300 L0 300" /><path d="M450 300 L900 300" /><path d="M450 300 L450 0" /><path d="M450 300 L450 600" />
+              </g>
+              <circle cx="450" cy="300" r="14" fill="#66ecc1" opacity="0.35" />
+              <circle cx="450" cy="300" r="6" fill="#e8a317" />
+            </svg>
             <div class="vc-shock-overlay">
               <h3>Cross-Border Warp</h3>
               <p>From one lane to another with trust intact.</p>
@@ -324,7 +611,31 @@
             </div>
           </article>
           <article class="vc-shock-scene" data-shock-scene="2">
-            <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="vcS2g" x1="0%" y1="100%" x2="0%" y2="0%">
+                  <stop offset="0%" stop-color="#060814" />
+                  <stop offset="100%" stop-color="#140a24" />
+                </linearGradient>
+              </defs>
+              <rect width="900" height="600" fill="url(#vcS2g)" />
+              <g fill="none" stroke="#66ecc1" stroke-opacity="0.35" stroke-width="1.2">
+                <path d="M80 520 L200 400 L340 420 L480 280 L620 300 L780 140" />
+              </g>
+              <g fill="#e8a317" opacity="0.9">
+                <rect x="72" y="472" width="120" height="36" rx="4" transform="skewX(-8)" />
+                <rect x="188" y="352" width="130" height="40" rx="4" transform="skewX(-8)" />
+                <rect x="308" y="368" width="140" height="44" rx="4" transform="skewX(-8)" />
+                <rect x="452" y="228" width="150" height="48" rx="4" transform="skewX(-8)" />
+                <rect x="598" y="248" width="160" height="52" rx="4" transform="skewX(-8)" />
+                <rect x="748" y="88" width="100" height="56" rx="4" transform="skewX(-8)" />
+              </g>
+              <g fill="#66ecc1" opacity="0.85">
+                <polygon points="450,80 462,108 438,108" />
+                <polygon points="520,120 532,148 508,148" />
+                <polygon points="380,100 392,128 368,128" />
+              </g>
+            </svg>
             <div class="vc-shock-overlay">
               <h3>Seller Ascension</h3>
               <p>Build your empire with speed and style.</p>
@@ -332,7 +643,29 @@
             </div>
           </article>
           <article class="vc-shock-scene" data-shock-scene="3">
-            <img src="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=1800&h=1200&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 900 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="vcS3loop" x1="0%" y1="50%" x2="100%" y2="50%">
+                  <stop offset="0%" stop-color="#e8a317" />
+                  <stop offset="50%" stop-color="#66ecc1" />
+                  <stop offset="100%" stop-color="#7aa8ff" />
+                </linearGradient>
+              </defs>
+              <rect width="900" height="600" fill="#05060e" />
+              <path
+                d="M140 300 C140 160 760 160 760 300 C760 440 140 440 140 300"
+                fill="none"
+                stroke="url(#vcS3loop)"
+                stroke-width="5"
+                stroke-opacity="0.55"
+                stroke-linecap="round"
+              />
+              <path d="M200 300 C200 200 700 200 700 300 C700 400 200 400 200 300" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+              <circle cx="200" cy="300" r="8" fill="#66ecc1" />
+              <circle cx="520" cy="188" r="6" fill="#e8a317" />
+              <circle cx="720" cy="320" r="7" fill="#8ab4ff" />
+              <circle cx="380" cy="412" r="5" fill="#66ecc1" />
+            </svg>
             <div class="vc-shock-overlay">
               <h3>Rewards Hyperloop</h3>
               <p>Momentum loops that keep users engaged.</p>
@@ -351,15 +684,51 @@
         <p class="note vc-visual-splash-sub">Tap a scene. Enter instantly.</p>
         <div class="vc-visual-splash-grid">
           <a class="vc-visual-tile" href="./hot-picks.html">
-            <img src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1200&h=800&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="vcV0" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#12081c" />
+                  <stop offset="100%" stop-color="#042428" />
+                </linearGradient>
+              </defs>
+              <rect width="800" height="520" fill="url(#vcV0)" />
+              <g fill="none" stroke="#66ecc1" stroke-opacity="0.4" stroke-width="1.2">
+                <path d="M40 420 L180 120 L360 280 L520 80 L760 360" />
+              </g>
+              <g fill="#e8a317" opacity="0.9">
+                <circle cx="180" cy="120" r="10" /><circle cx="360" cy="280" r="8" /><circle cx="520" cy="80" r="9" />
+              </g>
+              <rect x="280" y="200" width="240" height="72" rx="10" fill="rgba(6,10,20,0.55)" stroke="rgba(255,255,255,0.12)" />
+            </svg>
             <span>Hot picks</span>
           </a>
           <a class="vc-visual-tile" href="./regional-shops.html">
-            <img src="https://images.unsplash.com/photo-1481437156560-3205f6a55735?auto=format&fit=crop&w=1200&h=800&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="vcV1" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#0a0614" />
+                  <stop offset="100%" stop-color="#141038" />
+                </linearGradient>
+              </defs>
+              <rect width="800" height="520" fill="url(#vcV1)" />
+              <g stroke="#8ab4ff" stroke-opacity="0.25" fill="none">
+                <rect x="120" y="100" width="200" height="140" rx="8" transform="rotate(-6 220 170)" />
+                <rect x="380" y="160" width="220" height="150" rx="8" transform="rotate(4 490 235)" />
+                <rect x="200" y="300" width="360" height="120" rx="8" />
+              </g>
+              <path d="M60 440 L740 120" stroke="#e8a317" stroke-opacity="0.35" stroke-width="2" fill="none" />
+            </svg>
             <span>Regional folders</span>
           </a>
           <a class="vc-visual-tile" href="./wellbeing.html">
-            <img src="https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&h=800&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <rect width="800" height="520" fill="#061018" />
+              <ellipse cx="400" cy="260" rx="220" ry="140" fill="none" stroke="#66ecc1" stroke-opacity="0.22" stroke-width="1.5" />
+              <path d="M200 320 Q400 120 600 320" fill="none" stroke="#e8a317" stroke-opacity="0.5" stroke-width="3" />
+              <g fill="#66ecc1" opacity="0.85">
+                <circle cx="280" cy="240" r="5" /><circle cx="400" cy="200" r="6" /><circle cx="520" cy="248" r="5" />
+              </g>
+            </svg>
             <span>Health coach</span>
           </a>
         </div>
@@ -372,7 +741,22 @@
         </div>
         <div id="vcEpicTrack" class="vc-epic-track" aria-live="polite">
           <article class="vc-epic-card is-active" data-epic-index="0">
-            <img src="https://images.unsplash.com/photo-1557821552-17105176677c?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="vcE0" x1="0%" y1="50%" x2="100%" y2="50%">
+                  <stop offset="0%" stop-color="#0c0818" />
+                  <stop offset="100%" stop-color="#061c24" />
+                </linearGradient>
+              </defs>
+              <rect width="960" height="600" fill="url(#vcE0)" />
+              <g fill="none" stroke="#66ecc1" stroke-opacity="0.35">
+                <path d="M0 380 L960 220 M0 260 L960 420" stroke-width="1.2" />
+              </g>
+              <g fill="#e8a317" opacity="0.85">
+                <rect x="120" y="140" width="720" height="8" rx="2" /><rect x="200" y="260" width="560" height="8" rx="2" /><rect x="160" y="380" width="640" height="8" rx="2" />
+              </g>
+              <circle cx="480" cy="300" r="70" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2" />
+            </svg>
             <div class="vc-epic-overlay">
               <h3>Live Market Pulse</h3>
               <p>Real energy, quick picks, fast route.</p>
@@ -380,7 +764,17 @@
             </div>
           </article>
           <article class="vc-epic-card" data-epic-index="1">
-            <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <rect width="960" height="600" fill="#080614" />
+              <g stroke="#8ab4ff" stroke-opacity="0.2" fill="none">
+                <rect x="140" y="120" width="680" height="360" rx="16" />
+                <rect x="200" y="180" width="560" height="240" rx="12" />
+              </g>
+              <path d="M120 480 L840 140" stroke="#e8a317" stroke-opacity="0.4" stroke-width="2" fill="none" />
+              <g fill="#66ecc1" opacity="0.75">
+                <rect x="420" y="260" width="120" height="80" rx="8" />
+              </g>
+            </svg>
             <div class="vc-epic-overlay">
               <h3>Cross-Border Vault</h3>
               <p>Trusted folders, verified routes, smooth handoff.</p>
@@ -388,7 +782,22 @@
             </div>
           </article>
           <article class="vc-epic-card" data-epic-index="2">
-            <img src="https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <defs>
+                <radialGradient id="vcE2" cx="55%" cy="35%" r="60%">
+                  <stop offset="0%" stop-color="#1a1020" />
+                  <stop offset="100%" stop-color="#040308" />
+                </radialGradient>
+              </defs>
+              <rect width="960" height="600" fill="url(#vcE2)" />
+              <g fill="#e8a317" opacity="0.35">
+                <polygon points="480,80 620,520 340,520" />
+              </g>
+              <g fill="none" stroke="#66ecc1" stroke-opacity="0.45" stroke-width="1.5">
+                <path d="M200 420 L360 180 L520 380 L760 160" />
+              </g>
+              <circle cx="360" cy="180" r="12" fill="#66ecc1" opacity="0.9" />
+            </svg>
             <div class="vc-epic-overlay">
               <h3>Creator Seller Arena</h3>
               <p>Build, boost, and scale with style.</p>
@@ -396,7 +805,17 @@
             </div>
           </article>
           <article class="vc-epic-card" data-epic-index="3">
-            <img src="https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&fit=crop&w=1600&h=1000&q=80" loading="lazy" decoding="async" alt="" />
+            <svg class="vc-scene-fill" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+              <rect width="960" height="600" fill="#06121a" />
+              <g fill="none" stroke="#66ecc1" stroke-opacity="0.3">
+                <path d="M120 440 Q480 80 840 440" stroke-width="2" />
+                <path d="M160 360 Q480 140 800 360" stroke-width="1.2" />
+              </g>
+              <g fill="#e8a317" opacity="0.8">
+                <circle cx="320" cy="300" r="6" /><circle cx="480" cy="220" r="8" /><circle cx="640" cy="300" r="6" />
+              </g>
+              <rect x="380" y="250" width="200" height="100" rx="14" fill="rgba(8,12,24,0.5)" stroke="rgba(255,255,255,0.1)" />
+            </svg>
             <div class="vc-epic-overlay">
               <h3>Wellness Command</h3>
               <p>Health coach + routines + momentum.</p>
@@ -651,7 +1070,7 @@
       </section>
 
       <section id="categories" class="section" data-vc-scene="categories">
-        <h2 data-i18n="categories.title">Popular Categories</h2>
+        <h2 data-i18n="categories.title">Regional Trade Shops</h2>
         <p class="note" style="margin: -0.35rem 0 0.75rem">
           <a href="./browse-categories.html">Open the full category browser</a> (lanes, filters, and browse mode) in a dedicated page.
         </p>
@@ -779,7 +1198,7 @@
       </section>
 
       <section id="shops" class="section alt" data-vc-scene="shops">
-        <h2 data-i18n="shops.title">Regional shop folders</h2>
+        <h2 data-i18n="shops.title">Popular Categories</h2>
         <p id="shopSearchStatus" class="note shop-search-status" aria-live="polite"></p>
         <p id="vibePassportBadge" class="vibe-passport-badge" aria-live="polite"></p>
         <p id="vibeAuraLine" class="vibe-aura-line" aria-live="polite"></p>
@@ -807,31 +1226,31 @@
           <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes">
             <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html" data-vc-region="europe">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Europe</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/zalando.com" alt="Europe shop logo" loading="lazy" decoding="async" />Europe</h3>
               <p class="vc-origin-chip" data-i18n="originChip.europe">Origin line: EU hubs → bridge carts</p>
               <p>Continental EU, United Kingdom, and Ireland — campus routes plus national retailers.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--mama-africa" href="./shops-mama-africa.html" data-vc-region="mama-africa">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Mama Africa</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/takealot.com" alt="Africa shop logo" loading="lazy" decoding="async" />Mama Africa</h3>
               <p class="vc-origin-chip" data-i18n="originChip.africa">Origin line: African makers &amp; importers</p>
               <p>ZA, KE, NG, ZW, and more — includes a Zimbabwe row on the lane page.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--asia" href="./shops-asia.html" data-vc-region="asia">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Asia &amp; Gulf</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/shopee.sg" alt="Asia shop logo" loading="lazy" decoding="async" />Asia &amp; Gulf</h3>
               <p class="vc-origin-chip" data-i18n="originChip.asia">Origin line: Asia &amp; Gulf bridge nodes</p>
               <p>India, SEA, Japan, Korea, and the China cluster — plus Dubai bridge entry.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--scents" href="./shops-scents.html" data-vc-region="scents">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Scents</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/sephora.com" alt="Scents shop logo" loading="lazy" decoding="async" />Scents</h3>
               <p class="vc-origin-chip" data-i18n="originChip.scents">Origin line: niche &amp; prestige retailers</p>
               <p>Perfume, cologne, niche fragrance, and prestige beauty retailers worldwide.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--global" href="./shops-global.html" data-vc-region="global">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Global brands</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/amazon.com" alt="Global shop logo" loading="lazy" decoding="async" />Global brands</h3>
               <p class="vc-origin-chip" data-i18n="originChip.global">Origin line: mainstream &amp; resale mix</p>
               <p>Mainstream fashion, tech, marketplaces, and vintage / resale picks.</p>
             </a>
@@ -898,6 +1317,14 @@
             <option value="asia">Asia</option>
           </select>
         </div>
+        <aside class="market-cta-deep" aria-label="Global market call to action">
+          <h3>Enter the global market lane now</h3>
+          <p>Switch destination, compare live route options, and open verified shops in seconds. Every click stays anchored to trust checks and delivery transparency.</p>
+          <div class="hero-actions">
+            <a href="./live-market-shops.html?cat=All&view=global" class="btn btn-primary">Buy now</a>
+            <a href="./sell-journey.html" class="btn btn-secondary">Become a seller</a>
+          </div>
+        </aside>
         <p id="buyerDestinationHint" class="note">
           Destination defaults switch automatically with the active bridge path.
         </p>
@@ -911,15 +1338,28 @@
         </p>
         <div id="products" class="grid product-grid">
           <article class="product" data-category="Electronics">
-            <img
-              src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&h=600&q=75"
-              width="900"
-              height="600"
-              loading="lazy"
-              decoding="async"
-              alt="Electronics online shops"
-            />
-            <h3>Amazon Electronics</h3>
+            <div class="vc-product-sigil" aria-hidden="true">
+              <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="sigE" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#6f2bff" />
+                    <stop offset="1" stop-color="#0cd6ff" />
+                  </linearGradient>
+                </defs>
+                <rect width="200" height="140" rx="10" fill="#0a0614" />
+                <path
+                  d="M24 96 L52 36 L100 78 L148 32 L176 96"
+                  fill="none"
+                  stroke="url(#sigE)"
+                  stroke-width="3.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <circle cx="100" cy="58" r="7" fill="#e8a317" />
+                <rect x="36" y="108" width="128" height="8" rx="2" fill="rgba(255,255,255,0.08)" />
+              </svg>
+            </div>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/amazon.com" alt="Amazon logo" loading="lazy" decoding="async" />Amazon Electronics</h3>
             <p class="price">Real shop</p>
             <p>Live electronics listings</p>
             <p class="note">External checkout on source site.</p>
@@ -927,15 +1367,21 @@
             <a class="btn btn-primary" href="/api/public/shop/redirect?shop=Amazon%20Electronics&cat=Electronics&partner=Amazon%20Electronics&target=https%3A%2F%2Fwww.amazon.com%2Fs%3Fi%3Delectronics%26tag%3Dvibecart20-20">Open shop</a>
           </article>
           <article class="product" data-category="Fashion">
-            <img
-              src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&h=600&q=75"
-              width="900"
-              height="600"
-              loading="lazy"
-              decoding="async"
-              alt="Fashion online shops"
-            />
-            <h3>Zalando</h3>
+            <div class="vc-product-sigil" aria-hidden="true">
+              <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="sigF" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0" stop-color="#ff3f9f" />
+                    <stop offset="1" stop-color="#66ecc1" />
+                  </linearGradient>
+                </defs>
+                <rect width="200" height="140" rx="10" fill="#0a0614" />
+                <path d="M100 28 C140 28 168 56 168 88 C168 120 60 120 60 88 C60 56 60 28 100 28 Z" fill="none" stroke="url(#sigF)" stroke-width="2.8" />
+                <path d="M100 38 L100 92" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" />
+                <circle cx="100" cy="108" r="5" fill="#e8a317" />
+              </svg>
+            </div>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/zalando.com" alt="Zalando logo" loading="lazy" decoding="async" />Zalando</h3>
             <p class="price">Real shop</p>
             <p>Live fashion listings</p>
             <p class="note">External checkout on source site.</p>
@@ -943,30 +1389,44 @@
             <a class="btn btn-primary" href="/api/public/shop/redirect?shop=Zalando&cat=Fashion&partner=Zalando&target=https%3A%2F%2Fwww.zalando.com">Open shop</a>
           </article>
           <article class="product" data-category="Books">
-            <img
-              src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=900&h=600&q=75"
-              width="900"
-              height="600"
-              loading="lazy"
-              decoding="async"
-              alt="Book online shops"
-            />
-            <h3>AbeBooks</h3>
+            <div class="vc-product-sigil" aria-hidden="true">
+              <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="sigB" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#8ab4ff" />
+                    <stop offset="1" stop-color="#0cd6ff" />
+                  </linearGradient>
+                </defs>
+                <rect width="200" height="140" rx="10" fill="#0a0614" />
+                <rect x="48" y="34" width="104" height="72" rx="4" fill="none" stroke="url(#sigB)" stroke-width="2.5" />
+                <line x1="58" y1="52" x2="142" y2="52" stroke="rgba(255,255,255,0.2)" stroke-width="2" />
+                <line x1="58" y1="66" x2="130" y2="66" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+                <line x1="58" y1="80" x2="138" y2="80" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
+                <rect x="70" y="98" width="60" height="10" rx="2" fill="#e8a317" opacity="0.85" />
+              </svg>
+            </div>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/abebooks.com" alt="AbeBooks logo" loading="lazy" decoding="async" />AbeBooks</h3>
             <p class="price">Real shop</p>
             <p>Live book and textbook listings</p>
             <p class="note">External checkout on source site.</p>
             <a class="btn btn-primary" href="/api/public/shop/redirect?shop=AbeBooks&cat=Books&partner=AbeBooks&target=https%3A%2F%2Fwww.abebooks.com">Open shop</a>
           </article>
           <article class="product" data-category="Gaming">
-            <img
-              src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?auto=format&fit=crop&w=900&h=600&q=75"
-              width="900"
-              height="600"
-              loading="lazy"
-              decoding="async"
-              alt="Gaming online shops"
-            />
-            <h3>Steam Store</h3>
+            <div class="vc-product-sigil" aria-hidden="true">
+              <svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="sigG" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#e8a317" />
+                    <stop offset="1" stop-color="#6f2bff" />
+                  </linearGradient>
+                </defs>
+                <rect width="200" height="140" rx="10" fill="#0a0614" />
+                <rect x="56" y="40" width="88" height="60" rx="8" fill="none" stroke="url(#sigG)" stroke-width="2.8" />
+                <path d="M100 52 L100 88 M82 70 L118 70" stroke="rgba(174,247,255,0.9)" stroke-width="3" stroke-linecap="round" />
+                <circle cx="100" cy="118" r="6" fill="#66ecc1" opacity="0.9" />
+              </svg>
+            </div>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/steampowered.com" alt="Steam logo" loading="lazy" decoding="async" />Steam Store</h3>
             <p class="price">Real shop</p>
             <p>Live gaming listings</p>
             <p class="note">External checkout on source site.</p>
@@ -979,19 +1439,57 @@
       </section>
 
       <section id="visualJourney" class="section alt" aria-labelledby="visualJourneyTitle">
-        <h2 id="visualJourneyTitle">Why buying on VibeCart is practical</h2>
-        <p class="note">Visual guide from discovery to delivery. Checkout remains on partner sites for safety.</p>
+        <h2 id="visualJourneyTitle">Route briefing: practical buying, thriller pacing</h2>
+        <p class="note">
+          No stock footage — only VibeCart signal geometry. The beats below mirror what you already feel in the lanes: tension, lock-in, then a clean handoff to
+          <strong>verified partner checkouts</strong>.
+        </p>
         <div class="vc-visual-hero">
           <img src="./icon.svg" alt="VibeCart logo" width="72" height="72" />
-          <video controls muted loop playsinline preload="metadata" poster="./icon-maskable.svg">
-            <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
-          </video>
+          <div class="vc-signal-cinema vc-signal-cinema--buyer" role="region" aria-label="Animated route briefing, proprietary vector motion">
+            <div class="vc-signal-cinema__hud">
+              <span class="vc-signal-cinema__tag">CLASSIFIED LANE</span>
+              <div class="vc-signal-cinema__beats" aria-hidden="true">
+                <span>ACQUIRE</span><span>LOCK</span><span>HANDOFF</span>
+              </div>
+            </div>
+            <div class="vc-signal-cinema__scan" aria-hidden="true"></div>
+            <svg class="vc-signal-cinema__stage" viewBox="0 0 480 260" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="scBgBuyer" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#12081c" />
+                  <stop offset="1" stop-color="#04121c" />
+                </linearGradient>
+                <linearGradient id="scLnBuyer" x1="0" y1="1" x2="1" y2="0">
+                  <stop offset="0" stop-color="#6f2bff" stop-opacity="0.95" />
+                  <stop offset="0.5" stop-color="#0cd6ff" />
+                  <stop offset="1" stop-color="#ff3f9f" />
+                </linearGradient>
+              </defs>
+              <rect width="480" height="260" fill="url(#scBgBuyer)" />
+              <path
+                class="vc-sig-dash"
+                pathLength="140"
+                d="M36 198 C110 42 352 48 444 176"
+                fill="none"
+                stroke="url(#scLnBuyer)"
+                stroke-width="4.5"
+                stroke-linecap="round"
+                stroke-dasharray="20 26"
+                opacity="0.9"
+              />
+              <circle cx="118" cy="86" r="40" fill="none" stroke="rgba(255,255,255,0.14)" stroke-width="1.2" />
+              <path d="M280 52 L380 52 L360 118 L300 118 Z" fill="rgba(102,236,193,0.08)" stroke="rgba(102,236,193,0.35)" stroke-width="1" />
+              <rect x="58" y="172" width="112" height="12" rx="3" fill="rgba(255,255,255,0.06)" />
+              <rect x="296" y="152" width="124" height="9" rx="2" fill="rgba(232,163,23,0.18)" />
+            </svg>
+          </div>
         </div>
         <div id="vcVisualJourneyGrid" class="vc-visual-grid"></div>
       </section>
 
       <section id="buyer-advantages" class="section alt buyer-advantages" aria-labelledby="buyer-adv-title">
-        <h2 id="buyer-adv-title" data-i18n="buyerAdv.title">Why buying on VibeCart is smoother</h2>
+        <h2 id="buyer-adv-title" data-i18n="buyerAdv.title">Vector Native Commerce</h2>
         <p class="note" data-i18n="buyerAdv.lead">
           Built for speed: one place for trusted checkout, delivery tracking, and clear policies — without turning the homepage into an internal tools dashboard.
         </p>
@@ -1024,11 +1522,50 @@
         <p class="note" data-i18n="sellerHub.intro">
           Scroll down on this same page for marketing, growth AI, and ads. Internal “signals” and policy rails are grouped here so everyday shoppers are not overwhelmed on the homepage.
         </p>
+        <p class="note">
+          <label style="display:flex;align-items:center;gap:.45rem;">
+            <input id="sellerFlowDisclaimerAck" type="checkbox" />
+            I confirm listings and outreach in Start Selling must follow platform policy and local laws.
+          </label>
+        </p>
         <div class="vc-visual-hero">
           <img src="./icon-maskable.svg" alt="seller visual marker" width="72" height="72" />
-          <video controls muted loop playsinline preload="metadata" poster="./icon.svg">
-            <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
-          </video>
+          <div class="vc-signal-cinema vc-signal-cinema--seller" role="region" aria-label="Listing signal animation, proprietary vector motion">
+            <div class="vc-signal-cinema__hud">
+              <span class="vc-signal-cinema__tag">LISTING SIGNAL</span>
+              <div class="vc-signal-cinema__beats" aria-hidden="true">
+                <span>STAGE</span><span>PRICE</span><span>SHIP</span>
+              </div>
+            </div>
+            <div class="vc-signal-cinema__scan" aria-hidden="true"></div>
+            <svg class="vc-signal-cinema__stage" viewBox="0 0 480 260" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="scBgSeller" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#140a18" />
+                  <stop offset="1" stop-color="#061018" />
+                </linearGradient>
+                <linearGradient id="scLnSeller" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#e8a317" />
+                  <stop offset="1" stop-color="#66ecc1" />
+                </linearGradient>
+              </defs>
+              <rect width="480" height="260" fill="url(#scBgSeller)" />
+              <path
+                class="vc-sig-dash"
+                pathLength="140"
+                d="M48 180 L140 80 L240 160 L340 70 L432 188"
+                fill="none"
+                stroke="url(#scLnSeller)"
+                stroke-width="4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-dasharray="14 20"
+                opacity="0.92"
+              />
+              <rect x="72" y="118" width="96" height="56" rx="6" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1.2" />
+              <rect x="300" y="96" width="108" height="48" rx="6" fill="rgba(111,43,255,0.1)" stroke="rgba(111,43,255,0.35)" />
+            </svg>
+          </div>
         </div>
         <div class="steps">
           <article>
@@ -1361,6 +1898,12 @@
           Track weight loss, weight gain, and muscle goals with private check-ins.
           This coach supports routine fitness and long-term health follow-up workflows.
         </p>
+        <p class="note">
+          <label style="display:flex;align-items:center;gap:.45rem;">
+            <input id="coachDisclaimerAck" type="checkbox" />
+            I understand this coach is guidance only, not medical diagnosis or emergency care.
+          </label>
+        </p>
         <div class="ai-grid">
           <label for="coachFocus">Coach Focus</label>
           <select id="coachFocus">
@@ -1688,7 +2231,7 @@
     </details>
 
     <nav id="mobileQuickNav" class="mobile-quick-nav" aria-label="Mobile quick actions">
-      <a href="./hot-picks.html" data-quick-target="market">Shop</a>
+      <a href="./world-shop-experience.html">Shop</a>
       <a href="#categories" data-quick-target="categories">Explore</a>
       <a href="./orders-tracking.html" data-quick-target="tracking">Orders</a>
       <a href="./lane-passport.html">Passport</a>
@@ -1697,8 +2240,21 @@
     <footer class="footer">
       <p class="note build-id-note" data-build-id="20260422ux2">Release 20260422ux2</p>
       <p>VibeCart - Discover, trade, and grow your vibe globally.</p>
+      <div class="footer-link-grid" aria-label="Footer navigation">
+        <a href="#scene-top">Home</a>
+        <a href="./live-market-shops.html?cat=All&view=global">Global Market</a>
+        <a href="./wellbeing.html">Health Coach</a>
+        <a href="./sell-journey.html">Start Selling</a>
+        <a href="./service-provider-hub.html">MyBusiness</a>
+        <a href="./account-hub.html">Account</a>
+        <a href="./regional-shops.html">Regional Shops</a>
+        <a href="./hot-picks.html">Hot Picks</a>
+        <a href="./rewards-hub.html">Rewards</a>
+        <a href="./insurance.html">Insurance</a>
+        <a href="./bridge-hub.html">Bridge Hub</a>
+        <a href="./legal-settings.html">Settings &amp; Legal</a>
+      </div>
       <p>Contact: <a href="mailto:1vibe.cart@gmail.com">1vibe.cart@gmail.com</a></p>
-      <p><a href="./legal-settings.html">Settings &amp; Legal Center</a></p>
     </footer>
 
     <div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
@@ -1725,9 +2281,9 @@
     <div id="vcSealedToast" class="vc-sealed-toast" role="status" aria-live="polite" data-i18n="sealed.word">Sealed.</div>
 
     <!-- Staged rebuild: re-enable i18n only; interaction scripts stay disabled for stability. -->
-    <script src="./i18n.js?v=20260426langhotfix6"></script>
-    <script src="./script-safe.js?v=20260424tapguard6"></script>
-    <script src="./homepage-min.js?v=20260424advai2pwa1" defer></script>
-    <script src="./mobile-app-shell.js?v=20260419nav1" defer></script>
+    <script src="./i18n.js?v=20260428wowtrust1" ></script>
+    <script src="./script-safe.js?v=20260425hashnav1"></script>
+    <script src="./homepage-min.js?v=20260426flowguard1" defer></script>
+    <script src="./mobile-app-shell.js?v=20260425shophub1" defer></script>
   </body>
 </html>

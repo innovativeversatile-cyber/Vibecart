@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="VibeCart tribal bridge showpiece">
+  <defs>
+    <linearGradient id="lane" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd98a"/>
+      <stop offset="45%" stop-color="#0cd6ff"/>
+      <stop offset="100%" stop-color="#ff3f9f"/>
+    </linearGradient>
+    <pattern id="tribal" width="44" height="44" patternUnits="userSpaceOnUse" patternTransform="rotate(18)">
+      <path d="M2 22 L22 2 L42 22" stroke="rgba(255,214,142,0.32)" stroke-width="2" fill="none"/>
+      <path d="M2 28 L22 42 L42 28" stroke="rgba(102,236,193,0.3)" stroke-width="2" fill="none"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="760" fill="url(#tribal)"/>
+  <path d="M40 650 C 280 360, 540 302, 760 408 S 1060 568, 1160 186" fill="none" stroke="url(#lane)" stroke-width="20" stroke-linecap="round" stroke-dasharray="44 24"/>
+  <path d="M64 704 C 304 454, 548 424, 768 498 S 1088 660, 1184 286" fill="none" stroke="rgba(158,247,255,0.9)" stroke-width="11" stroke-linecap="round" stroke-dasharray="18 18"/>
+  <circle cx="160" cy="562" r="18" fill="#fff"/>
+  <circle cx="430" cy="402" r="16" fill="#fff"/>
+  <circle cx="730" cy="458" r="18" fill="#fff"/>
+  <circle cx="1090" cy="238" r="20" fill="#fff"/>
+  <polygon points="602,328 648,356 648,412 602,440 556,412 556,356" fill="rgba(255,255,255,0.26)"/>
+</svg>

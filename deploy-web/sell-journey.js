@@ -13,9 +13,13 @@
     var hasPhoto = Boolean(files && files.files && files.files.length > 0);
     var hasTitle = Boolean(String((title && title.value) || "").trim());
     var hasCondition = Boolean(String((condition && condition.value) || "").trim());
-    if (!hasPhoto || !hasTitle || !hasCondition) {
-      setStatus("sellStep2Status", "Add at least one photo, title, and condition before continuing.");
+    if (!hasTitle || !hasCondition) {
+      setStatus("sellStep2Status", "Add title and condition before continuing.");
       return false;
+    }
+    if (!hasPhoto) {
+      setStatus("sellStep2Status", "No photo uploaded - continuing in draft mode. Add photos later before final publishing.");
+      return true;
     }
     setStatus("sellStep2Status", "");
     return true;
@@ -23,9 +27,17 @@
 
   function requireStep3Fields() {
     var mode = String((document.getElementById("vcSellShipMode") || {}).value || "").trim();
+    var courier = String((document.getElementById("vcSellCourierCompany") || {}).value || "").trim();
     var windowBand = String((document.getElementById("vcSellShipWindow") || {}).value || "").trim();
-    if (!mode || !windowBand) {
-      setStatus("sellStep3Status", "Select shipping mode and realistic delivery window before continuing.");
+    if (!courier) {
+      var courierEl = document.getElementById("vcSellCourierCompany");
+      if (courierEl && courierEl.options && courierEl.options.length) {
+        courierEl.value = String(courierEl.options[0].value || "DHL").trim();
+        courier = String(courierEl.value || "DHL").trim();
+      }
+    }
+    if (!mode || !courier || !windowBand) {
+      setStatus("sellStep3Status", "Select shipping mode, delivery company, and realistic delivery window before continuing.");
       return false;
     }
     setStatus("sellStep3Status", "");
@@ -44,6 +56,26 @@
             event.stopImmediatePropagation();
           }
         }
+      },
+      true
+    );
+  }
+  var firstContinue = document.querySelector('[data-flow-step]:not([hidden]) [data-flow-next]');
+  if (firstContinue) {
+    firstContinue.addEventListener(
+      "click",
+      function (event) {
+        var ack = document.getElementById("sellJourneyDisclaimerAck");
+        if (ack && !ack.checked) {
+          setStatus("sellStep1Status", "Accept the seller disclaimer to continue.");
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+          }
+          return;
+        }
+        setStatus("sellStep1Status", "");
       },
       true
     );
@@ -74,6 +106,7 @@
           title: String((document.getElementById("vcSellTitle") || {}).value || "").trim(),
           condition: String((document.getElementById("vcSellCondition") || {}).value || "").trim(),
           shippingMode: String((document.getElementById("vcSellShipMode") || {}).value || "").trim(),
+          shippingCompany: String((document.getElementById("vcSellCourierCompany") || {}).value || "").trim(),
           shippingWindow: String((document.getElementById("vcSellShipWindow") || {}).value || "").trim()
         };
         localStorage.setItem("vibecart-seller-preview-draft", JSON.stringify(payload));

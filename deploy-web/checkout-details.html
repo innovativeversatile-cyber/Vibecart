@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Secure checkout · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260426healthcoach2" />
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-primary" id="checkoutBackLink" href="./buy-journey.html">Back to flow</a>
@@ -30,8 +30,6 @@
       <div id="checkoutFastTrackFields" class="admin-grid" hidden>
         <label for="checkoutAccountEmail">Account email</label>
         <input id="checkoutAccountEmail" type="email" placeholder="your account email" />
-        <label for="checkoutPasscode">One-time passcode</label>
-        <input id="checkoutPasscode" type="text" placeholder="Enter passcode" />
       </div>
       <div id="checkoutNewUserFields" class="admin-grid">
       <label for="checkoutServiceType">Service type</label>
@@ -69,6 +67,7 @@
         <option value="GB">United Kingdom</option>
         <option value="US">United States</option>
       </select>
+      </div>
       <label for="checkoutPaymentMethod">Payment option</label>
       <select id="checkoutPaymentMethod">
         <option value="card">Bank card (Visa/Mastercard)</option>
@@ -79,22 +78,22 @@
         <option value="google-pay">Google Pay</option>
         <option value="mobile-money">Mobile money</option>
         <option value="bank-transfer">Bank transfer</option>
+        <option value="cash">Cash on appointment</option>
       </select>
       <label class="note" for="checkoutAutoRenew" style="display:flex;align-items:center;gap:.45rem;">
         <input id="checkoutAutoRenew" type="checkbox" checked />
         Enable automatic subscription renewal (secure auto-deduction)
       </label>
-      </div>
     </div>
 
     <p class="hero-actions" style="margin-top: 1rem">
       <button class="btn btn-primary" id="checkoutConfirmBtn" type="button">Confirm and continue to secure payment</button>
-      <a class="btn btn-secondary" href="./account-hub.html#account-access">Save and continue later</a>
+      <a class="btn btn-secondary" id="checkoutSaveLaterLink" href="./account-hub.html#account-access">Save and continue later</a>
     </p>
     <p class="note">After you confirm details, you will continue directly to secure Stripe checkout.</p>
     <p class="note" id="checkoutStatus" aria-live="polite"></p>
   </main>
-  <script src="./checkout-details.js?v=20260426renew1" defer></script>
+  <script src="./checkout-details.js?v=20260426fasttrack4" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Seller live preview · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260429publishfix2" />
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page start-selling-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./sell-journey.html">← Back to selling flow</a>
     <a class="btn btn-primary" href="./seller-boost.html">Open Seller tools</a>
@@ -20,10 +20,31 @@
       <h3 id="previewTitle">Draft listing title</h3>
       <p class="price" id="previewCondition">Condition: -</p>
       <p id="previewShipping">Shipping: -</p>
+      <p id="previewPrice">Price: -</p>
       <p class="note">Publish from Seller Boost when details are complete and truthful.</p>
     </article>
+    <section style="margin-top:1rem;max-width:38rem">
+      <h2>Finalize listing</h2>
+      <div class="admin-grid">
+        <label for="sellerListingTitle">Listing title</label>
+        <input id="sellerListingTitle" type="text" maxlength="120" placeholder="Example: Samsung S22 - UK to ZA shipping" />
+        <label for="sellerPriceValue">Set price</label>
+        <input id="sellerPriceValue" type="number" min="1" step="0.01" placeholder="49.99" />
+        <label for="sellerPriceCurrency">Currency</label>
+        <select id="sellerPriceCurrency">
+          <option value="EUR">EUR</option>
+          <option value="PLN">PLN</option>
+          <option value="GBP">GBP</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <p class="hero-actions" style="margin-top:0.75rem">
+        <button class="btn btn-primary" id="publishListingBtn" type="button">Publish listing to live progress</button>
+      </p>
+      <p class="note" id="publishListingStatus" aria-live="polite"></p>
+    </section>
     <p class="hero-actions" style="margin-top:1rem">
-      <a class="btn btn-primary" href="./seller-boost.html">Publish from Seller Boost</a>
+      <a class="btn btn-primary" href="./seller-boost.html">Open seller progress</a>
       <a class="btn btn-secondary" href="./live-market-shops.html?cat=Fashion">Open fashion live lane</a>
     </p>
   </main>
@@ -34,12 +55,51 @@
         if (!raw) return;
         var d = JSON.parse(raw);
         document.getElementById("previewTitle").textContent = d.title || "Draft listing title";
+        var titleInput = document.getElementById("sellerListingTitle");
+        if (titleInput) titleInput.value = d.title || "";
         document.getElementById("previewCondition").textContent = "Condition: " + (d.condition || "-");
-        var ship = [d.shippingMode || "-", d.shippingWindow || "-"].join(" · ");
+        var ship = [d.shippingMode || "-", d.shippingCompany || "-", d.shippingWindow || "-"].join(" · ");
         document.getElementById("previewShipping").textContent = "Shipping: " + ship;
+        document.getElementById("previewPrice").textContent = "Price: " + ((d.currency || "EUR") + " " + (d.price || "-"));
       } catch {
         /* ignore */
       }
+    })();
+    (function () {
+      var publishBtn = document.getElementById("publishListingBtn");
+      var status = document.getElementById("publishListingStatus");
+      var titleInput = document.getElementById("sellerListingTitle");
+      var priceInput = document.getElementById("sellerPriceValue");
+      var currencyInput = document.getElementById("sellerPriceCurrency");
+      if (!publishBtn || !priceInput || !currencyInput || !titleInput) return;
+      publishBtn.addEventListener("click", function () {
+        var listingTitle = String(titleInput.value || "").trim();
+        if (!listingTitle) {
+          listingTitle = "Untitled listing";
+          titleInput.value = listingTitle;
+        }
+        var price = Number(priceInput.value || 0);
+        if (!price || price <= 0) {
+          if (status) status.textContent = "Add a valid listing price first.";
+          return;
+        }
+        try {
+          var base = {};
+          var raw = localStorage.getItem("vibecart-seller-preview-draft");
+          if (raw) base = JSON.parse(raw);
+          base.title = listingTitle;
+          document.getElementById("previewTitle").textContent = listingTitle;
+          base.price = price.toFixed(2);
+          base.currency = String(currencyInput.value || "EUR");
+          base.status = "Live";
+          localStorage.setItem("vibecart-seller-preview-draft", JSON.stringify(base));
+          localStorage.setItem("vibecart-seller-live-listing", JSON.stringify(base));
+          document.getElementById("previewPrice").textContent = "Price: " + base.currency + " " + base.price;
+          if (status) status.textContent = "Listing published. Open seller progress to track it.";
+        } catch {
+          if (status) status.textContent = "Could not publish right now. Try again.";
+        }
+      });
     })();
   </script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>

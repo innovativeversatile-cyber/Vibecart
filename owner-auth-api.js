@@ -162,6 +162,8 @@ const AI_AUTOPILOT_ENABLED = (() => {
 })();
 const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPILOT_INTERVAL_MINUTES || 120));
 const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
+const PROMO_SCOUT_ENABLED = false;
+const PROMO_SCOUT_INTERVAL_MINUTES = Math.max(10, Number(process.env.PROMO_SCOUT_INTERVAL_MINUTES || 30));
 
 const _mysqlPublicRaw = process.env.MYSQL_PUBLIC_URL;
 if (_mysqlPublicRaw && String(_mysqlPublicRaw).includes("${{")) {
@@ -740,6 +742,94 @@ async function readRawBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+const PROMO_SCOUT_SEED_SHOPS = {
+  Electronics: [
+    { shop: "Amazon Electronics", url: "https://www.amazon.com/electronics", image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "MediaMarkt", url: "https://www.mediamarkt.de", image: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "Takealot Tech", url: "https://www.takealot.com", image: "https://images.unsplash.com/photo-1588508065123-287b28e013da?auto=format&fit=crop&w=900&h=560&q=78" }
+  ],
+  Fashion: [
+    { shop: "ASOS", url: "https://www.asos.com", image: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "Zalando", url: "https://www.zalando.com", image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "Superbalist", url: "https://www.superbalist.com", image: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&h=560&q=78" }
+  ],
+  Books: [
+    { shop: "AbeBooks", url: "https://www.abebooks.com", image: "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "Empik", url: "https://www.empik.com", image: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "Text Book Centre", url: "https://textbookcentre.com", image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=900&h=560&q=78" }
+  ],
+  Gaming: [
+    { shop: "Steam Store", url: "https://store.steampowered.com", image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&h=560&q=78" },
+    { shop: "PlayStation Store", url: "https://store.playstation.com", image: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=900&h=560&q=78" }
+  ]
+};
+const promoScoutState = {
+  updatedAt: null,
+  byCategory: {
+    Electronics: [],
+    Fashion: [],
+    Books: [],
+    Gaming: [],
+    All: []
+  }
+};
+
+function makePromoDiscount(seedBase, idx) {
+  return Math.min(70, 12 + ((seedBase + idx * 23) % 41));
+}
+
+function runPromotionScoutCycle() {
+  const nowIso = new Date().toISOString();
+  const seedBase = Number(Date.now() % 997);
+  const byCategory = {};
+  Object.keys(PROMO_SCOUT_SEED_SHOPS).forEach((category) => {
+    byCategory[category] = PROMO_SCOUT_SEED_SHOPS[category].map((entry, idx) => {
+      const discountPercent = makePromoDiscount(seedBase, idx);
+      const windowHours = 4 + ((seedBase + idx * 19) % 24);
+      return {
+        id: `${category.toLowerCase()}-${idx}-${seedBase}`,
+        category,
+        shop: entry.shop,
+        url: entry.url,
+        image: entry.image,
+        discountPercent,
+        promoTitle: `${entry.shop} ${discountPercent}% off`,
+        promoText: `AI scout detected promotion momentum. Estimated live window: ${windowHours}h.`,
+        startsAt: nowIso,
+        endsAt: new Date(Date.now() + windowHours * 60 * 60 * 1000).toISOString(),
+        source: "vibecart-ai-promo-scout"
+      };
+    });
+  });
+  byCategory.All = []
+    .concat(byCategory.Electronics || [])
+    .concat(byCategory.Fashion || [])
+    .concat(byCategory.Books || [])
+    .concat(byCategory.Gaming || [])
+    .sort((a, b) => Number(b.discountPercent || 0) - Number(a.discountPercent || 0));
+  promoScoutState.updatedAt = nowIso;
+  promoScoutState.byCategory = byCategory;
+  return promoScoutState;
+}
+
+function listPromotionScoutFeed(categoryRaw, limitRaw) {
+  const category = String(categoryRaw || "All").trim();
+  const key = category && promoScoutState.byCategory[category] ? category : "All";
+  const limit = Math.max(1, Math.min(24, Number(limitRaw || 8) || 8));
+  if (!promoScoutState.updatedAt) {
+    runPromotionScoutCycle();
+  }
+  const items = (promoScoutState.byCategory[key] || []).slice(0, limit);
+  return {
+    ok: true,
+    category: key,
+    updatedAt: promoScoutState.updatedAt,
+    refreshIntervalMinutes: PROMO_SCOUT_INTERVAL_MINUTES,
+    count: items.length,
+    items
+  };
 }
 
 async function requireActiveSession(token) {
@@ -3550,6 +3640,13 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && req.url.startsWith("/api/public/cultural-arbitrage/scout")) {
       return await handlePublicCulturalArbitrageScout(req, res);
     }
+    if (req.method === "GET" && req.url.startsWith("/api/public/promotions/scout")) {
+      return sendJson(res, 410, {
+        ok: false,
+        code: "PROMO_SCOUT_DISABLED",
+        message: "Synthetic promo scout disabled. Use curated real promotion links from frontend lanes."
+      });
+    }
     if (req.method === "GET" && req.url.startsWith("/api/public/payments/config")) {
       return await handlePublicPaymentConfig(req, res);
     }
@@ -3846,6 +3943,15 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Owner auth API running on http://localhost:${PORT}`);
+  if (PROMO_SCOUT_ENABLED) {
+    runPromotionScoutCycle();
+    const promoIntervalMs = PROMO_SCOUT_INTERVAL_MINUTES * 60 * 1000;
+    setInterval(() => {
+      runPromotionScoutCycle();
+    }, promoIntervalMs);
+    // eslint-disable-next-line no-console
+    console.log(`Promotion scout enabled. Interval: every ${PROMO_SCOUT_INTERVAL_MINUTES} minutes.`);
+  }
   if (AI_AUTOPILOT_ENABLED) {
     const intervalMs = AI_AUTOPILOT_INTERVAL_MINUTES * 60 * 1000;
     runAiAutopilotCycle("startup").catch((error) => {

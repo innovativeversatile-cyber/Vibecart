@@ -4491,6 +4491,11 @@ function initHeroShopNowButton() {
   if (!heroShopNowBtn) {
     return;
   }
+  const href = String(heroShopNowBtn.getAttribute("href") || "").trim();
+  if (href && href !== "#" && !href.startsWith("#")) {
+    // Real destination link: keep native navigation, avoid JS-only scroll behavior.
+    return;
+  }
   if (heroShopNowBtn.dataset.boundHeroBuy === "1") {
     return;
   }

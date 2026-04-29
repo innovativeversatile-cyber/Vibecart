@@ -31,7 +31,11 @@ function main() {
 
   // Core CTA behavior should remain direct and deterministic.
   assertIncludes(index, '/api/public/shop/redirect?shop=Amazon%20Electronics', "Open shop direct redirect link");
-  assertIncludes(index, 'href="#market" class="btn btn-primary"', "Shop Now is in-page anchor");
+  assertIncludes(
+    index,
+    'href="./live-market-shops.html?cat=All&view=global" class="btn btn-primary"',
+    "Shop Now opens global live market"
+  );
 
   // Minimal script responsibilities (safe local interactions).
   assertIncludes(lite, "initCategoryFilter()", "category filter init");

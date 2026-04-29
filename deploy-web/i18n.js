@@ -38,13 +38,13 @@
       "nav.sell": "Start Selling",
       "nav.login": "Login",
       "lang.label": "Language",
-      "hero.badge": "Africa-Europe-Asia Trade Bridge",
-      "hero.title": "Discover bold finds. Buy fast. Sell globally.",
+      "hero.badge": "Africa-Europe-Asia Trade Bridge Marketplace",
+      "hero.title": "Find real bargains in seconds. Trade safely across Africa, Europe, and Asia.",
       "hero.regionHeadline":
-        "VibeCart is your verified cross-border marketplace with fast checkout and clear, trusted buying flows.",
+        "VibeCart is where Africa, Europe, Dubai, and Asia meet to buy and sell safely.",
       "hero.subtitleExtended":
-        "Discover top categories fast, compare regional pricing, and open seller pages in fewer taps. Trade across Africa, Europe, and selected global lanes with approved logistics and trusted payment methods. Smart tools support discovery and safety checks while you stay in control of every purchase.",
-      "hero.shopNow": "Shop Now",
+        "Discover verified sellers, pay with confidence, and track every shipment. Build your own cross-border business from one account and one trusted marketplace flow.",
+      "hero.shopNow": "Browse global market now",
       "hero.listItem": "List an Item",
       "hero.smartTour": "Start Smart Tour",
       "hero.installApp": "Install App",
@@ -119,7 +119,7 @@
       "search.reset": "All regional folders visible.",
       "search.matchCount": "{n} shop lanes match your search.",
       "search.none": "No matches — try another keyword.",
-      "buyerAdv.title": "Why buying on VibeCart is smoother",
+      "buyerAdv.title": "Vector Native Commerce",
       "buyerAdv.lead":
         "Built for speed: one place for trusted checkout, delivery tracking, and clear policies — without turning the homepage into an internal tools dashboard.",
       "buyerAdv.li1": "One-tap style checkout with buyer protections and fraud checks on high-risk orders.",
@@ -1793,8 +1793,8 @@
   const EXTRA_KEYS = {
     en: {
       "ui.youAreHereChip": "You are here",
-      "categories.title": "Popular Categories",
-      "shops.title": "Regional shop folders",
+      "categories.title": "Regional Trade Shops",
+      "shops.title": "Popular Categories",
       "shops.bridgeLink": "Trade Bridge & Live Marketplace",
       "market.title": "Live Marketplace",
       "ads.title": "Sponsored Brands and Ads",

@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guided selling · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260428hotfix-publish1" />
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page start-selling-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-primary" href="./seller-boost.html">Seller Boost</a>
@@ -19,7 +19,11 @@
     <div class="vc-flow-step-box" data-flow-step>
       <h2>1 · Intent &amp; lane</h2>
       <p class="note">Confirm you are selling legal goods on an allowed route. Bridge path on the hub controls buyer hints.</p>
+      <p class="note">
+        <label><input id="sellJourneyDisclaimerAck" type="checkbox" /> I confirm my listing follows platform policy and local laws.</label>
+      </p>
       <p class="hero-actions"><button type="button" class="btn btn-primary" data-flow-next>Continue</button></p>
+      <p class="note" id="sellStep1Status" aria-live="polite"></p>
     </div>
 
     <div class="vc-flow-step-box" data-flow-step hidden>
@@ -56,6 +60,19 @@
           <option value="economy">Economy parcel</option>
           <option value="pickup">Local pickup</option>
         </select>
+        <label for="vcSellCourierCompany">Delivery company</label>
+        <select id="vcSellCourierCompany">
+          <option value="DHL" selected>DHL Express</option>
+          <option value="FedEx">FedEx</option>
+          <option value="UPS">UPS</option>
+          <option value="Aramex">Aramex</option>
+          <option value="DPD">DPD</option>
+          <option value="GLS">GLS</option>
+          <option value="Poczta Polska">Poczta Polska</option>
+          <option value="Royal Mail">Royal Mail</option>
+          <option value="Pargo">Pargo</option>
+          <option value="Sendy">Sendy</option>
+        </select>
         <label for="vcSellShipWindow">Estimated delivery window</label>
         <select id="vcSellShipWindow">
           <option value="">Select realistic window</option>
@@ -85,7 +102,7 @@
     </div>
   </main>
   <script src="./flow-shell.js?v=20260419haptic1" defer></script>
-  <script src="./sell-journey.js?v=20260423sellerflow1" defer></script>
+  <script src="./sell-journey.js?v=20260428hotfix-publish1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

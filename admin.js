@@ -1979,12 +1979,27 @@ function getAiOpsFallback() {
 }
 
 function getAiRecommendationsFallback() {
+  function routeLensForAdmin() {
+    try {
+      const path = String(localStorage.getItem("vibecart-home-lite-bridge-path") || "").trim();
+      if (path === "from-africa") return "Africa -> Europe";
+      if (path === "from-europe") return "Europe -> Africa";
+    } catch {
+      /* ignore */
+    }
+    return "Africa <-> Europe, Dubai, Asia";
+  }
+
+  const routeLens = routeLensForAdmin();
   return {
     items: [
       {
         operationType: "growth_route_spotlight",
-        summaryText: "Feature Mama Africa path products with high demand tags.",
-        recommendationText: "Promote top 3 Africa-origin listings to Europe buyers this week.",
+        summaryText: "Feature route-fit products with highest demand tags.",
+        recommendationText: `Promote top 3 listings aligned to ${routeLens} this week.`,
+        ownerAction: "Create homepage and hot-picks spotlight cards with tracked links.",
+        expectedImpact: `Medium conversion lift from route-aware discovery (${routeLens}).`,
+        confidenceScore: 0.82,
         riskLevel: "low",
         executionMode: "manual"
       },
@@ -1992,6 +2007,29 @@ function getAiRecommendationsFallback() {
         operationType: "trust_reinforcement",
         summaryText: "Boost trust transparency for first-time cross-border buyers.",
         recommendationText: "Add 'verified route + delivery reliability' badges to bridge cards.",
+        ownerAction: "Publish route verification badges and include return window note.",
+        expectedImpact: "Lower hesitation and improved first-order completion.",
+        confidenceScore: 0.87,
+        riskLevel: "low",
+        executionMode: "manual"
+      },
+      {
+        operationType: "seller_quality_boost",
+        summaryText: "Lift listing quality consistency before traffic scaling.",
+        recommendationText: "Require 3/3 listing health checks before paid placements.",
+        ownerAction: "Gate paid boosts behind listing-health-complete requirement.",
+        expectedImpact: "Higher conversion quality and fewer buyer disputes.",
+        confidenceScore: 0.9,
+        riskLevel: "medium",
+        executionMode: "manual"
+      },
+      {
+        operationType: "support_latency_reduction",
+        summaryText: "Reduce response delay on active buyer conversations.",
+        recommendationText: "Set SLA nudge for unanswered buyer threads older than 30 minutes.",
+        ownerAction: "Queue follow-up task and monitor response compliance.",
+        expectedImpact: "Higher trust and repeat purchase probability.",
+        confidenceScore: 0.79,
         riskLevel: "low",
         executionMode: "manual"
       }
@@ -2005,15 +2043,19 @@ function renderAiOpsQueue(items) {
     return;
   }
   if (!Array.isArray(items) || items.length === 0) {
-    container.innerHTML = "<div class='msg msg-buyer'>No AI operations queued yet.</div>";
+    container.innerHTML = "<div class='msg msg-buyer'>VibeAI Ops queue is clear right now.</div>";
     return;
   }
   container.innerHTML = "";
   items.forEach((item) => {
     const row = document.createElement("div");
     row.className = "msg msg-buyer";
+    const risk = String(item.risk_level || "low");
+    const riskRank = risk === "high" ? 3 : risk === "medium" ? 2 : 1;
+    const confidence = Number(item.confidence_score || item.confidenceScore || 0.75);
+    const priority = Math.round(confidence * 100 - riskRank * 7);
     row.textContent =
-      `op#${item.id} | ${item.operation_type} | risk=${item.risk_level} | mode=${item.execution_mode} | status=${item.status} | ${item.summary_text}`;
+      `op#${item.id} | ${item.operation_type} | priority=${priority} | risk=${risk} | mode=${item.execution_mode} | status=${item.status} | ${item.summary_text}`;
     row.addEventListener("click", () => {
       const idNode = document.getElementById("aiOpId");
       const decisionNode = document.getElementById("aiOpDecision");
@@ -2040,11 +2082,11 @@ async function refreshAiOps() {
     payload = await authedPost("/api/ai-ops/list", {});
   } catch {
     payload = getAiOpsFallback();
-    setStatus("AI operations loaded in smart fallback mode.");
+    setStatus("VibeAI Ops loaded in premium fallback mode.");
   }
   renderAiOpsQueue(payload.items || []);
   if (!/fallback/i.test(String(window.__vibecartLastStatus || ""))) {
-    setStatus("AI operations queue refreshed.");
+    setStatus("VibeAI Ops queue refreshed.");
   }
 }
 
@@ -2060,7 +2102,20 @@ async function generateAiOpsRecommendationsFromPanel() {
   const box = document.getElementById("aiOpsRecommendationsBox");
   if (box) {
     const items = Array.isArray(payload.items) ? payload.items : [];
-    box.textContent = items.map((item) => `${item.operationType}: ${item.recommendationText}`).join(" | ") || "No recommendations.";
+    box.textContent =
+      items
+        .map((item, idx) => {
+          const conf = Math.round(Number(item.confidenceScore || item.confidence_score || 0.75) * 100);
+          const action = String(item.ownerAction || "Review and decide in AI ops queue.");
+          const impact = String(item.expectedImpact || "Operational quality uplift expected.");
+          return (
+            `${idx + 1}) ${item.operationType} [confidence ${conf}%] ` +
+            `| recommendation: ${item.recommendationText} ` +
+            `| action: ${action} ` +
+            `| impact: ${impact}`
+          );
+        })
+        .join("\n\n") || "No premium recommendations right now.";
   }
   if (!fallbackMode) {
     for (const item of payload.items || []) {
@@ -2075,11 +2130,11 @@ async function generateAiOpsRecommendationsFromPanel() {
   }
   if (fallbackMode) {
     renderAiOpsQueue(getAiOpsFallback().items || []);
-    setStatus("AI recommendations generated in smart fallback mode.");
+    setStatus("VibeAI recommendations generated in premium fallback mode.");
     return;
   }
   await refreshAiOps();
-  setStatus("AI operations recommendations generated and queued for owner review.");
+  setStatus("VibeAI recommendations generated and queued for owner review.");
 }
 
 async function decideAiOpFromPanel() {

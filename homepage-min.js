@@ -223,7 +223,7 @@
       return s;
     }
 
-    function rowFor(item) {
+    function rowFor(item, pref, key) {
       var href =
         "/api/public/shop/redirect?shop=" +
         encodeURIComponent(item.shop) +
@@ -233,20 +233,51 @@
         encodeURIComponent(item.shop) +
         "&target=" +
         encodeURIComponent(item.target);
+      var fit = rationaleFor(item, pref, key) || "balanced match";
+      var pricePct = pref.budget > 0 ? Math.max(8, Math.min(100, Math.round((Number(item.eur || 0) / pref.budget) * 100))) : 56;
       return (
-        "<article class=\"vc-info-card\">" +
+        "<article class=\"vc-info-card vc-ai-decision-card\">" +
         "<h3>" +
         item.brand +
-        "</h3><p>" +
+        "</h3><p class=\"vc-ai-fit-line\">" +
+        fit +
+        "</p><p>" +
         item.category +
         " · " +
         item.shop +
         " · ~EUR " +
         String(Number(item.eur || 0).toFixed(0)) +
-        "</p><a class=\"btn btn-secondary\" href=\"" +
+        "</p><div class=\"vc-ai-budget-meter\" aria-hidden=\"true\"><span style=\"width:" +
+        String(pricePct) +
+        "%\"></span></div><div class=\"hero-actions\"><button class=\"btn btn-secondary\" type=\"button\" data-ai-prefill=\"" +
+        item.tag +
+        "\">Try similar</button><a class=\"btn btn-secondary\" href=\"" +
         href +
-        "\">Open option</a></article>"
+        "\">Open option</a></div></article>"
       );
+    }
+
+    function routeLensLabel() {
+      try {
+        var path = String(localStorage.getItem("vibecart-home-lite-bridge-path") || "").trim();
+        if (path === "from-africa") return "Route lens: Africa -> Europe";
+        if (path === "from-europe") return "Route lens: Europe -> Africa";
+      } catch {
+        /* ignore */
+      }
+      return "Route lens: Africa <-> Europe, Dubai, and Asia";
+    }
+
+    function rationaleFor(item, pref, key) {
+      var reasons = [];
+      if (key && item.tag === key) reasons.push("exact need match");
+      if (pref.category === "All" || item.category === pref.category) reasons.push("category aligned");
+      if (pref.budget > 0) {
+        var budgetDelta = Number(item.eur || 0) - pref.budget;
+        if (budgetDelta <= 0) reasons.push("within budget");
+        else reasons.push("premium stretch");
+      }
+      return reasons.slice(0, 3).join(" · ");
     }
 
     btn.addEventListener("click", function (event) {
@@ -279,10 +310,126 @@
         .map(function (row) {
           return row.item;
         });
+      var top = options.length ? options[0] : null;
+      var summary =
+        "<p class=\"note\">VibeAI premium picks: ranked brand options with direct partner links." +
+        (top
+          ? " Best first pick: " +
+            top.brand +
+            " (" +
+            rationaleFor(top, pref, key) +
+            ")."
+          : "") +
+        " " +
+        routeLensLabel() +
+        "</p>";
       out.innerHTML =
-        "<p class=\"note\">Exceptional suggestions: ranked brand options with direct partner links.</p>" +
-        options.map(rowFor).join("");
+        summary +
+        "<div class=\"hero-actions vc-ai-quick-lanes\">" +
+        "<button type=\"button\" class=\"btn btn-secondary\" data-ai-quick=\"phone\">Phones</button>" +
+        "<button type=\"button\" class=\"btn btn-secondary\" data-ai-quick=\"laptop\">Laptops</button>" +
+        "<button type=\"button\" class=\"btn btn-secondary\" data-ai-quick=\"shoes\">Fashion</button>" +
+        "<button type=\"button\" class=\"btn btn-secondary\" data-ai-quick=\"game\">Gaming</button>" +
+        "</div>" +
+        options
+          .map(function (item) {
+            return rowFor(item, pref, key);
+          })
+          .join("");
     });
+
+    out.addEventListener("click", function (event) {
+      var quick = event.target && event.target.closest ? event.target.closest("[data-ai-quick]") : null;
+      if (quick) {
+        event.preventDefault();
+        var token = String(quick.getAttribute("data-ai-quick") || "").trim();
+        if (token === "phone") need.value = "phone";
+        if (token === "laptop") need.value = "laptop";
+        if (token === "shoes") {
+          need.value = "shoes";
+          category.value = "Fashion";
+        }
+        if (token === "game") {
+          need.value = "gaming";
+          category.value = "Gaming";
+        }
+        btn.click();
+        return;
+      }
+      var prefill = event.target && event.target.closest ? event.target.closest("[data-ai-prefill]") : null;
+      if (!prefill) return;
+      event.preventDefault();
+      var tag = String(prefill.getAttribute("data-ai-prefill") || "").trim();
+      if (tag) {
+        need.value = tag;
+        btn.click();
+      }
+    });
+  }
+
+  function initHomepageFocusLite() {
+    var hero = document.querySelector(".hero .hero-actions");
+    if (!hero) return;
+    var STORE_KEY = "vibecart-home-lite-focus-mode";
+    var HIDE_SELECTORS = [
+      "#topClassExperience",
+      ".vc-world-shock",
+      ".vc-epic-experience",
+      ".vc-visual-splash",
+      ".vc-mobile-chapter-deck",
+      "#market-fit",
+      "#rewards",
+      "#tax-transparency",
+      "#public-transparency",
+      "#seller-marketing",
+      "#seller-growth-ai",
+      "#settings-hub"
+    ];
+
+    function readFocus() {
+      try {
+        var v = String(localStorage.getItem(STORE_KEY) || "focused").trim();
+        return v !== "full";
+      } catch {
+        return true;
+      }
+    }
+
+    function writeFocus(isFocused) {
+      try {
+        localStorage.setItem(STORE_KEY, isFocused ? "focused" : "full");
+      } catch {
+        /* ignore */
+      }
+    }
+
+    var btn = document.getElementById("vcToggleHomeMode");
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "vcToggleHomeMode";
+      btn.type = "button";
+      btn.className = "btn btn-secondary";
+      hero.appendChild(btn);
+    }
+
+    function apply(isFocused) {
+      document.body.classList.toggle("vc-focused-home", isFocused);
+      HIDE_SELECTORS.forEach(function (selector) {
+        Array.prototype.slice.call(document.querySelectorAll(selector)).forEach(function (node) {
+          node.classList.toggle("vc-focused-hidden", isFocused);
+        });
+      });
+      btn.textContent = isFocused ? "Open full experience" : "Back to focused home";
+    }
+
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var next = !document.body.classList.contains("vc-focused-home");
+      writeFocus(next);
+      apply(next);
+    });
+
+    apply(readFocus());
   }
 
   function initTrackingLite() {
@@ -419,16 +566,39 @@
     var host = document.getElementById("vcVisualJourneyGrid");
     if (!host) return;
     var steps = [
-      { title: "1. Discover", note: "Use categories and quick filters to narrow options." },
-      { title: "2. Compare", note: "See brand choices with route-aware seller context." },
-      { title: "3. Verify", note: "Check shipping, policy, and trust notes before opening shop." },
-      { title: "4. Open Shop", note: "Checkout continues on the partner site for secure payment." },
-      { title: "5. Track", note: "Return to VibeCart for tracking, support, and rewards." }
+      {
+        title: "1 · Signal",
+        note: "Cold open: you scan lanes fast — categories, filters, and partner memory narrow the field before doubt sets in.",
+        pulse: true
+      },
+      {
+        title: "2 · Tension",
+        note: "Two good options is worse than one great one. Compare route-aware context until one path feels inevitable.",
+        pulse: true
+      },
+      {
+        title: "3 · Lock",
+        note: "Verify shipping bands, policy truth, and trust notes. If anything feels off, you pause — humans still review edge cases.",
+        pulse: false
+      },
+      {
+        title: "4 · Handoff",
+        note: "Open shop: checkout explodes onto the partner domain you chose — VibeCart never pretends to be the card vault.",
+        pulse: true
+      },
+      {
+        title: "5 · Aftermath",
+        note: "Return here for tracking, receipts, rewards, and coach rhythm — the bridge story continues after the purchase beat.",
+        pulse: false
+      }
     ];
     host.innerHTML = steps
       .map(function (s) {
+        var cls = "vc-visual-step" + (s.pulse ? " vc-visual-step--pulse" : "");
         return (
-          "<article class=\"vc-visual-step\"><h3><img src=\"./icon-maskable.svg\" alt=\"step\" />" +
+          "<article class=\"" +
+          cls +
+          "\"><h3><img src=\"./icon-maskable.svg\" alt=\"step\" />" +
           s.title +
           "</h3><p>" +
           s.note +
@@ -681,18 +851,30 @@
   }
 
   function initCommunicationLite() {
+    function routeLensForChat() {
+      try {
+        var path = String(localStorage.getItem("vibecart-home-lite-bridge-path") || "").trim();
+        if (path === "from-africa") return "Africa -> Europe";
+        if (path === "from-europe") return "Europe -> Africa";
+      } catch {
+        /* ignore */
+      }
+      return "Africa <-> Europe/Dubai/Asia";
+    }
+
     function smartSellerReply(text, shop) {
       var t = String(text || "").toLowerCase();
+      var lens = routeLensForChat();
       if (t.indexOf("price") >= 0 || t.indexOf("discount") >= 0) {
-        return "Pricing update from " + shop + ": we can confirm current price bands and available offers today.";
+        return "VibeAI seller desk (" + shop + "): current price bands and active offers are ready now. Route focus: " + lens + ".";
       }
       if (t.indexOf("ship") >= 0 || t.indexOf("delivery") >= 0 || t.indexOf("when") >= 0) {
-        return "Shipping update from " + shop + ": shared tracked lanes usually show 7-21 day windows depending on route.";
+        return "VibeAI seller desk (" + shop + "): tracked lanes typically show 7-21 day delivery windows by route. Route focus: " + lens + ".";
       }
       if (t.indexOf("photo") >= 0 || t.indexOf("condition") >= 0 || t.indexOf("real") >= 0) {
-        return "Listing note from " + shop + ": we can provide condition details and current photos before you open checkout.";
+        return "VibeAI seller desk (" + shop + "): condition proof and latest photos can be confirmed before checkout. Route focus: " + lens + ".";
       }
-      return "Received by " + shop + ". We can confirm stock, shipping band, and condition details next.";
+      return "VibeAI seller desk (" + shop + "): request received. Next update will confirm stock, shipping band, and condition. Route focus: " + lens + ".";
     }
 
     var input = document.getElementById("chatInput");
@@ -1551,8 +1733,7 @@
       if (link.parentNode.querySelector("[data-vc-pin-for]")) return;
       var pinBtn = document.createElement("button");
       pinBtn.type = "button";
-      pinBtn.className = "btn btn-secondary";
-      pinBtn.style.marginLeft = "0.45rem";
+      pinBtn.className = "btn btn-secondary vc-partner-pin-btn";
       pinBtn.setAttribute("data-vc-pin-for", partner);
       pinBtn.setAttribute("aria-pressed", "false");
       pinBtn.textContent = "Pin preferred partner";
@@ -1734,13 +1915,13 @@
     }
 
     function recommendationFor(profile, count) {
-      if (!profile) return "AI coach tip: save your profile to get a tailored weekly routine recommendation.";
+      if (!profile) return "VibeAI Coach: save your profile first so we can issue a precise weekly protocol.";
       var focus = String(profile.focus || "general_fitness");
-      if (focus === "weight_loss") return "AI coach recommendation: 4 sessions/week + daily steps target. Keep a calorie-aware meal rhythm.";
-      if (focus === "weight_gain") return "AI coach recommendation: 3 strength-focused sessions + surplus nutrition consistency.";
-      if (focus === "muscle_gain") return "AI coach recommendation: progressive overload split with protein timing and sleep priority.";
-      if (count < 3) return "AI coach recommendation: add at least 3 check-ins this week to unlock trend guidance.";
-      return "AI coach recommendation: maintain your current cadence and review your weekly trend dashboard.";
+      if (focus === "weight_loss") return "VibeAI Coach: 4 sessions/week + daily steps target, with calorie-aware meal rhythm.";
+      if (focus === "weight_gain") return "VibeAI Coach: 3 strength sessions/week plus consistent surplus nutrition cadence.";
+      if (focus === "muscle_gain") return "VibeAI Coach: progressive overload split with protein timing and sleep priority.";
+      if (count < 3) return "VibeAI Coach: submit at least 3 check-ins this week to unlock trend-grade guidance.";
+      return "VibeAI Coach: cadence is strong; review weekly trend signals and keep execution steady.";
     }
 
     function appendIntel() {
@@ -1748,7 +1929,7 @@
       var profile = store.profile || null;
       var checkins = Array.isArray(store.checkins) ? store.checkins : [];
       var rec = recommendationFor(profile, checkins.length);
-      var text = String(dash.textContent || "").replace(/\s*\| AI coach recommendation:.*$/, "");
+      var text = String(dash.textContent || "").replace(/\s*\| VibeAI Coach:.*$/, "");
       dash.textContent = text + " | " + rec;
     }
 
@@ -1773,7 +1954,7 @@
       var c = String((channel && channel.value) || "mixed").trim();
       var o = String((owner && owner.value) || "Owner").trim();
       out.innerHTML =
-        "<strong>AI growth plan (exceptional mode)</strong>" +
+        "<strong>VibeAI Growth Plan (premium mode)</strong>" +
         "<p>1) " +
         o +
         ": recruit 3 micro-sellers in " +
@@ -1805,6 +1986,7 @@
       initHealthCoachLite();
       initRewardsLite();
       initCommunicationLite();
+      initHomepageFocusLite();
       if (featureOn("advancedSmartTourV1")) initSmartTourLite();
       if (featureOn("advancedShockReelV1")) initShockReelLite();
       if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();

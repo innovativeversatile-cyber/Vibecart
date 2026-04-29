@@ -4,22 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live market shops · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260429publishfix2" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./live-market.html">← Live market folders</a>
-    <a class="btn btn-primary" id="openFullMarketplaceTop" href="./live-market.html">Open full live marketplace</a>
+    <a class="btn btn-primary" id="openFullMarketplaceTop" href="./live-market-shops.html?cat=All&amp;view=global">Open full live marketplace</a>
   </header>
   <main class="section alt shops-lane-main">
-    <h1 class="shops-lane-title">Live market shops</h1>
-    <p class="note shops-lane-intro" id="liveMarketShopsIntro">Open a category to see multiple online shops, then choose your seller directly.</p>
+    <h1 class="shops-lane-title">Global live market shops</h1>
+    <p class="note shops-lane-intro" id="liveMarketShopsIntro">Open a category to see real shops from multiple regions, then choose your seller directly.</p>
+    <section class="vc-promo-feed" aria-labelledby="livePromoFeedTitle">
+      <div class="vc-promo-feed-head">
+        <h2 id="livePromoFeedTitle">Top live promotions slider</h2>
+        <p class="note" id="livePromoFeedLead">Click any card to open that promotion page directly.</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-secondary" id="livePromoPrevBtn" type="button">← Prev</button>
+        <button class="btn btn-secondary" id="livePromoNextBtn" type="button">Next →</button>
+      </div>
+      <div class="vc-promo-slider" id="livePromoSlider">
+        <div class="vc-promo-track" id="livePromoGrid"></div>
+      </div>
+    </section>
     <div class="admin-grid" style="max-width:32rem;margin-bottom:0.8rem">
       <label for="liveMarketRegionSelect">Market region</label>
       <select id="liveMarketRegionSelect" aria-label="Live market region targeting">
         <option value="auto">Auto</option>
+        <option value="africa">Africa cross-border</option>
         <option value="za">South Africa</option>
         <option value="ke">Kenya</option>
+        <option value="ng">Nigeria</option>
+        <option value="gh">Ghana</option>
+        <option value="eg">Egypt</option>
+        <option value="ma">Morocco</option>
         <option value="zw">Zimbabwe</option>
         <option value="eu">Europe</option>
         <option value="gulf">Gulf</option>
@@ -27,6 +45,7 @@
       </select>
     </div>
     <div class="hero-actions" id="liveMarketCategoryTabs" role="tablist" aria-label="Live market categories">
+      <button type="button" class="btn btn-secondary" data-live-cat="All">All shops</button>
       <button type="button" class="btn btn-secondary" data-live-cat="Electronics">Electronics</button>
       <button type="button" class="btn btn-secondary" data-live-cat="Fashion">Fashion</button>
       <button type="button" class="btn btn-secondary" data-live-cat="Books">Books</button>
@@ -60,7 +79,7 @@
     <div class="shop-bubble-grid" id="liveMarketShopGrid">
     </div>
   </main>
-  <script src="./live-market-shops.js?v=20260426shops5"></script>
+  <script src="./live-market-shops.js?v=20260429publishfix2"></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

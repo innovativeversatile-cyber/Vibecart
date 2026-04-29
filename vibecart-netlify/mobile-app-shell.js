@@ -27,17 +27,48 @@
     return "";
   }
 
-  const TIPS = [
-    "Swipe the vibe reel sideways — hot lanes surface faster when you explore diagonally.",
-    "Open Regional folders first: less noise, one lane at a time.",
-    "Save your bridge path (Europe ↔ Mama Africa) before checkout — it powers shipping hints.",
-    "Use the Trade bridge tiles for live listings; external bubbles open in a new tab.",
-    "Poland → Zimbabwe? Pick Mama Africa lane, then Trade bridge: checkout shows seller shipping options and legal lanes you must confirm.",
-    "Cross-border fun, not chaos: banned categories stay off-limits; if a route looks too good, double-check duties in the listing notes.",
-    "Tell us one thing to improve below — we fold your notes into the next app polish cycle.",
-    "When the web shell flashes “Live sync”, the API merged both bridge paths — try switching Mama Africa ↔ Europe before you filter categories.",
-    "After new listings ship, pull to refresh or reopen Hot Picks so the WebView shows the latest catalog without clearing site data."
-  ];
+  const PLAYBOOKS = {
+    default: {
+      title: "Smart next moves for this screen",
+      steps: [
+        "Pick a category first, then compare 3 options before opening checkout.",
+        "Use pinned partner memory to reduce repeat-search time.",
+        "Open one trusted route at a time and confirm delivery window."
+      ],
+      ctaLabel: "Open global search",
+      ctaHref: "./global-search.html"
+    },
+    bridge: {
+      title: "Cross-border route assistant",
+      steps: [
+        "Start with legal route cards and verify country pair before checkout.",
+        "Open the Trade Base when you need route and compliance context.",
+        "Keep a screenshot of delivery and customs notes before payment."
+      ],
+      ctaLabel: "Open trade base",
+      ctaHref: "./bridge-hub.html"
+    },
+    shop: {
+      title: "Shop conversion assistant",
+      steps: [
+        "Filter by need + budget first to remove low-fit options quickly.",
+        "Use trusted partner links and compare brand-level options, not only category.",
+        "After purchase, return for tracking and support updates."
+      ],
+      ctaLabel: "Open hot picks",
+      ctaHref: "./hot-picks.html"
+    },
+    seller: {
+      title: "Seller execution assistant",
+      steps: [
+        "Complete photos, shipping, and policy checks before promotion spend.",
+        "Use one growth lane this week and track conversion quality daily.",
+        "Pin your best-performing route and replicate the listing formula."
+      ],
+      ctaLabel: "Open seller boost",
+      ctaHref: "./seller-boost.html"
+    }
+  };
 
   function ensureAiCoach() {
     if (document.getElementById(AI_ID)) {
@@ -54,9 +85,10 @@
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
           <strong>VibeCoach</strong>
-          <span class="vc-mobile-ai__sub">On-device tips · no auto-buy</span>
+          <span class="vc-mobile-ai__sub">VibeAI guidance · no auto-buy</span>
         </div>
         <p id="vc-mobile-ai-tip" class="vc-mobile-ai__tip"></p>
+        <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
         <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">What should we improve next?</label>
         <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="One sentence is enough…"></textarea>
         <button type="button" class="btn btn-primary vc-mobile-ai__save">Save to device</button>
@@ -71,28 +103,141 @@
     const ta = wrap.querySelector("#vc-mobile-ai-feedback");
     const saveBtn = wrap.querySelector(".vc-mobile-ai__save");
     const saved = wrap.querySelector("#vc-mobile-ai-saved");
-    let tipIdx = 0;
+    const actionsEl = wrap.querySelector("#vc-mobile-ai-actions");
+    let startY = 0;
 
-    function showTip() {
-      if (tipEl) {
-        tipEl.textContent = TIPS[tipIdx % TIPS.length];
-        tipIdx += 1;
+    function readLocal(key) {
+      try {
+        return String(localStorage.getItem(key) || "").trim();
+      } catch {
+        return "";
       }
     }
 
-    showTip();
-    setInterval(showTip, 14000);
+    function detectMode() {
+      var path = "";
+      var hash = "";
+      try {
+        path = String(window.location.pathname || "").toLowerCase();
+        hash = String(window.location.hash || "").toLowerCase();
+      } catch {
+        /* ignore */
+      }
+      if (path.indexOf("bridge") >= 0 || hash.indexOf("bridge") >= 0) return "bridge";
+      if (path.indexOf("sell") >= 0 || path.indexOf("seller") >= 0 || hash.indexOf("sell") >= 0) return "seller";
+      if (path.indexOf("hot-picks") >= 0 || path.indexOf("search") >= 0 || hash.indexOf("shop") >= 0) return "shop";
+      return "default";
+    }
+
+    function routeLensLabel() {
+      try {
+        var path = String(localStorage.getItem("vibecart-home-lite-bridge-path") || "").trim();
+        if (path === "from-africa") return "Africa -> Europe";
+        if (path === "from-europe") return "Europe -> Africa";
+      } catch {
+        /* ignore */
+      }
+      return "Africa <-> Europe, Dubai, Asia";
+    }
+
+    function renderAiCard() {
+      var mode = detectMode();
+      var card = PLAYBOOKS[mode] || PLAYBOOKS.default;
+      var category = readLocal("vibecart-home-lite-category");
+      var partner = readLocal("vibecart-home-lite-preferred-partner");
+      var line = card.title + ". " + card.steps.join(" ") + " Route lens: " + routeLensLabel() + ".";
+      if (category) {
+        line += " Current category memory: " + category + ".";
+      }
+      if (partner) {
+        line += " Preferred partner memory: " + partner + ".";
+      }
+      if (tipEl) {
+        tipEl.textContent = line;
+      }
+      if (actionsEl) {
+        actionsEl.innerHTML =
+          '<a class="btn btn-secondary" href="' +
+          card.ctaHref +
+          '">' +
+          card.ctaLabel +
+          "</a>";
+        const cta = actionsEl.querySelector("a");
+        cta?.addEventListener("click", () => {
+          try {
+            if (navigator && navigator.vibrate) navigator.vibrate([10, 30, 12]);
+          } catch {
+            /* ignore */
+          }
+        });
+      }
+    }
+
+    renderAiCard();
+    setInterval(renderAiCard, 12000);
 
     orb?.addEventListener("click", () => {
       const open = panel?.hasAttribute("hidden");
       if (open) {
         panel.removeAttribute("hidden");
         orb.setAttribute("aria-expanded", "true");
+        renderAiCard();
+        try {
+          if (navigator && navigator.vibrate) navigator.vibrate(16);
+        } catch {
+          /* ignore */
+        }
       } else {
         panel?.setAttribute("hidden", "hidden");
         orb.setAttribute("aria-expanded", "false");
       }
     });
+
+    orb?.addEventListener(
+      "touchstart",
+      (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        startY = Number(t.clientY || 0);
+      },
+      { passive: true }
+    );
+    orb?.addEventListener(
+      "touchend",
+      (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        const endY = Number(t.clientY || 0);
+        if (startY - endY > 18 && panel?.hasAttribute("hidden")) {
+          panel.removeAttribute("hidden");
+          orb.setAttribute("aria-expanded", "true");
+          renderAiCard();
+        }
+      },
+      { passive: true }
+    );
+    panel?.addEventListener(
+      "touchstart",
+      (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        startY = Number(t.clientY || 0);
+      },
+      { passive: true }
+    );
+    panel?.addEventListener(
+      "touchend",
+      (ev) => {
+        const t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        const endY = Number(t.clientY || 0);
+        if (endY - startY > 26) {
+          panel.setAttribute("hidden", "hidden");
+          orb?.setAttribute("aria-expanded", "false");
+        }
+      },
+      { passive: true }
+    );
 
     saveBtn?.addEventListener("click", () => {
       const text = (ta && ta.value) ? String(ta.value).trim() : "";
@@ -149,6 +294,74 @@
     hero.insertBefore(aurora, hero.firstChild);
   }
 
+  /**
+   * Homepage (and other shells) do not load script.js, but CSS still expects
+   * `main section.vc-revealed` for in-app scroll reveals. Mirror initVcMobileAppFx.
+   */
+  function ensureAppShopHubLink() {
+    if (!document.documentElement.classList.contains("vc-mobile-app")) {
+      return;
+    }
+    if (document.getElementById("vcAppShopHub")) {
+      return;
+    }
+    const a = document.createElement("a");
+    a.id = "vcAppShopHub";
+    a.className = "vc-app-shop-hub";
+    a.href = "./world-shop-experience.html";
+    a.setAttribute("aria-label", "Open shop lanes and trusted retailer links");
+    a.textContent = "Shop lanes";
+    document.body.appendChild(a);
+  }
+
+  function initMainSectionRevealForApp() {
+    if (!document.documentElement.classList.contains("vc-mobile-app")) {
+      return;
+    }
+    const main = document.querySelector("main");
+    if (!main) {
+      return;
+    }
+    main.classList.add("vc-mobile-feed");
+    const reduceMotion =
+      window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nodes = Array.from(main.querySelectorAll("section"));
+    if (!nodes.length) {
+      return;
+    }
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      nodes.forEach((el) => {
+        el.classList.add("vc-revealed");
+      });
+      return;
+    }
+    const vh = window.innerHeight || 640;
+    nodes.forEach((el, i) => {
+      el.style.setProperty("--vc-reveal-d", `${Math.min(i, 14) * 42}ms`);
+      const top = el.getBoundingClientRect().top;
+      if (top < vh * 0.94) {
+        el.classList.add("vc-revealed");
+      }
+    });
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (!en.isIntersecting) {
+            return;
+          }
+          en.target.classList.add("vc-revealed");
+          io.unobserve(en.target);
+        });
+      },
+      { root: null, rootMargin: "0px 0px -5% 0px", threshold: [0, 0.07, 0.14] }
+    );
+    nodes.forEach((el) => {
+      if (!el.classList.contains("vc-revealed")) {
+        io.observe(el);
+      }
+    });
+  }
+
   function boot() {
     const root = document.documentElement;
     const isApp = root.classList.contains("vc-mobile-app");
@@ -159,6 +372,8 @@
     if (isApp) {
       document.body.classList.add("vc-mobile-shell");
       ensureAiCoach();
+      initMainSectionRevealForApp();
+      ensureAppShopHubLink();
       window.addEventListener(
         "vibecart-live-catalog",
         (ev) => {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Orders &amp; tracking · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260428strictverify2" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
@@ -13,9 +13,108 @@
   </header>
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title">Orders &amp; tracking</h1>
-    <p class="note shops-lane-intro">Paste an order id, simulate courier updates, and see return windows — all tools live on the hub tracking block.</p>
-    <p class="hero-actions"><a class="btn btn-primary" href="./index.html#tracking">Open tracking tools</a></p>
+    <p class="note shops-lane-intro">Track fulfilment from dispatch to confirmed delivery.</p>
+    <div class="admin-grid" style="max-width:36rem;">
+      <label for="trackOrderIdInput">Order ID</label>
+      <input id="trackOrderIdInput" type="text" placeholder="Example: VC-20260428-0009" />
+      <label for="trackCourierInput">Courier company</label>
+      <select id="trackCourierInput">
+        <option value="DHL">DHL Express</option>
+        <option value="FedEx">FedEx</option>
+        <option value="UPS">UPS</option>
+        <option value="Aramex">Aramex</option>
+        <option value="DPD">DPD</option>
+        <option value="GLS">GLS</option>
+      </select>
+      <label for="trackStatusInput">Current status</label>
+      <select id="trackStatusInput">
+        <option value="processing">Processing</option>
+        <option value="shipped">Shipped</option>
+        <option value="in_transit">In transit</option>
+        <option value="out_for_delivery">Out for delivery</option>
+        <option value="delivered">Delivered</option>
+        <option value="confirmed">Receiver confirmed</option>
+      </select>
+    </div>
+    <p class="hero-actions" style="margin-top:0.8rem;">
+      <button class="btn btn-primary" id="trackSaveBtn" type="button">Save tracking update</button>
+      <button class="btn btn-secondary" id="trackConfirmBtn" type="button">Receiver confirms receipt</button>
+    </p>
+    <p class="note" id="trackStatusOut" aria-live="polite"></p>
+    <div class="vc-promo-feed" style="margin-top:0.8rem;">
+      <h2 style="margin-top:0;">Fulfilment timeline</h2>
+      <ol id="trackTimeline" class="buyer-adv-list">
+        <li>Order placed</li>
+        <li>Payment confirmed</li>
+        <li>Courier assigned</li>
+        <li>In transit</li>
+        <li>Delivered</li>
+        <li>Receiver confirmed</li>
+      </ol>
+    </div>
   </main>
+  <script>
+    (function () {
+      var KEY = "vibecart-order-tracking-record";
+      var orderIdEl = document.getElementById("trackOrderIdInput");
+      var courierEl = document.getElementById("trackCourierInput");
+      var statusEl = document.getElementById("trackStatusInput");
+      var saveBtn = document.getElementById("trackSaveBtn");
+      var confirmBtn = document.getElementById("trackConfirmBtn");
+      var out = document.getElementById("trackStatusOut");
+
+      function readRecord() {
+        try {
+          return JSON.parse(localStorage.getItem(KEY) || "{}");
+        } catch {
+          return {};
+        }
+      }
+      function writeRecord(v) {
+        localStorage.setItem(KEY, JSON.stringify(v));
+      }
+      function hydrate() {
+        var r = readRecord();
+        if (r.orderId && orderIdEl) orderIdEl.value = r.orderId;
+        if (r.courier && courierEl) courierEl.value = r.courier;
+        if (r.status && statusEl) statusEl.value = r.status;
+      }
+      hydrate();
+
+      if (saveBtn) {
+        saveBtn.addEventListener("click", function () {
+          var orderId = String((orderIdEl && orderIdEl.value) || "").trim();
+          var courier = String((courierEl && courierEl.value) || "DHL").trim();
+          var status = String((statusEl && statusEl.value) || "processing").trim();
+          if (!orderId) {
+            if (out) out.textContent = "Enter order ID first.";
+            return;
+          }
+          writeRecord({
+            orderId: orderId,
+            courier: courier,
+            status: status,
+            updatedAt: new Date().toISOString()
+          });
+          if (out) out.textContent = "Tracking updated: " + orderId + " · " + courier + " · " + status + ".";
+        });
+      }
+      if (confirmBtn) {
+        confirmBtn.addEventListener("click", function () {
+          var r = readRecord();
+          if (!r.orderId) {
+            if (out) out.textContent = "Save the order first before confirmation.";
+            return;
+          }
+          r.status = "confirmed";
+          r.confirmedAt = new Date().toISOString();
+          writeRecord(r);
+          if (statusEl) statusEl.value = "confirmed";
+          if (out) out.textContent = "Receiver confirmed goods received for " + r.orderId + ".";
+        });
+      }
+    })();
+  </script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

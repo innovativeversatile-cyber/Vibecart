@@ -931,10 +931,44 @@
             return;
           }
           if (href.charAt(0) === "#") {
+            var id = href.slice(1).split("&")[0].trim();
+            if (!id) {
+              event.preventDefault();
+              event.stopPropagation();
+              if (typeof event.stopImmediatePropagation === "function") {
+                event.stopImmediatePropagation();
+              }
+              return;
+            }
+            var dest = document.getElementById(id);
+            if (!dest) {
+              return;
+            }
             event.preventDefault();
             event.stopPropagation();
             if (typeof event.stopImmediatePropagation === "function") {
               event.stopImmediatePropagation();
+            }
+            var smooth = true;
+            try {
+              smooth =
+                !window.matchMedia ||
+                !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            } catch {
+              smooth = true;
+            }
+            dest.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+            try {
+              history.pushState(null, "", href);
+            } catch {
+              /* ignore */
+            }
+            try {
+              if (typeof dest.focus === "function") {
+                dest.focus({ preventScroll: true });
+              }
+            } catch {
+              /* ignore */
             }
           }
         },

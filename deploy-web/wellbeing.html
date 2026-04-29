@@ -6,9 +6,9 @@
   <title>Health &amp; fitness coach · VibeCart</title>
   <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
   <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260426healthcoach2" />
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-primary" href="./insurance.html">Insurance options</a>
@@ -69,6 +69,9 @@
       <p class="note">
         Select a primary and second package, complete one payment, and unlock access to both plans in your workspace.
       </p>
+      <p class="note">
+        <label><input id="coachFlowDisclaimerAck" type="checkbox" /> I confirm my coach data and goals are truthful and I accept policy terms.</label>
+      </p>
       <div class="admin-grid" style="max-width: 42rem">
         <label for="bundlePrimaryPlan">Primary package</label>
         <select id="bundlePrimaryPlan">
@@ -95,20 +98,31 @@
     </p>
     <section style="margin-top:1rem">
       <h2>AI package matcher</h2>
-      <p class="note">Quickly get a coach package suggestion based on your current goal and commitment level.</p>
+      <p class="note">Answer a few key questions so the recommendation matches your goal pace and daily capacity.</p>
       <div class="admin-grid" style="max-width:42rem">
         <label for="coachGoalType">Goal type</label>
         <select id="coachGoalType">
-          <option value="starter">Consistency + habits</option>
-          <option value="ai-home">Daily home workouts</option>
-          <option value="plus">Wearable-linked progress</option>
-          <option value="pro">Deep analytics + high accountability</option>
+          <option value="weight_loss">Weight loss</option>
+          <option value="weight_gain">Weight gain</option>
+          <option value="muscle_gain">Muscle gain</option>
+          <option value="general_fitness">General fitness</option>
         </select>
-        <label for="coachScheduleType">Weekly commitment</label>
-        <select id="coachScheduleType">
-          <option value="light">2-3 sessions</option>
-          <option value="balanced">4-5 sessions</option>
-          <option value="intense">6+ sessions</option>
+        <label for="coachCurrentWeight">Current weight (kg)</label>
+        <input id="coachCurrentWeight" type="number" min="30" max="260" step="0.1" placeholder="e.g. 82" />
+        <label for="coachTargetWeight">Target weight (kg)</label>
+        <input id="coachTargetWeight" type="number" min="30" max="260" step="0.1" placeholder="e.g. 72" />
+        <label for="coachGoalSpeed">How fast do you want results?</label>
+        <select id="coachGoalSpeed">
+          <option value="steady">Steady and sustainable</option>
+          <option value="moderate">Moderate pace</option>
+          <option value="aggressive">As fast as safely possible</option>
+        </select>
+        <label for="coachHoursDaily">How many hours per day can you train?</label>
+        <select id="coachHoursDaily">
+          <option value="0.5">30 minutes</option>
+          <option value="1">1 hour</option>
+          <option value="1.5">1.5 hours</option>
+          <option value="2">2+ hours</option>
         </select>
       </div>
       <p class="hero-actions" style="margin-top:0.65rem">
@@ -128,6 +142,11 @@
         return;
       }
       btn.addEventListener("click", function () {
+        var ack = document.getElementById("coachFlowDisclaimerAck");
+        if (ack && !ack.checked) {
+          if (status) status.textContent = "Accept the coach disclaimer first.";
+          return;
+        }
         var primary = String(primaryEl.value || "starter").trim().toLowerCase();
         var second = String(secondEl.value || "").trim().toLowerCase();
         if (!second) {
@@ -138,37 +157,69 @@
           if (status) status.textContent = "Choose two different packages for bundle checkout.";
           return;
         }
-        window.location.assign(
+        var href =
           "./checkout-details.html?flow=coach&plan=" +
-            encodeURIComponent(primary) +
-            "&addonPlan=" +
-            encodeURIComponent(second)
-        );
+          encodeURIComponent(primary) +
+          "&addonPlan=" +
+          encodeURIComponent(second);
+        if (status) status.textContent = "Opening secure checkout for both packages...";
+        window.location.href = href;
       });
     })();
     (function () {
       var goal = document.getElementById("coachGoalType");
-      var schedule = document.getElementById("coachScheduleType");
+      var currentWeight = document.getElementById("coachCurrentWeight");
+      var targetWeight = document.getElementById("coachTargetWeight");
+      var speed = document.getElementById("coachGoalSpeed");
+      var hours = document.getElementById("coachHoursDaily");
       var btn = document.getElementById("coachMatchBtn");
       var out = document.getElementById("coachMatchOut");
-      if (!goal || !schedule || !btn || !out) return;
+      if (!goal || !currentWeight || !targetWeight || !speed || !hours || !btn || !out) return;
       btn.addEventListener("click", function () {
-        var plan = String(goal.value || "starter");
-        var intensity = String(schedule.value || "balanced");
+        var ack = document.getElementById("coachFlowDisclaimerAck");
+        if (ack && !ack.checked) {
+          out.textContent = "Accept the coach disclaimer first.";
+          return;
+        }
+        var goalType = String(goal.value || "general_fitness");
+        var cw = Number(currentWeight.value || 0);
+        var tw = Number(targetWeight.value || 0);
+        var speedType = String(speed.value || "steady");
+        var dailyHours = Number(hours.value || 0.5);
+        if (!cw || !tw || cw < 30 || tw < 30) {
+          out.textContent = "Add both current and target weight to generate a proper recommendation.";
+          return;
+        }
+        var delta = Math.abs(tw - cw);
+        var recommendedPlan = "starter";
+        if (dailyHours >= 1.5 || speedType === "aggressive" || delta >= 18) {
+          recommendedPlan = "pro";
+        } else if (dailyHours >= 1 || speedType === "moderate" || delta >= 10) {
+          recommendedPlan = "plus";
+        } else if (goalType === "muscle_gain" || goalType === "weight_gain") {
+          recommendedPlan = "ai-home";
+        }
         var map = {
           starter: "Starter Coach",
           "ai-home": "AI Home Workout",
           plus: "Coach Plus",
           pro: "Coach Pro"
         };
-        var note = intensity === "intense" ? "Choose a package with deeper analytics and recovery prompts." : "Focus on consistency first.";
+        var note =
+          "Goal gap: " +
+          delta.toFixed(1) +
+          "kg. Pace: " +
+          speedType +
+          ". Time/day: " +
+          dailyHours +
+          "h.";
         out.innerHTML =
           "AI recommendation: <strong>" +
-          (map[plan] || "Starter Coach") +
+          (map[recommendedPlan] || "Starter Coach") +
           "</strong>. " +
           note +
           " <a class='btn btn-secondary' href='./coach-experience.html?flow=coach&plan=" +
-          encodeURIComponent(plan) +
+          encodeURIComponent(recommendedPlan) +
           "'>Open matching package</a>";
       });
     })();
