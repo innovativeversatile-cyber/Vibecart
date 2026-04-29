@@ -1,6 +1,17 @@
 /* VibeCart mobile WebView shell — runs when the native app sets class `vc-mobile-app` on <html>. */
 (function () {
   const AI_ID = "vc-mobile-ai";
+  function detectPhoneLikeContext() {
+    try {
+      var ua = String((navigator && navigator.userAgent) || "").toLowerCase();
+      var touch = typeof window !== "undefined" && "ontouchstart" in window;
+      var width = Number((window && window.innerWidth) || 0);
+      var mobileUA = /iphone|android|mobile|ipad|ipod|opera mini|iemobile/.test(ua);
+      return mobileUA || (touch && width > 0 && width <= 1024);
+    } catch {
+      return false;
+    }
+  }
 
   function readApiBase() {
     try {
@@ -741,6 +752,12 @@
 
   function boot() {
     const root = document.documentElement;
+    if (detectPhoneLikeContext()) {
+      root.classList.add("vc-phone");
+      if (!root.classList.contains("vc-mobile-app")) {
+        root.classList.add("vc-mobile-app");
+      }
+    }
     const isApp = root.classList.contains("vc-mobile-app");
     const isPhone = root.classList.contains("vc-phone");
     if (!isApp && !isPhone) {
