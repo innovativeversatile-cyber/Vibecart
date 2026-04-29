@@ -2171,52 +2171,60 @@
   }
 
   function boot() {
-    try {
-      initShopSearchLite();
-      initHashLinks();
-      initOpenShopStatus();
-      initCategoryFilter();
-      initCategoryCards();
-      initBridgePathToggle();
-      initAiAssistantLite();
-      initTrackingLite();
-      initBookingLite();
-      initAdsLite();
-      initInsuranceLite();
-      initInsuranceTipsLite();
-      initHealthCoachLite();
-      initRewardsLite();
-      initCommunicationLite();
-      initHomepageFocusLite();
-      initRequestedSectionSwapsLite();
-      initSmartTourLite();
-      if (featureOn("advancedShockReelV1")) initShockReelLite();
-      if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
-      if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
-      if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
-      initPersonaChooserLite();
-      initExperienceModeLite();
-      initAutonomousDebugLite();
-      if (featureOn("advancedListingHealthV1")) initListingHealthLite();
-      if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
-      if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();
-      if (featureOn("advancedMobileQuickNavV1")) initMobileQuickNavLite();
-      if (featureOn("advancedSellerReadinessV1")) initSellerReadinessLite();
-      if (featureOn("advancedCheckoutClarityV1")) initCheckoutClarityLite();
-      if (featureOn("advancedSellerNextActionV1")) initSellerNextActionLite();
-      if (featureOn("advancedPartnerPinV1")) initPartnerPinLite();
-      if (featureOn("advancedBuyerQuickStartV1")) initBuyerQuickStartLite();
-      if (featureOn("advancedSellerMomentumV1")) initSellerMomentumLite();
-      if (featureOn("advancedPartnerRecallV1")) initPartnerRecallLite();
-      if (featureOn("advancedVisualJourneyV1")) initVisualJourneyLite();
-      if (featureOn("advancedPwaBootstrapV1")) initPwaBootstrapLite();
-      if (featureOn("advancedInstallPromptV1")) initInstallPromptLite();
-      if (featureOn("advancedHealthCoachIntelV1")) initHealthCoachIntelLite();
-      if (featureOn("advancedSellerGrowthIntelV1")) initSellerGrowthIntelLite();
-      initUniversalShopLogosLite();
-    } catch {
-      // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
+    function safeInit(name, fn) {
+      try {
+        fn();
+      } catch (error) {
+        try {
+          document.body && document.body.setAttribute("data-vc-init-last-error", String(name || "unknown"));
+        } catch {
+          /* ignore */
+        }
+      }
     }
+    // Critical paths first, each isolated from unrelated failures.
+    safeInit("initSmartTourLite", initSmartTourLite);
+    safeInit("initExperienceModeLite", initExperienceModeLite);
+    safeInit("initAutonomousDebugLite", initAutonomousDebugLite);
+    safeInit("initPersonaChooserLite", initPersonaChooserLite);
+    safeInit("initHashLinks", initHashLinks);
+    safeInit("initOpenShopStatus", initOpenShopStatus);
+    safeInit("initShopSearchLite", initShopSearchLite);
+    safeInit("initCategoryFilter", initCategoryFilter);
+    safeInit("initCategoryCards", initCategoryCards);
+    safeInit("initBridgePathToggle", initBridgePathToggle);
+    safeInit("initAiAssistantLite", initAiAssistantLite);
+    safeInit("initTrackingLite", initTrackingLite);
+    safeInit("initBookingLite", initBookingLite);
+    safeInit("initAdsLite", initAdsLite);
+    safeInit("initInsuranceLite", initInsuranceLite);
+    safeInit("initInsuranceTipsLite", initInsuranceTipsLite);
+    safeInit("initHealthCoachLite", initHealthCoachLite);
+    safeInit("initRewardsLite", initRewardsLite);
+    safeInit("initCommunicationLite", initCommunicationLite);
+    safeInit("initHomepageFocusLite", initHomepageFocusLite);
+    safeInit("initRequestedSectionSwapsLite", initRequestedSectionSwapsLite);
+    if (featureOn("advancedShockReelV1")) safeInit("initShockReelLite", initShockReelLite);
+    if (featureOn("advancedEpicCarouselV1")) safeInit("initEpicCarouselLite", initEpicCarouselLite);
+    if (featureOn("advancedVisualRhythmV1")) safeInit("initVisualRhythmLite", initVisualRhythmLite);
+    if (featureOn("advancedAtmosphereDeckV1")) safeInit("initAtmosphereDeckLite", initAtmosphereDeckLite);
+    if (featureOn("advancedListingHealthV1")) safeInit("initListingHealthLite", initListingHealthLite);
+    if (featureOn("advancedBridgeFaqCopyV1")) safeInit("initBridgeFaqCopyLite", initBridgeFaqCopyLite);
+    if (featureOn("advancedDetailsMemoryV1")) safeInit("initDetailsMemoryLite", initDetailsMemoryLite);
+    if (featureOn("advancedMobileQuickNavV1")) safeInit("initMobileQuickNavLite", initMobileQuickNavLite);
+    if (featureOn("advancedSellerReadinessV1")) safeInit("initSellerReadinessLite", initSellerReadinessLite);
+    if (featureOn("advancedCheckoutClarityV1")) safeInit("initCheckoutClarityLite", initCheckoutClarityLite);
+    if (featureOn("advancedSellerNextActionV1")) safeInit("initSellerNextActionLite", initSellerNextActionLite);
+    if (featureOn("advancedPartnerPinV1")) safeInit("initPartnerPinLite", initPartnerPinLite);
+    if (featureOn("advancedBuyerQuickStartV1")) safeInit("initBuyerQuickStartLite", initBuyerQuickStartLite);
+    if (featureOn("advancedSellerMomentumV1")) safeInit("initSellerMomentumLite", initSellerMomentumLite);
+    if (featureOn("advancedPartnerRecallV1")) safeInit("initPartnerRecallLite", initPartnerRecallLite);
+    if (featureOn("advancedVisualJourneyV1")) safeInit("initVisualJourneyLite", initVisualJourneyLite);
+    if (featureOn("advancedPwaBootstrapV1")) safeInit("initPwaBootstrapLite", initPwaBootstrapLite);
+    if (featureOn("advancedInstallPromptV1")) safeInit("initInstallPromptLite", initInstallPromptLite);
+    if (featureOn("advancedHealthCoachIntelV1")) safeInit("initHealthCoachIntelLite", initHealthCoachIntelLite);
+    if (featureOn("advancedSellerGrowthIntelV1")) safeInit("initSellerGrowthIntelLite", initSellerGrowthIntelLite);
+    safeInit("initUniversalShopLogosLite", initUniversalShopLogosLite);
   }
 
   if (document.readyState === "loading") {

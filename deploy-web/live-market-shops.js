@@ -165,6 +165,36 @@
     }
   };
 
+  function ensureFrequentFashionShopsEverywhere() {
+    var fallbackFashion = [
+      { name: "SHEIN", url: "https://www.shein.com", promoUrl: "https://www.shein.com/campaigns/sale", desc: "Global fast-fashion promotions." },
+      { name: "Zara", url: "https://www.zara.com", promoUrl: "https://www.zara.com/ww/en/sale-l1180.html", desc: "Zara global sale lane." },
+      { name: "H&M", url: "https://www2.hm.com", promoUrl: "https://www2.hm.com/en_gb/sale.html", desc: "H&M markdown lane with seasonal campaigns." },
+      { name: "Notino", url: "https://www.notino.com", promoUrl: "https://www.notino.com/sale/", desc: "Beauty and fragrance promotions." }
+    ];
+    Object.keys(mapByRegion || {}).forEach(function (regionKey) {
+      var region = mapByRegion[regionKey];
+      if (!region || typeof region !== "object") return;
+      if (!Array.isArray(region.Fashion)) region.Fashion = [];
+      var existing = {};
+      region.Fashion.forEach(function (shop) {
+        var key = String((shop && shop.name) || "").trim().toLowerCase();
+        if (key) existing[key] = true;
+      });
+      fallbackFashion.forEach(function (shop) {
+        var key = String(shop.name || "").trim().toLowerCase();
+        if (existing[key]) return;
+        region.Fashion.push({
+          name: shop.name,
+          url: shop.url,
+          promoUrl: shop.promoUrl,
+          desc: shop.desc
+        });
+      });
+    });
+  }
+  ensureFrequentFashionShopsEverywhere();
+
   function inferRegionFromTimezone() {
     try {
       var tz = String((Intl.DateTimeFormat().resolvedOptions().timeZone || "")).toLowerCase();
