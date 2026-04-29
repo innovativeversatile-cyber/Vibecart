@@ -173,6 +173,46 @@
     }
   }
 
+  function inferCountryCode() {
+    try {
+      var auth = getStoredAuthUser();
+      var fromAuth = String((auth && auth.user && auth.user.countryCode) || "").trim().toUpperCase();
+      if (fromAuth.length === 2) return fromAuth;
+    } catch {
+      /* ignore */
+    }
+    try {
+      var lang = String((navigator.language || (Array.isArray(navigator.languages) && navigator.languages[0]) || "")).toUpperCase();
+      var m = lang.match(/-([A-Z]{2})$/);
+      if (m && m[1]) return m[1];
+    } catch {
+      /* ignore */
+    }
+    try {
+      var tz = String((Intl.DateTimeFormat().resolvedOptions().timeZone || "")).toLowerCase();
+      if (tz.indexOf("johannesburg") >= 0 || tz.indexOf("cape_town") >= 0) return "ZA";
+      if (tz.indexOf("nairobi") >= 0) return "KE";
+      if (tz.indexOf("lagos") >= 0) return "NG";
+      if (tz.indexOf("accra") >= 0) return "GH";
+      if (tz.indexOf("cairo") >= 0) return "EG";
+      if (tz.indexOf("casablanca") >= 0) return "MA";
+      if (tz.indexOf("harare") >= 0) return "ZW";
+      if (tz.indexOf("warsaw") >= 0) return "PL";
+      if (tz.indexOf("berlin") >= 0) return "DE";
+      if (tz.indexOf("london") >= 0) return "GB";
+      if (tz.indexOf("paris") >= 0) return "FR";
+      if (tz.indexOf("dubai") >= 0) return "AE";
+      if (tz.indexOf("riyadh") >= 0) return "SA";
+      if (tz.indexOf("tokyo") >= 0) return "JP";
+      if (tz.indexOf("singapore") >= 0) return "SG";
+      if (tz.indexOf("seoul") >= 0) return "KR";
+      if (tz.indexOf("kolkata") >= 0) return "IN";
+    } catch {
+      /* ignore */
+    }
+    return "";
+  }
+
   function inferRegionFromCountryCode(countryCode) {
     var cc = String(countryCode || "").trim().toUpperCase();
     if (!cc || cc.length !== 2) return "";
@@ -237,17 +277,10 @@
   }
 
   var regionMode = readRegionMode();
-  var resolvedRegion = regionMode === "auto" ? (() => {
-    try {
-      var auth = getStoredAuthUser();
-      var cc = auth && auth.user ? auth.user.countryCode : "";
-      var byCc = inferRegionFromCountryCode(cc);
-      return byCc || inferRegionFromTimezone();
-    } catch {
-      return inferRegionFromTimezone();
-    }
-  })() : regionMode;
-  var map = mapByRegion[resolvedRegion] || mapByRegion.africa;
+  var resolvedRegion = regionMode === "auto"
+    ? (inferRegionFromCountryCode(inferCountryCode()) || inferRegionFromTimezone() || "global")
+    : regionMode;
+  var map = mapByRegion[resolvedRegion] || mapByRegion.global;
   var categories = Object.keys(map);
   var cat = requested === "All" ? "All" : categories.indexOf(requested) >= 0 ? requested : "Electronics";
   if (dealMode === "fashion") cat = "Fashion";
@@ -337,9 +370,19 @@
         if (searchStatus) searchStatus.textContent = "This listing link is unavailable.";
         return;
       }
+      var targetUrl = String(shop.url || "").trim();
+      var redirectedHref =
+        "/api/public/shop/redirect?shop=" +
+        encodeURIComponent(String(shop.name || "Shop")) +
+        "&cat=" +
+        encodeURIComponent(String(category || "All")) +
+        "&partner=" +
+        encodeURIComponent(String(shop.name || "Shop")) +
+        "&target=" +
+        encodeURIComponent(targetUrl);
+      a.href = redirectedHref;
       if (disclaimerAck && !disclaimerAck.checked) {
-        event.preventDefault();
-        if (searchStatus) searchStatus.textContent = "Please accept the marketplace disclaimer first.";
+        if (searchStatus) searchStatus.textContent = "Tip: tick the marketplace disclaimer for safer buying guidance.";
       }
     });
     return a;
@@ -382,6 +425,7 @@
       return {
         shop: entry.shop.name,
         category: entry.category,
+        shopUrl: entry.shop.url,
         promoUrl: entry.shop.promoUrl || entry.shop.url,
         discountHint: hint,
         image: categoryImages[idx % categoryImages.length]
@@ -391,6 +435,16 @@
     promos.forEach(function (promo) {
       var card = document.createElement("article");
       card.className = "vc-promo-card";
+      var promoTarget = String(promo.promoUrl || promo.shopUrl || "").trim();
+      var promoHref =
+        "/api/public/shop/redirect?shop=" +
+        encodeURIComponent(String(promo.shop || "Shop")) +
+        "&cat=" +
+        encodeURIComponent(String(promo.category || "All")) +
+        "&partner=" +
+        encodeURIComponent(String(promo.shop || "Shop")) +
+        "&target=" +
+        encodeURIComponent(promoTarget);
       card.innerHTML =
         "<img src='" + promo.image + "' alt='" + promo.shop + " promotion image' loading='lazy' />" +
         "<div class='vc-promo-card-copy'>" +
@@ -398,7 +452,7 @@
         "<h3>" + promo.shop + " deals</h3>" +
         "<p class='vc-promo-kicker'>" + promo.discountHint + "</p>" +
         "<p>Direct link to the active promotion/deals section.</p>" +
-        "<a class='btn btn-secondary' target='_blank' rel='noopener noreferrer' href='" + promo.promoUrl + "'>Open live promotion page</a>" +
+        "<a class='btn btn-secondary' target='_blank' rel='noopener noreferrer' href='" + promoHref + "'>Open live promotion page</a>" +
         "</div>";
       promoGrid.appendChild(card);
     });

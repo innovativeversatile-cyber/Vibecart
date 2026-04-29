@@ -180,6 +180,24 @@
     }
   }
 
+  function inferCountryCode() {
+    try {
+      var auth = getStoredAuthUser();
+      var fromAuth = String((auth && auth.user && auth.user.countryCode) || "").trim().toUpperCase();
+      if (fromAuth.length === 2) return fromAuth;
+    } catch {
+      /* ignore */
+    }
+    try {
+      var lang = String((navigator.language || (Array.isArray(navigator.languages) && navigator.languages[0]) || "")).toUpperCase();
+      var m = lang.match(/-([A-Z]{2})$/);
+      if (m && m[1]) return m[1];
+    } catch {
+      /* ignore */
+    }
+    return "";
+  }
+
   function inferRegionFromCountryCode(countryCode) {
     var cc = String(countryCode || "").trim().toUpperCase();
     if (!cc || cc.length !== 2) return "";
@@ -245,16 +263,9 @@
   }
 
   var regionMode = readRegionMode();
-  var resolvedRegion = regionMode === "auto" ? (() => {
-    try {
-      var auth = getStoredAuthUser();
-      var cc = auth && auth.user ? auth.user.countryCode : "";
-      var byCc = inferRegionFromCountryCode(cc);
-      return byCc || inferRegionFromTimezone();
-    } catch {
-      return inferRegionFromTimezone();
-    }
-  })() : regionMode;
+  var resolvedRegion = regionMode === "auto"
+    ? (inferRegionFromCountryCode(inferCountryCode()) || inferRegionFromTimezone() || "global")
+    : regionMode;
   var map = mapByRegion[resolvedRegion] || mapByRegion.global;
   var categories = Object.keys(map);
   var cat = categories.indexOf(requested) >= 0 ? requested : "Electronics";
@@ -362,11 +373,9 @@
         return;
       }
       if (disclaimerAck && !disclaimerAck.checked) {
-        event.preventDefault();
         if (searchStatus) {
-          searchStatus.textContent = "Please accept the marketplace disclaimer first.";
+          searchStatus.textContent = "Tip: tick the marketplace disclaimer for safer buying guidance.";
         }
-        return;
       }
       try {
         localStorage.setItem(

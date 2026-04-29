@@ -25,6 +25,25 @@
     }
   }
 
+  function inferCountryCode() {
+    try {
+      var rawUser = localStorage.getItem("vibecart-public-auth-user");
+      var user = rawUser ? JSON.parse(rawUser) : null;
+      var fromAuth = String((user && user.countryCode) || "").trim().toUpperCase();
+      if (fromAuth.length === 2) return fromAuth;
+    } catch {
+      /* ignore */
+    }
+    try {
+      var lang = String((navigator.language || (Array.isArray(navigator.languages) && navigator.languages[0]) || "")).toUpperCase();
+      var m = lang.match(/-([A-Z]{2})$/);
+      if (m && m[1]) return m[1];
+    } catch {
+      /* ignore */
+    }
+    return "";
+  }
+
   function productCategory(p) {
     return String(p.category || p.productCategory || p.kind || "All").trim();
   }
@@ -202,14 +221,7 @@
   async function boot() {
     var lane = laneFromQuery().toLowerCase();
     try {
-      var fromCountry = "";
-      try {
-        var rawUser = localStorage.getItem("vibecart-public-auth-user");
-        var user = rawUser ? JSON.parse(rawUser) : null;
-        fromCountry = String((user && user.countryCode) || "").trim().toUpperCase();
-      } catch {
-        fromCountry = "";
-      }
+      var fromCountry = inferCountryCode();
 
       var url = "/api/public/products/live";
       if (fromCountry && fromCountry.length === 2) {
