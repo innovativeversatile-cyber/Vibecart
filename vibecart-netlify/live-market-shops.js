@@ -263,13 +263,42 @@
   }
 
   var regionMode = readRegionMode();
+  var inferredCountryCode = inferCountryCode();
+  var countryMappedRegion = inferRegionFromCountryCode(inferredCountryCode);
   var resolvedRegion = regionMode === "auto"
-    ? (inferRegionFromCountryCode(inferCountryCode()) || inferRegionFromTimezone() || "global")
+    ? (countryMappedRegion || inferRegionFromTimezone() || "global")
     : regionMode;
+  var regionResolveSource = regionMode === "auto"
+    ? (countryMappedRegion ? "country" : "timezone")
+    : "manual";
   var map = mapByRegion[resolvedRegion] || mapByRegion.global;
   var categories = Object.keys(map);
   var cat = categories.indexOf(requested) >= 0 ? requested : "Electronics";
   var trustedHosts = buildTrustedHostSet(mapByRegion);
+  function renderRegionResolutionHint() {
+    if (!regionSelect) return;
+    var host = document.getElementById("liveMarketRegionHint");
+    if (!host) {
+      host = document.createElement("p");
+      host.id = "liveMarketRegionHint";
+      host.className = "note";
+      regionSelect.insertAdjacentElement("afterend", host);
+    }
+    var sourceLabel =
+      regionResolveSource === "manual"
+        ? "manual selection"
+        : regionResolveSource === "country"
+          ? "country detection"
+          : "timezone fallback";
+    var countryLabel = inferredCountryCode ? (" · country " + inferredCountryCode) : "";
+    host.textContent =
+      "Region auto-resolution: " +
+      String(resolvedRegion || "global").toUpperCase() +
+      " (" +
+      sourceLabel +
+      countryLabel +
+      "). Change the Market region selector to override.";
+  }
   var fashionTrends = [
     {
       src: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=540&h=340&q=75",
@@ -520,6 +549,7 @@
   }
 
   paintCategoryUi(cat);
+  renderRegionResolutionHint();
   renderList(listForCategory(cat), "Showing " + cat + " shops.");
   renderFashionTrends();
   if (fashionAdviceBtn) {

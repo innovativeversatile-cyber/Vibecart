@@ -277,15 +277,45 @@
   }
 
   var regionMode = readRegionMode();
+  var inferredCountryCode = inferCountryCode();
+  var countryMappedRegion = inferRegionFromCountryCode(inferredCountryCode);
   var resolvedRegion = regionMode === "auto"
-    ? (inferRegionFromCountryCode(inferCountryCode()) || inferRegionFromTimezone() || "global")
+    ? (countryMappedRegion || inferRegionFromTimezone() || "global")
     : regionMode;
+  var regionResolveSource = regionMode === "auto"
+    ? (countryMappedRegion ? "country" : "timezone")
+    : "manual";
   var map = mapByRegion[resolvedRegion] || mapByRegion.global;
   var categories = Object.keys(map);
   var cat = requested === "All" ? "All" : categories.indexOf(requested) >= 0 ? requested : "Electronics";
   if (dealMode === "fashion") cat = "Fashion";
   if (dealMode === "electronics") cat = "Electronics";
   if (dealMode === "books") cat = "Books";
+
+  function renderRegionResolutionHint() {
+    if (!regionSelect) return;
+    var host = document.getElementById("liveMarketRegionHint");
+    if (!host) {
+      host = document.createElement("p");
+      host.id = "liveMarketRegionHint";
+      host.className = "note";
+      regionSelect.insertAdjacentElement("afterend", host);
+    }
+    var sourceLabel =
+      regionResolveSource === "manual"
+        ? "manual selection"
+        : regionResolveSource === "country"
+          ? "country detection"
+          : "timezone fallback";
+    var countryLabel = inferredCountryCode ? (" · country " + inferredCountryCode) : "";
+    host.textContent =
+      "Region auto-resolution: " +
+      String(resolvedRegion || "global").toUpperCase() +
+      " (" +
+      sourceLabel +
+      countryLabel +
+      "). Change the Market region selector to override.";
+  }
 
   function extractHost(url) {
     try {
@@ -581,6 +611,7 @@
   }
 
   paintCategoryUi(cat);
+  renderRegionResolutionHint();
   renderList(currentListFor(cat), "Showing " + cat + " shops" + (viewMode === "global" ? " from global lanes." : "."));
 
   if (regionSelect) {
