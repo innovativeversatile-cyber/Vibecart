@@ -362,6 +362,139 @@
     });
   }
 
+  function initMobileFocusMode() {
+    var root = document.documentElement;
+    var key = "vibecart-mobile-focus-mode-v1";
+    function read() {
+      try {
+        return localStorage.getItem(key) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function write(on) {
+      try {
+        localStorage.setItem(key, on ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function apply(on) {
+      root.classList.toggle("vc-mobile-focus", !!on);
+    }
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav || document.getElementById("vcMobileFocusToggle")) {
+      apply(read());
+      return;
+    }
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcMobileFocusToggle";
+    btn.className = "vc-mobile-focus-toggle";
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = "Focus";
+    nav.appendChild(btn);
+    function paint() {
+      var on = read();
+      apply(on);
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.textContent = on ? "Focus on" : "Focus";
+    }
+    btn.addEventListener("click", function () {
+      var next = !read();
+      write(next);
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(next ? [10, 30, 12] : 12);
+      } catch {
+        /* ignore */
+      }
+    });
+    paint();
+  }
+
+  function initThumbFlowBoost() {
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav) return;
+    var anchors = Array.from(nav.querySelectorAll("a"));
+    anchors.forEach(function (a) {
+      a.addEventListener("click", function () {
+        try {
+          if (navigator && navigator.vibrate) navigator.vibrate(10);
+        } catch {
+          /* ignore */
+        }
+      });
+      try {
+        var href = String(a.getAttribute("href") || "");
+        if (href && window.location && window.location.pathname && href.indexOf(window.location.pathname) >= 0) {
+          a.classList.add("is-active");
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  function initTrustSnapshotCard() {
+    var heroCopy = document.querySelector(".hero-copy");
+    if (!heroCopy || document.getElementById("vcMobileTrustSnapshot")) return;
+    var card = document.createElement("div");
+    card.id = "vcMobileTrustSnapshot";
+    card.className = "vc-mobile-trust-snapshot";
+    card.innerHTML =
+      "<strong>Live trust snapshot</strong>" +
+      "<span>Verified sellers · Guarded payments · Tracked delivery</span>";
+    var actions = heroCopy.querySelector(".hero-actions");
+    if (actions && actions.parentNode === heroCopy) {
+      heroCopy.insertBefore(card, actions);
+    } else {
+      heroCopy.appendChild(card);
+    }
+  }
+
+  function initDailyWelcomeSheet() {
+    var key = "vibecart-mobile-welcome-date-v1";
+    var today = new Date().toISOString().slice(0, 10);
+    try {
+      if (localStorage.getItem(key) === today) return;
+    } catch {
+      /* ignore */
+    }
+    if (document.getElementById("vcMobileWelcomeSheet")) return;
+    var sheet = document.createElement("div");
+    sheet.id = "vcMobileWelcomeSheet";
+    sheet.className = "vc-mobile-welcome-sheet";
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-modal", "true");
+    sheet.innerHTML =
+      "<div class='vc-mobile-welcome-card'>" +
+      "<p class='badge'>Welcome back</p>" +
+      "<h3>Your next best move is ready</h3>" +
+      "<p class='note'>Choose one quick route and get value in under 30 seconds.</p>" +
+      "<div class='hero-actions'>" +
+      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Best deals now</a>" +
+      "<a class='btn btn-secondary' href='./sell-journey.html'>Start selling</a>" +
+      "<button type='button' class='btn btn-secondary' id='vcMobileWelcomeClose'>Continue browsing</button>" +
+      "</div>" +
+      "</div>";
+    document.body.appendChild(sheet);
+    var close = document.getElementById("vcMobileWelcomeClose");
+    function dismiss() {
+      if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
+      try {
+        localStorage.setItem(key, today);
+      } catch {
+        /* ignore */
+      }
+    }
+    close && close.addEventListener("click", dismiss);
+    sheet.addEventListener("click", function (ev) {
+      if (ev.target === sheet) dismiss();
+    });
+  }
+
   function boot() {
     const root = document.documentElement;
     const isApp = root.classList.contains("vc-mobile-app");
@@ -395,6 +528,10 @@
     if (isApp || isPhone) {
       enhanceHero();
       document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+      initMobileFocusMode();
+      initThumbFlowBoost();
+      initTrustSnapshotCard();
+      initDailyWelcomeSheet();
     }
   }
 

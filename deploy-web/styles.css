@@ -5813,6 +5813,66 @@ html.vc-phone .brand-mark::after {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 
+/* Mobile masterpiece pass: less computer-like, more thumb-native. */
+.vc-mobile-focus-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(16, 24, 42, 0.88);
+  color: rgba(233, 241, 255, 0.95);
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  font-size: 0.78rem;
+}
+
+.vc-mobile-focus-toggle.is-on {
+  border-color: rgba(111, 43, 255, 0.66);
+  background: linear-gradient(120deg, rgba(111, 43, 255, 0.28), rgba(12, 214, 255, 0.2));
+}
+
+.vc-mobile-trust-snapshot {
+  margin: 0.5rem 0 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 236, 193, 0.38);
+  background: rgba(8, 16, 30, 0.78);
+  padding: 0.52rem 0.62rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.vc-mobile-trust-snapshot strong {
+  font-size: 0.82rem;
+  color: #dffdf2;
+}
+
+.vc-mobile-trust-snapshot span {
+  font-size: 0.76rem;
+  color: rgba(216, 229, 255, 0.88);
+}
+
+.vc-mobile-welcome-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  background: rgba(5, 10, 18, 0.56);
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+}
+
+.vc-mobile-welcome-card {
+  width: min(96vw, 520px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(155deg, rgba(14, 10, 26, 0.98), rgba(10, 20, 40, 0.96));
+  padding: 0.9rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+html.vc-mobile-focus .section:nth-of-type(n + 5),
+html.vc-mobile-focus #vcSenseDeck,
+html.vc-mobile-focus #settings-hub {
+  display: none !important;
+}
+
 .vc-mobile-ai__panel[hidden] {
   display: none !important;
 }
