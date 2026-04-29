@@ -8741,14 +8741,13 @@ body.health-coach-page .vc-site-chrome-search {
   }
 }
 
-/* Mobile WebView stability (default): disable always-on cinematic animations that
-   commonly cause visible flicker/jank on iOS/Android in-app browsers.
+/* Mobile WebView stability (default): clamp the worst flicker sources while keeping
+   the page usable. “Rich” mode opts into motion again, but we still avoid the most
+   expensive compositing patterns on phone WebViews.
 
-   Opt back in by adding `vc-motion-rich` on <html> (see mobile-app-shell.js). */
-html.vc-mobile-app:not(.vc-motion-rich) .hero,
-html.vc-phone:not(.vc-motion-rich) .hero,
-html.vc-mobile-app:not(.vc-motion-rich) .hero *,
-html.vc-phone:not(.vc-motion-rich) .hero *,
+   Opt into motion by adding `vc-motion-rich` on <html> (see mobile-app-shell.js). */
+
+/* Stable (default): keep hero field calmer + kill the AI orb pulse (tiny but constant). */
 html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-hero-aurora,
 html.vc-phone:not(.vc-motion-rich) .vc-mobile-hero-aurora,
 html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-ai__pulse,
@@ -8757,16 +8756,84 @@ html.vc-phone:not(.vc-motion-rich) .vc-mobile-ai__pulse {
   transition: none !important;
 }
 
-html.vc-mobile-app:not(.vc-motion-rich) .hero,
-html.vc-phone:not(.vc-motion-rich) .hero,
-html.vc-mobile-app:not(.vc-motion-rich) .hero *,
-html.vc-phone:not(.vc-motion-rich) .hero * {
+html.vc-mobile-app:not(.vc-motion-rich) .hero-captivate-bg,
+html.vc-phone:not(.vc-motion-rich) .hero-captivate-bg,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-captivate-bg::before,
+html.vc-phone:not(.vc-motion-rich) .hero-captivate-bg::before,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-captivate-bg::after,
+html.vc-phone:not(.vc-motion-rich) .hero-captivate-bg::after,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-showpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-showpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-phone:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-bg-scene,
+html.vc-phone:not(.vc-motion-rich) .hero-bg-scene,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-aura-bridge,
+html.vc-phone:not(.vc-motion-rich) .hero-aura-bridge,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-aura-trail,
+html.vc-phone:not(.vc-motion-rich) .hero-aura-trail,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-aura-pattern,
+html.vc-phone:not(.vc-motion-rich) .hero-aura-pattern,
+html.vc-mobile-app:not(.vc-motion-rich) .bg-orb,
+html.vc-phone:not(.vc-motion-rich) .bg-orb {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Stable: remove animated filters on large hero layers (common flicker trigger). */
+html.vc-mobile-app:not(.vc-motion-rich) .hero-showpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-showpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-phone:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-bg-scene,
+html.vc-phone:not(.vc-motion-rich) .hero-bg-scene {
   filter: none !important;
 }
 
 html.vc-mobile-app:not(.vc-motion-rich) body,
 html.vc-phone:not(.vc-motion-rich) body {
   filter: none !important;
+}
+
+/* Rich: bring motion back, but keep WebView-safe compositing defaults on the hero field. */
+@media (max-width: 1024px) {
+  html.vc-mobile-app.vc-motion-rich .hero,
+  html.vc-phone.vc-motion-rich .hero {
+    isolation: isolate;
+    contain: paint;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  html.vc-mobile-app.vc-motion-rich .hero-captivate-bg,
+  html.vc-phone.vc-motion-rich .hero-captivate-bg {
+    mix-blend-mode: normal !important;
+    background-blend-mode: normal !important;
+  }
+
+  html.vc-mobile-app.vc-motion-rich .hero-captivate-bg::before,
+  html.vc-phone.vc-motion-rich .hero-captivate-bg::before,
+  html.vc-mobile-app.vc-motion-rich .hero-captivate-bg::after,
+  html.vc-phone.vc-motion-rich .hero-captivate-bg::after {
+    mix-blend-mode: normal !important;
+  }
+
+  /* Keep large hero imagery from animating filters (still allows transform/opacity animations). */
+  html.vc-mobile-app.vc-motion-rich .hero-showpiece,
+  html.vc-phone.vc-motion-rich .hero-showpiece,
+  html.vc-mobile-app.vc-motion-rich .hero-masterpiece,
+  html.vc-phone.vc-motion-rich .hero-masterpiece {
+    filter: none !important;
+  }
+
+  html.vc-mobile-app.vc-motion-rich body,
+  html.vc-phone.vc-motion-rich body {
+    filter: none !important;
+  }
 }
 
 @media (max-width: 1024px) {
