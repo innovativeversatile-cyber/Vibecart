@@ -550,6 +550,15 @@
   function initQuickActionSheet() {
     var nav = document.getElementById("mobileQuickNav");
     if (!nav || document.getElementById("vcQuickActionSheet")) return;
+    var trigger = document.getElementById("vcQuickActionTrigger");
+    if (!trigger) {
+      trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.id = "vcQuickActionTrigger";
+      trigger.className = "vc-vibe-mode-btn";
+      trigger.textContent = "Quick";
+      nav.appendChild(trigger);
+    }
     var sheet = document.createElement("div");
     sheet.id = "vcQuickActionSheet";
     sheet.className = "vc-quick-action-sheet";
@@ -608,6 +617,24 @@
     close && close.addEventListener("click", forceClose);
     close && close.addEventListener("touchend", forceClose, { passive: false });
     close && close.addEventListener("pointerup", forceClose);
+    trigger.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (isOpen()) {
+        hide();
+      } else {
+        open();
+      }
+    });
+    trigger.addEventListener("touchend", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (isOpen()) {
+        hide();
+      } else {
+        open();
+      }
+    }, { passive: false });
     document.addEventListener("keydown", function (ev) {
       if (!ev) return;
       if (String(ev.key || "") === "Escape" && sheet.hidden === false) {
