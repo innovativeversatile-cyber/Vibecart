@@ -569,6 +569,10 @@
     var close = document.getElementById("vcQuickActionClose");
     var openLockUntil = 0;
     var dragStartY = 0;
+    var pressStartY = 0;
+    var pressStartX = 0;
+    var pressing = false;
+    var navMoveAbort = false;
     function isOpen() {
       return sheet.hidden === false;
     }
@@ -578,6 +582,7 @@
       if (isOpen()) return;
       sheet.hidden = false;
       sheet.classList.add("is-open");
+      document.body.style.overflow = "hidden";
       try {
         if (navigator && navigator.vibrate) navigator.vibrate([12, 30, 12]);
       } catch {
@@ -587,6 +592,7 @@
     function hide() {
       sheet.hidden = true;
       sheet.classList.remove("is-open");
+      document.body.style.overflow = "";
       openLockUntil = Date.now() + 420;
     }
     function forceClose(ev) {
@@ -611,17 +617,23 @@
     sheet.addEventListener("click", function (ev) {
       if (ev.target === sheet) hide();
     });
-    sheet.addEventListener("click", function (ev) {
+    function routeFromActionLink(ev) {
       var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
       if (!link) return;
       ev.preventDefault();
+      if (typeof ev.stopImmediatePropagation === "function") {
+        ev.stopImmediatePropagation();
+      }
+      ev.stopPropagation();
       var href = String(link.getAttribute("href") || "").trim();
       hide();
       if (!href) return;
       window.setTimeout(function () {
         window.location.assign(href);
-      }, 16);
-    });
+      }, 24);
+    }
+    sheet.addEventListener("click", routeFromActionLink);
+    sheet.addEventListener("touchend", routeFromActionLink, { passive: false });
     sheet.addEventListener("touchstart", function (ev) {
       var t = ev.changedTouches && ev.changedTouches[0];
       if (!t) return;
@@ -636,15 +648,41 @@
       }
     }, { passive: true });
     var timer = 0;
-    nav.addEventListener("touchstart", function () {
+    nav.addEventListener("touchstart", function (ev) {
       if (isOpen()) return;
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      var target = ev.target;
+      if (target && target.closest && target.closest("a,button,input,textarea,select,[role='button']")) {
+        return;
+      }
+      pressStartY = Number(t.clientY || 0);
+      pressStartX = Number(t.clientX || 0);
+      pressing = true;
+      navMoveAbort = false;
       window.clearTimeout(timer);
-      timer = window.setTimeout(open, 520);
+      timer = window.setTimeout(function () {
+        if (!pressing || navMoveAbort) return;
+        open();
+      }, 560);
+    }, { passive: true });
+    nav.addEventListener("touchmove", function (ev) {
+      if (!pressing) return;
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      var dy = Math.abs(Number(t.clientY || 0) - pressStartY);
+      var dx = Math.abs(Number(t.clientX || 0) - pressStartX);
+      if (dy > 12 || dx > 12) {
+        navMoveAbort = true;
+        window.clearTimeout(timer);
+      }
     }, { passive: true });
     nav.addEventListener("touchend", function () {
+      pressing = false;
       window.clearTimeout(timer);
     }, { passive: true });
     nav.addEventListener("touchcancel", function () {
+      pressing = false;
       window.clearTimeout(timer);
     }, { passive: true });
     window.addEventListener("scroll", function () {
