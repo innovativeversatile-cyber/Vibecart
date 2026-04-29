@@ -1017,6 +1017,49 @@
     document.body.appendChild(hud);
   }
 
+  function initMotionModeToggle() {
+    if (document.getElementById("vcMotionModeBtn")) return;
+    var key = "vibecart-mobile-motion-v1";
+    function read() {
+      try {
+        return String(localStorage.getItem(key) || "stable").trim().toLowerCase();
+      } catch {
+        return "stable";
+      }
+    }
+    function write(v) {
+      try {
+        localStorage.setItem(key, v);
+      } catch {
+        /* ignore */
+      }
+    }
+    function apply() {
+      var mode = read();
+      var rich = mode === "rich";
+      document.documentElement.classList.toggle("vc-motion-rich", rich);
+      btn.textContent = rich ? "Motion: Rich" : "Motion: Stable";
+      btn.setAttribute("aria-pressed", rich ? "true" : "false");
+    }
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcMotionModeBtn";
+    btn.className = "vc-motion-mode-btn";
+    btn.setAttribute("aria-label", "Toggle cinematic motion");
+    btn.addEventListener("click", function () {
+      var next = read() === "rich" ? "stable" : "rich";
+      write(next);
+      apply();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(10);
+      } catch {
+        /* ignore */
+      }
+    });
+    document.body.appendChild(btn);
+    apply();
+  }
+
   function initSmartPrefetch() {
     var urls = [
       "./live-market-shops.html?cat=All&view=global&deal=best",
@@ -1086,6 +1129,7 @@
       initVibeThemeSwitch();
       initFirstFiveSecondsBar();
       initMissionHud();
+      initMotionModeToggle();
       initSmartPrefetch();
       initDealDraftComposer();
     }

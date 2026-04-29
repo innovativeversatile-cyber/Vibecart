@@ -8741,33 +8741,78 @@ body.health-coach-page .vc-site-chrome-search {
   }
 }
 
-/* Mobile WebView stability: disable always-on cinematic animations that commonly
-   cause visible flicker/jank on iOS/Android in-app browsers (GPU + backdrop churn). */
-html.vc-mobile-app .hero,
-html.vc-phone .hero,
-html.vc-mobile-app .hero *,
-html.vc-phone .hero *,
-html.vc-mobile-app .vc-mobile-hero-aurora,
-html.vc-phone .vc-mobile-hero-aurora,
-html.vc-mobile-app .vc-mobile-ai__pulse,
-html.vc-phone .vc-mobile-ai__pulse {
+/* Mobile WebView stability (default): disable always-on cinematic animations that
+   commonly cause visible flicker/jank on iOS/Android in-app browsers.
+
+   Opt back in by adding `vc-motion-rich` on <html> (see mobile-app-shell.js). */
+html.vc-mobile-app:not(.vc-motion-rich) .hero,
+html.vc-phone:not(.vc-motion-rich) .hero,
+html.vc-mobile-app:not(.vc-motion-rich) .hero *,
+html.vc-phone:not(.vc-motion-rich) .hero *,
+html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-hero-aurora,
+html.vc-phone:not(.vc-motion-rich) .vc-mobile-hero-aurora,
+html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-ai__pulse,
+html.vc-phone:not(.vc-motion-rich) .vc-mobile-ai__pulse {
   animation: none !important;
   transition: none !important;
 }
 
-html.vc-mobile-app .hero,
-html.vc-phone .hero,
-html.vc-mobile-app .hero *,
-html.vc-phone .hero * {
+html.vc-mobile-app:not(.vc-motion-rich) .hero,
+html.vc-phone:not(.vc-motion-rich) .hero,
+html.vc-mobile-app:not(.vc-motion-rich) .hero *,
+html.vc-phone:not(.vc-motion-rich) .hero * {
   filter: none !important;
 }
 
-html.vc-mobile-app body,
-html.vc-phone body {
+html.vc-mobile-app:not(.vc-motion-rich) body,
+html.vc-phone:not(.vc-motion-rich) body {
   filter: none !important;
 }
 
 @media (max-width: 1024px) {
+  html:not(.vc-motion-rich) .mobile-quick-nav {
+    backdrop-filter: none !important;
+  }
+}
+
+.vc-motion-mode-btn {
+  position: fixed;
+  left: 12px;
+  top: calc(env(safe-area-inset-top, 0px) + 52px);
+  z-index: 132;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(12, 16, 30, 0.88);
+  color: #d8fff1;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.52rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.vc-mobile-app .hero,
+  html.vc-phone .hero,
+  html.vc-mobile-app .hero *,
+  html.vc-phone .hero *,
+  html.vc-mobile-app .vc-mobile-hero-aurora,
+  html.vc-phone .vc-mobile-hero-aurora,
+  html.vc-mobile-app .vc-mobile-ai__pulse,
+  html.vc-phone .vc-mobile-ai__pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html.vc-mobile-app .hero,
+  html.vc-phone .hero,
+  html.vc-mobile-app .hero *,
+  html.vc-phone .hero * {
+    filter: none !important;
+  }
+
+  html.vc-mobile-app body,
+  html.vc-phone body {
+    filter: none !important;
+  }
+
   .mobile-quick-nav {
     backdrop-filter: none !important;
   }
