@@ -549,15 +549,15 @@
 
   function initQuickActionSheet() {
     var nav = document.getElementById("mobileQuickNav");
-    if (!nav || document.getElementById("vcQuickActionSheet")) return;
+    if (document.getElementById("vcQuickActionSheet")) return;
     var trigger = document.getElementById("vcQuickActionTrigger");
     if (!trigger) {
       trigger = document.createElement("button");
       trigger.type = "button";
       trigger.id = "vcQuickActionTrigger";
-      trigger.className = "vc-vibe-mode-btn";
+      trigger.className = "vc-quick-action-trigger";
       trigger.textContent = "Quick";
-      nav.appendChild(trigger);
+      document.body.appendChild(trigger);
     }
     var sheet = document.createElement("div");
     sheet.id = "vcQuickActionSheet";
@@ -674,51 +674,53 @@
         hide();
       }
     }, { passive: true });
-    var timer = 0;
-    nav.addEventListener("touchstart", function (ev) {
-      if (isOpen()) return;
-      var t = ev.changedTouches && ev.changedTouches[0];
-      if (!t) return;
-      var target = ev.target;
-      if (target && target.closest && target.closest("a,button,input,textarea,select,[role='button']")) {
-        return;
-      }
-      pressStartY = Number(t.clientY || 0);
-      pressStartX = Number(t.clientX || 0);
-      pressing = true;
-      navMoveAbort = false;
-      window.clearTimeout(timer);
-      timer = window.setTimeout(function () {
-        if (!pressing || navMoveAbort) return;
-        open();
-      }, 560);
-    }, { passive: true });
-    nav.addEventListener("touchmove", function (ev) {
-      if (!pressing) return;
-      var t = ev.changedTouches && ev.changedTouches[0];
-      if (!t) return;
-      var dy = Math.abs(Number(t.clientY || 0) - pressStartY);
-      var dx = Math.abs(Number(t.clientX || 0) - pressStartX);
-      if (dy > 12 || dx > 12) {
-        navMoveAbort = true;
+    if (nav) {
+      var timer = 0;
+      nav.addEventListener("touchstart", function (ev) {
+        if (isOpen()) return;
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        var target = ev.target;
+        if (target && target.closest && target.closest("a,button,input,textarea,select,[role='button']")) {
+          return;
+        }
+        pressStartY = Number(t.clientY || 0);
+        pressStartX = Number(t.clientX || 0);
+        pressing = true;
+        navMoveAbort = false;
         window.clearTimeout(timer);
-      }
-    }, { passive: true });
-    nav.addEventListener("touchend", function () {
-      pressing = false;
-      window.clearTimeout(timer);
-    }, { passive: true });
-    nav.addEventListener("touchcancel", function () {
-      pressing = false;
-      window.clearTimeout(timer);
-    }, { passive: true });
-    window.addEventListener("scroll", function () {
-      window.clearTimeout(timer);
-    }, { passive: true });
-    nav.addEventListener("contextmenu", function (ev) {
-      ev.preventDefault();
-      open();
-    });
+        timer = window.setTimeout(function () {
+          if (!pressing || navMoveAbort) return;
+          open();
+        }, 560);
+      }, { passive: true });
+      nav.addEventListener("touchmove", function (ev) {
+        if (!pressing) return;
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        var dy = Math.abs(Number(t.clientY || 0) - pressStartY);
+        var dx = Math.abs(Number(t.clientX || 0) - pressStartX);
+        if (dy > 12 || dx > 12) {
+          navMoveAbort = true;
+          window.clearTimeout(timer);
+        }
+      }, { passive: true });
+      nav.addEventListener("touchend", function () {
+        pressing = false;
+        window.clearTimeout(timer);
+      }, { passive: true });
+      nav.addEventListener("touchcancel", function () {
+        pressing = false;
+        window.clearTimeout(timer);
+      }, { passive: true });
+      window.addEventListener("scroll", function () {
+        window.clearTimeout(timer);
+      }, { passive: true });
+      nav.addEventListener("contextmenu", function (ev) {
+        ev.preventDefault();
+        open();
+      });
+    }
   }
 
   function initDealDraftComposer() {
