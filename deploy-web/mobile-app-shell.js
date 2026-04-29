@@ -569,9 +569,13 @@
     var close = document.getElementById("vcQuickActionClose");
     var openLockUntil = 0;
     var dragStartY = 0;
+    function isOpen() {
+      return sheet.hidden === false;
+    }
     function open() {
       var now = Date.now();
       if (now < openLockUntil) return;
+      if (isOpen()) return;
       sheet.hidden = false;
       sheet.classList.add("is-open");
       try {
@@ -585,11 +589,24 @@
       sheet.classList.remove("is-open");
       openLockUntil = Date.now() + 420;
     }
-    close && close.addEventListener("click", function (ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
+    function forceClose(ev) {
+      if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
       hide();
-    });
+    }
+    close && close.addEventListener("click", forceClose);
+    close && close.addEventListener("touchend", forceClose, { passive: false });
+    document.addEventListener(
+      "click",
+      function (ev) {
+        var closeHit = ev.target && ev.target.closest ? ev.target.closest("#vcQuickActionClose") : null;
+        if (!closeHit) return;
+        forceClose(ev);
+      },
+      true
+    );
     document.addEventListener("keydown", function (ev) {
       if (!ev) return;
       if (String(ev.key || "") === "Escape" && sheet.hidden === false) {
@@ -619,6 +636,7 @@
     }, { passive: true });
     var timer = 0;
     nav.addEventListener("touchstart", function () {
+      if (isOpen()) return;
       window.clearTimeout(timer);
       timer = window.setTimeout(open, 520);
     }, { passive: true });
