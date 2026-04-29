@@ -20,6 +20,9 @@
         <p class="note" id="livePromoFeedLead">Click any card to open that promotion page directly.</p>
       </div>
       <div class="hero-actions">
+        <button id="openOnboarding" class="btn btn-secondary" type="button">Start Smart Tour</button>
+      </div>
+      <div class="hero-actions">
         <button class="btn btn-secondary" id="livePromoPrevBtn" type="button">← Prev</button>
         <button class="btn btn-secondary" id="livePromoNextBtn" type="button">Next →</button>
       </div>
@@ -27,6 +30,18 @@
         <div class="vc-promo-track" id="livePromoGrid"></div>
       </div>
     </section>
+    <div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+      <div class="modal-card">
+        <h3 id="onboardingTitle">VibeCart Smart Tour</h3>
+        <p id="onboardingText">
+          Welcome. This quick tour helps you shop safely, save money, and use trusted sellers.
+        </p>
+        <div class="hero-actions">
+          <button id="onboardingNext" class="btn btn-primary">Next</button>
+          <button id="onboardingClose" class="btn btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
     <div class="admin-grid" style="max-width:32rem;margin-bottom:0.8rem">
       <label for="liveMarketRegionSelect">Market region</label>
       <select id="liveMarketRegionSelect" aria-label="Live market region targeting">
@@ -79,8 +94,8 @@
     <div class="shop-bubble-grid" id="liveMarketShopGrid">
     </div>
   </main>
-  <script src="./live-market-shops.js?v=20260429killswitch1"></script>
-  <script src="./site-chrome.js?v=20260429killswitch1" defer></script>
-  <script src="./live-market-killswitch-20260429a.js?v=20260429killswitch1" defer></script>
+  <script src="./live-market-shops.js?v=20260429killswitch2"></script>
+  <script src="./site-chrome.js?v=20260429killswitch2" defer></script>
+  <script src="./live-market-killswitch-20260429a.js?v=20260429killswitch2" defer></script>
 </body>
 </html>

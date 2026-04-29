@@ -3,6 +3,55 @@
     return document.getElementById(id);
   }
 
+  function bindSmartTour() {
+    var openBtn = byId("openOnboarding");
+    var modal = byId("onboardingModal");
+    var text = byId("onboardingText");
+    var nextBtn = byId("onboardingNext");
+    var closeBtn = byId("onboardingClose");
+    if (!openBtn || !modal || !text || !nextBtn || !closeBtn) return;
+    if (openBtn.getAttribute("data-vc-market-tour") === "1") return;
+    openBtn.setAttribute("data-vc-market-tour", "1");
+    var steps = [
+      "Welcome. This quick tour helps you find top live promotions fast.",
+      "Step 1: Select your market region first to see local and cross-border offers.",
+      "Step 2: Use Fashion/Electronics tabs, then open trusted promo lanes.",
+      "Step 3: Compare at least 2 shops before checkout for best value."
+    ];
+    var idx = 0;
+    function render() {
+      text.textContent = steps[idx] || steps[0];
+      nextBtn.textContent = idx >= steps.length - 1 ? "Finish" : "Next";
+    }
+    function openModal() {
+      idx = 0;
+      render();
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+    }
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+    }
+    openBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      openModal();
+    }, true);
+    nextBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      if (idx < steps.length - 1) {
+        idx += 1;
+        render();
+      } else {
+        closeModal();
+      }
+    }, true);
+    closeBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      closeModal();
+    }, true);
+  }
+
   function ensureFashionPromos() {
     var promoGrid = byId("livePromoGrid");
     var shopGrid = byId("liveMarketShopGrid");
@@ -37,6 +86,7 @@
   }
 
   function boot() {
+    bindSmartTour();
     ensureFashionPromos();
     window.setTimeout(ensureFashionPromos, 500);
     window.setTimeout(ensureFashionPromos, 1500);

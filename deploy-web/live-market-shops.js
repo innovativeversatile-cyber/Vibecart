@@ -390,15 +390,43 @@
 
   function scoreEntry(entry) {
     var name = String(entry.shop.name || "").toLowerCase();
-    var trust = /jumia|takealot|amazon|asos|zalando|steam|noon|lazada|shopee|konga|superbalist|empik/.test(name) ? 5 : 3;
+    var trust = /jumia|takealot|amazon|asos|zalando|steam|noon|lazada|shopee|konga|superbalist|empik|shein|zara|h&m|notino|hm/.test(name) ? 5 : 3;
     var speed = /deals|sale|flash|goldbox|specials/.test(String(entry.shop.promoUrl || "").toLowerCase()) ? 4 : 2;
     return { trust: trust, speed: speed, total: trust * 3 + speed * 2 };
+  }
+
+  var POPULAR_SHOP_PRIORITY = {
+    "amazon": 140,
+    "shein": 130,
+    "zara": 125,
+    "h&m": 120,
+    "hm": 120,
+    "notino": 118,
+    "asos": 115,
+    "zalando": 112,
+    "noon": 110,
+    "jumia": 108,
+    "takealot": 106,
+    "konga": 104,
+    "superbalist": 102
+  };
+
+  function priorityBoost(shopName) {
+    var name = String(shopName || "").toLowerCase();
+    var keys = Object.keys(POPULAR_SHOP_PRIORITY);
+    for (var i = 0; i < keys.length; i += 1) {
+      if (name.indexOf(keys[i]) >= 0) return POPULAR_SHOP_PRIORITY[keys[i]];
+    }
+    return 0;
   }
 
   function rankEntries(items) {
     return items.slice().sort(function (a, b) {
       var sa = scoreEntry(a);
       var sb = scoreEntry(b);
+      var pa = priorityBoost(a.shop && a.shop.name);
+      var pb = priorityBoost(b.shop && b.shop.name);
+      if (pb !== pa) return pb - pa;
       if (sb.total !== sa.total) return sb.total - sa.total;
       return String(a.shop.name || "").localeCompare(String(b.shop.name || ""));
     });
@@ -500,7 +528,15 @@
         "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=900&h=560&q=78"
       ]
     };
-    var promos = items.slice(0, 8).map(function (entry, idx) {
+    var seen = {};
+    var promoSource = [];
+    items.forEach(function (entry) {
+      var key = String((entry.shop && entry.shop.name) || "").trim().toLowerCase();
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      promoSource.push(entry);
+    });
+    var promos = promoSource.slice(0, 12).map(function (entry, idx) {
       var categoryImages = promoImages[entry.category] || promoImages[activeCategory] || promoImages.Gaming;
       var hint =
         /goldbox|deals|sale|special/i.test(String(entry.shop.promoUrl || ""))
