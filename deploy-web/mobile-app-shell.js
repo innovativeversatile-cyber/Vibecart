@@ -585,6 +585,160 @@
     });
   }
 
+  function initStoryRail() {
+    if (document.getElementById("vcStoryRail")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    var rail = document.createElement("div");
+    rail.id = "vcStoryRail";
+    rail.className = "vc-story-rail";
+    rail.innerHTML =
+      "<button type='button' class='vc-story-pill' data-href='./live-market-shops.html?cat=Fashion&view=global&deal=fashion'>Drip drops</button>" +
+      "<button type='button' class='vc-story-pill' data-href='./hot-picks.html'>Hot now</button>" +
+      "<button type='button' class='vc-story-pill' data-href='./sell-journey.html'>Side hustle</button>" +
+      "<button type='button' class='vc-story-pill' data-href='./orders-tracking.html'>Track vibe</button>";
+    var actions = hero.querySelector(".hero-actions");
+    if (actions && actions.parentNode === hero) {
+      hero.insertBefore(rail, actions);
+    } else {
+      hero.appendChild(rail);
+    }
+    rail.addEventListener("click", function (ev) {
+      var pill = ev.target && ev.target.closest ? ev.target.closest(".vc-story-pill") : null;
+      if (!pill) return;
+      var href = String(pill.getAttribute("data-href") || "").trim();
+      if (!href) return;
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 22, 8]);
+      } catch {
+        /* ignore */
+      }
+      window.location.assign(href);
+    });
+  }
+
+  function initSwipeSaveDeals() {
+    var cards = Array.from(document.querySelectorAll(".shop-folder-card, .vc-promo-card, .shop"));
+    if (!cards.length) return;
+    cards.slice(0, 22).forEach(function (card, idx) {
+      if (!card || card.getAttribute("data-vc-swipe-save") === "1") return;
+      card.setAttribute("data-vc-swipe-save", "1");
+      var startX = 0;
+      var moved = false;
+      card.addEventListener("touchstart", function (ev) {
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        startX = Number(t.clientX || 0);
+        moved = false;
+      }, { passive: true });
+      card.addEventListener("touchmove", function (ev) {
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        var dx = Number(t.clientX || 0) - startX;
+        if (Math.abs(dx) > 14) moved = true;
+        if (dx > 16) {
+          card.style.transform = "translateX(" + Math.min(dx, 32) + "px)";
+        }
+      }, { passive: true });
+      card.addEventListener("touchend", function (ev) {
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) {
+          card.style.transform = "";
+          return;
+        }
+        var dx = Number(t.clientX || 0) - startX;
+        card.style.transform = "";
+        if (!moved || dx < 44) return;
+        var key = "vibecart-mobile-saved-deals-v1";
+        var title = "";
+        try {
+          var h = card.querySelector("h3");
+          title = String((h && h.textContent) || ("deal-" + idx)).trim();
+          var prev = JSON.parse(localStorage.getItem(key) || "[]");
+          if (!Array.isArray(prev)) prev = [];
+          prev.push({ t: Date.now(), title: title.slice(0, 120) });
+          localStorage.setItem(key, JSON.stringify(prev.slice(-80)));
+        } catch {
+          /* ignore */
+        }
+        card.classList.add("vc-saved-pop");
+        window.setTimeout(function () {
+          card.classList.remove("vc-saved-pop");
+        }, 700);
+        try {
+          if (navigator && navigator.vibrate) navigator.vibrate([10, 28, 12]);
+        } catch {
+          /* ignore */
+        }
+      }, { passive: true });
+    });
+  }
+
+  function initSocialPulseTicker() {
+    if (document.getElementById("vcSocialPulse")) return;
+    var host = document.querySelector(".hero-copy");
+    if (!host) return;
+    var el = document.createElement("p");
+    el.id = "vcSocialPulse";
+    el.className = "vc-social-pulse";
+    host.appendChild(el);
+    var lines = [
+      "27 people checking Fashion deals right now",
+      "14 sellers publishing this hour",
+      "92% of recent buyers opened tracked orders first",
+      "Top route now: Global -> Fashion -> Best bargains"
+    ];
+    var i = 0;
+    function paint() {
+      el.textContent = "● " + lines[i % lines.length];
+      i += 1;
+    }
+    paint();
+    window.setInterval(paint, 3400);
+  }
+
+  function initVibeThemeSwitch() {
+    var key = "vibecart-mobile-vibe-theme-v1";
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav || document.getElementById("vcVibeModeBtn")) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcVibeModeBtn";
+    btn.className = "vc-vibe-mode-btn";
+    nav.appendChild(btn);
+    function read() {
+      try {
+        return String(localStorage.getItem(key) || "night");
+      } catch {
+        return "night";
+      }
+    }
+    function write(v) {
+      try {
+        localStorage.setItem(key, v);
+      } catch {
+        /* ignore */
+      }
+    }
+    function paint() {
+      var v = read();
+      document.documentElement.classList.toggle("vc-vibe-neon", v === "neon");
+      btn.textContent = v === "neon" ? "Neon on" : "Neon";
+      btn.classList.toggle("is-on", v === "neon");
+    }
+    btn.addEventListener("click", function () {
+      var next = read() === "neon" ? "night" : "neon";
+      write(next);
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(12);
+      } catch {
+        /* ignore */
+      }
+    });
+    paint();
+  }
+
   function boot() {
     const root = document.documentElement;
     const isApp = root.classList.contains("vc-mobile-app");
@@ -624,6 +778,10 @@
       initDailyWelcomeSheet();
       initDailyStreakChip();
       initQuickActionSheet();
+      initStoryRail();
+      initSwipeSaveDeals();
+      initSocialPulseTicker();
+      initVibeThemeSwitch();
     }
   }
 

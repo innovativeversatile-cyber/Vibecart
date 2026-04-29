@@ -5909,6 +5909,58 @@ html.vc-mobile-focus #settings-hub {
   padding: 0.85rem;
 }
 
+.vc-story-rail {
+  margin: 0.2rem 0 0.6rem;
+  display: flex;
+  gap: 0.42rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.vc-story-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.vc-story-pill {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(14, 20, 36, 0.86);
+  color: rgba(233, 241, 255, 0.95);
+  border-radius: 999px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.vc-social-pulse {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(188, 255, 221, 0.94);
+}
+
+.vc-saved-pop {
+  outline: 2px solid rgba(102, 236, 193, 0.55);
+  box-shadow: 0 0 0 4px rgba(102, 236, 193, 0.16);
+}
+
+.vc-vibe-mode-btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 0.34rem 0.58rem;
+  background: rgba(16, 24, 42, 0.86);
+  color: rgba(231, 239, 255, 0.95);
+  font-size: 0.76rem;
+}
+
+.vc-vibe-mode-btn.is-on {
+  border-color: rgba(12, 214, 255, 0.66);
+  background: linear-gradient(120deg, rgba(12, 214, 255, 0.25), rgba(111, 43, 255, 0.22));
+}
+
+html.vc-vibe-neon body {
+  filter: saturate(1.09) contrast(1.03);
+}
+
 .vc-mobile-ai__panel[hidden] {
   display: none !important;
 }
