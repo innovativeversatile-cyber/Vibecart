@@ -587,6 +587,9 @@
       trigger.id = "vcQuickActionTrigger";
       trigger.className = "vc-quick-action-trigger";
       trigger.textContent = "Quick";
+      trigger.setAttribute("aria-label", "Open quick shopping actions");
+      trigger.setAttribute("title", "Quick actions: best offers, hot picks, track order");
+      trigger.setAttribute("aria-expanded", "false");
       document.body.appendChild(trigger);
     }
     var sheet = document.createElement("div");
@@ -624,6 +627,7 @@
       sheet.style.display = "grid";
       sheet.classList.add("is-open");
       sheet.setAttribute("aria-hidden", "false");
+      trigger.setAttribute("aria-expanded", "true");
       document.body.style.overflow = "hidden";
       try {
         if (navigator && navigator.vibrate) navigator.vibrate([12, 30, 12]);
@@ -635,6 +639,7 @@
       sheet.classList.remove("is-open");
       sheet.style.display = "none";
       sheet.setAttribute("aria-hidden", "true");
+      trigger.setAttribute("aria-expanded", "false");
       document.body.style.overflow = "";
       openLockUntil = Date.now() + 420;
     }

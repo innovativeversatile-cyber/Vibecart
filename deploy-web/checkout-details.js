@@ -389,35 +389,63 @@
         if (statusEl) {
           statusEl.textContent = "Details confirmed. Opening secure payment...";
         }
-        window.location.assign(
-          "/api/public/payments/checkout/redirect?flow=" +
-            encodeURIComponent(payload.flow || "service") +
-            "&plan=" +
-            encodeURIComponent(payload.plan || "standard") +
-            (payload.addonPlan
-              ? "&addonPlan=" + encodeURIComponent(payload.addonPlan)
-              : "") +
-            "&paymentMethod=" +
-            encodeURIComponent(payload.method || "card") +
-            "&autoRenew=" +
-            encodeURIComponent(payload.autoRenew ? "1" : "0") +
-            "&customerName=" +
-            encodeURIComponent(payload.name || "") +
-            "&customerEmail=" +
-            encodeURIComponent(payload.email || "") +
-            "&customerPhone=" +
-            encodeURIComponent(payload.phone || "") +
-            "&customerAddress=" +
-            encodeURIComponent(payload.address || "") +
-            "&customerCity=" +
-            encodeURIComponent(payload.city || "") +
-            "&customerPostalCode=" +
-            encodeURIComponent(payload.postalCode || "") +
-            "&customerCountry=" +
-            encodeURIComponent(payload.country || "") +
-            "&fastTrack=" +
-            encodeURIComponent(payload.fastTrack ? "1" : "0")
-        );
+        var qs =
+          "flow=" +
+          encodeURIComponent(payload.flow || "service") +
+          "&plan=" +
+          encodeURIComponent(payload.plan || "standard") +
+          (payload.addonPlan ? "&addonPlan=" + encodeURIComponent(payload.addonPlan) : "") +
+          "&paymentMethod=" +
+          encodeURIComponent(payload.method || "card") +
+          "&autoRenew=" +
+          encodeURIComponent(payload.autoRenew ? "1" : "0") +
+          "&customerName=" +
+          encodeURIComponent(payload.name || "") +
+          "&customerEmail=" +
+          encodeURIComponent(payload.email || "") +
+          "&customerPhone=" +
+          encodeURIComponent(payload.phone || "") +
+          "&customerAddress=" +
+          encodeURIComponent(payload.address || "") +
+          "&customerCity=" +
+          encodeURIComponent(payload.city || "") +
+          "&customerPostalCode=" +
+          encodeURIComponent(payload.postalCode || "") +
+          "&customerCountry=" +
+          encodeURIComponent(payload.country || "") +
+          "&fastTrack=" +
+          encodeURIComponent(payload.fastTrack ? "1" : "0");
+        var checkoutUrl = "";
+        try {
+          checkoutUrl = new URL("/api/public/payments/checkout/redirect?" + qs, window.location.href).toString();
+        } catch {
+          checkoutUrl = "/api/public/payments/checkout/redirect?" + qs;
+        }
+
+        // Prefer navigation, but surface a clear error if the API proxy is unavailable.
+        fetch(checkoutUrl, { method: "GET", redirect: "manual" })
+          .then(function (res) {
+            if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+              window.location.assign(checkoutUrl);
+              return;
+            }
+            if (res.ok) {
+              window.location.assign(checkoutUrl);
+              return;
+            }
+            throw new Error("bad status");
+          })
+          .catch(function () {
+            if (statusEl) {
+              statusEl.textContent =
+                "Could not reach Stripe checkout from this network. Please retry on Wi‑Fi or open this page in your normal browser, then try again.";
+            }
+            try {
+              window.open(checkoutUrl, "_blank", "noopener,noreferrer");
+            } catch {
+              /* ignore */
+            }
+          });
       });
     }
   }

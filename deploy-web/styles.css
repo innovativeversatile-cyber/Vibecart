@@ -5804,6 +5804,19 @@ html.vc-phone .brand-mark::after {
   }
 }
 
+/* Keep VibeCoach (AI orb) away from the separate Quick actions trigger. */
+@supports selector(:has(*)) {
+  body:has(#vcQuickActionTrigger) .vc-mobile-ai {
+    right: auto;
+    left: 12px;
+    align-items: flex-start;
+  }
+
+  body:has(#vcQuickActionTrigger) .vc-deal-draft-composer {
+    bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 168px);
+  }
+}
+
 .vc-mobile-ai__panel {
   width: min(92vw, 320px);
   border-radius: 16px;
@@ -6000,7 +6013,7 @@ html.vc-mobile-focus #settings-hub {
   position: fixed;
   right: 12px;
   bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 14px);
-  z-index: 146;
+  z-index: 200;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
   padding: 0.42rem 0.7rem;
