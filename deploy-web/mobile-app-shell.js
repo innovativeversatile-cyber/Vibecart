@@ -364,9 +364,17 @@
       return;
     }
     main.classList.add("vc-mobile-feed");
+    const nodes = Array.from(main.querySelectorAll("section"));
+    /* Lane pages with forms (coach checkout): skip reveal transforms — fixed HUD + WebViews
+       occasionally made taps feel dead until sections finished settling. */
+    if (document.body && document.body.classList.contains("health-coach-page")) {
+      nodes.forEach(function (el) {
+        el.classList.add("vc-revealed");
+      });
+      return;
+    }
     const reduceMotion =
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const nodes = Array.from(main.querySelectorAll("section"));
     if (!nodes.length) {
       return;
     }

@@ -5096,6 +5096,8 @@ body.admin-surface .section {
 /* —— VibeCart native app (WebView): class `vc-mobile-app` on <html> —— */
 html.vc-mobile-app {
   --vc-mobile-tab-h: 62px;
+  /* Fixed HUD row sits below sticky topbars so it never covers the brand / primary nav. */
+  --vc-topbar-clearance: calc(env(safe-area-inset-top, 0px) + 72px);
   width: 100% !important;
   min-width: 0 !important;
   overflow-x: hidden !important;
@@ -5730,6 +5732,7 @@ html.vc-phone .topbar {
 html.vc-phone {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  --vc-topbar-clearance: calc(env(safe-area-inset-top, 0px) + 72px);
 }
 
 html.vc-phone .brand-mark {
@@ -5888,7 +5891,7 @@ html.vc-mobile-focus #settings-hub {
 
 .vc-mobile-streak-chip {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px));
   right: 12px;
   z-index: 132;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -6057,15 +6060,19 @@ html.vc-vibe-neon body {
 
 .vc-mission-hud {
   position: fixed;
-  left: 12px;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  z-index: 132;
+  left: auto;
+  right: 12px;
+  top: auto;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 88px);
+  z-index: 131;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
   background: rgba(12, 16, 30, 0.88);
   color: #d8fff1;
   font-size: 0.74rem;
   padding: 0.33rem 0.56rem;
+  max-width: min(200px, 46vw);
+  text-align: center;
 }
 
 .vc-mobile-ai__panel[hidden] {
@@ -8588,6 +8595,18 @@ body.health-coach-page .vc-site-chrome-search {
   display: none !important;
 }
 
+body.health-coach-page #bundleCheckoutBtn.is-disabled {
+  pointer-events: none;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body.health-coach-page #coach-packages,
+body.health-coach-page #coach-packages ~ section,
+body.health-coach-page #coachMatchOut {
+  scroll-margin-top: 6.5rem;
+}
+
 /* Better-than-market baseline: faster trust + bargain clarity in first 5 seconds */
 .hero.hero--hue-drift .hero-captivate-bg {
   width: 48% !important;
@@ -8845,7 +8864,7 @@ html.vc-phone:not(.vc-motion-rich) body {
 .vc-motion-mode-btn {
   position: fixed;
   left: 12px;
-  top: calc(env(safe-area-inset-top, 0px) + 52px);
+  top: var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px));
   z-index: 132;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;

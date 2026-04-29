@@ -6,7 +6,7 @@
   <title>Health &amp; fitness coach · VibeCart</title>
   <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
   <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260430coachdisclaimerfix1" />
+  <link rel="stylesheet" href="./styles.css?v=20260430coachhudfix1" />
 </head>
 <body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
@@ -101,7 +101,7 @@
         </select>
       </div>
       <p class="hero-actions" style="margin-top:0.75rem">
-        <button class="btn btn-primary" id="bundleCheckoutBtn" type="button">Checkout both packages</button>
+        <a class="btn btn-primary" id="bundleCheckoutBtn" href="./checkout-details.html?flow=coach&amp;plan=starter&amp;addonPlan=ai-home">Checkout both packages</a>
       </p>
       <p class="note" id="bundleCheckoutStatus" aria-live="polite"></p>
     </section>
@@ -153,30 +153,59 @@
       if (!primaryEl || !secondEl || !btn) {
         return;
       }
-      btn.addEventListener("click", function () {
+      function bundleHref() {
+        var primary = String(primaryEl.value || "starter").trim().toLowerCase();
+        var second = String(secondEl.value || "").trim().toLowerCase();
+        if (!second || primary === second) {
+          return "";
+        }
+        return (
+          "./checkout-details.html?flow=coach&plan=" +
+          encodeURIComponent(primary) +
+          "&addonPlan=" +
+          encodeURIComponent(second)
+        );
+      }
+      function syncBundleLink() {
+        var href = bundleHref();
+        if (href) {
+          btn.setAttribute("href", href);
+          btn.setAttribute("aria-disabled", "false");
+          btn.classList.remove("is-disabled");
+        } else {
+          btn.setAttribute("href", "#coach-bundle");
+          btn.setAttribute("aria-disabled", "true");
+          btn.classList.add("is-disabled");
+        }
+      }
+      function tryNavigate(ev) {
         var ack = document.getElementById("coachFlowDisclaimerAck");
         if (ack && !ack.checked) {
+          if (ev) ev.preventDefault();
           if (status) status.textContent = "Accept the coach disclaimer first.";
-          return;
+          return false;
         }
         var primary = String(primaryEl.value || "starter").trim().toLowerCase();
         var second = String(secondEl.value || "").trim().toLowerCase();
         if (!second) {
+          if (ev) ev.preventDefault();
           if (status) status.textContent = "Choose a second package first.";
-          return;
+          return false;
         }
         if (primary === second) {
+          if (ev) ev.preventDefault();
           if (status) status.textContent = "Choose two different packages for bundle checkout.";
-          return;
+          return false;
         }
-        var href =
-          "./checkout-details.html?flow=coach&plan=" +
-          encodeURIComponent(primary) +
-          "&addonPlan=" +
-          encodeURIComponent(second);
-        if (status) status.textContent = "Opening secure checkout for both packages...";
-        window.location.href = href;
+        if (status) status.textContent = "Opening secure checkout for both packages…";
+        return true;
+      }
+      primaryEl.addEventListener("change", syncBundleLink);
+      secondEl.addEventListener("change", syncBundleLink);
+      btn.addEventListener("click", function (ev) {
+        if (!tryNavigate(ev)) return;
       });
+      syncBundleLink();
     })();
     (function () {
       var goal = document.getElementById("coachGoalType");
@@ -187,7 +216,28 @@
       var btn = document.getElementById("coachMatchBtn");
       var out = document.getElementById("coachMatchOut");
       if (!goal || !currentWeight || !targetWeight || !speed || !hours || !btn || !out) return;
-      btn.addEventListener("click", function () {
+      function renderMatch(recommendedPlan, noteLine) {
+        var map = {
+          starter: "Starter Coach",
+          "ai-home": "AI Home Workout",
+          plus: "Coach Plus",
+          pro: "Coach Pro"
+        };
+        out.replaceChildren();
+        var intro = document.createElement("span");
+        intro.appendChild(document.createTextNode("AI recommendation: "));
+        var strong = document.createElement("strong");
+        strong.textContent = map[recommendedPlan] || "Starter Coach";
+        intro.appendChild(strong);
+        intro.appendChild(document.createTextNode(". " + noteLine + " "));
+        var link = document.createElement("a");
+        link.className = "btn btn-secondary";
+        link.href = "./coach-experience.html?flow=coach&plan=" + encodeURIComponent(recommendedPlan);
+        link.textContent = "Open matching package";
+        out.appendChild(intro);
+        out.appendChild(link);
+      }
+      function runMatch() {
         var ack = document.getElementById("coachFlowDisclaimerAck");
         if (ack && !ack.checked) {
           out.textContent = "Accept the coach disclaimer first.";
@@ -198,42 +248,32 @@
         var tw = Number(targetWeight.value || 0);
         var speedType = String(speed.value || "steady");
         var dailyHours = Number(hours.value || 0.5);
-        if (!cw || !tw || cw < 30 || tw < 30) {
-          out.textContent = "Add both current and target weight to generate a proper recommendation.";
-          return;
-        }
-        var delta = Math.abs(tw - cw);
+        var haveWeights = cw >= 30 && tw >= 30;
+        var delta = haveWeights ? Math.abs(tw - cw) : 0;
         var recommendedPlan = "starter";
-        if (dailyHours >= 1.5 || speedType === "aggressive" || delta >= 18) {
+        if (dailyHours >= 1.5 || speedType === "aggressive" || (haveWeights && delta >= 18)) {
           recommendedPlan = "pro";
-        } else if (dailyHours >= 1 || speedType === "moderate" || delta >= 10) {
+        } else if (dailyHours >= 1 || speedType === "moderate" || (haveWeights && delta >= 10)) {
           recommendedPlan = "plus";
         } else if (goalType === "muscle_gain" || goalType === "weight_gain") {
           recommendedPlan = "ai-home";
         }
-        var map = {
-          starter: "Starter Coach",
-          "ai-home": "AI Home Workout",
-          plus: "Coach Plus",
-          pro: "Coach Pro"
-        };
-        var note =
-          "Goal gap: " +
-          delta.toFixed(1) +
-          "kg. Pace: " +
-          speedType +
-          ". Time/day: " +
-          dailyHours +
-          "h.";
-        out.innerHTML =
-          "AI recommendation: <strong>" +
-          (map[recommendedPlan] || "Starter Coach") +
-          "</strong>. " +
-          note +
-          " <a class='btn btn-secondary' href='./coach-experience.html?flow=coach&plan=" +
-          encodeURIComponent(recommendedPlan) +
-          "'>Open matching package</a>";
-      });
+        var note = haveWeights
+          ? "Goal gap: " +
+            delta.toFixed(1) +
+            "kg. Pace: " +
+            speedType +
+            ". Time/day: " +
+            dailyHours +
+            "h."
+          : "Pace: " +
+            speedType +
+            ". Time/day: " +
+            dailyHours +
+            "h. Add current and target weight (kg) for a tighter match.";
+        renderMatch(recommendedPlan, note);
+      }
+      btn.addEventListener("click", runMatch);
     })();
   </script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
