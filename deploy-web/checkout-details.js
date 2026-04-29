@@ -423,9 +423,18 @@
         }
 
         // Prefer navigation, but surface a clear error if the API proxy is unavailable.
-        fetch(checkoutUrl, { method: "GET", redirect: "manual" })
+        fetch(checkoutUrl, { method: "GET", redirect: "manual", cache: "no-store" })
           .then(function (res) {
-            if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+            if (res.type === "opaqueredirect") {
+              window.location.assign(checkoutUrl);
+              return;
+            }
+            if (res.status >= 300 && res.status < 400) {
+              var loc = res.headers && res.headers.get ? res.headers.get("Location") : "";
+              if (loc) {
+                window.location.assign(loc);
+                return;
+              }
               window.location.assign(checkoutUrl);
               return;
             }
@@ -437,14 +446,9 @@
           })
           .catch(function () {
             if (statusEl) {
-              statusEl.textContent =
-                "Could not reach Stripe checkout from this network. Please retry on Wi‑Fi or open this page in your normal browser, then try again.";
+              statusEl.textContent = "Opening secure payment…";
             }
-            try {
-              window.open(checkoutUrl, "_blank", "noopener,noreferrer");
-            } catch {
-              /* ignore */
-            }
+            window.location.assign(checkoutUrl);
           });
       });
     }

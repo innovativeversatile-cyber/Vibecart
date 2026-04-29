@@ -5907,7 +5907,7 @@ html.vc-mobile-focus #settings-hub {
 .vc-quick-action-sheet {
   position: fixed;
   inset: 0;
-  z-index: 145;
+  z-index: 20050;
   background: rgba(5, 10, 18, 0.58);
   display: grid;
   place-items: end center;
@@ -6013,7 +6013,7 @@ html.vc-mobile-focus #settings-hub {
   position: fixed;
   right: 12px;
   bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 14px);
-  z-index: 200;
+  z-index: 20040;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 999px;
   padding: 0.42rem 0.7rem;
@@ -8883,4 +8883,30 @@ html.vc-phone:not(.vc-motion-rich) body {
   .mobile-quick-nav {
     backdrop-filter: none !important;
   }
+}
+
+/* Final guard: installed/mobile contexts should never re-enable full-hero cinematic stacks,
+   even if older localStorage toggles or future CSS regressions reintroduce `vc-motion-rich`. */
+html.vc-mobile-app .hero,
+html.vc-phone .hero,
+html.vc-mobile-app .hero *,
+html.vc-phone .hero *,
+html.vc-mobile-app .vc-mobile-hero-aurora,
+html.vc-phone .vc-mobile-hero-aurora,
+html.vc-mobile-app .vc-mobile-ai__pulse,
+html.vc-phone .vc-mobile-ai__pulse {
+  animation: none !important;
+  transition: none !important;
+}
+
+html.vc-mobile-app .hero,
+html.vc-phone .hero,
+html.vc-mobile-app .hero *,
+html.vc-phone .hero * {
+  filter: none !important;
+}
+
+html.vc-mobile-app body,
+html.vc-phone body {
+  filter: none !important;
 }

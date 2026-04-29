@@ -1041,16 +1041,18 @@
     }
     function apply() {
       var mode = read();
-      var rich = mode === "rich";
+      // Phone WebViews regress hard on full cinematic stacks; keep "Rich" off even if requested.
+      if (mode === "rich") {
+        write("auto");
+        mode = "auto";
+      }
+      var rich = false;
       document.documentElement.classList.toggle("vc-motion-rich", rich);
       document.documentElement.classList.toggle("vc-motion-stable", mode === "stable");
       document.documentElement.classList.toggle("vc-motion-auto", mode === "auto");
       if (mode === "auto") {
         btn.textContent = "Motion: Auto";
         btn.setAttribute("aria-pressed", "mixed");
-      } else if (mode === "rich") {
-        btn.textContent = "Motion: Rich";
-        btn.setAttribute("aria-pressed", "true");
       } else {
         btn.textContent = "Motion: Stable";
         btn.setAttribute("aria-pressed", "false");
@@ -1060,10 +1062,10 @@
     btn.type = "button";
     btn.id = "vcMotionModeBtn";
     btn.className = "vc-motion-mode-btn";
-    btn.setAttribute("aria-label", "Toggle cinematic motion");
+    btn.setAttribute("aria-label", "Toggle motion stability (mobile safe)");
     btn.addEventListener("click", function () {
       var cur = read();
-      var next = cur === "auto" ? "stable" : cur === "stable" ? "rich" : "auto";
+      var next = cur === "auto" ? "stable" : "auto";
       write(next);
       apply();
       try {
