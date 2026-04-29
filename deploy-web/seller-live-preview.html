@@ -45,6 +45,7 @@
           <option value="USD">USD</option>
         </select>
       </div>
+      <div id="publishPreflight" class="vc-hardpass-preflight" aria-live="polite"></div>
       <p class="hero-actions" style="margin-top:0.75rem">
         <button class="btn btn-primary" id="publishListingBtn" type="button">Publish listing to live progress</button>
       </p>
@@ -80,6 +81,33 @@
       var priceInput = document.getElementById("sellerPriceValue");
       var currencyInput = document.getElementById("sellerPriceCurrency");
       if (!publishBtn || !priceInput || !currencyInput || !titleInput || !categoryInput) return;
+      var preflight = document.getElementById("publishPreflight");
+      function recordTelemetry(eventName, payload) {
+        try {
+          var raw = JSON.parse(localStorage.getItem("vibecart-hardpass-telemetry-v1") || "[]");
+          if (!Array.isArray(raw)) raw = [];
+          raw.push({ ts: Date.now(), event: String(eventName || ""), payload: payload || null });
+          if (raw.length > 200) raw = raw.slice(-200);
+          localStorage.setItem("vibecart-hardpass-telemetry-v1", JSON.stringify(raw));
+        } catch (e) { /* ignore */ }
+      }
+      function runPreflight(listingTitle, categoryName, price) {
+        var checks = [
+          { label: "Listing title present", ok: !!listingTitle && listingTitle.length >= 4 },
+          { label: "Category selected", ok: !!categoryName },
+          { label: "Price greater than zero", ok: !!price && price > 0 },
+          { label: "Currency selected", ok: !!String(currencyInput.value || "").trim() }
+        ];
+        if (preflight) {
+          preflight.innerHTML = checks.map(function (c) {
+            return "<div class='vc-hardpass-preflight-row " + (c.ok ? "is-ok" : "is-blocked") + "'>" +
+              "<span class='vc-hardpass-preflight-icon'></span>" +
+              "<span>" + c.label + "</span>" +
+            "</div>";
+          }).join("");
+        }
+        return checks.every(function (c) { return c.ok; });
+      }
       publishBtn.addEventListener("click", async function () {
         var listingTitle = String(titleInput.value || "").trim();
         if (!listingTitle) {
@@ -88,6 +116,12 @@
         }
         var categoryName = String(categoryInput.value || "Fashion").trim() || "Fashion";
         var price = Number(priceInput.value || 0);
+        var preflightOk = runPreflight(listingTitle, categoryName, price);
+        recordTelemetry("publish_attempt", { ok: preflightOk });
+        if (!preflightOk) {
+          if (status) status.textContent = "Fix the highlighted preflight items before publishing.";
+          return;
+        }
         if (!price || price <= 0) {
           if (status) status.textContent = "Add a valid listing price first.";
           return;
@@ -141,8 +175,10 @@
           localStorage.setItem("vibecart-seller-live-listing", JSON.stringify(base));
           document.getElementById("previewPrice").textContent = "Price: " + base.currency + " " + base.price;
           if (status) status.textContent = "Listing published to backend catalog. Open seller progress or hot picks to verify.";
-        } catch {
+          recordTelemetry("publish_success", { productId: base.productId, currency: base.currency });
+        } catch (err) {
           if (status) status.textContent = "Could not publish right now. Try again.";
+          recordTelemetry("publish_failed", { reason: String(err && err.message || "unknown") });
         }
       });
     })();

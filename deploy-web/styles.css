@@ -2176,6 +2176,248 @@ body.night-neon .signal-lens {
   box-shadow: 0 0 0 1px rgba(102, 236, 193, 0.24) inset;
 }
 
+/* Hard-pass Wave 1: experience density bar */
+.vc-hardpass-uxbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 26, 0.7);
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.vc-hardpass-uxbar-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(216, 229, 255, 0.78);
+  padding-left: 0.3rem;
+}
+
+.vc-hardpass-uxbar-btn {
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(16, 24, 42, 0.82);
+  color: rgba(225, 235, 255, 0.92);
+  cursor: pointer;
+}
+
+.vc-hardpass-uxbar-btn.is-active {
+  background: linear-gradient(120deg, rgba(232, 163, 23, 0.22), rgba(45, 155, 106, 0.18));
+  border-color: rgba(232, 163, 23, 0.55);
+  color: #fff5e0;
+}
+
+.vc-hardpass-uxbar-btn-immersive.is-active {
+  background: linear-gradient(120deg, rgba(111, 43, 255, 0.32), rgba(12, 214, 255, 0.22));
+  border-color: rgba(111, 43, 255, 0.65);
+  color: #f1edff;
+}
+
+.vc-hardpass-uxbar-status {
+  font-size: 0.74rem;
+  color: rgba(217, 230, 255, 0.82);
+}
+
+body.vc-hardpass-guided .vc-hardpass-collapsed {
+  display: none !important;
+}
+
+/* Hard-pass Wave 1: trust signals strip */
+.vc-hardpass-trust-strip {
+  margin: 0.7rem 0 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.vc-hardpass-trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 14, 26, 0.78);
+  font-size: 0.78rem;
+  color: rgba(225, 235, 255, 0.92);
+}
+
+.vc-hardpass-trust-chip strong {
+  color: #fff6df;
+  font-weight: 700;
+}
+
+.vc-hardpass-trust-chip em {
+  font-style: normal;
+  color: rgba(217, 230, 255, 0.86);
+}
+
+.vc-hardpass-trust-chip.vc-tone-ok {
+  border-color: rgba(102, 236, 193, 0.5);
+  box-shadow: 0 0 0 1px rgba(102, 236, 193, 0.18) inset;
+}
+
+/* Hard-pass Wave 1: link resilience toast */
+.vc-hardpass-link-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(10, 14, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.84rem;
+  color: rgba(232, 240, 255, 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  max-width: min(92vw, 520px);
+  text-align: center;
+}
+
+/* Hard-pass Wave 2: cinematic moments */
+@keyframes vcCinematicEnter {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.vc-cinematic-enter {
+  animation: vcCinematicEnter 700ms ease-out both;
+}
+
+@keyframes vcCinematicPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.vc-cinematic-pulse {
+  animation: vcCinematicPulse 600ms ease-out;
+}
+
+body.vc-hardpass-immersive .hero-copy {
+  text-shadow: 0 0 18px rgba(12, 214, 255, 0.18);
+}
+
+body.vc-hardpass-immersive .hero-image {
+  filter: saturate(1.15) contrast(1.04);
+}
+
+body.vc-hardpass-immersive .hero-left-card {
+  border-color: rgba(111, 43, 255, 0.45);
+  background: linear-gradient(145deg, rgba(10, 8, 26, 0.92), rgba(28, 12, 48, 0.86));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-cinematic-enter,
+  .vc-cinematic-pulse {
+    animation: none !important;
+  }
+}
+
+/* Hard-pass Wave 2: mission journey progress */
+.vc-hardpass-mission-journey {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.vc-hardpass-mj-step {
+  width: 26px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background-color 280ms ease, box-shadow 280ms ease;
+}
+
+.vc-hardpass-mj-step.is-done {
+  background: linear-gradient(120deg, rgba(232, 163, 23, 0.7), rgba(45, 155, 106, 0.7));
+  border-color: rgba(232, 163, 23, 0.65);
+  box-shadow: 0 0 0 1px rgba(232, 163, 23, 0.35) inset;
+}
+
+/* Hard-pass Wave 3: offer explain note */
+.vc-hardpass-offer-explain {
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(217, 230, 255, 0.86);
+}
+
+.vc-hardpass-promo-explain {
+  font-size: 0.78rem;
+  color: rgba(217, 230, 255, 0.82);
+  margin: 0.25rem 0 0.2rem;
+}
+
+.vc-hardpass-promo-fresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: rgba(102, 236, 193, 0.95);
+  margin: 0.1rem 0 0.4rem;
+}
+
+.vc-hardpass-fresh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #66ecc1;
+  box-shadow: 0 0 0 3px rgba(102, 236, 193, 0.18);
+  display: inline-block;
+}
+
+.vc-hardpass-preflight {
+  margin: 0.5rem 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.vc-hardpass-preflight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  color: rgba(225, 235, 255, 0.92);
+  padding: 0.32rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 26, 0.72);
+}
+
+.vc-hardpass-preflight-row.is-ok {
+  border-color: rgba(102, 236, 193, 0.5);
+}
+
+.vc-hardpass-preflight-row.is-blocked {
+  border-color: rgba(255, 110, 110, 0.55);
+  background: rgba(48, 12, 18, 0.55);
+}
+
+.vc-hardpass-preflight-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-block;
+}
+
+.vc-hardpass-preflight-row.is-ok .vc-hardpass-preflight-icon {
+  background: #66ecc1;
+}
+
+.vc-hardpass-preflight-row.is-blocked .vc-hardpass-preflight-icon {
+  background: #ff6e6e;
+}
+
 #heroShopNowBtn {
   position: relative;
   border: 1px solid rgba(255, 230, 175, 0.85);

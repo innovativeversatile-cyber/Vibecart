@@ -94,9 +94,29 @@
     }, true);
   }
 
+  function bindHardPassLinkSafety() {
+    if (document.body.getAttribute("data-vc-hardpass-killswitch-link") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-killswitch-link", "1");
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var anchor = target && target.closest ? target.closest("a[href^='http']") : null;
+      if (!anchor || !anchor.href) return;
+      try {
+        var u = new URL(anchor.href, window.location.href);
+        if (u.origin === window.location.origin) return;
+      } catch {
+        return;
+      }
+      if (!anchor.target) anchor.target = "_blank";
+      var rel = String(anchor.rel || "");
+      if (!/noopener/.test(rel)) anchor.rel = (rel ? rel + " " : "") + "noopener noreferrer";
+    }, true);
+  }
+
   function boot() {
     bindSmartTour();
     bindExperienceModes();
+    bindHardPassLinkSafety();
     document.body && document.body.setAttribute("data-vc-emergency-runtime", "killswitch-20260429a");
   }
 

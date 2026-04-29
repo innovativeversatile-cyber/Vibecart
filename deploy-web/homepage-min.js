@@ -29,7 +29,16 @@
     advancedPwaBootstrapV1: true,
     advancedCommunicationIntelV1: true,
     advancedHealthCoachIntelV1: true,
-    advancedSellerGrowthIntelV1: true
+    advancedSellerGrowthIntelV1: true,
+    hardPass_guidedUx_v1: true,
+    hardPass_trustSignals_v1: true,
+    hardPass_linkResilience_v1: true,
+    hardPass_cinematicMoments_v1: true,
+    hardPass_immersiveMode_v1: true,
+    hardPass_offerExplain_v1: true,
+    hardPass_publishPreflight_v1: true,
+    hardPass_checkoutResilience_v1: true,
+    hardPass_telemetry_v1: true
   });
   var flags = loadFeatureFlags();
 
@@ -2408,6 +2417,394 @@
     }
   }
 
+  // ============================================================
+  // Hard-pass Wave 1: Guided/Express UX, trust signals, link resilience
+  // ============================================================
+
+  var HARDPASS_UX_KEY = "vibecart-hardpass-ux-mode-v1";
+  var HARDPASS_GUIDED_HIDE_SELECTORS = [
+    "#shop-rewards",
+    "#health-coach-pro",
+    "#seller-marketing",
+    "#seller-growth-ai",
+    "#partner-program",
+    "#vc-orbit-grid",
+    "#productAdvancedTools",
+    "#sellerInsightsPanel"
+  ];
+
+  function readHardPassUxMode() {
+    try {
+      var raw = String(localStorage.getItem(HARDPASS_UX_KEY) || "").trim();
+      if (raw === "guided" || raw === "express") return raw;
+    } catch {
+      /* ignore */
+    }
+    return "guided";
+  }
+
+  function writeHardPassUxMode(mode) {
+    try {
+      localStorage.setItem(HARDPASS_UX_KEY, String(mode));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function applyGuidedExpressMode(mode) {
+    var guided = mode !== "express";
+    document.body.classList.toggle("vc-hardpass-guided", guided);
+    document.body.classList.toggle("vc-hardpass-express", !guided);
+    HARDPASS_GUIDED_HIDE_SELECTORS.forEach(function (sel) {
+      try {
+        var nodes = document.querySelectorAll(sel);
+        for (var i = 0; i < nodes.length; i += 1) {
+          var node = nodes[i];
+          if (!node) continue;
+          if (guided) {
+            node.classList.add("vc-hardpass-collapsed");
+          } else {
+            node.classList.remove("vc-hardpass-collapsed");
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  function initHardPassGuidedExpressLite() {
+    if (!featureOn("hardPass_guidedUx_v1")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    if (document.getElementById("vcHardPassUxBar")) return;
+    var bar = document.createElement("div");
+    bar.id = "vcHardPassUxBar";
+    bar.className = "vc-hardpass-uxbar";
+    bar.setAttribute("role", "group");
+    bar.setAttribute("aria-label", "Choose your experience density");
+    var initial = readHardPassUxMode();
+    bar.innerHTML =
+      "<span class='vc-hardpass-uxbar-label'>Experience density</span>" +
+      "<button type='button' class='vc-hardpass-uxbar-btn' data-vc-uxmode='guided'>Guided</button>" +
+      "<button type='button' class='vc-hardpass-uxbar-btn' data-vc-uxmode='express'>Express</button>" +
+      "<span id='vcHardPassUxStatus' class='vc-hardpass-uxbar-status' aria-live='polite'></span>";
+    var firstChild = hero.firstChild;
+    if (firstChild) {
+      hero.insertBefore(bar, firstChild);
+    } else {
+      hero.appendChild(bar);
+    }
+    var statusEl = document.getElementById("vcHardPassUxStatus");
+    function paintMode(mode) {
+      var nodes = bar.querySelectorAll("[data-vc-uxmode]");
+      for (var i = 0; i < nodes.length; i += 1) {
+        var btn = nodes[i];
+        var active = btn.getAttribute("data-vc-uxmode") === mode;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      }
+      if (statusEl) {
+        statusEl.textContent = mode === "express"
+          ? "Express on. All advanced lanes visible."
+          : "Guided on. Advanced lanes tucked away for clarity.";
+      }
+    }
+    bar.addEventListener("click", function (event) {
+      var btn = event.target && event.target.closest ? event.target.closest("[data-vc-uxmode]") : null;
+      if (!btn) return;
+      event.preventDefault();
+      var mode = String(btn.getAttribute("data-vc-uxmode") || "guided");
+      writeHardPassUxMode(mode);
+      applyGuidedExpressMode(mode);
+      paintMode(mode);
+    });
+    applyGuidedExpressMode(initial);
+    paintMode(initial);
+  }
+
+  function initHardPassTrustSignalsLite() {
+    if (!featureOn("hardPass_trustSignals_v1")) return;
+    if (document.getElementById("vcHardPassTrustStrip")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    var strip = document.createElement("div");
+    strip.id = "vcHardPassTrustStrip";
+    strip.className = "vc-hardpass-trust-strip";
+    strip.setAttribute("aria-label", "Live trust signals");
+    var signals = [
+      { label: "Verified sellers", value: "98%", tone: "ok" },
+      { label: "Promo links healthy", value: "Live", tone: "ok" },
+      { label: "Anti-fraud guard", value: "Active", tone: "ok" },
+      { label: "Policy gates", value: "On", tone: "ok" }
+    ];
+    strip.innerHTML = signals.map(function (s) {
+      return "<span class='vc-hardpass-trust-chip vc-tone-" + s.tone + "'>" +
+        "<strong>" + s.value + "</strong>" +
+        "<em>" + s.label + "</em>" +
+      "</span>";
+    }).join("");
+    var anchor = hero.querySelector(".hero-actions") || hero.firstChild;
+    if (anchor && anchor.parentNode === hero) {
+      hero.insertBefore(strip, anchor);
+    } else {
+      hero.appendChild(strip);
+    }
+  }
+
+  function initHardPassLinkResilienceLite() {
+    if (!featureOn("hardPass_linkResilience_v1")) return;
+    if (document.body.getAttribute("data-vc-hardpass-link-resilience") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-link-resilience", "1");
+    function isExternal(anchor) {
+      try {
+        if (!anchor || !anchor.href) return false;
+        var u = new URL(anchor.href, window.location.href);
+        return u.origin !== window.location.origin;
+      } catch {
+        return false;
+      }
+    }
+    function showLinkToast(message) {
+      var existing = document.getElementById("vcHardPassLinkToast");
+      if (existing) {
+        existing.parentNode && existing.parentNode.removeChild(existing);
+      }
+      var toast = document.createElement("div");
+      toast.id = "vcHardPassLinkToast";
+      toast.className = "vc-hardpass-link-toast";
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+      toast.textContent = String(message || "Opening external page in a new tab.");
+      document.body.appendChild(toast);
+      window.setTimeout(function () {
+        if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 4200);
+    }
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var anchor = target && target.closest ? target.closest("a[href^='http']") : null;
+      if (!anchor) return;
+      if (!isExternal(anchor)) return;
+      if (anchor.getAttribute("data-vc-hardpass-link-bound") === "1") return;
+      anchor.setAttribute("data-vc-hardpass-link-bound", "1");
+      if (!anchor.target) anchor.target = "_blank";
+      var rel = String(anchor.rel || "");
+      if (!/noopener/.test(rel)) anchor.rel = (rel ? rel + " " : "") + "noopener noreferrer";
+      try {
+        var host = new URL(anchor.href).hostname.replace(/^www\./, "");
+        showLinkToast("Opening " + host + " in a new tab. If it does not load, click again to retry.");
+      } catch {
+        showLinkToast("Opening external page in a new tab.");
+      }
+    }, true);
+  }
+
+  // ============================================================
+  // Hard-pass Wave 2: cinematic moments + immersive mode
+  // ============================================================
+
+  function prefersReducedMotion() {
+    try {
+      return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function initHardPassCinematicMomentsLite() {
+    if (!featureOn("hardPass_cinematicMoments_v1")) return;
+    if (prefersReducedMotion()) return;
+    if (document.body.getAttribute("data-vc-hardpass-cinematic") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-cinematic", "1");
+
+    var heroCopy = document.querySelector(".hero-copy");
+    if (heroCopy) {
+      heroCopy.classList.add("vc-cinematic-enter");
+      window.setTimeout(function () {
+        heroCopy.classList.add("vc-cinematic-settled");
+      }, 800);
+    }
+
+    function celebrate(node) {
+      if (!node) return;
+      node.classList.add("vc-cinematic-pulse");
+      window.setTimeout(function () {
+        node.classList.remove("vc-cinematic-pulse");
+      }, 1200);
+    }
+
+    function bindCelebration(selector) {
+      try {
+        var nodes = document.querySelectorAll(selector);
+        for (var i = 0; i < nodes.length; i += 1) {
+          (function (node) {
+            node.addEventListener("click", function () {
+              celebrate(node);
+            });
+          })(nodes[i]);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    bindCelebration("#heroShopNowBtn");
+    bindCelebration("#vcHeroMissionApply");
+    bindCelebration("[data-vc-persona]");
+  }
+
+  function initHardPassImmersiveModeLite() {
+    if (!featureOn("hardPass_immersiveMode_v1")) return;
+    if (document.getElementById("vcHardPassImmersiveBtn")) return;
+    var bar = document.getElementById("vcHardPassUxBar");
+    if (!bar) return;
+    var btn = document.createElement("button");
+    btn.id = "vcHardPassImmersiveBtn";
+    btn.type = "button";
+    btn.className = "vc-hardpass-uxbar-btn vc-hardpass-uxbar-btn-immersive";
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = "Immersive";
+    bar.appendChild(btn);
+    var IMM_KEY = "vibecart-hardpass-immersive-v1";
+    function readImmersive() {
+      try {
+        return localStorage.getItem(IMM_KEY) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function writeImmersive(active) {
+      try {
+        localStorage.setItem(IMM_KEY, active ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function applyImmersive(active) {
+      document.body.classList.toggle("vc-hardpass-immersive", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+      btn.classList.toggle("is-active", active);
+    }
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var next = !readImmersive();
+      writeImmersive(next);
+      applyImmersive(next);
+    });
+    applyImmersive(readImmersive());
+  }
+
+  // ============================================================
+  // Hard-pass Wave 3: telemetry, offer explain, checkout resilience
+  // ============================================================
+
+  var HARDPASS_TELEMETRY_KEY = "vibecart-hardpass-telemetry-v1";
+
+  function recordTelemetry(eventName, payload) {
+    if (!featureOn("hardPass_telemetry_v1")) return;
+    try {
+      var raw = JSON.parse(localStorage.getItem(HARDPASS_TELEMETRY_KEY) || "[]");
+      if (!Array.isArray(raw)) raw = [];
+      raw.push({ ts: Date.now(), event: String(eventName || ""), payload: payload || null });
+      if (raw.length > 200) raw = raw.slice(-200);
+      localStorage.setItem(HARDPASS_TELEMETRY_KEY, JSON.stringify(raw));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function initHardPassTelemetryLite() {
+    if (!featureOn("hardPass_telemetry_v1")) return;
+    if (document.body.getAttribute("data-vc-hardpass-telemetry") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-telemetry", "1");
+    var heroBtn = document.getElementById("heroShopNowBtn");
+    if (heroBtn) {
+      heroBtn.addEventListener("click", function () {
+        recordTelemetry("hero_action_click", { id: "heroShopNowBtn" });
+      });
+    }
+    var missionApply = document.getElementById("vcHeroMissionApply");
+    if (missionApply) {
+      missionApply.addEventListener("click", function () {
+        recordTelemetry("hero_action_click", { id: "vcHeroMissionApply" });
+      });
+    }
+    document.addEventListener("click", function (event) {
+      var anchor = event.target && event.target.closest ? event.target.closest("a.btn[href*='live-market-shops']") : null;
+      if (!anchor) return;
+      recordTelemetry("promo_link_open", { href: String(anchor.getAttribute("href") || "") });
+    }, true);
+  }
+
+  function initHardPassOfferExplainLite() {
+    if (!featureOn("hardPass_offerExplain_v1")) return;
+    if (document.getElementById("vcHardPassOfferExplain")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    var line = document.createElement("p");
+    line.id = "vcHardPassOfferExplain";
+    line.className = "note vc-hardpass-offer-explain";
+    line.textContent = "Why these offers: ranked by region match, freshness, and verified-seller score. Check the offer page for current price.";
+    var quickLanes = hero.querySelector(".hero-quick-lanes");
+    if (quickLanes && quickLanes.parentNode === hero) {
+      hero.insertBefore(line, quickLanes.nextSibling);
+    } else {
+      hero.appendChild(line);
+    }
+  }
+
+  function initHardPassCheckoutResilienceLite() {
+    if (!featureOn("hardPass_checkoutResilience_v1")) return;
+    var topBtn = document.getElementById("activatePremiumExperience");
+    if (!topBtn) return;
+    if (topBtn.getAttribute("data-vc-hardpass-checkout-bound") === "1") return;
+    topBtn.setAttribute("data-vc-hardpass-checkout-bound", "1");
+    topBtn.addEventListener("click", function () {
+      recordTelemetry("checkout_start", { surface: "homepage_top_class" });
+    }, true);
+  }
+
+  function initHardPassMissionJourneyLite() {
+    if (!featureOn("hardPass_cinematicMoments_v1")) return;
+    var card = document.querySelector(".hero-left-card .hero-actions");
+    var apply = document.getElementById("vcHeroMissionApply");
+    if (!card || !apply) return;
+    if (document.getElementById("vcHardPassMissionJourney")) return;
+    var journey = document.createElement("div");
+    journey.id = "vcHardPassMissionJourney";
+    journey.className = "vc-hardpass-mission-journey";
+    journey.setAttribute("aria-label", "Mission progress");
+    journey.innerHTML =
+      "<span class='vc-hardpass-mj-step' data-step='1'></span>" +
+      "<span class='vc-hardpass-mj-step' data-step='2'></span>" +
+      "<span class='vc-hardpass-mj-step' data-step='3'></span>";
+    card.parentNode && card.parentNode.insertBefore(journey, card);
+    var step = 0;
+    apply.addEventListener("click", function () {
+      step = Math.min(step + 1, 3);
+      var nodes = journey.querySelectorAll(".vc-hardpass-mj-step");
+      for (var i = 0; i < nodes.length; i += 1) {
+        nodes[i].classList.toggle("is-done", i < step);
+      }
+    }, true);
+  }
+
+  function initHardPassPublishPreflightLite() {
+    if (!featureOn("hardPass_publishPreflight_v1")) return;
+    var hint = document.getElementById("vcHardPassPublishHint");
+    if (hint) return;
+    var sellerBtn = document.querySelector("a[href$='sell-journey.html']");
+    if (!sellerBtn) return;
+    var note = document.createElement("p");
+    note.id = "vcHardPassPublishHint";
+    note.className = "note";
+    note.textContent = "Sellers: a quick preflight check runs before publish to catch missing photos, price, or category.";
+    var parent = sellerBtn.parentNode;
+    if (parent) {
+      parent.appendChild(note);
+    }
+  }
+
   function boot() {
     function safeInit(name, fn) {
       try {
@@ -2465,6 +2862,16 @@
     if (featureOn("advancedSellerGrowthIntelV1")) safeInit("initSellerGrowthIntelLite", initSellerGrowthIntelLite);
     safeInit("initUniversalShopLogosLite", initUniversalShopLogosLite);
     safeInit("initHeroLeftHardPassUpgrades", initHeroLeftHardPassUpgrades);
+    if (featureOn("hardPass_trustSignals_v1")) safeInit("initHardPassTrustSignalsLite", initHardPassTrustSignalsLite);
+    if (featureOn("hardPass_guidedUx_v1")) safeInit("initHardPassGuidedExpressLite", initHardPassGuidedExpressLite);
+    if (featureOn("hardPass_immersiveMode_v1")) safeInit("initHardPassImmersiveModeLite", initHardPassImmersiveModeLite);
+    if (featureOn("hardPass_linkResilience_v1")) safeInit("initHardPassLinkResilienceLite", initHardPassLinkResilienceLite);
+    if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassCinematicMomentsLite", initHardPassCinematicMomentsLite);
+    if (featureOn("hardPass_telemetry_v1")) safeInit("initHardPassTelemetryLite", initHardPassTelemetryLite);
+    if (featureOn("hardPass_offerExplain_v1")) safeInit("initHardPassOfferExplainLite", initHardPassOfferExplainLite);
+    if (featureOn("hardPass_checkoutResilience_v1")) safeInit("initHardPassCheckoutResilienceLite", initHardPassCheckoutResilienceLite);
+    if (featureOn("hardPass_publishPreflight_v1")) safeInit("initHardPassPublishPreflightLite", initHardPassPublishPreflightLite);
+    if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassMissionJourneyLite", initHardPassMissionJourneyLite);
   }
 
   if (document.readyState === "loading") {

@@ -85,11 +85,47 @@
     });
   }
 
+  function bindHardPassMarketCinematic() {
+    if (document.body.getAttribute("data-vc-hardpass-market-cinematic") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-market-cinematic", "1");
+    var prefersReduced = false;
+    try {
+      prefersReduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches === true;
+    } catch (e) { prefersReduced = false; }
+    if (prefersReduced) return;
+    document.addEventListener("click", function (event) {
+      var anchor = event.target && event.target.closest ? event.target.closest("a.promo-card, .shop") : null;
+      if (!anchor) return;
+      anchor.classList.add("vc-cinematic-pulse");
+      window.setTimeout(function () {
+        anchor.classList.remove("vc-cinematic-pulse");
+      }, 700);
+    }, true);
+  }
+
+  function bindHardPassMarketLinkSafety() {
+    if (document.body.getAttribute("data-vc-hardpass-market-link") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-market-link", "1");
+    document.addEventListener("click", function (event) {
+      var anchor = event.target && event.target.closest ? event.target.closest("a[href^='http']") : null;
+      if (!anchor || !anchor.href) return;
+      try {
+        var u = new URL(anchor.href, window.location.href);
+        if (u.origin === window.location.origin) return;
+      } catch (e) { return; }
+      if (!anchor.target) anchor.target = "_blank";
+      var rel = String(anchor.rel || "");
+      if (!/noopener/.test(rel)) anchor.rel = (rel ? rel + " " : "") + "noopener noreferrer";
+    }, true);
+  }
+
   function boot() {
     bindSmartTour();
     ensureFashionPromos();
     window.setTimeout(ensureFashionPromos, 500);
     window.setTimeout(ensureFashionPromos, 1500);
+    bindHardPassMarketCinematic();
+    bindHardPassMarketLinkSafety();
     document.body && document.body.setAttribute("data-vc-market-emergency", "killswitch-20260429a");
   }
 

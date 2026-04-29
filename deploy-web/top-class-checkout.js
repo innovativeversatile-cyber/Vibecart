@@ -1,4 +1,38 @@
 (function () {
+  function recordTelemetry(eventName, payload) {
+    try {
+      var raw = JSON.parse(localStorage.getItem("vibecart-hardpass-telemetry-v1") || "[]");
+      if (!Array.isArray(raw)) raw = [];
+      raw.push({ ts: Date.now(), event: String(eventName || ""), payload: payload || null });
+      if (raw.length > 200) raw = raw.slice(-200);
+      localStorage.setItem("vibecart-hardpass-telemetry-v1", JSON.stringify(raw));
+    } catch (e) { /* ignore */ }
+  }
+
+  function fetchWithTimeout(url, opts, timeoutMs) {
+    opts = opts || {};
+    timeoutMs = timeoutMs || 12000;
+    return new Promise(function (resolve, reject) {
+      var didFinish = false;
+      var timer = window.setTimeout(function () {
+        if (didFinish) return;
+        didFinish = true;
+        reject(new Error("timeout"));
+      }, timeoutMs);
+      fetch(url, opts).then(function (response) {
+        if (didFinish) return;
+        didFinish = true;
+        window.clearTimeout(timer);
+        resolve(response);
+      }).catch(function (error) {
+        if (didFinish) return;
+        didFinish = true;
+        window.clearTimeout(timer);
+        reject(error);
+      });
+    });
+  }
+
   function initTopClassCheckout() {
     var emailEl = document.getElementById("topClassEmail");
     var nameEl = document.getElementById("topClassName");
@@ -21,6 +55,7 @@
       startBtn.hidden = true;
       activateBtn.hidden = false;
       statusEl.textContent = "Payment confirmed. Complete step 2 to activate Top-Class now.";
+      recordTelemetry("checkout_return", { result: "paid" });
       activateBtn.addEventListener("click", function () {
         var payload = {
           active: true,
@@ -34,6 +69,7 @@
         } catch {
           /* ignore */
         }
+        recordTelemetry("activation_success", { surface: "top_class" });
         window.location.assign("./index.html?top_class=active#topClassExperience");
       });
       return;
@@ -52,8 +88,9 @@
       }
       startBtn.disabled = true;
       statusEl.textContent = "Opening secure checkout...";
+      recordTelemetry("checkout_start", { surface: "top_class_page", method: method });
       try {
-        var response = await fetch("/api/public/payments/checkout/start", {
+        var response = await fetchWithTimeout("/api/public/payments/checkout/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -63,17 +100,22 @@
             customerEmail: email,
             customerName: name
           })
-        });
+        }, 12000);
         var payload = await response.json().catch(function () { return {}; });
         if (!response.ok || !payload.ok || !payload.redirectUrl) {
-          statusEl.textContent = "Checkout is temporarily unavailable. Please retry in a moment.";
+          statusEl.textContent = "Checkout is temporarily unavailable. Please retry in a moment, or change payment method.";
           startBtn.disabled = false;
+          recordTelemetry("checkout_start_failed", { status: response.status, reason: payload && payload.error });
           return;
         }
         window.location.assign(String(payload.redirectUrl));
-      } catch {
-        statusEl.textContent = "Could not open checkout right now. Please retry.";
+      } catch (error) {
+        var reason = error && error.message === "timeout" ? "timeout" : "network";
+        statusEl.textContent = reason === "timeout"
+          ? "Checkout is taking too long to start. Please retry."
+          : "Could not open checkout right now. Please retry.";
         startBtn.disabled = false;
+        recordTelemetry("checkout_start_failed", { reason: reason });
       }
     });
   }

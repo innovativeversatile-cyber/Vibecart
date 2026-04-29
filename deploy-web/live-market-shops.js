@@ -476,6 +476,10 @@
     a.appendChild(title);
     a.appendChild(body);
     a.appendChild(meta);
+    try {
+      var hostName = extractHost(shop.url);
+      if (hostName) a.setAttribute("data-vc-shop-host", hostName);
+    } catch (e) { /* ignore */ }
     a.addEventListener("click", function (event) {
       if (!trusted) {
         event.preventDefault();
@@ -486,6 +490,13 @@
       if (disclaimerAck && !disclaimerAck.checked) {
         if (searchStatus) searchStatus.textContent = "Tip: tick the marketplace disclaimer for safer buying guidance.";
       }
+      try {
+        var raw = JSON.parse(localStorage.getItem("vibecart-hardpass-telemetry-v1") || "[]");
+        if (!Array.isArray(raw)) raw = [];
+        raw.push({ ts: Date.now(), event: "promo_link_open", payload: { host: extractHost(shop.url), category: category } });
+        if (raw.length > 200) raw = raw.slice(-200);
+        localStorage.setItem("vibecart-hardpass-telemetry-v1", JSON.stringify(raw));
+      } catch (e) { /* ignore */ }
     });
     return a;
   }
@@ -553,6 +564,8 @@
         "<p class='vc-promo-kicker'>Live promo lane · " + promo.category + "</p>" +
         "<h3>" + promo.shop + " deals</h3>" +
         "<p class='vc-promo-kicker'>" + promo.discountHint + "</p>" +
+        "<p class='vc-hardpass-promo-explain note'>Why ranked: region match + freshness + verified seller.</p>" +
+        "<p class='vc-hardpass-promo-fresh'><span class='vc-hardpass-fresh-dot'></span>Refreshed today</p>" +
         "<p>Direct link to the active promotion/deals section.</p>" +
         "<a class='btn btn-secondary' target='_blank' rel='noopener noreferrer' href='" + promoHref + "'>Open live promotion page</a>" +
         "</div>";
