@@ -577,6 +577,7 @@
     document.body.appendChild(sheet);
     var close = document.getElementById("vcQuickActionClose");
     var openLockUntil = 0;
+    var lastTriggerTouchAt = 0;
     var dragStartY = 0;
     var pressStartY = 0;
     var pressStartX = 0;
@@ -618,6 +619,11 @@
     close && close.addEventListener("touchend", forceClose, { passive: false });
     close && close.addEventListener("pointerup", forceClose);
     trigger.addEventListener("click", function (ev) {
+      if (Date.now() - lastTriggerTouchAt < 650) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
       ev.preventDefault();
       ev.stopPropagation();
       if (isOpen()) {
@@ -627,6 +633,7 @@
       }
     });
     trigger.addEventListener("touchend", function (ev) {
+      lastTriggerTouchAt = Date.now();
       ev.preventDefault();
       ev.stopPropagation();
       if (isOpen()) {
