@@ -6025,6 +6025,9 @@ html.vc-mobile-focus #settings-hub {
   font-size: 0.78rem;
   line-height: 1;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
 }
 
 html.vc-vibe-neon body {
@@ -8605,6 +8608,19 @@ body.health-coach-page #coach-packages,
 body.health-coach-page #coach-packages ~ section,
 body.health-coach-page #coachMatchOut {
   scroll-margin-top: 6.5rem;
+}
+
+/* Long coach page: keep the matcher CTA scrollable above fixed Quick / tab chrome (tap was landing on HUD). */
+html.vc-phone body.health-coach-page main.shops-lane-main,
+html.vc-mobile-app body.health-coach-page main.shops-lane-main {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--vc-mobile-tab-h, 62px) + 8.5rem);
+}
+
+body.health-coach-page #coachMatchBtn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 4;
 }
 
 /* Better-than-market baseline: faster trust + bargain clarity in first 5 seconds */

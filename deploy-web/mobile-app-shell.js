@@ -664,24 +664,39 @@
     close && close.addEventListener("click", forceClose);
     close && close.addEventListener("touchend", forceClose, { passive: false });
     close && close.addEventListener("pointerup", forceClose);
+    /* One toggle per physical tap: pointerup + touchend + click all fire on many WebViews;
+       stacking them re-opened then closed the sheet instantly (felt dead). */
+    var skipQuickSyntheticClick = false;
     function onTriggerActivate(ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
+      if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
       if (isOpen()) {
         hide();
       } else {
         open();
       }
     }
-    trigger.addEventListener("pointerup", onTriggerActivate);
-    trigger.addEventListener("click", function (ev) {
-      if (Date.now() - lastTriggerTouchAt < 650) return;
-      onTriggerActivate(ev);
-    });
     trigger.addEventListener("touchend", function (ev) {
       lastTriggerTouchAt = Date.now();
+      skipQuickSyntheticClick = true;
       onTriggerActivate(ev);
     }, { passive: false });
+    trigger.addEventListener("click", function (ev) {
+      if (skipQuickSyntheticClick) {
+        skipQuickSyntheticClick = false;
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+      if (Date.now() - lastTriggerTouchAt < 650) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+      onTriggerActivate(ev);
+    });
     document.addEventListener("keydown", function (ev) {
       if (!ev) return;
       if (String(ev.key || "") === "Escape" && isOpen()) {

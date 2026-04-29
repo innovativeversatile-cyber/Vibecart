@@ -6,7 +6,7 @@
   <title>Health &amp; fitness coach · VibeCart</title>
   <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
   <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260430coachhudfix1" />
+  <link rel="stylesheet" href="./styles.css?v=20260430quickmatchtap1" />
 </head>
 <body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
@@ -216,6 +216,15 @@
       var btn = document.getElementById("coachMatchBtn");
       var out = document.getElementById("coachMatchOut");
       if (!goal || !currentWeight || !targetWeight || !speed || !hours || !btn || !out) return;
+      function clearCoachOut() {
+        if (out.replaceChildren) {
+          out.replaceChildren();
+        } else {
+          while (out.firstChild) {
+            out.removeChild(out.firstChild);
+          }
+        }
+      }
       function renderMatch(recommendedPlan, noteLine) {
         var map = {
           starter: "Starter Coach",
@@ -223,7 +232,7 @@
           plus: "Coach Plus",
           pro: "Coach Pro"
         };
-        out.replaceChildren();
+        clearCoachOut();
         var intro = document.createElement("span");
         intro.appendChild(document.createTextNode("AI recommendation: "));
         var strong = document.createElement("strong");
@@ -241,6 +250,11 @@
         var ack = document.getElementById("coachFlowDisclaimerAck");
         if (ack && !ack.checked) {
           out.textContent = "Accept the coach disclaimer first.";
+          try {
+            out.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          } catch {
+            /* ignore */
+          }
           return;
         }
         var goalType = String(goal.value || "general_fitness");
@@ -273,9 +287,22 @@
             "h. Add current and target weight (kg) for a tighter match.";
         renderMatch(recommendedPlan, note);
       }
-      btn.addEventListener("click", runMatch);
+      var skipMatchClick = false;
+      btn.addEventListener("touchend", function (ev) {
+        skipMatchClick = true;
+        ev.preventDefault();
+        runMatch();
+      }, { passive: false });
+      btn.addEventListener("click", function () {
+        if (skipMatchClick) {
+          skipMatchClick = false;
+          return;
+        }
+        runMatch();
+      });
     })();
   </script>
+  <script src="./mobile-app-shell.js?v=20260430quickmatchtap1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>
