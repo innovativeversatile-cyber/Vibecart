@@ -219,6 +219,34 @@
       var response = await fetch(url);
       var body = await response.json();
       var all = normalizePayload(body);
+
+      // Local (device-only) seller publish support:
+      // sellers store a draft into localStorage; reflect it in the feed immediately.
+      try {
+        var rawLocal = localStorage.getItem("vibecart-seller-live-listing");
+        var localListing = rawLocal ? JSON.parse(rawLocal) : null;
+        var localTitle = String((localListing && localListing.title) || "").trim();
+        if (localTitle) {
+          var localCategory = lane ? lane : "All";
+          var localPrice = localListing && localListing.price != null ? localListing.price : "";
+          var localCurrency = String((localListing && localListing.currency) || "EUR");
+          var localTarget = window.location.origin + "/seller-boost.html";
+          all.unshift({
+            id: "local-seller-" + Date.now(),
+            name: localTitle,
+            title: localTitle,
+            category: localCategory,
+            price: localPrice,
+            currency: localCurrency,
+            targetUrl: localTarget,
+            url: localTarget,
+            shopUrl: localTarget
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+
       var filtered = all;
       if (lane) {
         filtered = all.filter(function (p) {
