@@ -453,6 +453,128 @@ async function requirePublicSessionRole(req, res, allowedRoles) {
   return session;
 }
 
+function normalizeProductCategoryName(input) {
+  const raw = String(input || "").trim().toLowerCase();
+  if (!raw) {
+    return "Fashion";
+  }
+  if (raw === "electronics" || raw === "electronic" || raw === "tech" || raw === "technology") {
+    return "Electronics";
+  }
+  if (raw === "fashion" || raw === "style" || raw === "clothing" || raw === "apparel") {
+    return "Fashion";
+  }
+  if (raw === "books" || raw === "book" || raw === "reading") {
+    return "Books";
+  }
+  if (raw === "gaming" || raw === "games" || raw === "game") {
+    return "Gaming";
+  }
+  return raw
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+    .slice(0, 120) || "Fashion";
+}
+
+async function ensureCategoryIdByName(categoryName) {
+  const normalized = normalizeProductCategoryName(categoryName);
+  const [rows] = await pool.execute(`SELECT id FROM categories WHERE name = ? LIMIT 1`, [normalized]);
+  if (Array.isArray(rows) && rows.length && Number(rows[0].id) > 0) {
+    return { categoryId: Number(rows[0].id), categoryName: normalized };
+  }
+  const [insertResult] = await pool.execute(
+    `INSERT INTO categories (name, legal_only) VALUES (?, 1)`,
+    [normalized]
+  );
+  return { categoryId: Number(insertResult.insertId), categoryName: normalized };
+}
+
+async function handlePublicProductPublish(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  if (!session) {
+    return;
+  }
+
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+
+  const title = String(body.title || "").trim();
+  const description = String(body.description || "").trim();
+  const categoryName = normalizeProductCategoryName(body.categoryName || body.category || "");
+  const originCountry = String(body.originCountry || session.country_code || "").trim().toUpperCase();
+  const currency = String(body.currency || "EUR").trim().toUpperCase();
+  const basePrice = Number(body.basePrice != null ? body.basePrice : body.price);
+  const stockRaw = Number(body.stock != null ? body.stock : 1);
+  const stock = Number.isFinite(stockRaw) ? Math.max(1, Math.min(9999, Math.floor(stockRaw))) : 1;
+
+  if (title.length < 4 || title.length > 180) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_TITLE", message: "Title must be 4-180 characters." });
+  }
+  if (!Number.isFinite(basePrice) || basePrice <= 0) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_PRICE", message: "Enter a valid positive price." });
+  }
+  if (currency.length !== 3) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_CURRENCY", message: "Currency must be a 3-letter code." });
+  }
+  if (originCountry.length !== 2) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_COUNTRY", message: "Origin country must be an ISO-2 code." });
+  }
+
+  const [shopRows] = await pool.execute(
+    `SELECT id, name
+     FROM shops
+     WHERE owner_user_id = ? AND active = 1
+     ORDER BY id ASC
+     LIMIT 1`,
+    [Number(session.user_id)]
+  );
+  const shop = shopRows[0];
+  if (!shop || Number(shop.id || 0) <= 0) {
+    return sendJson(res, 404, { ok: false, code: "SHOP_NOT_FOUND", message: "Seller shop was not found." });
+  }
+
+  const category = await ensureCategoryIdByName(categoryName);
+  const [insertResult] = await pool.execute(
+    `INSERT INTO products (
+      shop_id, category_id, title, description, base_price, currency, stock, origin_country, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+    [
+      Number(shop.id),
+      Number(category.categoryId),
+      title,
+      description || null,
+      Number(basePrice.toFixed(2)),
+      currency,
+      stock,
+      originCountry
+    ]
+  );
+
+  return sendJson(res, 200, {
+    ok: true,
+    product: {
+      id: Number(insertResult.insertId),
+      shopId: Number(shop.id),
+      shopName: String(shop.name || ""),
+      categoryId: Number(category.categoryId),
+      categoryName: String(category.categoryName),
+      title,
+      description,
+      basePrice: Number(basePrice.toFixed(2)),
+      currency,
+      stock,
+      originCountry,
+      status: "active"
+    }
+  });
+}
+
 async function handlePublicAuthRegister(req, res) {
   const body = await readJson(req);
   const email = String(body.email || "").trim().toLowerCase();
@@ -3652,6 +3774,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/products/live")) {
       return await handlePublicProductsLive(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/products/publish") {
+      return await handlePublicProductPublish(req, res);
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/orders/track")) {
       return await handlePublicOrderTrack(req, res);

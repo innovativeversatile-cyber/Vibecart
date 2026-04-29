@@ -28,6 +28,13 @@
       <div class="admin-grid">
         <label for="sellerListingTitle">Listing title</label>
         <input id="sellerListingTitle" type="text" maxlength="120" placeholder="Example: Samsung S22 - UK to ZA shipping" />
+        <label for="sellerListingCategory">Category</label>
+        <select id="sellerListingCategory">
+          <option value="Fashion">Fashion</option>
+          <option value="Electronics">Electronics</option>
+          <option value="Books">Books</option>
+          <option value="Gaming">Gaming</option>
+        </select>
         <label for="sellerPriceValue">Set price</label>
         <input id="sellerPriceValue" type="number" min="1" step="0.01" placeholder="49.99" />
         <label for="sellerPriceCurrency">Currency</label>
@@ -69,15 +76,17 @@
       var publishBtn = document.getElementById("publishListingBtn");
       var status = document.getElementById("publishListingStatus");
       var titleInput = document.getElementById("sellerListingTitle");
+      var categoryInput = document.getElementById("sellerListingCategory");
       var priceInput = document.getElementById("sellerPriceValue");
       var currencyInput = document.getElementById("sellerPriceCurrency");
-      if (!publishBtn || !priceInput || !currencyInput || !titleInput) return;
-      publishBtn.addEventListener("click", function () {
+      if (!publishBtn || !priceInput || !currencyInput || !titleInput || !categoryInput) return;
+      publishBtn.addEventListener("click", async function () {
         var listingTitle = String(titleInput.value || "").trim();
         if (!listingTitle) {
           listingTitle = "Untitled listing";
           titleInput.value = listingTitle;
         }
+        var categoryName = String(categoryInput.value || "Fashion").trim() || "Fashion";
         var price = Number(priceInput.value || 0);
         if (!price || price <= 0) {
           if (status) status.textContent = "Add a valid listing price first.";
@@ -87,15 +96,51 @@
           var base = {};
           var raw = localStorage.getItem("vibecart-seller-preview-draft");
           if (raw) base = JSON.parse(raw);
+          var rawUser = localStorage.getItem("vibecart-public-auth-user");
+          var authUser = rawUser ? JSON.parse(rawUser) : null;
+          var authToken = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+          var originCountry = String((authUser && authUser.countryCode) || "ZA").trim().toUpperCase();
           base.title = listingTitle;
           document.getElementById("previewTitle").textContent = listingTitle;
           base.price = price.toFixed(2);
           base.currency = String(currencyInput.value || "EUR");
+          base.categoryName = categoryName;
+          base.originCountry = originCountry;
           base.status = "Live";
+          if (!authToken) {
+            if (status) status.textContent = "Sign in as a seller first to publish.";
+            return;
+          }
+          if (status) status.textContent = "Publishing listing...";
+          var response = await fetch("/api/public/products/publish", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + authToken
+            },
+            body: JSON.stringify({
+              title: listingTitle,
+              categoryName: categoryName,
+              description: "Published from seller live preview.",
+              basePrice: price,
+              currency: base.currency,
+              stock: 1,
+              originCountry: originCountry
+            })
+          });
+          var body = await response.json().catch(function () { return {}; });
+          if (!response.ok || !body.ok || !body.product) {
+            throw new Error(String(body.message || body.code || "Publish failed"));
+          }
+          base.productId = Number(body.product.id || 0);
+          base.shopId = Number(body.product.shopId || 0);
+          base.shopName = String(body.product.shopName || "");
+          base.categoryName = String(body.product.categoryName || categoryName);
+          base.originCountry = String(body.product.originCountry || originCountry);
           localStorage.setItem("vibecart-seller-preview-draft", JSON.stringify(base));
           localStorage.setItem("vibecart-seller-live-listing", JSON.stringify(base));
           document.getElementById("previewPrice").textContent = "Price: " + base.currency + " " + base.price;
-          if (status) status.textContent = "Listing published. Open seller progress to track it.";
+          if (status) status.textContent = "Listing published to backend catalog. Open seller progress or hot picks to verify.";
         } catch {
           if (status) status.textContent = "Could not publish right now. Try again.";
         }
