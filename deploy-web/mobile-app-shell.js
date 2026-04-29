@@ -495,6 +495,96 @@
     });
   }
 
+  function initDailyStreakChip() {
+    if (document.getElementById("vcMobileStreakChip")) return;
+    var key = "vibecart-mobile-streak-v1";
+    var lastKey = "vibecart-mobile-streak-date-v1";
+    var today = new Date().toISOString().slice(0, 10);
+    var streak = 1;
+    try {
+      streak = Math.max(1, Number(localStorage.getItem(key) || "1"));
+      var last = String(localStorage.getItem(lastKey) || "");
+      if (last !== today) {
+        var d0 = new Date(last + "T00:00:00Z").getTime();
+        var d1 = new Date(today + "T00:00:00Z").getTime();
+        var days = Math.round((d1 - d0) / 86400000);
+        if (days === 1) streak += 1;
+        if (days > 1) streak = 1;
+        localStorage.setItem(key, String(streak));
+        localStorage.setItem(lastKey, today);
+      }
+    } catch {
+      streak = 1;
+    }
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.id = "vcMobileStreakChip";
+    chip.className = "vc-mobile-streak-chip";
+    chip.setAttribute("aria-label", "Daily vibe streak");
+    chip.textContent = "🔥 " + streak + " day streak";
+    document.body.appendChild(chip);
+    chip.addEventListener("click", function () {
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 24, 10]);
+      } catch {
+        /* ignore */
+      }
+      chip.classList.add("is-pop");
+      window.setTimeout(function () {
+        chip.classList.remove("is-pop");
+      }, 650);
+    });
+  }
+
+  function initQuickActionSheet() {
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav || document.getElementById("vcQuickActionSheet")) return;
+    var sheet = document.createElement("div");
+    sheet.id = "vcQuickActionSheet";
+    sheet.className = "vc-quick-action-sheet";
+    sheet.hidden = true;
+    sheet.innerHTML =
+      "<div class='vc-quick-action-card'>" +
+      "<p class='badge'>Quick actions</p>" +
+      "<h3>One-thumb speed lane</h3>" +
+      "<div class='hero-actions'>" +
+      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Best offers</a>" +
+      "<a class='btn btn-secondary' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='btn btn-secondary' href='./orders-tracking.html'>Track order</a>" +
+      "<button type='button' class='btn btn-secondary' id='vcQuickActionClose'>Close</button>" +
+      "</div>" +
+      "</div>";
+    document.body.appendChild(sheet);
+    var close = document.getElementById("vcQuickActionClose");
+    function open() {
+      sheet.hidden = false;
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([12, 30, 12]);
+      } catch {
+        /* ignore */
+      }
+    }
+    function hide() {
+      sheet.hidden = true;
+    }
+    close && close.addEventListener("click", hide);
+    sheet.addEventListener("click", function (ev) {
+      if (ev.target === sheet) hide();
+    });
+    var timer = 0;
+    nav.addEventListener("touchstart", function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(open, 520);
+    }, { passive: true });
+    nav.addEventListener("touchend", function () {
+      window.clearTimeout(timer);
+    }, { passive: true });
+    nav.addEventListener("contextmenu", function (ev) {
+      ev.preventDefault();
+      open();
+    });
+  }
+
   function boot() {
     const root = document.documentElement;
     const isApp = root.classList.contains("vc-mobile-app");
@@ -532,6 +622,8 @@
       initThumbFlowBoost();
       initTrustSnapshotCard();
       initDailyWelcomeSheet();
+      initDailyStreakChip();
+      initQuickActionSheet();
     }
   }
 

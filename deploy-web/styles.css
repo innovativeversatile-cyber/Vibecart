@@ -5873,6 +5873,42 @@ html.vc-mobile-focus #settings-hub {
   display: none !important;
 }
 
+.vc-mobile-streak-chip {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 12px;
+  z-index: 132;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(11, 16, 30, 0.86);
+  color: #fff2da;
+  font-size: 0.76rem;
+  padding: 0.34rem 0.56rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.vc-mobile-streak-chip.is-pop {
+  transform: scale(1.05);
+}
+
+.vc-quick-action-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 145;
+  background: rgba(5, 10, 18, 0.58);
+  display: grid;
+  place-items: end center;
+  padding: 10px;
+}
+
+.vc-quick-action-card {
+  width: min(96vw, 520px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(150deg, rgba(16, 10, 28, 0.98), rgba(10, 20, 40, 0.96));
+  padding: 0.85rem;
+}
+
 .vc-mobile-ai__panel[hidden] {
   display: none !important;
 }
