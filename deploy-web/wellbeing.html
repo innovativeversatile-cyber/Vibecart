@@ -6,7 +6,7 @@
   <title>Health &amp; fitness coach · VibeCart</title>
   <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
   <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260430coachreveal1" />
+  <link rel="stylesheet" href="./styles.css?v=20260430matcher2" />
 </head>
 <body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
@@ -141,9 +141,11 @@
         <button id="coachMatchBtn" class="btn btn-primary" type="button">Generate coach recommendation</button>
       </p>
       <p class="note" id="coachMatcherHint" style="margin-top: 0.35rem; font-size: 0.85rem">
-        Tip: tick the coach disclaimer above first, then tap generate. Weights are optional but improve the match.
+        Uses your answers below (rules-based routing, not a remote medical AI). Weights optional. Paid checkout still uses the disclaimer where shown.
       </p>
-      <p id="coachMatchOut" class="note" aria-live="polite"></p>
+      <p id="coachMatchOut" class="note coach-match-out" aria-live="polite" data-placeholder="true">
+        Tap <strong>Generate</strong> to see a suggested plan and next steps.
+      </p>
     </section>
   </main>
   <script src="./package-pricing.js?v=20260420flowfix17" defer></script>
@@ -210,91 +212,8 @@
       });
       syncBundleLink();
     })();
-    (function () {
-      var goal = document.getElementById("coachGoalType");
-      var currentWeight = document.getElementById("coachCurrentWeight");
-      var targetWeight = document.getElementById("coachTargetWeight");
-      var speed = document.getElementById("coachGoalSpeed");
-      var hours = document.getElementById("coachHoursDaily");
-      var btn = document.getElementById("coachMatchBtn");
-      var out = document.getElementById("coachMatchOut");
-      if (!goal || !currentWeight || !targetWeight || !speed || !hours || !btn || !out) return;
-      function clearCoachOut() {
-        if (out.replaceChildren) {
-          out.replaceChildren();
-        } else {
-          while (out.firstChild) {
-            out.removeChild(out.firstChild);
-          }
-        }
-      }
-      function renderMatch(recommendedPlan, noteLine) {
-        var map = {
-          starter: "Starter Coach",
-          "ai-home": "AI Home Workout",
-          plus: "Coach Plus",
-          pro: "Coach Pro"
-        };
-        clearCoachOut();
-        var intro = document.createElement("span");
-        intro.appendChild(document.createTextNode("AI recommendation: "));
-        var strong = document.createElement("strong");
-        strong.textContent = map[recommendedPlan] || "Starter Coach";
-        intro.appendChild(strong);
-        intro.appendChild(document.createTextNode(". " + noteLine + " "));
-        var link = document.createElement("a");
-        link.className = "btn btn-secondary";
-        link.href = "./coach-experience.html?flow=coach&plan=" + encodeURIComponent(recommendedPlan);
-        link.textContent = "Open matching package";
-        out.appendChild(intro);
-        out.appendChild(link);
-      }
-      function runMatch() {
-        var ack = document.getElementById("coachFlowDisclaimerAck");
-        if (ack && !ack.checked) {
-          out.textContent = "Accept the coach disclaimer first.";
-          try {
-            out.scrollIntoView({ block: "nearest", behavior: "smooth" });
-          } catch {
-            /* ignore */
-          }
-          return;
-        }
-        var goalType = String(goal.value || "general_fitness");
-        var cw = Number(currentWeight.value || 0);
-        var tw = Number(targetWeight.value || 0);
-        var speedType = String(speed.value || "steady");
-        var dailyHours = Number(hours.value || 0.5);
-        var haveWeights = cw >= 30 && tw >= 30;
-        var delta = haveWeights ? Math.abs(tw - cw) : 0;
-        var recommendedPlan = "starter";
-        if (dailyHours >= 1.5 || speedType === "aggressive" || (haveWeights && delta >= 18)) {
-          recommendedPlan = "pro";
-        } else if (dailyHours >= 1 || speedType === "moderate" || (haveWeights && delta >= 10)) {
-          recommendedPlan = "plus";
-        } else if (goalType === "muscle_gain" || goalType === "weight_gain") {
-          recommendedPlan = "ai-home";
-        }
-        var note = haveWeights
-          ? "Goal gap: " +
-            delta.toFixed(1) +
-            "kg. Pace: " +
-            speedType +
-            ". Time/day: " +
-            dailyHours +
-            "h."
-          : "Pace: " +
-            speedType +
-            ". Time/day: " +
-            dailyHours +
-            "h. Add current and target weight (kg) for a tighter match.";
-        renderMatch(recommendedPlan, note);
-      }
-      btn.addEventListener("click", function () {
-        runMatch();
-      });
-    })();
   </script>
-  <script src="./site-chrome.js?v=20260430coachreveal1" defer></script>
+  <script src="./site-chrome.js?v=20260430matcher2" defer></script>
+  <script src="./wellbeing-coach-matcher.js?v=20260430matcher2" defer></script>
 </body>
 </html>

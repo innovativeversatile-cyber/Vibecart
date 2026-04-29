@@ -641,6 +641,9 @@
   initRevealEffects();
   initPointerAmbience();
   initMagneticDepth();
-  initLuxeScore();
-  initExperienceConsole(sceneDirector);
+  var coachLane = document.body && document.body.classList.contains("health-coach-page");
+  if (!coachLane) {
+    initLuxeScore();
+    initExperienceConsole(sceneDirector);
+  }
 })();

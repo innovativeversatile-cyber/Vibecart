@@ -8607,6 +8607,56 @@ body.health-coach-page main section.vc-luxe-reveal-in {
   pointer-events: auto;
 }
 
+body.health-coach-page .vc-luxe-score,
+body.health-coach-page .vc-experience-shell {
+  display: none !important;
+}
+
+.coach-match-out {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 236, 193, 0.28);
+  background: linear-gradient(145deg, rgba(12, 22, 28, 0.92), rgba(14, 12, 28, 0.88));
+  min-height: 3.25rem;
+  position: relative;
+  z-index: 6;
+}
+
+.coach-match-result__title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.coach-match-result__tag {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  color: rgba(255, 244, 220, 0.95);
+  background: rgba(232, 163, 23, 0.12);
+}
+
+.coach-match-result__why {
+  margin: 0.5rem 0 0.35rem;
+  padding-left: 1.15rem;
+  color: rgba(228, 236, 255, 0.92);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.coach-match-result__legal {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 body.health-coach-page #bundleCheckoutBtn.is-disabled {
   pointer-events: none;
   opacity: 0.55;
