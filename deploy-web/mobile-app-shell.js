@@ -931,6 +931,18 @@
 
   function initFirstFiveSecondsBar() {
     if (document.getElementById("vcFirst5Bar")) return;
+    var path = "";
+    try {
+      path = String(window.location.pathname || "").toLowerCase();
+    } catch {
+      path = "";
+    }
+    // Keep the “first 5 seconds” lane on the homepage only. Inner shop routes already
+    // have dense hero UI; a second fixed pill row reads like a glitchy overlay.
+    var isHome = path === "" || path === "/" || /(^|\/)index\.html$/i.test(path);
+    if (!isHome) {
+      return;
+    }
     var bar = document.createElement("div");
     bar.id = "vcFirst5Bar";
     bar.className = "vc-first5-bar";
