@@ -3280,6 +3280,9 @@ function resolveCheckoutAmount(flow, plan, addonPlan) {
     if (p === "family-protect") return { amount: 17.5, currency: "EUR", label: "Family Protect" };
     return { amount: 10.5, currency: "EUR", label: "Student Lite" };
   }
+  if (f === "top_class") {
+    return { amount: 39.99, currency: "EUR", label: "Top-Class Prestige Membership" };
+  }
   return { amount: 10, currency: "EUR", label: "Service Checkout" };
 }
 
@@ -3339,6 +3342,14 @@ function buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan) {
       `&plan=${encodeURIComponent(p || "standard")}` +
       (addon ? `&addonPlan=${encodeURIComponent(addon)}` : "") +
       `&provider=${encodeURIComponent(m || "card")}`
+    );
+  }
+  if (f === "top_class") {
+    return (
+      `${baseUrl}/top-class-checkout.html?flow=top_class` +
+      `&plan=${encodeURIComponent(p || "prestige")}` +
+      `&provider=${encodeURIComponent(m || "card")}` +
+      `&paid=1`
     );
   }
   return `${baseUrl}/payment-confirmation.html?provider=${encodeURIComponent(m || "card")}`;
@@ -3452,7 +3463,10 @@ async function handlePublicCheckoutStart(req, res) {
   const proto = String(req.headers["x-forwarded-proto"] || "https");
   const baseUrl = `${proto}://${host}`;
   const returnUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
-  const cancelUrl = `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
+  const cancelUrl =
+    flow === "top_class"
+      ? `${baseUrl}/top-class-checkout.html?flow=top_class&plan=${encodeURIComponent(plan || "prestige")}&cancelled=1`
+      : `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
 
   if (!stripe) {
     return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
@@ -3546,7 +3560,10 @@ async function handlePublicCheckoutRedirect(req, res) {
   const proto = String(req.headers["x-forwarded-proto"] || "https");
   const baseUrl = `${proto}://${host}`;
   const returnUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
-  const cancelUrl = `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
+  const cancelUrl =
+    flow === "top_class"
+      ? `${baseUrl}/top-class-checkout.html?flow=top_class&plan=${encodeURIComponent(plan || "prestige")}&cancelled=1`
+      : `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,

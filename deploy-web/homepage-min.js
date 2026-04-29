@@ -1444,10 +1444,13 @@
     var planLead = document.getElementById("premiumPlanLead");
     var priceChip = document.getElementById("premiumPlanPriceChip");
     var expressStatus = document.getElementById("expressCheckoutStatus");
+    var aiSuite = document.getElementById("topClassAiSuite");
+    var aiSuggestBtn = document.getElementById("topClassAiSuggest");
+    var aiAlertBtn = document.getElementById("topClassAiAlert");
+    var aiOutput = document.getElementById("topClassAiOutput");
     if (!activateBtn) return;
 
     var STORE_KEY = "vibecart-top-class-membership-v1";
-    var FLOW_KEY = "vibecart-top-class-flow-step-v1";
 
     function readState() {
       try {
@@ -1466,24 +1469,11 @@
       }
     }
 
-    function readStep() {
-      try {
-        return String(localStorage.getItem(FLOW_KEY) || "idle").trim() || "idle";
-      } catch {
-        return "idle";
-      }
-    }
-
-    function writeStep(step) {
-      try {
-        localStorage.setItem(FLOW_KEY, String(step || "idle"));
-      } catch {
-        /* ignore */
-      }
-    }
-
     function applyActivatedUi(active) {
       document.body.classList.toggle("vc-top-class-active", active === true);
+      if (aiSuite) {
+        aiSuite.classList.toggle("hidden", active !== true);
+      }
       if (!planHeadline || !planLead || !priceChip) return;
       if (active) {
         planHeadline.textContent = "Top-Class active: ultra-premium commerce lane unlocked.";
@@ -1498,7 +1488,7 @@
       priceChip.textContent = "EUR 39.99 / month";
     }
 
-    function paintFlow(step, active) {
+    function paintFlow(active) {
       if (active) {
         activateBtn.textContent = "Top-Class activated";
         activateBtn.disabled = true;
@@ -1513,24 +1503,37 @@
       }
       activateBtn.disabled = false;
       activateBtn.removeAttribute("aria-disabled");
-      if (step === "confirm") {
-        activateBtn.textContent = "Step 2 of 2: Confirm purchase";
-        if (renewStatus) {
-          renewStatus.textContent = "Step 2 pending: confirm purchase to unlock Top-Class interface now.";
-        }
-        return;
-      }
-      activateBtn.textContent = "Step 1 of 2: Start Top-Class purchase";
+      activateBtn.textContent = "Activate Top-Class Experience";
       if (renewStatus) {
-        renewStatus.textContent = "Two-step purchase: start purchase, then confirm to activate.";
+        renewStatus.textContent = "Activation requires payment checkout first. You will be guided through 2 secure steps.";
       }
     }
 
     var state = readState();
     var active = state.active === true;
-    var step = readStep();
     applyActivatedUi(active);
-    paintFlow(step, active);
+    paintFlow(active);
+
+    if (aiSuggestBtn && aiOutput) {
+      aiSuggestBtn.addEventListener("click", function () {
+        if (!readState().active) {
+          aiOutput.textContent = "Top-Class is required for autonomous AI tools.";
+          return;
+        }
+        aiOutput.textContent =
+          "AI suggestions: 1) prioritize verified shops with active sale lanes, 2) compare two regions before checkout, 3) set a budget cap alert before final payment.";
+      });
+    }
+    if (aiAlertBtn && aiOutput) {
+      aiAlertBtn.addEventListener("click", function () {
+        if (!readState().active) {
+          aiOutput.textContent = "Top-Class is required for autonomous AI tools.";
+          return;
+        }
+        aiOutput.textContent =
+          "Risk alert scan complete: no critical checkout blockers detected, but verify return policy + shipping terms on each partner page before payment.";
+      });
+    }
 
     if (autoRenew) {
       autoRenew.checked = state.autoRenew !== false;
@@ -1543,24 +1546,14 @@
 
     activateBtn.addEventListener("click", function (event) {
       event.preventDefault();
-      var current = readState();
-      if (current.active === true) return;
-      var currentStep = readStep();
-      if (currentStep !== "confirm") {
-        writeStep("confirm");
-        paintFlow("confirm", false);
-        if (expressStatus) {
-          expressStatus.textContent = "Purchase step 1 complete. Click again to confirm Top-Class activation.";
-        }
-        return;
-      }
-      current.active = true;
-      current.activatedAt = new Date().toISOString();
-      current.autoRenew = autoRenew ? autoRenew.checked === true : true;
-      writeState(current);
-      writeStep("done");
-      applyActivatedUi(true);
-      paintFlow("done", true);
+      if (active === true) return;
+      var method = "card";
+      var target =
+        "./top-class-checkout.html?flow=top_class&plan=prestige&paymentMethod=" +
+        encodeURIComponent(method) +
+        "&autoRenew=" +
+        encodeURIComponent(autoRenew && autoRenew.checked ? "1" : "0");
+      window.location.assign(target);
     });
   }
 
