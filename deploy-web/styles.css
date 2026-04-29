@@ -1127,6 +1127,7 @@ a {
   border-bottom: 1px solid rgba(232, 163, 23, 0.22);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: transform 240ms ease, opacity 240ms ease;
 }
 
 .topbar .brand,
@@ -3333,6 +3334,14 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   background: linear-gradient(180deg, rgba(26, 15, 36, 0.96), rgba(18, 10, 26, 0.9));
   border-bottom: 1px solid rgba(232, 163, 23, 0.22);
   backdrop-filter: blur(10px);
+  transition: transform 240ms ease, opacity 240ms ease;
+}
+
+.topbar.vc-nav-hidden,
+.shops-lane-topbar.vc-nav-hidden {
+  transform: translateY(calc(-100% - 8px));
+  opacity: 0.98;
+  pointer-events: none;
 }
 
 .shops-lane-main {

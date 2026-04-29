@@ -183,6 +183,40 @@
     );
   }
 
+  function initTopbarAutoHide() {
+    if (!header) return;
+    if (header.getAttribute("data-vc-nav-autohide-bound") === "1") return;
+    header.setAttribute("data-vc-nav-autohide-bound", "1");
+    var lastY = Math.max(0, Math.round(window.scrollY || 0));
+    var hidden = false;
+    var threshold = 12;
+    function setHidden(next) {
+      if (hidden === next) return;
+      hidden = next;
+      header.classList.toggle("vc-nav-hidden", hidden);
+      header.setAttribute("data-vc-nav-state", hidden ? "hidden" : "visible");
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        var y = Math.max(0, Math.round(window.scrollY || 0));
+        var delta = y - lastY;
+        if (y <= 24) {
+          setHidden(false);
+          lastY = y;
+          return;
+        }
+        if (delta > threshold) {
+          setHidden(true);
+        } else if (delta < -threshold) {
+          setHidden(false);
+        }
+        lastY = y;
+      },
+      { passive: true }
+    );
+  }
+
   function applyLuxeClasses(on) {
     document.body.classList.toggle("vc-luxe-on", !!on);
     document.body.classList.toggle("vc-luxe-off", !on);
@@ -518,6 +552,7 @@
 
   bootLuxeMode();
   initLaneScrollRestore();
+  initTopbarAutoHide();
   var sceneDirector = initSceneDirector();
   initRevealEffects();
   initPointerAmbience();

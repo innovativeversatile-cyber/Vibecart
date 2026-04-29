@@ -2789,6 +2789,41 @@
     }, true);
   }
 
+  function initNavAutoHideLite() {
+    var nav = document.getElementById("siteTopbar") || document.querySelector(".topbar");
+    if (!nav) return;
+    if (nav.getAttribute("data-vc-nav-autohide-bound") === "1") return;
+    nav.setAttribute("data-vc-nav-autohide-bound", "1");
+    var lastY = Math.max(0, Math.round(window.scrollY || 0));
+    var hidden = false;
+    var threshold = 12;
+    function setHidden(next) {
+      if (hidden === next) return;
+      hidden = next;
+      nav.classList.toggle("vc-nav-hidden", hidden);
+      nav.setAttribute("data-vc-nav-state", hidden ? "hidden" : "visible");
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        var y = Math.max(0, Math.round(window.scrollY || 0));
+        var delta = y - lastY;
+        if (y <= 24) {
+          setHidden(false);
+          lastY = y;
+          return;
+        }
+        if (delta > threshold) {
+          setHidden(true);
+        } else if (delta < -threshold) {
+          setHidden(false);
+        }
+        lastY = y;
+      },
+      { passive: true }
+    );
+  }
+
   function initHardPassPublishPreflightLite() {
     if (!featureOn("hardPass_publishPreflight_v1")) return;
     var hint = document.getElementById("vcHardPassPublishHint");
@@ -2872,6 +2907,7 @@
     if (featureOn("hardPass_checkoutResilience_v1")) safeInit("initHardPassCheckoutResilienceLite", initHardPassCheckoutResilienceLite);
     if (featureOn("hardPass_publishPreflight_v1")) safeInit("initHardPassPublishPreflightLite", initHardPassPublishPreflightLite);
     if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassMissionJourneyLite", initHardPassMissionJourneyLite);
+    safeInit("initNavAutoHideLite", initNavAutoHideLite);
   }
 
   if (document.readyState === "loading") {
