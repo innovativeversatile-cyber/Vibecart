@@ -189,7 +189,11 @@
     header.setAttribute("data-vc-nav-autohide-bound", "1");
     var lastY = Math.max(0, Math.round(window.scrollY || 0));
     var hidden = false;
-    var threshold = 12;
+    var threshold = 22;
+    var minHideStart = 80;
+    function canAutoHide() {
+      return Number(window.innerWidth || 0) <= 1024;
+    }
     function setHidden(next) {
       if (hidden === next) return;
       hidden = next;
@@ -201,7 +205,12 @@
       function () {
         var y = Math.max(0, Math.round(window.scrollY || 0));
         var delta = y - lastY;
-        if (y <= 24) {
+        if (!canAutoHide()) {
+          setHidden(false);
+          lastY = y;
+          return;
+        }
+        if (y <= minHideStart) {
           setHidden(false);
           lastY = y;
           return;
@@ -215,6 +224,11 @@
       },
       { passive: true }
     );
+    window.addEventListener("resize", function () {
+      if (!canAutoHide()) {
+        setHidden(false);
+      }
+    });
   }
 
   function applyLuxeClasses(on) {
