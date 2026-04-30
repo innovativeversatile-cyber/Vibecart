@@ -168,7 +168,7 @@ async function registerPushWithBackend(apiBase: string, pushToken: string): Prom
 const FALLBACK_BASE_URL = "https://vibe-cart.com";
 
 /** Extra strip above the tab dock (global search + inbox parity with deploy-web site chrome). */
-const QUICK_CHROME_HEIGHT = 42;
+const QUICK_CHROME_HEIGHT = 34;
 
 function isAllowedUrl(url: string, allowedHost: string): boolean {
   try {
@@ -502,7 +502,7 @@ export default function App(): JSX.Element {
     outputRange: [0.62, 0.08]
   });
 
-  const bottomPad = Platform.OS === "ios" ? 26 : 14;
+  const bottomPad = Platform.OS === "ios" ? 18 : 10;
 
   const hardReloadWebView = () => {
     setErrorText("");
@@ -734,7 +734,7 @@ export default function App(): JSX.Element {
               style={({ pressed }) => [styles.quickChromeBtn, pressed && styles.dockBtnPressed]}
               onPress={() => navigateWebPath("/global-search.html")}
             >
-              <Ionicons name="search-outline" size={22} color="#e8dcc8" />
+              <Ionicons name="search-outline" size={20} color="#e8dcc8" />
               <Text style={styles.quickChromeLabel}>Find</Text>
             </Pressable>
             <Pressable
@@ -743,7 +743,7 @@ export default function App(): JSX.Element {
               style={({ pressed }) => [styles.quickChromeBtn, pressed && styles.dockBtnPressed]}
               onPress={() => navigateWebPath("/index.html#communication")}
             >
-              <Ionicons name="mail-outline" size={22} color="#e8dcc8" />
+              <Ionicons name="mail-outline" size={20} color="#e8dcc8" />
               <Text style={styles.quickChromeLabel}>Inbox</Text>
             </Pressable>
           </View>
@@ -756,7 +756,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="home-outline"
-                size={24}
+                size={21}
                 color={dockActive === "home" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "home" && styles.dockLabelActive]}>Home</Text>
@@ -769,7 +769,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="folder-outline"
-                size={24}
+                size={21}
                 color={dockActive === "shops" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "shops" && styles.dockLabelActive]}>Lanes</Text>
@@ -782,7 +782,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="git-network-outline"
-                size={24}
+                size={21}
                 color={dockActive === "bridge" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "bridge" && styles.dockLabelActive]}>Bridge</Text>
@@ -795,7 +795,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="storefront-outline"
-                size={24}
+                size={21}
                 color={dockActive === "market" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "market" && styles.dockLabelActive]}>Picks</Text>
@@ -808,7 +808,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="menu-outline"
-                size={24}
+                size={21}
                 color={dockActive === "more" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "more" && styles.dockLabelActive]}>Hub</Text>
@@ -1027,8 +1027,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 6,
+    gap: 10,
+    paddingVertical: 4,
     paddingHorizontal: 12,
     minHeight: QUICK_CHROME_HEIGHT,
     backgroundColor: "rgba(14, 10, 28, 0.96)",
@@ -1039,8 +1039,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 14,
+    paddingVertical: 3,
+    paddingHorizontal: 12,
     borderRadius: 999,
     backgroundColor: "rgba(232, 163, 23, 0.12)",
     borderWidth: 1,
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
   },
   quickChromeLabel: {
     color: "#e8dcc8",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700"
   },
   dockCoach: {
@@ -1074,8 +1074,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "stretch",
     paddingHorizontal: 4,
-    paddingTop: 5,
-    paddingBottom: 2,
+    paddingTop: 3,
+    paddingBottom: 1,
     backgroundColor: "rgba(10, 6, 22, 0.92)",
     borderTopWidth: 1,
     borderTopColor: "rgba(232, 163, 23, 0.14)",
@@ -1093,14 +1093,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 46,
-    paddingVertical: 2
+    minHeight: 40,
+    paddingVertical: 1
   },
   dockBtnPressed: {
     opacity: 0.88
   },
   dockLabel: {
-    marginTop: 2,
+    marginTop: 1,
     fontSize: 8,
     fontWeight: "700",
     color: "#6e6288",
