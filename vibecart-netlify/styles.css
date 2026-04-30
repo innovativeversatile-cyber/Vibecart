@@ -5133,6 +5133,7 @@ html.vc-phone .hero {
   border-radius: 20px;
   border: 1px solid rgba(232, 163, 23, 0.22);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  margin-top: 0.35rem;
 }
 
 html.vc-mobile-app .vc-mobile-hero-aurora,
@@ -5174,6 +5175,19 @@ html.vc-mobile-app .hero-copy h1,
 html.vc-phone .hero-copy h1 {
   font-size: clamp(1.55rem, 6vw, 2.1rem);
   text-shadow: 0 0 40px rgba(232, 163, 23, 0.15);
+}
+
+html.vc-mobile-app .hero-copy,
+html.vc-phone .hero-copy,
+html.vc-mobile-app #heroBadge.badge,
+html.vc-phone #heroBadge.badge {
+  position: relative;
+  z-index: 12;
+}
+
+html.vc-mobile-app #heroBadge.badge,
+html.vc-phone #heroBadge.badge {
+  margin-bottom: 0.35rem;
 }
 
 html.vc-mobile-app .section,
@@ -8616,9 +8630,10 @@ body.start-selling-page .vc-site-chrome-search {
     top: auto !important;
     bottom: auto !important;
     width: 100% !important;
-    min-height: 220px !important;
-    margin-bottom: 0.9rem !important;
+    min-height: 200px !important;
+    margin-bottom: 0.65rem !important;
     border-radius: 14px !important;
+    transform: translateY(-10px) !important;
   }
 
   .hero.hero--hue-drift .hero-masterpiece {

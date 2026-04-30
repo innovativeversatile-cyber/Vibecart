@@ -24,7 +24,7 @@ const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
 const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
 const DOCK_COACH_DISMISSED_KEY = "vibecart.dock.coach.dismissed.v1";
 
-const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','56px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='100%';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
+const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','50px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='100%';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
 
 /**
  * Hash + scroll intelligence: dock follows the section actually in view (IntersectionObserver),
@@ -168,7 +168,7 @@ async function registerPushWithBackend(apiBase: string, pushToken: string): Prom
 const FALLBACK_BASE_URL = "https://vibe-cart.com";
 
 /** Extra strip above the tab dock (global search + inbox parity with deploy-web site chrome). */
-const QUICK_CHROME_HEIGHT = 34;
+const QUICK_CHROME_HEIGHT = 28;
 
 function isAllowedUrl(url: string, allowedHost: string): boolean {
   try {
@@ -502,7 +502,7 @@ export default function App(): JSX.Element {
     outputRange: [0.62, 0.08]
   });
 
-  const bottomPad = Platform.OS === "ios" ? 18 : 10;
+  const bottomPad = Platform.OS === "ios" ? 14 : 8;
 
   const hardReloadWebView = () => {
     setErrorText("");
@@ -734,7 +734,7 @@ export default function App(): JSX.Element {
               style={({ pressed }) => [styles.quickChromeBtn, pressed && styles.dockBtnPressed]}
               onPress={() => navigateWebPath("/global-search.html")}
             >
-              <Ionicons name="search-outline" size={20} color="#e8dcc8" />
+              <Ionicons name="search-outline" size={18} color="#e8dcc8" />
               <Text style={styles.quickChromeLabel}>Find</Text>
             </Pressable>
             <Pressable
@@ -743,7 +743,7 @@ export default function App(): JSX.Element {
               style={({ pressed }) => [styles.quickChromeBtn, pressed && styles.dockBtnPressed]}
               onPress={() => navigateWebPath("/index.html#communication")}
             >
-              <Ionicons name="mail-outline" size={20} color="#e8dcc8" />
+              <Ionicons name="mail-outline" size={18} color="#e8dcc8" />
               <Text style={styles.quickChromeLabel}>Inbox</Text>
             </Pressable>
           </View>
@@ -756,7 +756,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="home-outline"
-                size={21}
+                size={19}
                 color={dockActive === "home" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "home" && styles.dockLabelActive]}>Home</Text>
@@ -769,7 +769,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="folder-outline"
-                size={21}
+                size={19}
                 color={dockActive === "shops" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "shops" && styles.dockLabelActive]}>Lanes</Text>
@@ -782,7 +782,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="git-network-outline"
-                size={21}
+                size={19}
                 color={dockActive === "bridge" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "bridge" && styles.dockLabelActive]}>Bridge</Text>
@@ -795,7 +795,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="storefront-outline"
-                size={21}
+                size={19}
                 color={dockActive === "market" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "market" && styles.dockLabelActive]}>Picks</Text>
@@ -808,7 +808,7 @@ export default function App(): JSX.Element {
             >
               <Ionicons
                 name="menu-outline"
-                size={21}
+                size={19}
                 color={dockActive === "more" ? "#e8a317" : "#7d6f9a"}
               />
               <Text style={[styles.dockLabel, dockActive === "more" && styles.dockLabelActive]}>Hub</Text>
@@ -1027,8 +1027,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 4,
+    gap: 8,
+    paddingVertical: 2,
     paddingHorizontal: 12,
     minHeight: QUICK_CHROME_HEIGHT,
     backgroundColor: "rgba(14, 10, 28, 0.96)",
@@ -1039,8 +1039,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingVertical: 3,
-    paddingHorizontal: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 10,
     borderRadius: 999,
     backgroundColor: "rgba(232, 163, 23, 0.12)",
     borderWidth: 1,
@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
   },
   quickChromeLabel: {
     color: "#e8dcc8",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700"
   },
   dockCoach: {
@@ -1074,8 +1074,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "stretch",
     paddingHorizontal: 4,
-    paddingTop: 3,
-    paddingBottom: 1,
+    paddingTop: 2,
+    paddingBottom: 0,
     backgroundColor: "rgba(10, 6, 22, 0.92)",
     borderTopWidth: 1,
     borderTopColor: "rgba(232, 163, 23, 0.14)",
@@ -1093,7 +1093,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 40,
+    minHeight: 36,
     paddingVertical: 1
   },
   dockBtnPressed: {
@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
   },
   dockLabel: {
     marginTop: 1,
-    fontSize: 8,
+    fontSize: 7.5,
     fontWeight: "700",
     color: "#6e6288",
     letterSpacing: 0.35,
