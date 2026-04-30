@@ -24,7 +24,7 @@ const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
 const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
 const DOCK_COACH_DISMISSED_KEY = "vibecart.dock.coach.dismissed.v1";
 
-const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','62px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='100%';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
+const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','56px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='100%';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
 
 /**
  * Hash + scroll intelligence: dock follows the section actually in view (IntersectionObserver),
@@ -1074,8 +1074,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "stretch",
     paddingHorizontal: 4,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 5,
+    paddingBottom: 2,
     backgroundColor: "rgba(10, 6, 22, 0.92)",
     borderTopWidth: 1,
     borderTopColor: "rgba(232, 163, 23, 0.14)",
@@ -1093,18 +1093,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 52,
-    paddingVertical: 4
+    minHeight: 46,
+    paddingVertical: 2
   },
   dockBtnPressed: {
     opacity: 0.88
   },
   dockLabel: {
-    marginTop: 3,
-    fontSize: 9,
+    marginTop: 2,
+    fontSize: 8,
     fontWeight: "700",
     color: "#6e6288",
-    letterSpacing: 0.5,
+    letterSpacing: 0.35,
     textTransform: "uppercase"
   },
   dockLabelActive: {
