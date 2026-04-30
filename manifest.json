@@ -1,7 +1,7 @@
 {
   "name": "VibeCart",
   "short_name": "VibeCart",
-  "description": "Secure Africa-Europe-Asia marketplace for buyers and sellers.",
+  "description": "VibeCart — secure Africa–Europe–Asia marketplace for buyers and sellers: cross-border shopping, trusted lanes, and account tools.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
