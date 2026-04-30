@@ -5925,12 +5925,20 @@ html.vc-mobile-focus #settings-hub {
 /* Phone app hard-pass: keep streak chip away from topbar Find controls. */
 html.vc-mobile-app .vc-mobile-streak-chip,
 html.vc-phone .vc-mobile-streak-chip {
-  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 44px);
-  right: auto;
-  left: 10px;
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 34px);
+  right: 96px;
+  left: auto;
   z-index: 90;
   font-size: 0.7rem;
   padding: 0.28rem 0.48rem;
+}
+
+/* Hero intro hard-pass: keep floating helper chips off the badge/title region. */
+html.vc-mobile-app body[data-vc-active-scene="intro"] .vc-first5-bar,
+html.vc-phone body[data-vc-active-scene="intro"] .vc-first5-bar,
+html.vc-mobile-app body[data-vc-active-scene="intro"] .vc-mobile-ai,
+html.vc-phone body[data-vc-active-scene="intro"] .vc-mobile-ai {
+  display: none !important;
 }
 
 .vc-mobile-streak-chip.is-pop {
