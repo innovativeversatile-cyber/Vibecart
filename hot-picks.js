@@ -1,5 +1,31 @@
 (function () {
   var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+  var TREND_SLIDES = [
+    {
+      title: "Streetwear heat",
+      trend: "Oversized sets, varsity layers, and neutral sneakers",
+      shopLabel: "ASOS Trending",
+      shopUrl: "https://www.asos.com/women/trending-now/cat/?cid=51153"
+    },
+    {
+      title: "Luxury resale momentum",
+      trend: "Verified pre-owned designer picks with price drops",
+      shopLabel: "Vestiaire Collective",
+      shopUrl: "https://www.vestiairecollective.com/women-bags/"
+    },
+    {
+      title: "Sport fashion crossover",
+      trend: "Performance sneakers and athleisure sets",
+      shopLabel: "Nike New Releases",
+      shopUrl: "https://www.nike.com/w/new-3n82y"
+    },
+    {
+      title: "Beauty + style bundle trend",
+      trend: "Fragrance and skincare sets paired with outfits",
+      shopLabel: "Sephora New Arrivals",
+      shopUrl: "https://www.sephora.com/shop/new-arrivals"
+    }
+  ];
   var grid = document.getElementById("hotPicksGrid");
   var status = document.getElementById("hotPicksStatus");
   if (!grid) {
@@ -98,9 +124,57 @@
       fashion: "https://www.asos.com",
       books: "https://www.abebooks.com",
       gaming: "https://store.steampowered.com",
-      all: "https://brainrot.mov?ref=ApLX4MJQoF"
+      all: "https://www.ebay.com/deals"
     };
     return safeTarget(fallbackByCategory[cat] || fallbackByCategory.all);
+  }
+
+  function isLoggedIn() {
+    try {
+      var token = localStorage.getItem("vibecart-public-auth-token");
+      var user = localStorage.getItem("vibecart-public-auth-user");
+      return Boolean(String(token || "").trim() && String(user || "").trim());
+    } catch {
+      return false;
+    }
+  }
+
+  function renderTrendSlides() {
+    var host = document.getElementById("hotPicksTrendSlides");
+    if (!host) {
+      host = document.createElement("section");
+      host.id = "hotPicksTrendSlides";
+      host.className = "section alt";
+      host.setAttribute("aria-label", "Trending fashion and styles");
+      host.innerHTML =
+        '<p class="badge">Trending now</p>' +
+        "<h2>Biggest deals and style trends</h2>" +
+        '<p class="note">Tap a trend to open the legit shop trend page directly.</p>' +
+        '<div class="vc-story-rail" id="hotTrendRail"></div>';
+      if (grid && grid.parentNode) {
+        grid.parentNode.insertBefore(host, grid);
+      }
+    }
+    var rail = document.getElementById("hotTrendRail");
+    if (!rail) return;
+    rail.innerHTML = TREND_SLIDES.map(function (slide) {
+      var url = safeTarget(slide.shopUrl || "");
+      return (
+        '<a class="card" style="min-width:min(82vw,320px);text-decoration:none" href="' +
+        escapeHtml(url || "#") +
+        '" target="_blank" rel="noopener noreferrer">' +
+        "<h3>" +
+        escapeHtml(slide.title) +
+        "</h3>" +
+        '<p class="note">' +
+        escapeHtml(slide.trend) +
+        "</p>" +
+        '<p class="hero-actions"><span class="btn btn-secondary">' +
+        escapeHtml(slide.shopLabel) +
+        "</span></p>" +
+        "</a>"
+      );
+    }).join("");
   }
   function isCommissionTrackedUrl(url) {
     try {
@@ -147,6 +221,7 @@
       var commissionEnabled = isCommissionTrackedUrl(target);
       var href = offerHref(p);
       var ctaLabel = target ? "Open source website" : "Source unavailable";
+      var joinLabel = isLoggedIn() ? "Saved with your account route" : "Sign in to save + track this pick";
       var html =
         '<article class="card">' +
         '<img src="' +
@@ -176,6 +251,8 @@
         (commissionEnabled ? "1" : "0") +
         '">' +
         escapeHtml(ctaLabel) +
+        '</a><a class="btn btn-secondary" href="./index.html#account-access">' +
+        escapeHtml(joinLabel) +
         "</a></p>" +
         "</article>";
       grid.insertAdjacentHTML("beforeend", html);
@@ -220,6 +297,7 @@
 
   async function boot() {
     var lane = laneFromQuery().toLowerCase();
+    renderTrendSlides();
     try {
       var fromCountry = inferCountryCode();
 
