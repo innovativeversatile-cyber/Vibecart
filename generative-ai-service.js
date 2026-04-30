@@ -211,6 +211,84 @@ async function generateAiOpsRecommendationsLLM(stats) {
   return { ok: true, items };
 }
 
+async function generateHotPicksTrendSlidesLLM(input) {
+  if (!isGenerativeAiConfigured()) {
+    return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
+  }
+  const locale = String(input.locale || "en").trim().slice(0, 12);
+  const monthHint = String(input.monthHint || "").trim().slice(0, 10);
+  const refreshHint = String(input.refreshHint || "").trim().slice(0, 120);
+  const system =
+    "You are VibeCart's fashion and lifestyle trend editor for a public Hot Picks page. " +
+    "You do NOT browse the live web; you synthesize timely micro-trends from your training knowledge and clearly current seasonal cues. " +
+    "Return ONLY compact JSON (no markdown fences): " +
+    '{"generatedLabel":"short ISO-ish stamp","slides":[' +
+    '{"title":"...","caption":"1-2 sentences","tags":["tag1","tag2"],"ctaLabel":"Shop trend","ctaUrl":"https://..."}' +
+    "]}. " +
+    "Rules: exactly 6 slides; each title <= 70 chars; caption 120-220 chars; tags array length 2-3; each tag 3-12 chars, lowercase letters a-z only, " +
+    "fashion-relevant words suitable as photo search tags (examples: sneakers, denim, blazer, streetwear, beauty). " +
+    "ctaUrl must be https and point to a real public retailer category, new-in, or trending landing page (e.g. asos, zalando, nike, mrporter, ssense, sephora, mytheresa). " +
+    "No tracking parameters, no javascript: or data: URLs.";
+  const user = JSON.stringify({ locale, monthHint, refreshHint });
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    1500
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  const slidesRaw = parsed && Array.isArray(parsed.slides) ? parsed.slides : extractJsonArray(r.text);
+  if (!Array.isArray(slidesRaw) || slidesRaw.length < 4) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  const tagRe = /^[a-z]{3,12}$/;
+  const slides = slidesRaw.slice(0, 6).map((row) => {
+    const title = String(row.title || row.headline || "Trend").trim().slice(0, 80);
+    const caption = String(row.caption || row.summary || "").trim().slice(0, 260);
+    const tagsIn = Array.isArray(row.tags) ? row.tags : [];
+    const tags = [];
+    for (const t of tagsIn) {
+      const v = String(t || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z]/g, "");
+      if (tagRe.test(v) && !tags.includes(v)) {
+        tags.push(v);
+      }
+      if (tags.length >= 3) break;
+    }
+    while (tags.length < 2) {
+      tags.push(tags.length === 0 ? "fashion" : "streetwear");
+    }
+    const ctaLabel = String(row.ctaLabel || row.shopLabel || "Explore").trim().slice(0, 60);
+    let ctaUrl = String(row.ctaUrl || row.shopUrl || row.url || "").trim();
+    try {
+      const u = new URL(ctaUrl);
+      if (u.protocol !== "https:") {
+        ctaUrl = "";
+      }
+      const host = u.hostname.toLowerCase();
+      if (!host || host === "localhost" || host.endsWith(".local")) {
+        ctaUrl = "";
+      }
+    } catch {
+      ctaUrl = "";
+    }
+    return { title, caption, tags, ctaLabel, ctaUrl };
+  });
+  const generatedLabel = String(parsed?.generatedLabel || new Date().toISOString()).trim().slice(0, 40);
+  return {
+    ok: true,
+    model: r.model,
+    generatedLabel,
+    slides
+  };
+}
+
 async function runPublicGenerativeAgent(agent, input) {
   if (agent === "coach_matcher") {
     return generateCoachMatcherAdvice(input || {});
@@ -220,6 +298,9 @@ async function runPublicGenerativeAgent(agent, input) {
   }
   if (agent === "vibecoach_tip") {
     return generateVibecoachTipLLM(input || {});
+  }
+  if (agent === "hot_picks_trends") {
+    return generateHotPicksTrendSlidesLLM(input || {});
   }
   return { ok: false, code: "INVALID_AGENT" };
 }
@@ -346,6 +427,7 @@ module.exports = {
   generateCoachMatcherAdvice,
   generateSellerGrowthPlanLLM,
   generateVibecoachTipLLM,
+  generateHotPicksTrendSlidesLLM,
   generateAiOpsRecommendationsLLM,
   runPublicGenerativeAgent,
   runOwnerGenerativeAgent

@@ -211,6 +211,9 @@ const pool = mysql.createPool({
 
 const ipHits = new Map();
 const analyticsVisitHits = new Map();
+const hotPicksAiHits = new Map();
+const HOT_PICKS_AI_WINDOW_MS = 60 * 60 * 1000;
+const HOT_PICKS_AI_MAX = 20;
 const loginHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 /** Mutating requests only (GET/HEAD/OPTIONS are not counted). */
@@ -355,6 +358,19 @@ function isRateLimited(ip, method) {
   return item.count > RATE_MAX;
 }
 
+function isHotPicksAiRateLimited(ip) {
+  const key = String(ip || "unknown").slice(0, 80);
+  const now = Date.now();
+  const item = hotPicksAiHits.get(key) || { count: 0, start: now };
+  if (now - item.start > HOT_PICKS_AI_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  hotPicksAiHits.set(key, item);
+  return item.count > HOT_PICKS_AI_MAX;
+}
+
 function loginRateKey(ip, email) {
   return `${String(ip || "unknown").slice(0, 80)}::${String(email || "").toLowerCase().slice(0, 120)}`;
 }
@@ -453,6 +469,43 @@ async function requirePublicSessionRole(req, res, allowedRoles) {
   if (!allowedRoles.has(role)) {
     sendJson(res, 403, { ok: false, code: "ROLE_FORBIDDEN" });
     return null;
+  }
+  return session;
+}
+
+function sendHighValueAccountRequired(res) {
+  return sendJson(res, 401, {
+    ok: false,
+    code: "ACCOUNT_REQUIRED_HIGH_VALUE",
+    message: "Sign in to your account before running this high-value action."
+  });
+}
+
+async function requirePublicAccountSession(req, res, allowedRoles = null) {
+  let token = getBearerToken(req);
+  if (!token && req && req.url) {
+    try {
+      const urlObj = new URL(req.url, "http://localhost");
+      token = String(urlObj.searchParams.get("token") || urlObj.searchParams.get("authToken") || "").trim();
+    } catch {
+      // ignore URL parse errors and continue with header-only auth
+    }
+  }
+  if (!token) {
+    sendHighValueAccountRequired(res);
+    return null;
+  }
+  const session = await requirePublicSession(token);
+  if (!session) {
+    sendHighValueAccountRequired(res);
+    return null;
+  }
+  if (allowedRoles && allowedRoles.size > 0) {
+    const role = String(session.role || "").toLowerCase();
+    if (!allowedRoles.has(role)) {
+      sendJson(res, 403, { ok: false, code: "ROLE_FORBIDDEN" });
+      return null;
+    }
   }
   return session;
 }
@@ -2363,9 +2416,19 @@ async function handlePublicAiGenerate(req, res) {
     return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
   }
   const agent = String(body.agent || "").trim();
-  const allowed = new Set(["coach_matcher", "seller_growth_plan", "vibecoach_tip"]);
+  const allowed = new Set(["coach_matcher", "seller_growth_plan", "vibecoach_tip", "hot_picks_trends"]);
   if (!allowed.has(agent)) {
     return sendJson(res, 400, { ok: false, code: "INVALID_AGENT" });
+  }
+  if (agent === "hot_picks_trends") {
+    const ip = getIp(req);
+    if (isHotPicksAiRateLimited(ip)) {
+      return sendJson(res, 429, {
+        ok: false,
+        code: "RATE_LIMITED",
+        message: "Trend engine refresh is temporarily limited for this network. Try again in a little while."
+      });
+    }
   }
   const result = await runPublicGenerativeAgent(agent, body.input || {});
   if (!result.ok) {
@@ -2410,31 +2473,56 @@ async function handlePublicCoachMonetization(req, res) {
 }
 
 async function handlePublicCoachProfile(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await upsertCoachProfile(pool, body || {});
   return sendJson(res, 200, result);
 }
 
 async function handlePublicHealthCheckin(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await logHealthCheckin(pool, body || {});
   return sendJson(res, 200, result);
 }
 
 async function handlePublicWearableCoachPrefs(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await upsertWearableCoachPrefs(pool, body || {});
   return sendJson(res, 200, result);
 }
 
 async function handlePublicCoachSubscriptionStart(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await startCoachSubscription(pool, body || {});
   return sendJson(res, 200, result);
 }
 
 async function handlePublicCoachAddonPurchase(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await purchaseCoachAddon(pool, body || {});
   return sendJson(res, 200, result);
 }
@@ -2986,7 +3074,12 @@ async function handleOwnerBarterSuspendAccount(req, res) {
 }
 
 async function handlePublicCrowdfundingCreate(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await createCrowdfundingCampaign(pool, body || {});
   if (!result.ok) {
     return sendJson(res, 400, result);
@@ -3003,7 +3096,12 @@ async function handlePublicCrowdfundingList(req, res) {
 }
 
 async function handlePublicCrowdfundingPledge(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
+  body.userId = Number(session.user_id);
   const result = await recordCrowdfundingPledge(pool, body || {});
   if (!result.ok) {
     return sendJson(res, 400, result);
@@ -3686,6 +3784,10 @@ async function createPaypalOrder(input) {
 }
 
 async function handlePublicCheckoutStart(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const body = await readJson(req);
   const method = String(body.paymentMethod || "").trim().toLowerCase();
   const flow = String(body.flow || "").trim().toLowerCase();
@@ -3713,7 +3815,7 @@ async function handlePublicCheckoutStart(req, res) {
     return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
   }
   const customerId = await createStripePrefillCustomer({
-    email: body.customerEmail,
+    email: body.customerEmail || session.email,
     name: body.customerName,
     phone: body.customerPhone,
     addressLine1: body.customerAddress,
@@ -3721,7 +3823,7 @@ async function handlePublicCheckoutStart(req, res) {
     postalCode: body.customerPostalCode,
     country: body.customerCountry
   });
-  const session = await stripe.checkout.sessions.create({
+  const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",
     success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
@@ -3759,12 +3861,16 @@ async function handlePublicCheckoutStart(req, res) {
   return sendJson(res, 200, {
     ok: true,
     provider: "stripe",
-    providerReference: String(session.id || ""),
-    redirectUrl: String(session.url || "")
+    providerReference: String(checkoutSession.id || ""),
+    redirectUrl: String(checkoutSession.url || "")
   });
 }
 
 async function handlePublicCheckoutRedirect(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
   const urlObj = new URL(req.url, "http://localhost");
   const flow = String(urlObj.searchParams.get("flow") || "").trim().toLowerCase();
   const plan = String(urlObj.searchParams.get("plan") || "").trim().toLowerCase();
@@ -3793,7 +3899,7 @@ async function handlePublicCheckoutRedirect(req, res) {
     return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
   }
   const customerId = await createStripePrefillCustomer({
-    email: customerEmail,
+    email: customerEmail || String(session.email || ""),
     name: customerName,
     phone: customerPhone,
     addressLine1: customerAddress,
@@ -3809,7 +3915,7 @@ async function handlePublicCheckoutRedirect(req, res) {
     flow === "top_class"
       ? `${baseUrl}/top-class-checkout.html?flow=top_class&plan=${encodeURIComponent(plan || "prestige")}&cancelled=1`
       : `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
-  const session = await stripe.checkout.sessions.create({
+  const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",
     success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
@@ -3845,7 +3951,7 @@ async function handlePublicCheckoutRedirect(req, res) {
     }
   });
   res.statusCode = 302;
-  res.setHeader("Location", String(session.url || cancelUrl));
+  res.setHeader("Location", String(checkoutSession.url || cancelUrl));
   res.end();
 }
 

@@ -1,36 +1,62 @@
 (function () {
   var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
-  var TREND_SLIDES = [
+  var TREND_REFRESH_MS = 12 * 60 * 1000;
+  var CAROUSEL_STEP_MS = 5200;
+  var FALLBACK_SLIDES = [
     {
       title: "Streetwear heat",
-      trend: "Oversized sets, varsity layers, and neutral sneakers",
-      shopLabel: "ASOS Trending",
-      shopUrl: "https://www.asos.com/women/trending-now/cat/?cid=51153"
+      caption: "Oversized sets, varsity layers, and neutral sneakers — still moving fast this season.",
+      tags: ["streetwear", "hoodie", "sneakers"],
+      ctaLabel: "ASOS trending",
+      ctaUrl: "https://www.asos.com/women/trending-now/cat/?cid=51153"
     },
     {
       title: "Luxury resale momentum",
-      trend: "Verified pre-owned designer picks with price drops",
-      shopLabel: "Vestiaire Collective",
-      shopUrl: "https://www.vestiairecollective.com/women-bags/"
+      caption: "Verified pre-owned designer bags and accessories with sharper price discovery.",
+      tags: ["handbag", "luxury", "fashion"],
+      ctaLabel: "Vestiaire Collective",
+      ctaUrl: "https://www.vestiairecollective.com/women-bags/"
     },
     {
       title: "Sport fashion crossover",
-      trend: "Performance sneakers and athleisure sets",
-      shopLabel: "Nike New Releases",
-      shopUrl: "https://www.nike.com/w/new-3n82y"
+      caption: "Performance sneakers and athleisure sets blending gym tech with everyday fits.",
+      tags: ["sneakers", "sportswear", "athleisure"],
+      ctaLabel: "Nike new",
+      ctaUrl: "https://www.nike.com/w/new-3n82y"
     },
     {
-      title: "Beauty + style bundle trend",
-      trend: "Fragrance and skincare sets paired with outfits",
-      shopLabel: "Sephora New Arrivals",
-      shopUrl: "https://www.sephora.com/shop/new-arrivals"
+      title: "Beauty meets outfit",
+      caption: "Fragrance and skincare pairings shoppers bundle with statement outerwear.",
+      tags: ["beauty", "makeup", "fashion"],
+      ctaLabel: "Sephora new",
+      ctaUrl: "https://www.sephora.com/shop/new-arrivals"
+    },
+    {
+      title: "Denim + tailoring mix",
+      caption: "Wide-leg denim with sharp blazers — a high-signal office-to-street formula.",
+      tags: ["denim", "blazer", "streetwear"],
+      ctaLabel: "Zalando inspo",
+      ctaUrl: "https://www.zalando.co.uk/womens-clothing/"
+    },
+    {
+      title: "Minimal luxe layers",
+      caption: "Quiet luxury palettes: cashmere, tonal knits, and sculptural jewelry accents.",
+      tags: ["knitwear", "jewelry", "fashion"],
+      ctaLabel: "MR PORTER",
+      ctaUrl: "https://www.mrporter.com/en-gb/mens/clothing"
     }
   ];
+
   var grid = document.getElementById("hotPicksGrid");
   var status = document.getElementById("hotPicksStatus");
   if (!grid) {
     return;
   }
+
+  var trendTrack = document.getElementById("hotPicksAiTrendTrack");
+  var trendStatus = document.getElementById("hotPicksAiTrendStatus");
+  var trendStamp = document.getElementById("hotPicksAiTrendStamp");
+  var carouselTimer = null;
 
   function escapeHtml(v) {
     return String(v == null ? "" : v)
@@ -39,6 +65,158 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function pageLocale() {
+    try {
+      if (window.VibeCartPageI18n && typeof window.VibeCartPageI18n.getLang === "function") {
+        return String(window.VibeCartPageI18n.getLang() || "en").slice(0, 12);
+      }
+    } catch {
+      /* ignore */
+    }
+    return "en";
+  }
+
+  function flickrImageUrl(tags, idx) {
+    var clean = (Array.isArray(tags) ? tags : [])
+      .map(function (t) {
+        return String(t || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z]/g, "");
+      })
+      .filter(Boolean)
+      .slice(0, 3);
+    var path = clean.length ? clean.join(",") : "fashion,streetwear,style";
+    var lock = typeof idx === "number" ? idx : 0;
+    return "https://loremflickr.com/900/1200/" + path + "?lock=" + lock;
+  }
+
+  function callHotTrendsAi() {
+    var hint = String(Date.now());
+    var input = {
+      locale: pageLocale(),
+      monthHint: new Date().toISOString().slice(0, 7),
+      refreshHint: hint
+    };
+    if (typeof window.vibecartAiGenerate === "function") {
+      return window.vibecartAiGenerate("hot_picks_trends", input);
+    }
+    return Promise.reject(new Error("no_ai_client"));
+  }
+
+  function renderTrendSlides(slides) {
+    if (!trendTrack) {
+      return;
+    }
+    var list = Array.isArray(slides) && slides.length ? slides : FALLBACK_SLIDES;
+    trendTrack.innerHTML = list
+      .map(function (slide, idx) {
+        var title = String(slide.title || "Trend").trim();
+        var caption = String(slide.caption || slide.trend || "").trim();
+        var tags = Array.isArray(slide.tags) ? slide.tags : [];
+        var img = flickrImageUrl(tags, idx);
+        var cta = safeTarget(slide.ctaUrl || slide.shopUrl || "");
+        var ctaLabel = String(slide.ctaLabel || slide.shopLabel || "Shop").trim() || "Shop";
+        var ctaHtml = cta
+          ? '<a class="btn btn-primary" href="' +
+            escapeHtml(cta) +
+            '" target="_blank" rel="noopener noreferrer">' +
+            escapeHtml(ctaLabel) +
+            "</a>"
+          : '<span class="btn btn-secondary is-disabled">Link unavailable</span>';
+        return (
+          '<article class="vc-hot-ai-slide" role="listitem">' +
+          '<img src="' +
+          escapeHtml(img) +
+          '" alt="' +
+          escapeHtml(title) +
+          '" loading="lazy" />' +
+          '<div class="vc-hot-ai-slide__overlay">' +
+          "<h3>" +
+          escapeHtml(title) +
+          "</h3>" +
+          "<p>" +
+          escapeHtml(caption) +
+          "</p>" +
+          '<div class="vc-hot-ai-slide__actions">' +
+          ctaHtml +
+          "</div>" +
+          "</div>" +
+          "</article>"
+        );
+      })
+      .join("");
+    restartCarousel();
+  }
+
+  function restartCarousel() {
+    if (!trendTrack) {
+      return;
+    }
+    if (carouselTimer) {
+      clearInterval(carouselTimer);
+      carouselTimer = null;
+    }
+    var index = 0;
+    carouselTimer = window.setInterval(function () {
+      var slides = trendTrack.querySelectorAll(".vc-hot-ai-slide");
+      if (!slides.length) {
+        return;
+      }
+      index = (index + 1) % slides.length;
+      var el = slides[index];
+      try {
+        el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      } catch {
+        /* ignore */
+      }
+    }, CAROUSEL_STEP_MS);
+  }
+
+  async function refreshTrendEngine() {
+    if (!trendTrack) {
+      return;
+    }
+    if (trendStatus) {
+      trendStatus.textContent = "Trend engine: contacting generative AI…";
+    }
+    try {
+      var payload = await callHotTrendsAi();
+      var slides = payload && Array.isArray(payload.slides) ? payload.slides : [];
+      if (!slides.length) {
+        throw new Error("empty_slides");
+      }
+      renderTrendSlides(slides);
+      if (trendStamp) {
+        trendStamp.textContent = payload.generatedLabel || new Date().toISOString();
+      }
+      if (trendStatus) {
+        trendStatus.textContent =
+          "Trend engine: live refresh from OpenAI (" +
+          String((payload && payload.model) || "model") +
+          "). Images rotate from tag-driven photo search; next auto-refresh in ~12 min.";
+      }
+    } catch (error) {
+      renderTrendSlides(FALLBACK_SLIDES);
+      if (trendStamp) {
+        trendStamp.textContent = "Fallback deck";
+      }
+      if (trendStatus) {
+        trendStatus.textContent =
+          "Trend engine: AI unavailable (" +
+          String((error && error.message) || error || "error") +
+          "). Showing cached-style fallback slides; will retry on the next timer.";
+      }
+    }
+  }
+
+  function scheduleTrendEngine() {
+    refreshTrendEngine().catch(function () {});
+    window.setInterval(function () {
+      refreshTrendEngine().catch(function () {});
+    }, TREND_REFRESH_MS);
   }
 
   function laneFromQuery() {
@@ -91,7 +269,6 @@
       return "";
     }
     var value = raw;
-    // Accept partner feeds that send bare domains like "example.com/path".
     if (!/^https?:\/\//i.test(value) && /^[a-z0-9.-]+\.[a-z]{2,}(?:\/.*)?$/i.test(value)) {
       value = "https://" + value;
     }
@@ -139,43 +316,6 @@
     }
   }
 
-  function renderTrendSlides() {
-    var host = document.getElementById("hotPicksTrendSlides");
-    if (!host) {
-      host = document.createElement("section");
-      host.id = "hotPicksTrendSlides";
-      host.className = "section alt";
-      host.setAttribute("aria-label", "Trending fashion and styles");
-      host.innerHTML =
-        '<p class="badge">Trending now</p>' +
-        "<h2>Biggest deals and style trends</h2>" +
-        '<p class="note">Tap a trend to open the legit shop trend page directly.</p>' +
-        '<div class="vc-story-rail" id="hotTrendRail"></div>';
-      if (grid && grid.parentNode) {
-        grid.parentNode.insertBefore(host, grid);
-      }
-    }
-    var rail = document.getElementById("hotTrendRail");
-    if (!rail) return;
-    rail.innerHTML = TREND_SLIDES.map(function (slide) {
-      var url = safeTarget(slide.shopUrl || "");
-      return (
-        '<a class="card" style="min-width:min(82vw,320px);text-decoration:none" href="' +
-        escapeHtml(url || "#") +
-        '" target="_blank" rel="noopener noreferrer">' +
-        "<h3>" +
-        escapeHtml(slide.title) +
-        "</h3>" +
-        '<p class="note">' +
-        escapeHtml(slide.trend) +
-        "</p>" +
-        '<p class="hero-actions"><span class="btn btn-secondary">' +
-        escapeHtml(slide.shopLabel) +
-        "</span></p>" +
-        "</a>"
-      );
-    }).join("");
-  }
   function isCommissionTrackedUrl(url) {
     try {
       var parsed = new URL(String(url || ""));
@@ -193,7 +333,6 @@
   function offerHref(p) {
     var item = String(p.name || p.title || "Marketplace item");
     var cat = productCategory(p) || "All";
-    var id = String(p.id || p.productId || "").trim();
     var target = pickTargetUrl(p);
     if (target) {
       return (
@@ -286,58 +425,6 @@
     });
   }
 
-  function readIntentMemory() {
-    function local(key) {
-      try {
-        return String(localStorage.getItem(key) || "").trim().toLowerCase();
-      } catch {
-        return "";
-      }
-    }
-    return {
-      category: local("vibecart-home-lite-category"),
-      partner: local("vibecart-home-lite-preferred-partner")
-    };
-  }
-
-  function scorePick(p) {
-    var mem = readIntentMemory();
-    var category = productCategory(p).toLowerCase();
-    var title = String(p.name || p.title || "").toLowerCase();
-    var target = pickTargetUrl(p).toLowerCase();
-    var trust = isCommissionTrackedUrl(target) ? 5 : 3;
-    var preference = 0;
-    if (mem.category && category.indexOf(mem.category) >= 0) preference += 4;
-    if (mem.partner && (title.indexOf(mem.partner) >= 0 || target.indexOf(mem.partner) >= 0)) preference += 5;
-    var urgency = /deal|sale|flash|special|today|limited/.test(title + " " + target) ? 3 : 1;
-    return trust * 4 + preference * 3 + urgency;
-  }
-
-  function rankPicks(rows) {
-    return rows.slice().sort(function (a, b) {
-      var sa = scorePick(a);
-      var sb = scorePick(b);
-      if (sb !== sa) return sb - sa;
-      return String(a.name || a.title || "").localeCompare(String(b.name || b.title || ""));
-    });
-  }
-
-  function paintFirstWinStatus(items) {
-    if (!status) return;
-    var mem = readIntentMemory();
-    var msg = mem.category || mem.partner
-      ? "Showing intent-ranked hot picks for your saved route."
-      : "Showing live hot picks ranked by trust and checkout clarity.";
-    status.textContent = msg + " First-win target: open one trusted source in under 60 seconds.";
-    if (items && items[0]) {
-      try {
-        localStorage.setItem("vibecart-first-win-top-pick-v1", String(items[0].name || items[0].title || "").slice(0, 120));
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-
   function normalizePayload(body) {
     if (!body) return [];
     if (Array.isArray(body)) return body;
@@ -349,7 +436,7 @@
 
   async function boot() {
     var lane = laneFromQuery().toLowerCase();
-    renderTrendSlides();
+    scheduleTrendEngine();
     try {
       var fromCountry = inferCountryCode();
 
@@ -362,8 +449,6 @@
       var body = await response.json();
       var all = normalizePayload(body);
 
-      // Local (device-only) seller publish support:
-      // sellers store a draft into localStorage; reflect it in the feed immediately.
       try {
         var rawLocal = localStorage.getItem("vibecart-seller-live-listing");
         var localListing = rawLocal ? JSON.parse(rawLocal) : null;
@@ -395,14 +480,18 @@
           return productCategory(p).toLowerCase() === lane;
         });
       }
-      var top = rankPicks(filtered).slice(0, 12);
+      var top = filtered.slice(0, 12);
       if (!top.length) {
         if (status) {
           status.textContent = "No live picks available right now for this lane.";
         }
         return;
       }
-      paintFirstWinStatus(top);
+      if (status) {
+        status.textContent = lane
+          ? "Showing live " + lane + " picks."
+          : "Showing live hot picks right now.";
+      }
       render(top);
     } catch {
       if (status) {

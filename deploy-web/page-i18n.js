@@ -19,7 +19,8 @@
       "regional.global.desc": "Worldwide megamalls and marketplaces.",
       "regional.live.desc": "Jump straight into Hot Picks with a guided buy lane.",
       "hot.title": "Hot picks",
-      "hot.intro": "Open live listings and buy without breaking your flow.",
+      "hot.intro":
+        "Live offers load from the marketplace feed below. Above them, a generative AI trend engine refreshes fashion slides on a timer (OpenAI on the server when configured).",
       "hot.stepBuy": "Step-by-step buy",
       "hot.openLive": "Open live marketplace",
       "hot.browse": "Browse regional lanes",
@@ -56,6 +57,10 @@
       "hot.edge.c3h": "Coach-aware app shell",
       "hot.edge.c3p": "Native dock + VibeCoach keep intent aligned while you move between lanes.",
       "hot.edge.c3cta": "Health coach lane",
+      "hot.ai.badge": "Live trend engine",
+      "hot.ai.title": "Trending fashion & style — AI-refreshed",
+      "hot.ai.lead":
+        "The carousel auto-advances. The deck is rebuilt on a schedule from the same generative stack as VibeCoach — not a static marketing strip.",
       "account.edge.badge": "Hub lane",
       "account.edge.title": "Identity, safety, and follow-through in one spine",
       "account.edge.lead":
