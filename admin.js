@@ -2732,6 +2732,70 @@ async function refreshPublicUserStats() {
   }
 }
 
+function renderAnalyticsRows(containerId, rows, formatter) {
+  const el = document.getElementById(containerId);
+  if (!el) {
+    return;
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    el.innerHTML = "<div class='msg msg-buyer'>No rows yet.</div>";
+    return;
+  }
+  el.innerHTML = rows
+    .map((row) => {
+      const line = formatter(row);
+      return `<div class='msg msg-buyer'>${line}</div>`;
+    })
+    .join("");
+}
+
+async function refreshAnalyticsOverview() {
+  const payload = await authedPost("/api/owner/analytics/overview", {});
+  const v = payload.visits || {};
+  const a = payload.accounts || {};
+  const setText = (id, val) => {
+    const node = document.getElementById(id);
+    if (node) {
+      node.textContent = String(val ?? "—");
+    }
+  };
+  setText("analyticsVisits7d", v.last7Days);
+  setText("analyticsVisits30d", v.last30Days);
+  setText("analyticsUnique7d", v.uniqueVisitorsApprox7d);
+  setText("analyticsUnique30d", v.uniqueVisitorsApprox30d);
+  setText("analyticsAccountsTotal", a.total);
+  const totalEl = document.getElementById("kpiPublicUsersTotal");
+  const subEl = document.getElementById("kpiPublicUsersBreakdown");
+  if (totalEl) {
+    totalEl.textContent = String(a.total ?? 0);
+  }
+  if (subEl) {
+    subEl.textContent =
+      `~${a.passportApprox ?? 0} non-quick · ${a.buyers ?? 0} buyers · ${a.sellers ?? 0} sellers · ${a.quickCheckoutSessions ?? 0} quick-checkout`;
+  }
+  renderAnalyticsRows("analyticsVisitsByCountry", payload.visitsByCountry || [], (row) => {
+    const code = String(row.countryCode || "UNKNOWN");
+    return `${code}: ${row.visits} page views`;
+  });
+  renderAnalyticsRows("analyticsVisitsByRegion", payload.visitsByRegion || [], (row) => {
+    const key = String(row.regionKey || "UNKNOWN");
+    return `${key}: ${row.visits} page views`;
+  });
+  renderAnalyticsRows("analyticsAccountsByCountry", payload.accountsByCountry || [], (row) => {
+    const code = String(row.countryCode || "");
+    return `${code}: ${row.count} accounts`;
+  });
+  const meta = document.getElementById("analyticsDashboardMeta");
+  if (meta && Array.isArray(payload.notes)) {
+    const extra = payload.notes.map((n) => String(n || "").trim()).filter(Boolean);
+    if (extra.length) {
+      meta.innerHTML =
+        "Page views are recorded when public pages call <code>/api/public/analytics/visit</code>. Country uses CDN geo headers when available; otherwise UNKNOWN. Unique visitors use a salted daily fingerprint. Backend notes:<br />" +
+        extra.map((line) => `<span class='note'>${line}</span>`).join("<br />");
+    }
+  }
+}
+
 async function requestOwnerPayoutFromPanel() {
   const amount = Number(document.getElementById("ownerPayoutAmount")?.value || "0");
   const destinationLabel = String(document.getElementById("ownerPayoutDestination")?.value || "").trim();
@@ -3205,6 +3269,7 @@ async function unlockPanelInner() {
   refreshMoneyDashboard();
   runPartnerSecurityCheck();
   softRefresh(refreshPublicUserStats, "Public user stats").catch(() => {});
+  softRefresh(refreshAnalyticsOverview, "Traffic analytics").catch(() => {});
   softRefresh(refreshAiOps, "AI operations").catch(() => {});
 }
 
@@ -3516,6 +3581,7 @@ function initializeOwnerSecurity() {
     refreshCoachMetrics().catch(() => {});
     refreshOwnerRevenueDashboard().catch(() => {});
     refreshPublicUserStats().catch(() => {});
+    refreshAnalyticsOverview().catch(() => {});
     if (localStorage.getItem(LIVE_MONEY_DASHBOARD_KEY) === "1") {
       startLiveMoneyDashboard();
     }
@@ -3837,6 +3903,8 @@ const clickHandlers = {
   exportAffiliateReportJson: () => exportAffiliateReportJson(),
   refreshPublicUserStats: () =>
     refreshPublicUserStats().catch((error) => setStatus(`Account counts refresh failed: ${error.message}`)),
+  refreshAnalyticsOverview: () =>
+    refreshAnalyticsOverview().catch((error) => setStatus(`Analytics refresh failed: ${error.message}`)),
   requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),
   updateOwnerPayoutStatus: () =>
     updateOwnerPayoutStatusFromPanel().catch((error) => setStatus(`Payout status update failed: ${error.message}`))

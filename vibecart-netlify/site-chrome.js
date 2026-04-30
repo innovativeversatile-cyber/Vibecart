@@ -525,3 +525,28 @@
   initLuxeScore();
   initExperienceConsole(sceneDirector);
 })();
+
+(function scheduleVcAnalyticsVisit() {
+  if (typeof window === "undefined" || window.__vcAnalyticsVisitScheduled === "1") {
+    return;
+  }
+  window.__vcAnalyticsVisitScheduled = "1";
+  var src = "./analytics-visit.js?v=20260501visit1";
+  function inject() {
+    if (window.__vcAnalyticsVisitLoaded === "1") {
+      return;
+    }
+    var s = document.createElement("script");
+    s.src = src;
+    s.defer = true;
+    s.onload = function () {
+      window.__vcAnalyticsVisitLoaded = "1";
+    };
+    (document.head || document.documentElement).appendChild(s);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
+})();

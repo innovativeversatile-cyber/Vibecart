@@ -111,6 +111,7 @@ const {
   getAiReadinessStatus
 } = require("./ai-operations-service");
 const { runPublicGenerativeAgent, runOwnerGenerativeAgent } = require("./generative-ai-service");
+const { getMacroRegionFromCountry } = require("./analytics-region-map");
 const {
   createStripePaymentIntent,
   persistWebhookEvent,
@@ -126,6 +127,7 @@ const DB_USER = _db.user;
 const DB_PASSWORD = _db.password;
 const DB_NAME = _db.database;
 const CRON_SECRET = String(process.env.CRON_SECRET || "");
+const ANALYTICS_VISITOR_SALT = String(process.env.ANALYTICS_VISITOR_SALT || CRON_SECRET || "vibecart-analytics-salt-dev").trim();
 const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "").trim().toLowerCase();
 const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
 const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
@@ -208,6 +210,7 @@ const pool = mysql.createPool({
 });
 
 const ipHits = new Map();
+const analyticsVisitHits = new Map();
 const loginHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 /** Mutating requests only (GET/HEAD/OPTIONS are not counted). */
@@ -2460,6 +2463,203 @@ async function handleOwnerCoachMetrics(req, res) {
   return sendJson(res, 200, result);
 }
 
+const ANALYTICS_RATE_WINDOW_MS = 60 * 1000;
+const ANALYTICS_RATE_MAX = 180;
+
+function isAnalyticsVisitRateLimited(ip) {
+  const key = String(ip || "unknown").slice(0, 80);
+  const now = Date.now();
+  const item = analyticsVisitHits.get(key) || { count: 0, start: now };
+  if (now - item.start > ANALYTICS_RATE_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  analyticsVisitHits.set(key, item);
+  return item.count > ANALYTICS_RATE_MAX;
+}
+
+async function ensureSiteAnalyticsVisitsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS site_analytics_visits (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      path VARCHAR(512) NOT NULL,
+      referrer VARCHAR(512) NULL,
+      country_code CHAR(2) NULL,
+      region_key VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN',
+      visitor_day_hash CHAR(64) NOT NULL,
+      ip_hash CHAR(64) NOT NULL,
+      user_agent_hash CHAR(64) NOT NULL,
+      INDEX idx_sav_created (created_at),
+      INDEX idx_sav_country_created (country_code, created_at),
+      INDEX idx_sav_region_created (region_key, created_at),
+      INDEX idx_sav_visitor_day (visitor_day_hash, created_at)
+    )`
+  );
+}
+
+function getGeoCountryFromHeaders(req) {
+  const h = req.headers || {};
+  const candidates = [
+    String(h["cf-ipcountry"] || "").trim(),
+    String(h["CF-IPCountry"] || "").trim(),
+    String(h["x-vercel-ip-country"] || "").trim(),
+    String(h["X-Vercel-IP-Country"] || "").trim(),
+    String(h["x-nf-country"] || "").trim(),
+    String(h["X-NF-Country"] || "").trim(),
+    String(h["x-appengine-country"] || "").trim(),
+    String(h["X-AppEngine-Country"] || "").trim(),
+    String(h["cloudfront-viewer-country"] || "").trim(),
+    String(h["CloudFront-Viewer-Country"] || "").trim()
+  ];
+  for (const raw of candidates) {
+    const v = String(raw || "")
+      .trim()
+      .toUpperCase();
+    if (v.length === 2 && /^[A-Z]{2}$/.test(v) && v !== "XX" && v !== "T1") {
+      return v;
+    }
+  }
+  return null;
+}
+
+async function handlePublicAnalyticsVisit(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const ip = getIp(req);
+  if (isAnalyticsVisitRateLimited(ip)) {
+    return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
+  }
+  let body = {};
+  try {
+    body = (await readJson(req)) || {};
+  } catch {
+    body = {};
+  }
+  const path = String(body.path || "/").slice(0, 512);
+  const referrer = String(body.referrer || "").slice(0, 512);
+  const ua = String(req.headers["user-agent"] || "").slice(0, 512);
+  const dayUtc = new Date().toISOString().slice(0, 10);
+  const visitorDayHash = crypto
+    .createHash("sha256")
+    .update(`${ANALYTICS_VISITOR_SALT}|${ip}|${ua}|${dayUtc}`, "utf8")
+    .digest("hex");
+  const ipHash = crypto.createHash("sha256").update(`${ANALYTICS_VISITOR_SALT}|${ip}`, "utf8").digest("hex");
+  const uaHash = crypto.createHash("sha256").update(`${ANALYTICS_VISITOR_SALT}|${ua}`, "utf8").digest("hex");
+  const countryCode = getGeoCountryFromHeaders(req);
+  const regionKey = getMacroRegionFromCountry(countryCode);
+  try {
+    await ensureSiteAnalyticsVisitsTable();
+    await pool.execute(
+      `INSERT INTO site_analytics_visits (path, referrer, country_code, region_key, visitor_day_hash, ip_hash, user_agent_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [path, referrer || null, countryCode, regionKey, visitorDayHash, ipHash, uaHash]
+    );
+    return sendJson(res, 200, { ok: true });
+  } catch {
+    return sendJson(res, 200, { ok: true, note: "visit_accepted_but_db_unavailable" });
+  }
+}
+
+async function handleOwnerAnalyticsOverview(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  try {
+    await ensureSiteAnalyticsVisitsTable();
+    const [allTimeR] = await pool.execute(`SELECT COUNT(*) AS n FROM site_analytics_visits`);
+    const [d7R] = await pool.execute(
+      `SELECT COUNT(*) AS n FROM site_analytics_visits WHERE created_at >= (NOW() - INTERVAL 7 DAY)`
+    );
+    const [d30R] = await pool.execute(
+      `SELECT COUNT(*) AS n FROM site_analytics_visits WHERE created_at >= (NOW() - INTERVAL 30 DAY)`
+    );
+    const [uniq7R] = await pool.execute(
+      `SELECT COUNT(DISTINCT visitor_day_hash) AS n FROM site_analytics_visits WHERE created_at >= (NOW() - INTERVAL 7 DAY)`
+    );
+    const [uniq30R] = await pool.execute(
+      `SELECT COUNT(DISTINCT visitor_day_hash) AS n FROM site_analytics_visits WHERE created_at >= (NOW() - INTERVAL 30 DAY)`
+    );
+    const allTimeRow = allTimeR[0];
+    const d7Row = d7R[0];
+    const d30Row = d30R[0];
+    const uniq7Row = uniq7R[0];
+    const uniq30Row = uniq30R[0];
+    const [countryVisitRows] = await pool.execute(
+      `SELECT UPPER(country_code) AS country_code, COUNT(*) AS visits
+       FROM site_analytics_visits
+       WHERE created_at >= (NOW() - INTERVAL 30 DAY)
+       GROUP BY country_code
+       ORDER BY visits DESC
+       LIMIT 60`
+    );
+    const [regionVisitRows] = await pool.execute(
+      `SELECT region_key, COUNT(*) AS visits
+       FROM site_analytics_visits
+       WHERE created_at >= (NOW() - INTERVAL 30 DAY)
+       GROUP BY region_key
+       ORDER BY visits DESC
+       LIMIT 20`
+    );
+    const [totalRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users`);
+    const [buyerRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users WHERE LOWER(role) = 'buyer'`);
+    const [sellerRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users WHERE LOWER(role) = 'seller'`);
+    const [quickRows] = await pool.execute(`SELECT COUNT(*) AS n FROM users WHERE email LIKE ?`, ["quickbuyer%@vibecart.local"]);
+    const [accountCountryRows] = await pool.execute(
+      `SELECT UPPER(country_code) AS country_code, COUNT(*) AS n
+       FROM users
+       GROUP BY country_code
+       ORDER BY n DESC
+       LIMIT 60`
+    );
+    const total = Number(totalRows[0]?.n || 0);
+    const buyers = Number(buyerRows[0]?.n || 0);
+    const sellers = Number(sellerRows[0]?.n || 0);
+    const quickCheckoutSessions = Number(quickRows[0]?.n || 0);
+    const passportApprox = Math.max(0, total - quickCheckoutSessions);
+    return sendJson(res, 200, {
+      ok: true,
+      generatedAt: new Date().toISOString(),
+      visits: {
+        allTime: Number(allTimeRow[0]?.n || 0),
+        last7Days: Number(d7Row[0]?.n || 0),
+        last30Days: Number(d30Row[0]?.n || 0),
+        uniqueVisitorsApprox7d: Number(uniq7Row[0]?.n || 0),
+        uniqueVisitorsApprox30d: Number(uniq30Row[0]?.n || 0)
+      },
+      visitsByCountry: (countryVisitRows || []).map((row) => ({
+        countryCode: row.country_code ? String(row.country_code) : "UNKNOWN",
+        visits: Number(row.visits || 0)
+      })),
+      visitsByRegion: (regionVisitRows || []).map((row) => ({
+        regionKey: String(row.region_key || "UNKNOWN"),
+        visits: Number(row.visits || 0)
+      })),
+      accounts: {
+        total,
+        buyers,
+        sellers,
+        quickCheckoutSessions,
+        passportApprox
+      },
+      accountsByCountry: (accountCountryRows || []).map((row) => ({
+        countryCode: String(row.country_code || "").toUpperCase(),
+        count: Number(row.n || 0)
+      })),
+      notes: [
+        "Visit counts are stored in MySQL (site_analytics_visits) from POST /api/public/analytics/visit.",
+        "Country for visits uses CDN/proxy geo headers (e.g. CF-IPCountry, x-nf-country) when present; otherwise UNKNOWN.",
+        "Unique visitors are approximated as COUNT(DISTINCT visitor_day_hash) per rolling window (salted IP+UA+UTC day)."
+      ]
+    });
+  } catch (error) {
+    return sendJson(res, 500, { ok: false, code: "ANALYTICS_OVERVIEW_FAILED", message: String(error.message || error) });
+  }
+}
+
 async function handleOwnerPublicUserStats(req, res) {
   const data = await readBodyWithSession(req, res);
   if (!data) {
@@ -3730,11 +3930,12 @@ const server = http.createServer(async (req, res) => {
     const ip = getIp(req);
     const isStripeWebhook = req.method === "POST" && pathname === "/api/public/payments/webhook/stripe";
     const isLogoEmailRoute = req.method === "POST" && pathname === "/api/public/brand/email-logo";
+    const isPublicAnalyticsVisit = req.method === "POST" && pathname === "/api/public/analytics/visit";
     if (isLogoEmailRoute) {
       if (isLogoEmailIpLimited(ip)) {
         return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
       }
-    } else if (!isStripeWebhook && isRateLimited(ip, req.method)) {
+    } else if (!isStripeWebhook && !isPublicAnalyticsVisit && isRateLimited(ip, req.method)) {
       return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
     }
 
@@ -3779,6 +3980,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/disclaimer/accept") {
       return await handlePublicDisclaimerAccept(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/analytics/visit") {
+      return await handlePublicAnalyticsVisit(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/mobile/push/register") {
       return await handlePublicMobilePushRegister(req, res);
@@ -3936,6 +4140,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/public-users/stats") {
       return await handleOwnerPublicUserStats(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/analytics/overview") {
+      return await handleOwnerAnalyticsOverview(req, res);
     }
     if (req.method === "POST" && pathname === "/api/owner/messages/list") {
       return await handleOwnerMessageCenterList(req, res);

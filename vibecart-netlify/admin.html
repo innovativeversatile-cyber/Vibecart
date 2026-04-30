@@ -95,6 +95,53 @@
             </button>
           </article>
         </div>
+        <section class="section alt" id="analyticsDashboardSection">
+          <h2>Traffic &amp; registrations (MySQL)</h2>
+          <p class="note" id="analyticsDashboardMeta">
+            Page views are recorded when public pages call <code>/api/public/analytics/visit</code>. Country uses CDN geo
+            headers (for example <code>CF-IPCountry</code> or <code>x-nf-country</code>) when available; otherwise it shows as
+            UNKNOWN. Unique visitors are approximated from a salted daily fingerprint (not raw IP in the dashboard).
+          </p>
+          <div class="command-deck">
+            <article class="command-card">
+              <p class="note">Page views (7d)</p>
+              <h3 id="analyticsVisits7d">—</h3>
+            </article>
+            <article class="command-card">
+              <p class="note">Page views (30d)</p>
+              <h3 id="analyticsVisits30d">—</h3>
+            </article>
+            <article class="command-card">
+              <p class="note">Unique visitors ≈ (7d)</p>
+              <h3 id="analyticsUnique7d">—</h3>
+            </article>
+            <article class="command-card">
+              <p class="note">Unique visitors ≈ (30d)</p>
+              <h3 id="analyticsUnique30d">—</h3>
+            </article>
+            <article class="command-card">
+              <p class="note">Registered accounts</p>
+              <h3 id="analyticsAccountsTotal">—</h3>
+            </article>
+          </div>
+          <div class="hero-actions">
+            <button type="button" id="refreshAnalyticsOverview" class="btn btn-secondary">Refresh traffic + accounts</button>
+          </div>
+          <div class="admin-grid" style="margin-top: 1rem">
+            <div>
+              <h3>Visits by country (30d)</h3>
+              <div id="analyticsVisitsByCountry" class="messages-box"></div>
+            </div>
+            <div>
+              <h3>Visits by macro-region (30d)</h3>
+              <div id="analyticsVisitsByRegion" class="messages-box"></div>
+            </div>
+            <div>
+              <h3>Accounts by country (all time)</h3>
+              <div id="analyticsAccountsByCountry" class="messages-box"></div>
+            </div>
+          </div>
+        </section>
         <div class="pulse-feed-wrap">
           <p class="note">Live Pulse</p>
           <div id="pulseFeed" class="pulse-feed"></div>

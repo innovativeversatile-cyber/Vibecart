@@ -1,0 +1,228 @@
+"use strict";
+
+const EUROPE = new Set([
+  "AD",
+  "AL",
+  "AT",
+  "BA",
+  "BE",
+  "BG",
+  "BY",
+  "CH",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "EE",
+  "ES",
+  "FI",
+  "FR",
+  "GB",
+  "GG",
+  "GI",
+  "GR",
+  "HR",
+  "HU",
+  "IE",
+  "IM",
+  "IS",
+  "IT",
+  "JE",
+  "LI",
+  "LT",
+  "LU",
+  "LV",
+  "MC",
+  "MD",
+  "ME",
+  "MK",
+  "MT",
+  "NL",
+  "NO",
+  "PL",
+  "PT",
+  "RO",
+  "RS",
+  "RU",
+  "SE",
+  "SI",
+  "SK",
+  "SM",
+  "UA",
+  "VA",
+  "XK"
+]);
+
+const AMERICAS = new Set([
+  "AR",
+  "BB",
+  "BO",
+  "BR",
+  "BS",
+  "BZ",
+  "CA",
+  "CL",
+  "CO",
+  "CR",
+  "CU",
+  "DM",
+  "DO",
+  "EC",
+  "FK",
+  "GF",
+  "GD",
+  "GT",
+  "GY",
+  "HN",
+  "HT",
+  "JM",
+  "KN",
+  "LC",
+  "MX",
+  "NI",
+  "PA",
+  "PE",
+  "PR",
+  "PY",
+  "SR",
+  "SV",
+  "TT",
+  "US",
+  "UY",
+  "VC",
+  "VE",
+  "VI"
+]);
+
+const MENA = new Set(["AE", "BH", "DJ", "DZ", "EG", "ER", "IL", "IQ", "IR", "JO", "KW", "LB", "LY", "MA", "MR", "OM", "PS", "QA", "SA", "SD", "SO", "SS", "SY", "TN", "TR", "YE"]);
+
+const OCEANIA = new Set([
+  "AS",
+  "AU",
+  "CK",
+  "FJ",
+  "FM",
+  "GU",
+  "KI",
+  "MH",
+  "MP",
+  "NC",
+  "NR",
+  "NU",
+  "NZ",
+  "PF",
+  "PG",
+  "PW",
+  "SB",
+  "TK",
+  "TO",
+  "TV",
+  "VU",
+  "WF",
+  "WS"
+]);
+
+const ASIA_PACIFIC = new Set([
+  "AF",
+  "BD",
+  "BN",
+  "BT",
+  "CC",
+  "CN",
+  "CX",
+  "HK",
+  "ID",
+  "IN",
+  "JP",
+  "KG",
+  "KH",
+  "KR",
+  "KZ",
+  "LA",
+  "LK",
+  "MM",
+  "MN",
+  "MO",
+  "MV",
+  "MY",
+  "NP",
+  "PH",
+  "PK",
+  "SG",
+  "TH",
+  "TJ",
+  "TL",
+  "TM",
+  "TW",
+  "UZ",
+  "VN"
+]);
+
+const AFRICA = new Set([
+  "AO",
+  "BF",
+  "BI",
+  "BJ",
+  "BW",
+  "CD",
+  "CF",
+  "CG",
+  "CI",
+  "CM",
+  "CV",
+  "ET",
+  "GA",
+  "GH",
+  "GM",
+  "GN",
+  "GQ",
+  "GW",
+  "KE",
+  "KM",
+  "LR",
+  "LS",
+  "MG",
+  "ML",
+  "MU",
+  "MW",
+  "MZ",
+  "NA",
+  "NE",
+  "NG",
+  "RE",
+  "RW",
+  "SC",
+  "SL",
+  "SN",
+  "ST",
+  "SZ",
+  "TD",
+  "TG",
+  "TZ",
+  "UG",
+  "YT",
+  "ZA",
+  "ZM",
+  "ZW"
+]);
+
+/**
+ * @param {string|null|undefined} countryCode ISO 3166-1 alpha-2
+ * @returns {string}
+ */
+function getMacroRegionFromCountry(countryCode) {
+  const cc = String(countryCode || "")
+    .trim()
+    .toUpperCase();
+  if (!cc || cc.length !== 2) return "UNKNOWN";
+  if (cc === "XX" || cc === "T1") return "UNKNOWN";
+  if (EUROPE.has(cc)) return "EUROPE";
+  if (AMERICAS.has(cc)) return "AMERICAS";
+  if (MENA.has(cc)) return "MENA";
+  if (OCEANIA.has(cc)) return "OCEANIA";
+  if (ASIA_PACIFIC.has(cc)) return "ASIA_PACIFIC";
+  if (AFRICA.has(cc)) return "AFRICA";
+  return "UNKNOWN";
+}
+
+module.exports = { getMacroRegionFromCountry };

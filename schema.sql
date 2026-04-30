@@ -1176,6 +1176,22 @@ ALTER TABLE compliance_checks
   ADD CONSTRAINT fk_compliance_product
   FOREIGN KEY (product_id) REFERENCES products(id);
 
+CREATE TABLE IF NOT EXISTS site_analytics_visits (
+  id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  path VARCHAR(512) NOT NULL,
+  referrer VARCHAR(512) NULL,
+  country_code CHAR(2) NULL,
+  region_key VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN',
+  visitor_day_hash CHAR(64) NOT NULL,
+  ip_hash CHAR(64) NOT NULL,
+  user_agent_hash CHAR(64) NOT NULL,
+  INDEX idx_sav_created (created_at),
+  INDEX idx_sav_country_created (country_code, created_at),
+  INDEX idx_sav_region_created (region_key, created_at),
+  INDEX idx_sav_visitor_day (visitor_day_hash, created_at)
+);
+
 INSERT INTO categories (name) VALUES
 ('Electronics'),
 ('Fashion'),
