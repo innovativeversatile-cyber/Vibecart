@@ -5923,7 +5923,7 @@ html.vc-mobile-focus #settings-hub {
 /* Phone app hard-pass: keep streak chip away from topbar Find controls. */
 html.vc-mobile-app .vc-mobile-streak-chip,
 html.vc-phone .vc-mobile-streak-chip {
-  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 34px);
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 78px);
   right: 8px;
   left: auto;
   z-index: 90;
