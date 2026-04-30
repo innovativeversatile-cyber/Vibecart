@@ -2208,18 +2208,13 @@
     var channel = document.getElementById("sgChannel");
     var owner = document.getElementById("sgOwnerName");
 
-    runBtn.addEventListener("click", function () {
-      var sellerAck = document.getElementById("sellerFlowDisclaimerAck");
-      if (sellerAck && !sellerAck.checked) {
-        out.textContent = "Please accept the Start Selling disclaimer before generating the plan.";
-        return;
-      }
+    function renderSellerGrowthFallback() {
       var n = String((niche && niche.value) || "general goods").trim();
       var r = String((region && region.value) || "core region").trim();
       var c = String((channel && channel.value) || "mixed").trim();
       var o = String((owner && owner.value) || "Owner").trim();
       out.innerHTML =
-        "<strong>VibeAI Growth Plan (premium mode)</strong>" +
+        "<strong>VibeAI Growth Plan</strong>" +
         "<p>1) " +
         o +
         ": recruit 3 micro-sellers in " +
@@ -2230,7 +2225,64 @@
         "<p>2) Use " +
         c +
         " outreach daily and run one trust-proof content drop every 72 hours.</p>" +
-        "<p>3) Convert at least 2 sellers/week into listing-health-complete status before scaling ad spend.</p>";
+        "<p>3) Convert at least 2 sellers/week into listing-health-complete status before scaling ad spend.</p>" +
+        "<p class='note'>Offline template — set OPENAI_API_KEY on Railway for a live generative plan.</p>";
+    }
+
+    runBtn.addEventListener("click", function () {
+      var sellerAck = document.getElementById("sellerFlowDisclaimerAck");
+      if (sellerAck && !sellerAck.checked) {
+        out.textContent = "Please accept the Start Selling disclaimer before generating the plan.";
+        return;
+      }
+      var n = String((niche && niche.value) || "general goods").trim();
+      var r = String((region && region.value) || "core region").trim();
+      var c = String((channel && channel.value) || "mixed").trim();
+      var o = String((owner && owner.value) || "Owner").trim();
+      if (typeof window.vibecartAiGenerate === "function") {
+        window
+          .vibecartAiGenerate("seller_growth_plan", {
+            niche: n,
+            region: r,
+            channel: c,
+            ownerName: o
+          })
+          .then(function (res) {
+            if (!out) {
+              return;
+            }
+            if (res && Array.isArray(res.steps) && res.steps.length) {
+              out.replaceChildren();
+              var wrap = document.createElement("div");
+              var title = document.createElement("strong");
+              title.textContent = res.title || "VibeAI growth plan";
+              wrap.appendChild(title);
+              res.steps.forEach(function (step) {
+                var p = document.createElement("p");
+                p.textContent = String(step || "");
+                wrap.appendChild(p);
+              });
+              if (res.caution) {
+                var note = document.createElement("p");
+                note.className = "note";
+                note.textContent = String(res.caution);
+                wrap.appendChild(note);
+              }
+              var tag = document.createElement("p");
+              tag.className = "note";
+              tag.textContent = "Generative AI — verify facts before outreach.";
+              wrap.appendChild(tag);
+              out.appendChild(wrap);
+              return;
+            }
+            renderSellerGrowthFallback();
+          })
+          .catch(function () {
+            renderSellerGrowthFallback();
+          });
+        return;
+      }
+      renderSellerGrowthFallback();
     });
   }
 
@@ -2789,6 +2841,72 @@
     }, true);
   }
 
+  function initUnbreakableCoreLoopLite() {
+    var hero = document.querySelector(".hero-copy");
+    if (!hero || document.getElementById("vcCoreLoopCard")) return;
+    var card = document.createElement("section");
+    card.id = "vcCoreLoopCard";
+    card.className = "card";
+    card.style.marginTop = "0.75rem";
+    card.innerHTML =
+      "<p class='badge'>Unbreakable core loop</p>" +
+      "<h3 style='margin:.25rem 0 .4rem'>Intent -> trusted match -> protected checkout</h3>" +
+      "<p class='note'>The fastest safe-buy path is now the default: pick intent, open ranked trusted shop, complete with protection context.</p>" +
+      "<div class='hero-actions'>" +
+      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Start 60-second loop</a>" +
+      "<a class='btn btn-secondary' href='./security-overview.html'>Protection overview</a>" +
+      "</div>";
+    hero.appendChild(card);
+  }
+
+  function initTrustMoatLite() {
+    var host = document.getElementById("vcHeroTrustPulse");
+    if (!host || document.getElementById("vcTrustMoatLine")) return;
+    var line = document.createElement("p");
+    line.id = "vcTrustMoatLine";
+    line.className = "note";
+    line.textContent = "Trust moat live: verified lanes, risk acknowledgement, and direct-source checkout links.";
+    host.insertAdjacentElement("afterend", line);
+  }
+
+  function initWowPathLite() {
+    var key = "vibecart-wow-path-v1";
+    if (document.getElementById("vcWowPathBtn")) return;
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcWowPathBtn";
+    btn.className = "vc-vibe-mode-btn";
+    function read() {
+      try {
+        return localStorage.getItem(key) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function write(on) {
+      try {
+        localStorage.setItem(key, on ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function paint() {
+      var on = read();
+      document.documentElement.classList.toggle("vc-wow-path-on", on);
+      btn.textContent = on ? "Wow path on" : "Wow path";
+      btn.classList.toggle("is-on", on);
+    }
+    btn.addEventListener("click", function () {
+      var next = !read();
+      write(next);
+      paint();
+    });
+    nav.appendChild(btn);
+    paint();
+  }
+
   function initNavAutoHideLite() {
     var nav = document.getElementById("siteTopbar") || document.querySelector(".topbar");
     if (!nav) return;
@@ -2988,6 +3106,9 @@
     if (featureOn("hardPass_checkoutResilience_v1")) safeInit("initHardPassCheckoutResilienceLite", initHardPassCheckoutResilienceLite);
     if (featureOn("hardPass_publishPreflight_v1")) safeInit("initHardPassPublishPreflightLite", initHardPassPublishPreflightLite);
     if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassMissionJourneyLite", initHardPassMissionJourneyLite);
+    safeInit("initUnbreakableCoreLoopLite", initUnbreakableCoreLoopLite);
+    safeInit("initTrustMoatLite", initTrustMoatLite);
+    safeInit("initWowPathLite", initWowPathLite);
     safeInit("initNavAutoHideLite", initNavAutoHideLite);
     safeInit("initBackToTopLite", initBackToTopLite);
     safeInit("initDeadEndLinkGuardLite", initDeadEndLinkGuardLite);

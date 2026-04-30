@@ -24,6 +24,7 @@
   var promoPrevBtn = document.getElementById("livePromoPrevBtn");
   var promoNextBtn = document.getElementById("livePromoNextBtn");
   var REGION_KEY = "vibecart-market-region";
+  var CORE_LOOP_KEY = "vibecart-core-loop-state-v1";
 
   if (!grid) return;
 
@@ -388,11 +389,62 @@
     }
   }
 
+  function readLoopPrefs() {
+    function local(key) {
+      try {
+        return String(localStorage.getItem(key) || "").trim().toLowerCase();
+      } catch {
+        return "";
+      }
+    }
+    return {
+      category: local("vibecart-home-lite-category"),
+      partner: local("vibecart-home-lite-preferred-partner")
+    };
+  }
+
+  function readCoreLoop() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(CORE_LOOP_KEY) || "{\"intent\":0,\"trust\":0,\"checkout\":0}");
+      return {
+        intent: parsed && parsed.intent ? 1 : 0,
+        trust: parsed && parsed.trust ? 1 : 0,
+        checkout: parsed && parsed.checkout ? 1 : 0
+      };
+    } catch {
+      return { intent: 0, trust: 0, checkout: 0 };
+    }
+  }
+
+  function writeCoreLoop(next) {
+    try {
+      localStorage.setItem(CORE_LOOP_KEY, JSON.stringify(next || { intent: 0, trust: 0, checkout: 0 }));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function paintCoreLoopStatus() {
+    if (!searchStatus) return;
+    var s = readCoreLoop();
+    var done = s.intent + s.trust + s.checkout;
+    var chips =
+      (s.intent ? "[intent ✓] " : "[intent] ") +
+      (s.trust ? "[trust ✓] " : "[trust] ") +
+      (s.checkout ? "[checkout ✓]" : "[checkout]");
+    searchStatus.textContent = "Core loop " + done + "/3 " + chips;
+  }
+
   function scoreEntry(entry) {
+    var prefs = readLoopPrefs();
     var name = String(entry.shop.name || "").toLowerCase();
+    var category = String(entry.category || "").toLowerCase();
     var trust = /jumia|takealot|amazon|asos|zalando|steam|noon|lazada|shopee|konga|superbalist|empik|shein|zara|h&m|notino|hm/.test(name) ? 5 : 3;
     var speed = /deals|sale|flash|goldbox|specials/.test(String(entry.shop.promoUrl || "").toLowerCase()) ? 4 : 2;
-    return { trust: trust, speed: speed, total: trust * 3 + speed * 2 };
+    var preference = 0;
+    if (prefs.category && category.indexOf(prefs.category) >= 0) preference += 3;
+    if (prefs.partner && name.indexOf(prefs.partner) >= 0) preference += 5;
+    return { trust: trust, speed: speed, preference: preference, total: trust * 4 + speed * 2 + preference };
   }
 
   var POPULAR_SHOP_PRIORITY = {
@@ -490,6 +542,10 @@
       if (disclaimerAck && !disclaimerAck.checked) {
         if (searchStatus) searchStatus.textContent = "Tip: tick the marketplace disclaimer for safer buying guidance.";
       }
+      var state = readCoreLoop();
+      state.checkout = 1;
+      writeCoreLoop(state);
+      paintCoreLoopStatus();
       try {
         var raw = JSON.parse(localStorage.getItem("vibecart-hardpass-telemetry-v1") || "[]");
         if (!Array.isArray(raw)) raw = [];
@@ -658,7 +714,14 @@
       grid.appendChild(buildShopLink(entry.shop, entry.category));
     });
     renderPromoFeed(items, cat);
-    if (searchStatus) searchStatus.textContent = message || ("Showing " + items.length + " shop result(s).");
+    if (searchStatus) {
+      var prefs = readLoopPrefs();
+      var explain =
+        prefs.category || prefs.partner
+          ? " Ranked for trust, live promos, and your saved intent."
+          : " Ranked for trust and live promo freshness.";
+      searchStatus.textContent = (message || ("Showing " + items.length + " shop result(s).")) + explain;
+    }
   }
 
   function runSearch() {
@@ -708,6 +771,14 @@
     });
   }
   if (searchBtn) searchBtn.addEventListener("click", runSearch);
+  if (searchBtn) {
+    searchBtn.addEventListener("click", function () {
+      var state = readCoreLoop();
+      state.intent = 1;
+      writeCoreLoop(state);
+      paintCoreLoopStatus();
+    });
+  }
   if (searchInput) {
     searchInput.addEventListener("keydown", function (event) {
       if (event.key === "Enter") {
@@ -722,6 +793,15 @@
       renderList(currentListFor(cat), "Showing " + cat + " shops" + (viewMode === "global" ? " from global lanes." : "."));
     });
   }
+  if (disclaimerAck) {
+    disclaimerAck.addEventListener("change", function () {
+      var state = readCoreLoop();
+      state.trust = disclaimerAck.checked ? 1 : state.trust;
+      writeCoreLoop(state);
+      paintCoreLoopStatus();
+    });
+  }
+  paintCoreLoopStatus();
   if (promoPrevBtn && promoSlider) {
     promoPrevBtn.addEventListener("click", function () {
       promoSlider.scrollBy({ left: -280, behavior: "smooth" });

@@ -70,7 +70,7 @@
     return { plan: plan, reasons: reasons };
   }
 
-  function renderMatch(out, recommendedPlan, summaryLine, reasons) {
+  function renderMatch(out, recommendedPlan, summaryLine, reasons, sourceTag) {
     clearOut(out);
     out.removeAttribute("data-placeholder");
 
@@ -85,7 +85,7 @@
     title.appendChild(document.createTextNode(" " + planLabel(recommendedPlan) + " "));
     var tag = document.createElement("span");
     tag.className = "coach-match-result__tag";
-    tag.textContent = "rules-based";
+    tag.textContent = sourceTag || "offline rules";
     title.appendChild(tag);
 
     var sum = document.createElement("p");
@@ -183,11 +183,40 @@
         dailyHours +
         " h/day. Add both weights (kg) for a sharper tier match.";
 
-    try {
-      renderMatch(out, recommendedPlan, summaryLine, reasons);
-    } catch (err) {
-      out.textContent = "Could not render the result in this browser. Try refreshing the page.";
+    function applyLocal() {
+      try {
+        renderMatch(out, recommendedPlan, summaryLine, reasons, "offline rules");
+      } catch (err) {
+        out.textContent = "Could not render the result in this browser. Try refreshing the page.";
+      }
     }
+
+    if (typeof window.vibecartAiGenerate === "function") {
+      window
+        .vibecartAiGenerate("coach_matcher", {
+          goalType: goalType,
+          currentWeightKg: cw,
+          targetWeightKg: tw,
+          goalSpeed: speedType,
+          hoursDaily: dailyHours
+        })
+        .then(function (ai) {
+          if (ai && ai.planId) {
+            var rs = Array.isArray(ai.reasons) ? ai.reasons.map(String).filter(Boolean) : [];
+            if (rs.length < 2) {
+              rs = reasons.slice();
+            }
+            renderMatch(out, String(ai.planId), String(ai.summary || summaryLine), rs.slice(0, 2), "generative AI");
+            return;
+          }
+          applyLocal();
+        })
+        .catch(function () {
+          applyLocal();
+        });
+      return;
+    }
+    applyLocal();
   }
 
   function bind() {

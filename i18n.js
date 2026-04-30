@@ -38,13 +38,13 @@
       "nav.sell": "Start Selling",
       "nav.login": "Login",
       "lang.label": "Language",
-      "hero.badge": "Africa-Europe-Asia Trade Bridge",
-      "hero.title": "Discover bold finds. Buy fast. Sell globally.",
+      "hero.badge": "Africa-Europe-Asia Trade Bridge Marketplace",
+      "hero.title": "Find real bargains in seconds. Trade safely across Africa, Europe, and Asia.",
       "hero.regionHeadline":
-        "VibeCart is your fun cross-border marketplace with verified sellers, fast checkout, and vibe-first shopping.",
+        "VibeCart is where Africa, Europe, Dubai, and Asia meet to buy and sell safely.",
       "hero.subtitleExtended":
-        "Discover offers from Poland and Europe, with routes across Africa, Dubai, and selected Asian markets. Pay with trusted methods in your country and ship with vetted logistics. Smart tools sit behind the scenes — you stay in control of every purchase.",
-      "hero.shopNow": "Shop Now",
+        "Discover verified sellers, pay with confidence, and track every shipment. Build your own cross-border business from one account and one trusted marketplace flow.",
+      "hero.shopNow": "Browse global market now",
       "hero.listItem": "List an Item",
       "hero.smartTour": "Start Smart Tour",
       "hero.installApp": "Install App",
@@ -57,6 +57,35 @@
       "hero.chipHintCheckout": "Showing buyer safeguards & checkout flow — scroll the page for live listings next.",
       "hero.chipHintSellers": "Regional shop lanes — each folder opens verified seller routes you can browse.",
       "hero.chipHintDelivery": "Tracking & delivery updates — simulate steps to see how buyers stay informed.",
+      "edge.badge": "Beyond basic classifieds",
+      "edge.title": "Why people leave OLX-style chaos for a bridge marketplace",
+      "edge.lead":
+        "Classified boards excel at volume; they rarely choreograph trust, lanes, and cross-border rhythm in one flow. VibeCart counters each friction with a deliberate stack you feel from the first scroll.",
+      "edge.r1h": "Scattered chats & ghosting",
+      "edge.r1pain": "Typical marketplaces trap you in endless DMs with no single source of truth.",
+      "edge.r1body":
+        "Order-centric messaging, tracking surfaces, and lane-aware prompts so the conversation stays tied to delivery reality.",
+      "edge.r1cta": "See tracking flow",
+      "edge.r2h": "No cross-border coherence",
+      "edge.r2pain": "Listings rarely explain routes, duties rhythm, or which corridor is live.",
+      "edge.r2body":
+        "Africa–Europe–Asia bridge lanes, regional shop folders, and route-native art so geography is a guide—not guesswork.",
+      "edge.r2cta": "Open trade bridge",
+      "edge.r3h": "Trust is just a star rating",
+      "edge.r3pain": "Stars without logistics, insurance, or safety context age badly.",
+      "edge.r3body":
+        "Verified seller posture, insurance & wellbeing lanes, chat safety logging, and AI-assisted checks—layered, not cosmetic.",
+      "edge.r3cta": "Security overview",
+      "edge.r4h": "Flat, forgettable mobile UX",
+      "edge.r4pain": "Most apps feel like shrunken websites with the same grid fatigue.",
+      "edge.r4body":
+        "Dock + scroll intelligence, VibeCoach tips, haptic-ready journeys, and a cinematic hero that responds to how you move through lanes.",
+      "edge.r4cta": "Health coach lane",
+      "edge.r5h": "Checkout feels bolted on",
+      "edge.r5pain": "Handoffs to random payment links erode confidence on big carts.",
+      "edge.r5body":
+        "Protected checkout story, rewards memory, and global market lanes designed as one continuous arc from discovery to delivery.",
+      "edge.r5cta": "Browse global market",
       "vibe.title": "Vibe Motion Lane",
       "vibe.lead": "Swipe sideways, scroll diagonally, and watch the signal lens reveal hot zones.",
       "vibe.card1h": "Street Drip",
@@ -101,25 +130,25 @@
       "orbit.title": "Seller AI toolkit",
       "orbit.lead":
         "Aura turns on warm motion, glow, and playful spacing sitewide. Exclusive switches to a sharp, editorial layout with cooler contrast — same marketplace, different energy.",
-      "orbit.personaFun": "Aura",
-      "orbit.personaEff": "Exclusive",
-      "orbit.personaHint": "Full Aura embrace: gradients, pulse logo, softer corners — tuned for phones first.",
-      "orbit.personaHintEff": "Exclusive layout: minimal chrome, crisp grids, faster visual rhythm on small screens.",
+      "orbit.personaFun": "Full experience",
+      "orbit.personaEff": "Back to home focused",
+      "orbit.personaHint": "Full experience: richer visuals, stronger highlights, and broader on-page context.",
+      "orbit.personaHintEff": "Home focused: cleaner blocks, tighter contrast, and less visual noise.",
       "orbit.legalTitle": "Law-safe copilot (rules, not magic)",
       "orbit.legalBody":
         "Automated checks use jurisdiction tables, category bans, and risk prompts. Unclear cases go to manual review. This is compliance assistance — not legal advice and not autonomous enforcement.",
       "orbit.radarTitle": "Route hints for your growth plan",
       "orbit.radarLead":
         "Heuristic hints from your region and language — meant for sellers planning outreach, not shopper-facing promises.",
-      "persona.status.aura": "Aura layout live — warm gradients, pulse mark, softer motion on phones.",
-      "persona.status.exclusive": "Exclusive layout live — crisp grids, cooler contrast, faster visual rhythm.",
+      "persona.status.aura": "Full experience live — richer visuals and expanded context are active.",
+      "persona.status.exclusive": "Home focused live — cleaner layout and reduced visual noise are active.",
       "search.label": "Search shops",
       "search.placeholder": "Search Europe, Africa, Asia, scents…",
       "search.submit": "Find",
       "search.reset": "All regional folders visible.",
       "search.matchCount": "{n} shop lanes match your search.",
       "search.none": "No matches — try another keyword.",
-      "buyerAdv.title": "Why buying on VibeCart is smoother",
+      "buyerAdv.title": "Vector Native Commerce",
       "buyerAdv.lead":
         "Built for speed: one place for trusted checkout, delivery tracking, and clear policies — without turning the homepage into an internal tools dashboard.",
       "buyerAdv.li1": "One-tap style checkout with buyer protections and fraud checks on high-risk orders.",
@@ -179,9 +208,9 @@
         "Lead with one clear origin and one realistic delivery band — buyers forgive ranges; they do not forgive fake precision.",
       "laneNote.buyer":
         "Before checkout, confirm category rules for your country. If something feels off, pause — humans review edge cases.",
-      "bridgeTruth.title": "Bridge truth (no fake precision)",
+      "bridgeTruth.title": "Bridge guide",
       "bridgeTruth.li1":
-        "Duty and tax estimates here are bands, not customs rulings — final charges depend on classification and local law.",
+        "Duty and tax guidance is provided up front to help you compare routes clearly before checkout.",
       "bridgeTruth.li2":
         "Typical tracked delivery for many EU→Africa lanes falls in a 7–21 day window; remote handoffs can run longer.",
       "bridgeTruth.li3": "Ambiguous or high-risk orders go to human review — automation flags, people decide.",
@@ -269,7 +298,7 @@
       "listingHealth.policy": "Returns / customs reality acknowledged",
       "bridgeFaq.summary": "Bridge FAQ snippets (copy-paste friendly)",
       "bridgeFaq.q1":
-        "Customs: final duties depend on classification — we show bands, not rulings.",
+        "Customs and duty guidance appears before checkout so you can decide with clear context.",
       "bridgeFaq.q2":
         "Timelines: tracked EU↔Africa often 7–21 days; remote handoffs can run longer.",
       "bridgeFaq.q3": "Ambiguous orders go to human review — say so in your listing if edge-case."
@@ -1793,8 +1822,8 @@
   const EXTRA_KEYS = {
     en: {
       "ui.youAreHereChip": "You are here",
-      "categories.title": "Popular Categories",
-      "shops.title": "Regional shop folders",
+      "categories.title": "Regional Trade Shops",
+      "shops.title": "Popular Categories",
       "shops.bridgeLink": "Trade Bridge & Live Marketplace",
       "market.title": "Live Marketplace",
       "ads.title": "Sponsored Brands and Ads",

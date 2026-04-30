@@ -70,11 +70,11 @@
 
   const PLAYBOOKS = {
     default: {
-      title: "Smart next moves for this screen",
+      title: "Lane-first shopping — not a shrunken classifieds grid",
       steps: [
-        "Pick a category first, then compare 3 options before opening checkout.",
-        "Use pinned partner memory to reduce repeat-search time.",
-        "Open one trusted route at a time and confirm delivery window."
+        "Start from a regional lane or global market so routes, trust, and delivery story stay visible.",
+        "Compare three fits, then open checkout only when tracking + seller posture look coherent.",
+        "Let VibeCoach remember category and partner context so repeat visits feel instant, not repetitive."
       ],
       ctaLabel: "Open global search",
       ctaHref: "./global-search.html"
@@ -90,11 +90,11 @@
       ctaHref: "./bridge-hub.html"
     },
     shop: {
-      title: "Shop conversion assistant",
+      title: "Shop with corridor clarity (vs random listing dumps)",
       steps: [
-        "Filter by need + budget first to remove low-fit options quickly.",
-        "Use trusted partner links and compare brand-level options, not only category.",
-        "After purchase, return for tracking and support updates."
+        "Filter by need and budget first — VibeCart rewards decisive lane picks over endless scroll fatigue.",
+        "Prefer verified seller routes and compare three options before you commit; that is how trust compounds.",
+        "After purchase, live tracking and order-tied messaging beat OLX-style chat sprawl."
       ],
       ctaLabel: "Open hot picks",
       ctaHref: "./hot-picks.html"
@@ -181,6 +181,7 @@
       return "Africa <-> Europe, Dubai, Asia";
     }
 
+    var lastVibecoachLlm = 0;
     function renderAiCard() {
       var mode = detectMode();
       var card = PLAYBOOKS[mode] || PLAYBOOKS.default;
@@ -195,6 +196,36 @@
       }
       if (tipEl) {
         tipEl.textContent = line;
+      }
+      var nowTip = Date.now();
+      if (
+        typeof window !== "undefined" &&
+        typeof window.vibecartAiGenerate === "function" &&
+        tipEl &&
+        nowTip - lastVibecoachLlm > 120000
+      ) {
+        lastVibecoachLlm = nowTip;
+        var pathTip = "";
+        try {
+          pathTip = String(window.location.pathname || "");
+        } catch {
+          pathTip = "";
+        }
+        window
+          .vibecartAiGenerate("vibecoach_tip", {
+            path: pathTip,
+            mode: mode,
+            category: category,
+            partner: partner
+          })
+          .then(function (res) {
+            if (res && res.tip && tipEl) {
+              tipEl.textContent = res.tip;
+            }
+          })
+          .catch(function () {
+            /* keep playbook line */
+          });
       }
       if (actionsEl) {
         actionsEl.innerHTML =
@@ -344,6 +375,17 @@
       return;
     }
     if (document.getElementById("vcAppShopHub")) {
+      return;
+    }
+    var path = "";
+    try {
+      path = String(window.location.pathname || "").toLowerCase();
+    } catch {
+      path = "";
+    }
+    var isHome = path === "" || path === "/" || /(^|\/)index\.html$/i.test(path);
+    // Homepage already has first-5 lane pills; avoid stacked duplicate CTA chip.
+    if (isHome) {
       return;
     }
     const a = document.createElement("a");
@@ -1064,18 +1106,16 @@
     }
     function apply() {
       var mode = read();
-      // Phone WebViews regress hard on full cinematic stacks; keep "Rich" off even if requested.
-      if (mode === "rich") {
-        write("auto");
-        mode = "auto";
-      }
-      var rich = false;
+      var rich = mode === "rich";
       document.documentElement.classList.toggle("vc-motion-rich", rich);
       document.documentElement.classList.toggle("vc-motion-stable", mode === "stable");
       document.documentElement.classList.toggle("vc-motion-auto", mode === "auto");
       if (mode === "auto") {
         btn.textContent = "Motion: Auto";
         btn.setAttribute("aria-pressed", "mixed");
+      } else if (mode === "rich") {
+        btn.textContent = "Motion: Rich";
+        btn.setAttribute("aria-pressed", "true");
       } else {
         btn.textContent = "Motion: Stable";
         btn.setAttribute("aria-pressed", "false");
@@ -1088,7 +1128,7 @@
     btn.setAttribute("aria-label", "Toggle motion stability (mobile safe)");
     btn.addEventListener("click", function () {
       var cur = read();
-      var next = cur === "auto" ? "stable" : "auto";
+      var next = cur === "auto" ? "rich" : cur === "rich" ? "stable" : "auto";
       write(next);
       apply();
       try {
@@ -1099,6 +1139,171 @@
     });
     document.body.appendChild(btn);
     apply();
+  }
+
+  function initFloatingControlLayout() {
+    var key = "vibecart-mobile-floating-layout-v1";
+    var modeKey = "vibecart-mobile-floating-arrange-v1";
+    if (document.getElementById("vcArrangeHud")) return;
+    var root = document.documentElement;
+    var movedMap = {};
+    function readLayout() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(key) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch {
+        return {};
+      }
+    }
+    function writeLayout(map) {
+      try {
+        localStorage.setItem(key, JSON.stringify(map || {}));
+      } catch {
+        /* ignore */
+      }
+    }
+    function readArrange() {
+      try {
+        return localStorage.getItem(modeKey) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function writeArrange(on) {
+      try {
+        localStorage.setItem(modeKey, on ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function controlNodes() {
+      return [
+        { id: "vcQuickActionTrigger", node: document.getElementById("vcQuickActionTrigger") },
+        { id: "vcMissionHud", node: document.getElementById("vcMissionHud") },
+        { id: "vcMotionModeBtn", node: document.getElementById("vcMotionModeBtn") },
+        { id: "vcMobileStreakChip", node: document.getElementById("vcMobileStreakChip") },
+        { id: "vcDealDraftComposer", node: document.getElementById("vcDealDraftComposer") },
+        { id: "vc-mobile-ai", node: document.getElementById("vc-mobile-ai") },
+        { id: "vcFirst5Bar", node: document.getElementById("vcFirst5Bar") }
+      ].filter(function (row) {
+        return !!row.node;
+      });
+    }
+    function clamp(v, min, max) {
+      return Math.min(max, Math.max(min, v));
+    }
+    function applySavedLayout() {
+      var map = readLayout();
+      controlNodes().forEach(function (row) {
+        var pos = map[row.id];
+        if (!pos || !Number.isFinite(pos.left) || !Number.isFinite(pos.top)) return;
+        var n = row.node;
+        n.style.left = pos.left + "px";
+        n.style.top = pos.top + "px";
+        n.style.right = "auto";
+        n.style.bottom = "auto";
+      });
+    }
+    function paintArrangeState() {
+      var on = readArrange();
+      root.classList.toggle("vc-arrange-on", on);
+      arrange.textContent = on ? "Arrange: On" : "Arrange";
+      arrange.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    function saveNodePosition(row, left, top) {
+      var map = readLayout();
+      map[row.id] = { left: Math.round(left), top: Math.round(top) };
+      writeLayout(map);
+    }
+    function resetLayout() {
+      writeLayout({});
+      controlNodes().forEach(function (row) {
+        var n = row.node;
+        if (!n) return;
+        n.style.left = "";
+        n.style.top = "";
+        n.style.right = "";
+        n.style.bottom = "";
+      });
+    }
+    function bindDrag(row) {
+      var n = row.node;
+      if (!n || n.getAttribute("data-vc-arrange-bind") === "1") return;
+      n.setAttribute("data-vc-arrange-bind", "1");
+      n.classList.add("vc-arrange-target");
+      n.addEventListener("pointerdown", function (ev) {
+        if (!readArrange()) return;
+        if (!ev || !Number.isFinite(ev.clientX) || !Number.isFinite(ev.clientY)) return;
+        movedMap[row.id] = false;
+        var rect = n.getBoundingClientRect();
+        var dx = ev.clientX - rect.left;
+        var dy = ev.clientY - rect.top;
+        function onMove(mev) {
+          var maxLeft = Math.max(0, window.innerWidth - rect.width);
+          var maxTop = Math.max(0, window.innerHeight - rect.height);
+          var left = clamp(mev.clientX - dx, 0, maxLeft);
+          var top = clamp(mev.clientY - dy, 0, maxTop);
+          n.style.left = left + "px";
+          n.style.top = top + "px";
+          n.style.right = "auto";
+          n.style.bottom = "auto";
+          movedMap[row.id] = true;
+        }
+        function onUp(mev) {
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          if (movedMap[row.id]) {
+            var finalRect = n.getBoundingClientRect();
+            saveNodePosition(row, finalRect.left, finalRect.top);
+          }
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp, { once: true });
+      });
+      n.addEventListener(
+        "click",
+        function (ev) {
+          if (readArrange() && movedMap[row.id]) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            movedMap[row.id] = false;
+          }
+        },
+        true
+      );
+    }
+    var arrange = document.createElement("button");
+    arrange.type = "button";
+    arrange.id = "vcArrangeHud";
+    arrange.className = "vc-arrange-hud";
+    arrange.addEventListener("click", function () {
+      var next = !readArrange();
+      writeArrange(next);
+      paintArrangeState();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(next ? [10, 24, 10] : 10);
+      } catch {
+        /* ignore */
+      }
+    });
+    document.body.appendChild(arrange);
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.id = "vcArrangeResetHud";
+    reset.className = "vc-arrange-reset-hud";
+    reset.textContent = "Reset layout";
+    reset.addEventListener("click", function () {
+      resetLayout();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 20, 8]);
+      } catch {
+        /* ignore */
+      }
+    });
+    document.body.appendChild(reset);
+    applySavedLayout();
+    controlNodes().forEach(bindDrag);
+    paintArrangeState();
   }
 
   function initSmartPrefetch() {
@@ -1177,6 +1382,7 @@
       initMotionModeToggle();
       initSmartPrefetch();
       initDealDraftComposer();
+      initFloatingControlLayout();
     }
   }
 

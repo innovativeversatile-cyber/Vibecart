@@ -1,5 +1,13 @@
 "use strict";
 
+const generativeAi = (() => {
+  try {
+    return require("./generative-ai-service");
+  } catch {
+    return null;
+  }
+})();
+
 function toNum(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -193,6 +201,23 @@ async function generateAiOpsRecommendations(pool) {
   const activeSellers = toNum(sellerRows[0]?.active_sellers, 0);
   const activeProducts = toNum(productRows[0]?.active_products, 0);
   const avgTrust = toNum(trustRows[0]?.avg_trust, 60);
+
+  const stats = {
+    activeSellers,
+    activeProducts,
+    avgTrustScore: avgTrust
+  };
+
+  if (generativeAi && typeof generativeAi.isGenerativeAiConfigured === "function" && generativeAi.isGenerativeAiConfigured()) {
+    try {
+      const llm = await generativeAi.generateAiOpsRecommendationsLLM(stats);
+      if (llm && llm.ok && Array.isArray(llm.items) && llm.items.length >= 2) {
+        return { ok: true, items: llm.items };
+      }
+    } catch {
+      /* fall through to heuristic */
+    }
+  }
 
   const items = [
     {

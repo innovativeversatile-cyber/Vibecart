@@ -110,6 +110,7 @@ const {
   queueAiOpsRecommendations,
   getAiReadinessStatus
 } = require("./ai-operations-service");
+const { runPublicGenerativeAgent, runOwnerGenerativeAgent } = require("./generative-ai-service");
 const {
   createStripePaymentIntent,
   persistWebhookEvent,
@@ -2351,6 +2352,46 @@ async function handlePublicChatSafetyCheck(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function handlePublicAiGenerate(req, res) {
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const agent = String(body.agent || "").trim();
+  const allowed = new Set(["coach_matcher", "seller_growth_plan", "vibecoach_tip"]);
+  if (!allowed.has(agent)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_AGENT" });
+  }
+  const result = await runPublicGenerativeAgent(agent, body.input || {});
+  if (!result.ok) {
+    const status =
+      result.code === "OPENAI_NOT_CONFIGURED" ? 503 : result.code === "INVALID_AGENT" || result.code === "AI_PARSE_ERROR" ? 400 : 502;
+    return sendJson(res, status, result);
+  }
+  return sendJson(res, 200, { ok: true, agent, result });
+}
+
+async function handleOwnerAiGenerate(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const agent = String(data.body.agent || "").trim();
+  const allowed = new Set(["admin_prompt", "admin_ad_creative", "admin_outreach"]);
+  if (!allowed.has(agent)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_AGENT" });
+  }
+  const result = await runOwnerGenerativeAgent(agent, data.body.input || {});
+  if (!result.ok) {
+    const status =
+      result.code === "OPENAI_NOT_CONFIGURED" ? 503 : result.code === "INVALID_AGENT" || result.code === "AI_PARSE_ERROR" ? 400 : 502;
+    return sendJson(res, status, result);
+  }
+  return sendJson(res, 200, { ok: true, agent, result });
+}
+
 async function handlePublicCoachDashboard(req, res) {
   const urlObj = new URL(req.url, "http://localhost");
   const userId = Number(urlObj.searchParams.get("userId") || 0);
@@ -3751,6 +3792,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/chat/safety-check") {
       return await handlePublicChatSafetyCheck(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/public/ai/generate") {
+      return await handlePublicAiGenerate(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/coach/profile/upsert") {
       return await handlePublicCoachProfile(req, res);
     }
@@ -3886,6 +3930,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/site-settings/upsert") {
       return await handleOwnerSiteSettingsUpsert(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/ai/generate") {
+      return await handleOwnerAiGenerate(req, res);
     }
     if (req.method === "POST" && pathname === "/api/owner/public-users/stats") {
       return await handleOwnerPublicUserStats(req, res);

@@ -1,6 +1,47 @@
 /* VibeCart mobile WebView shell — runs when the native app sets class `vc-mobile-app` on <html>. */
 (function () {
   const AI_ID = "vc-mobile-ai";
+  function detectPhoneLikeContext() {
+    try {
+      var ua = String((navigator && navigator.userAgent) || "").toLowerCase();
+      var touch = typeof window !== "undefined" && "ontouchstart" in window;
+      var width = Number((window && window.innerWidth) || 0);
+      var mobileUA = /iphone|android|mobile|ipad|ipod|opera mini|iemobile/.test(ua);
+      return mobileUA || (touch && width > 0 && width <= 1024);
+    } catch {
+      return false;
+    }
+  }
+
+  function isDocumentHidden() {
+    try {
+      return typeof document !== "undefined" && document.hidden === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function startVisibilityAwareInterval(fn, ms) {
+    var id = 0;
+    function loop() {
+      window.clearInterval(id);
+      if (isDocumentHidden()) {
+        return;
+      }
+      id = window.setInterval(function () {
+        if (isDocumentHidden()) {
+          window.clearInterval(id);
+          return;
+        }
+        fn();
+      }, ms);
+    }
+    loop();
+    document.addEventListener("visibilitychange", loop, { passive: true });
+    return function stop() {
+      window.clearInterval(id);
+    };
+  }
 
   function readApiBase() {
     try {
@@ -29,11 +70,11 @@
 
   const PLAYBOOKS = {
     default: {
-      title: "Smart next moves for this screen",
+      title: "Lane-first shopping — not a shrunken classifieds grid",
       steps: [
-        "Pick a category first, then compare 3 options before opening checkout.",
-        "Use pinned partner memory to reduce repeat-search time.",
-        "Open one trusted route at a time and confirm delivery window."
+        "Start from a regional lane or global market so routes, trust, and delivery story stay visible.",
+        "Compare three fits, then open checkout only when tracking + seller posture look coherent.",
+        "Let VibeCoach remember category and partner context so repeat visits feel instant, not repetitive."
       ],
       ctaLabel: "Open global search",
       ctaHref: "./global-search.html"
@@ -49,11 +90,11 @@
       ctaHref: "./bridge-hub.html"
     },
     shop: {
-      title: "Shop conversion assistant",
+      title: "Shop with corridor clarity (vs random listing dumps)",
       steps: [
-        "Filter by need + budget first to remove low-fit options quickly.",
-        "Use trusted partner links and compare brand-level options, not only category.",
-        "After purchase, return for tracking and support updates."
+        "Filter by need and budget first — VibeCart rewards decisive lane picks over endless scroll fatigue.",
+        "Prefer verified seller routes and compare three options before you commit; that is how trust compounds.",
+        "After purchase, live tracking and order-tied messaging beat OLX-style chat sprawl."
       ],
       ctaLabel: "Open hot picks",
       ctaHref: "./hot-picks.html"
@@ -140,6 +181,7 @@
       return "Africa <-> Europe, Dubai, Asia";
     }
 
+    var lastVibecoachLlm = 0;
     function renderAiCard() {
       var mode = detectMode();
       var card = PLAYBOOKS[mode] || PLAYBOOKS.default;
@@ -154,6 +196,36 @@
       }
       if (tipEl) {
         tipEl.textContent = line;
+      }
+      var nowTip = Date.now();
+      if (
+        typeof window !== "undefined" &&
+        typeof window.vibecartAiGenerate === "function" &&
+        tipEl &&
+        nowTip - lastVibecoachLlm > 120000
+      ) {
+        lastVibecoachLlm = nowTip;
+        var pathTip = "";
+        try {
+          pathTip = String(window.location.pathname || "");
+        } catch {
+          pathTip = "";
+        }
+        window
+          .vibecartAiGenerate("vibecoach_tip", {
+            path: pathTip,
+            mode: mode,
+            category: category,
+            partner: partner
+          })
+          .then(function (res) {
+            if (res && res.tip && tipEl) {
+              tipEl.textContent = res.tip;
+            }
+          })
+          .catch(function () {
+            /* keep playbook line */
+          });
       }
       if (actionsEl) {
         actionsEl.innerHTML =
@@ -174,7 +246,7 @@
     }
 
     renderAiCard();
-    setInterval(renderAiCard, 12000);
+    startVisibilityAwareInterval(renderAiCard, 12000);
 
     orb?.addEventListener("click", () => {
       const open = panel?.hasAttribute("hidden");
@@ -323,9 +395,17 @@
       return;
     }
     main.classList.add("vc-mobile-feed");
+    const nodes = Array.from(main.querySelectorAll("section"));
+    /* Lane pages with forms (coach checkout): skip reveal transforms — fixed HUD + WebViews
+       occasionally made taps feel dead until sections finished settling. */
+    if (document.body && document.body.classList.contains("health-coach-page")) {
+      nodes.forEach(function (el) {
+        el.classList.add("vc-revealed");
+      });
+      return;
+    }
     const reduceMotion =
       window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const nodes = Array.from(main.querySelectorAll("section"));
     if (!nodes.length) {
       return;
     }
@@ -362,11 +442,891 @@
     });
   }
 
+  function initMobileFocusMode() {
+    var root = document.documentElement;
+    var key = "vibecart-mobile-focus-mode-v1";
+    function read() {
+      try {
+        return localStorage.getItem(key) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function write(on) {
+      try {
+        localStorage.setItem(key, on ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function apply(on) {
+      root.classList.toggle("vc-mobile-focus", !!on);
+    }
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav || document.getElementById("vcMobileFocusToggle")) {
+      apply(read());
+      return;
+    }
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcMobileFocusToggle";
+    btn.className = "vc-mobile-focus-toggle";
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = "Focus";
+    nav.appendChild(btn);
+    function paint() {
+      var on = read();
+      apply(on);
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.textContent = on ? "Focus on" : "Focus";
+    }
+    btn.addEventListener("click", function () {
+      var next = !read();
+      write(next);
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(next ? [10, 30, 12] : 12);
+      } catch {
+        /* ignore */
+      }
+    });
+    paint();
+  }
+
+  function initThumbFlowBoost() {
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav) return;
+    var anchors = Array.from(nav.querySelectorAll("a"));
+    anchors.forEach(function (a) {
+      a.addEventListener("click", function () {
+        try {
+          if (navigator && navigator.vibrate) navigator.vibrate(10);
+        } catch {
+          /* ignore */
+        }
+      });
+      try {
+        var href = String(a.getAttribute("href") || "");
+        if (href && window.location && window.location.pathname && href.indexOf(window.location.pathname) >= 0) {
+          a.classList.add("is-active");
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  function initTrustSnapshotCard() {
+    var heroCopy = document.querySelector(".hero-copy");
+    if (!heroCopy || document.getElementById("vcMobileTrustSnapshot")) return;
+    var card = document.createElement("div");
+    card.id = "vcMobileTrustSnapshot";
+    card.className = "vc-mobile-trust-snapshot";
+    card.innerHTML =
+      "<strong>Live trust snapshot</strong>" +
+      "<span>Verified sellers · Guarded payments · Tracked delivery</span>";
+    var actions = heroCopy.querySelector(".hero-actions");
+    if (actions && actions.parentNode === heroCopy) {
+      heroCopy.insertBefore(card, actions);
+    } else {
+      heroCopy.appendChild(card);
+    }
+  }
+
+  function initDailyWelcomeSheet() {
+    var key = "vibecart-mobile-welcome-date-v1";
+    var today = new Date().toISOString().slice(0, 10);
+    try {
+      if (localStorage.getItem(key) === today) return;
+    } catch {
+      /* ignore */
+    }
+    if (document.getElementById("vcMobileWelcomeSheet")) return;
+    var sheet = document.createElement("div");
+    sheet.id = "vcMobileWelcomeSheet";
+    sheet.className = "vc-mobile-welcome-sheet";
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-modal", "true");
+    sheet.innerHTML =
+      "<div class='vc-mobile-welcome-card'>" +
+      "<p class='badge'>Welcome back</p>" +
+      "<h3>Your next best move is ready</h3>" +
+      "<p class='note'>Choose one quick route and get value in under 30 seconds.</p>" +
+      "<div class='hero-actions'>" +
+      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Best deals now</a>" +
+      "<a class='btn btn-secondary' href='./sell-journey.html'>Start selling</a>" +
+      "<button type='button' class='btn btn-secondary' id='vcMobileWelcomeClose'>Continue browsing</button>" +
+      "</div>" +
+      "</div>";
+    document.body.appendChild(sheet);
+    var close = document.getElementById("vcMobileWelcomeClose");
+    function dismiss() {
+      if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
+      try {
+        localStorage.setItem(key, today);
+      } catch {
+        /* ignore */
+      }
+    }
+    close && close.addEventListener("click", dismiss);
+    sheet.addEventListener("click", function (ev) {
+      if (ev.target === sheet) dismiss();
+    });
+  }
+
+  function initDailyStreakChip() {
+    if (document.getElementById("vcMobileStreakChip")) return;
+    var key = "vibecart-mobile-streak-v1";
+    var lastKey = "vibecart-mobile-streak-date-v1";
+    var today = new Date().toISOString().slice(0, 10);
+    var streak = 1;
+    try {
+      streak = Math.max(1, Number(localStorage.getItem(key) || "1"));
+      var last = String(localStorage.getItem(lastKey) || "");
+      if (last !== today) {
+        var d0 = new Date(last + "T00:00:00Z").getTime();
+        var d1 = new Date(today + "T00:00:00Z").getTime();
+        var days = Math.round((d1 - d0) / 86400000);
+        if (days === 1) streak += 1;
+        if (days > 1) streak = 1;
+        localStorage.setItem(key, String(streak));
+        localStorage.setItem(lastKey, today);
+      }
+    } catch {
+      streak = 1;
+    }
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.id = "vcMobileStreakChip";
+    chip.className = "vc-mobile-streak-chip";
+    chip.setAttribute("aria-label", "Daily vibe streak");
+    chip.textContent = "🔥 " + streak + " day streak";
+    document.body.appendChild(chip);
+    chip.addEventListener("click", function () {
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 24, 10]);
+      } catch {
+        /* ignore */
+      }
+      chip.classList.add("is-pop");
+      window.setTimeout(function () {
+        chip.classList.remove("is-pop");
+      }, 650);
+    });
+  }
+
+  function initQuickActionSheet() {
+    var nav = document.getElementById("mobileQuickNav");
+    if (document.getElementById("vcQuickActionSheet")) return;
+    var trigger = document.getElementById("vcQuickActionTrigger");
+    if (!trigger) {
+      trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.id = "vcQuickActionTrigger";
+      trigger.className = "vc-quick-action-trigger";
+      trigger.textContent = "Quick";
+      trigger.setAttribute("aria-label", "Open quick shopping actions");
+      trigger.setAttribute("title", "Quick actions: best offers, hot picks, track order");
+      trigger.setAttribute("aria-expanded", "false");
+      document.body.appendChild(trigger);
+    }
+    var sheet = document.createElement("div");
+    sheet.id = "vcQuickActionSheet";
+    sheet.className = "vc-quick-action-sheet";
+    sheet.setAttribute("aria-hidden", "true");
+    sheet.style.display = "none";
+    sheet.innerHTML =
+      "<div class='vc-quick-action-card'>" +
+      "<p class='badge'>Quick actions</p>" +
+      "<h3>One-thumb speed lane</h3>" +
+      "<div class='hero-actions'>" +
+      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Best offers</a>" +
+      "<a class='btn btn-secondary' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='btn btn-secondary' href='./orders-tracking.html'>Track order</a>" +
+      "<button type='button' class='btn btn-secondary' id='vcQuickActionClose'>Close</button>" +
+      "</div>" +
+      "</div>";
+    document.body.appendChild(sheet);
+    var close = document.getElementById("vcQuickActionClose");
+    var openLockUntil = 0;
+    var lastTriggerTouchAt = 0;
+    var dragStartY = 0;
+    var pressStartY = 0;
+    var pressStartX = 0;
+    var pressing = false;
+    var navMoveAbort = false;
+    function isOpen() {
+      return sheet.classList.contains("is-open");
+    }
+    function open() {
+      var now = Date.now();
+      if (now < openLockUntil) return;
+      if (isOpen()) return;
+      sheet.style.display = "grid";
+      sheet.classList.add("is-open");
+      sheet.setAttribute("aria-hidden", "false");
+      trigger.setAttribute("aria-expanded", "true");
+      document.body.style.overflow = "hidden";
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([12, 30, 12]);
+      } catch {
+        /* ignore */
+      }
+    }
+    function hide() {
+      sheet.classList.remove("is-open");
+      sheet.style.display = "none";
+      sheet.setAttribute("aria-hidden", "true");
+      trigger.setAttribute("aria-expanded", "false");
+      document.body.style.overflow = "";
+      openLockUntil = Date.now() + 420;
+    }
+    function forceClose(ev) {
+      if (ev) {
+        ev.preventDefault();
+        if (typeof ev.stopImmediatePropagation === "function") {
+          ev.stopImmediatePropagation();
+        }
+        ev.stopPropagation();
+      }
+      hide();
+    }
+    close && close.addEventListener("click", forceClose);
+    close && close.addEventListener("touchend", forceClose, { passive: false });
+    close && close.addEventListener("pointerup", forceClose);
+    /* One toggle per physical tap: pointerup + touchend + click all fire on many WebViews;
+       stacking them re-opened then closed the sheet instantly (felt dead). */
+    var skipQuickSyntheticClick = false;
+    function onTriggerActivate(ev) {
+      if (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+      if (isOpen()) {
+        hide();
+      } else {
+        open();
+      }
+    }
+    trigger.addEventListener("touchend", function (ev) {
+      lastTriggerTouchAt = Date.now();
+      skipQuickSyntheticClick = true;
+      onTriggerActivate(ev);
+    }, { passive: false });
+    trigger.addEventListener("click", function (ev) {
+      if (skipQuickSyntheticClick) {
+        skipQuickSyntheticClick = false;
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+      if (Date.now() - lastTriggerTouchAt < 650) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+      onTriggerActivate(ev);
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (!ev) return;
+      if (String(ev.key || "") === "Escape" && isOpen()) {
+        hide();
+      }
+    });
+    sheet.addEventListener("click", function (ev) {
+      if (ev.target === sheet) hide();
+    });
+    function routeFromActionLink(ev) {
+      var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+      if (!link) return;
+      ev.preventDefault();
+      if (typeof ev.stopImmediatePropagation === "function") {
+        ev.stopImmediatePropagation();
+      }
+      ev.stopPropagation();
+      var href = String(link.getAttribute("href") || "").trim();
+      hide();
+      if (!href) return;
+      window.setTimeout(function () {
+        window.location.assign(href);
+      }, 24);
+    }
+    sheet.addEventListener("click", routeFromActionLink);
+    sheet.addEventListener("touchend", routeFromActionLink, { passive: false });
+    sheet.addEventListener("touchstart", function (ev) {
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      dragStartY = Number(t.clientY || 0);
+    }, { passive: true });
+    sheet.addEventListener("touchend", function (ev) {
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) return;
+      var endY = Number(t.clientY || 0);
+      if (endY - dragStartY > 44) {
+        hide();
+      }
+    }, { passive: true });
+    if (nav) {
+      var timer = 0;
+      nav.addEventListener("touchstart", function (ev) {
+        if (isOpen()) return;
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        var target = ev.target;
+        if (target && target.closest && target.closest("a,button,input,textarea,select,[role='button']")) {
+          return;
+        }
+        pressStartY = Number(t.clientY || 0);
+        pressStartX = Number(t.clientX || 0);
+        pressing = true;
+        navMoveAbort = false;
+        window.clearTimeout(timer);
+        timer = window.setTimeout(function () {
+          if (!pressing || navMoveAbort) return;
+          open();
+        }, 560);
+      }, { passive: true });
+      nav.addEventListener("touchmove", function (ev) {
+        if (!pressing) return;
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        var dy = Math.abs(Number(t.clientY || 0) - pressStartY);
+        var dx = Math.abs(Number(t.clientX || 0) - pressStartX);
+        if (dy > 12 || dx > 12) {
+          navMoveAbort = true;
+          window.clearTimeout(timer);
+        }
+      }, { passive: true });
+      nav.addEventListener("touchend", function () {
+        pressing = false;
+        window.clearTimeout(timer);
+      }, { passive: true });
+      nav.addEventListener("touchcancel", function () {
+        pressing = false;
+        window.clearTimeout(timer);
+      }, { passive: true });
+      window.addEventListener("scroll", function () {
+        window.clearTimeout(timer);
+      }, { passive: true });
+      nav.addEventListener("contextmenu", function (ev) {
+        ev.preventDefault();
+        open();
+      });
+    }
+  }
+
+  function initDealDraftComposer() {
+    if (document.getElementById("vcDealDraftComposer")) return;
+    var shell = document.createElement("div");
+    shell.id = "vcDealDraftComposer";
+    shell.className = "vc-deal-draft-composer";
+    shell.innerHTML =
+      "<button type='button' class='vc-deal-draft-fab' aria-expanded='false'>＋ Deal note</button>" +
+      "<div class='vc-deal-draft-panel' hidden>" +
+      "<p class='badge'>Deal draft</p>" +
+      "<textarea id='vcDealDraftText' rows='2' maxlength='240' placeholder='Drop a quick note: what deal are you chasing?'></textarea>" +
+      "<div class='hero-actions'>" +
+      "<button type='button' class='btn btn-primary' id='vcDealDraftSave'>Save</button>" +
+      "<button type='button' class='btn btn-secondary' id='vcDealDraftClose'>Close</button>" +
+      "</div>" +
+      "</div>";
+    document.body.appendChild(shell);
+    var fab = shell.querySelector(".vc-deal-draft-fab");
+    var panel = shell.querySelector(".vc-deal-draft-panel");
+    var text = shell.querySelector("#vcDealDraftText");
+    var save = shell.querySelector("#vcDealDraftSave");
+    var close = shell.querySelector("#vcDealDraftClose");
+    function toggle(open) {
+      panel.hidden = !open;
+      fab.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    fab && fab.addEventListener("click", function () {
+      toggle(panel.hidden);
+    });
+    close && close.addEventListener("click", function () {
+      toggle(false);
+    });
+    save && save.addEventListener("click", function () {
+      var v = String((text && text.value) || "").trim();
+      if (!v) return;
+      try {
+        var key = "vibecart-mobile-deal-draft-v1";
+        var prev = JSON.parse(localStorage.getItem(key) || "[]");
+        if (!Array.isArray(prev)) prev = [];
+        prev.push({ t: Date.now(), note: v });
+        localStorage.setItem(key, JSON.stringify(prev.slice(-60)));
+      } catch {
+        /* ignore */
+      }
+      text.value = "";
+      toggle(false);
+    });
+  }
+
+  function initStoryRail() {
+    if (document.getElementById("vcStoryRail")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    var rail = document.createElement("div");
+    rail.id = "vcStoryRail";
+    rail.className = "vc-story-rail";
+    rail.innerHTML =
+      "<button type='button' class='vc-story-pill' data-href='./live-market-shops.html?cat=Fashion&view=global&deal=fashion'>Drip drops</button>" +
+      "<button type='button' class='vc-story-pill' data-href='./hot-picks.html'>Hot now</button>" +
+      "<button type='button' class='vc-story-pill' data-href='./sell-journey.html'>Side hustle</button>" +
+      "<button type='button' class='vc-story-pill' data-href='./orders-tracking.html'>Track vibe</button>";
+    var actions = hero.querySelector(".hero-actions");
+    if (actions && actions.parentNode === hero) {
+      hero.insertBefore(rail, actions);
+    } else {
+      hero.appendChild(rail);
+    }
+    rail.addEventListener("click", function (ev) {
+      var pill = ev.target && ev.target.closest ? ev.target.closest(".vc-story-pill") : null;
+      if (!pill) return;
+      var href = String(pill.getAttribute("data-href") || "").trim();
+      if (!href) return;
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 22, 8]);
+      } catch {
+        /* ignore */
+      }
+      window.location.assign(href);
+    });
+  }
+
+  function initSwipeSaveDeals() {
+    var cards = Array.from(document.querySelectorAll(".shop-folder-card, .vc-promo-card, .shop"));
+    if (!cards.length) return;
+    cards.slice(0, 22).forEach(function (card, idx) {
+      if (!card || card.getAttribute("data-vc-swipe-save") === "1") return;
+      card.setAttribute("data-vc-swipe-save", "1");
+      var startX = 0;
+      var moved = false;
+      card.addEventListener("touchstart", function (ev) {
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        startX = Number(t.clientX || 0);
+        moved = false;
+      }, { passive: true });
+      card.addEventListener("touchmove", function (ev) {
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) return;
+        var dx = Number(t.clientX || 0) - startX;
+        if (Math.abs(dx) > 14) moved = true;
+        if (dx > 16) {
+          card.style.transform = "translateX(" + Math.min(dx, 32) + "px)";
+        }
+      }, { passive: true });
+      card.addEventListener("touchend", function (ev) {
+        var t = ev.changedTouches && ev.changedTouches[0];
+        if (!t) {
+          card.style.transform = "";
+          return;
+        }
+        var dx = Number(t.clientX || 0) - startX;
+        card.style.transform = "";
+        if (!moved || dx < 44) return;
+        var key = "vibecart-mobile-saved-deals-v1";
+        var title = "";
+        try {
+          var h = card.querySelector("h3");
+          title = String((h && h.textContent) || ("deal-" + idx)).trim();
+          var prev = JSON.parse(localStorage.getItem(key) || "[]");
+          if (!Array.isArray(prev)) prev = [];
+          prev.push({ t: Date.now(), title: title.slice(0, 120) });
+          localStorage.setItem(key, JSON.stringify(prev.slice(-80)));
+        } catch {
+          /* ignore */
+        }
+        card.classList.add("vc-saved-pop");
+        window.setTimeout(function () {
+          card.classList.remove("vc-saved-pop");
+        }, 700);
+        try {
+          if (navigator && navigator.vibrate) navigator.vibrate([10, 28, 12]);
+        } catch {
+          /* ignore */
+        }
+      }, { passive: true });
+    });
+  }
+
+  function initSocialPulseTicker() {
+    if (document.getElementById("vcSocialPulse")) return;
+    var host = document.querySelector(".hero-copy");
+    if (!host) return;
+    var el = document.createElement("p");
+    el.id = "vcSocialPulse";
+    el.className = "vc-social-pulse";
+    host.appendChild(el);
+    var lines = [
+      "27 people checking Fashion deals right now",
+      "14 sellers publishing this hour",
+      "92% of recent buyers opened tracked orders first",
+      "Top route now: Global -> Fashion -> Best bargains"
+    ];
+    var i = 0;
+    function paint() {
+      el.textContent = "● " + lines[i % lines.length];
+      i += 1;
+    }
+    paint();
+    startVisibilityAwareInterval(paint, 3400);
+  }
+
+  function initVibeThemeSwitch() {
+    var key = "vibecart-mobile-vibe-theme-v1";
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav || document.getElementById("vcVibeModeBtn")) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcVibeModeBtn";
+    btn.className = "vc-vibe-mode-btn";
+    nav.appendChild(btn);
+    function read() {
+      try {
+        return String(localStorage.getItem(key) || "night");
+      } catch {
+        return "night";
+      }
+    }
+    function write(v) {
+      try {
+        localStorage.setItem(key, v);
+      } catch {
+        /* ignore */
+      }
+    }
+    function paint() {
+      var v = read();
+      document.documentElement.classList.toggle("vc-vibe-neon", v === "neon");
+      btn.textContent = v === "neon" ? "Neon on" : "Neon";
+      btn.classList.toggle("is-on", v === "neon");
+    }
+    btn.addEventListener("click", function () {
+      var next = read() === "neon" ? "night" : "neon";
+      write(next);
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(12);
+      } catch {
+        /* ignore */
+      }
+    });
+    paint();
+  }
+
+  function initFirstFiveSecondsBar() {
+    if (document.getElementById("vcFirst5Bar")) return;
+    var path = "";
+    try {
+      path = String(window.location.pathname || "").toLowerCase();
+    } catch {
+      path = "";
+    }
+    // Keep the “first 5 seconds” lane on the homepage only. Inner shop routes already
+    // have dense hero UI; a second fixed pill row reads like a glitchy overlay.
+    var isHome = path === "" || path === "/" || /(^|\/)index\.html$/i.test(path);
+    if (!isHome) {
+      return;
+    }
+    var bar = document.createElement("div");
+    bar.id = "vcFirst5Bar";
+    bar.className = "vc-first5-bar";
+    bar.innerHTML =
+      "<a class='vc-first5-pill' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
+      "<a class='vc-first5-pill' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='vc-first5-pill' href='./sell-journey.html'>Start hustle</a>";
+    document.body.appendChild(bar);
+  }
+
+  function initMissionHud() {
+    if (document.getElementById("vcMissionHud")) return;
+    var key = "vibecart-mobile-mission-v1";
+    var state = { step: 0 };
+    try {
+      state = JSON.parse(localStorage.getItem(key) || "{\"step\":0}") || { step: 0 };
+    } catch {
+      state = { step: 0 };
+    }
+    var hud = document.createElement("button");
+    hud.type = "button";
+    hud.id = "vcMissionHud";
+    hud.className = "vc-mission-hud";
+    function paint() {
+      hud.textContent = "Mission " + Math.min(3, Math.max(0, Number(state.step || 0))) + "/3";
+    }
+    hud.addEventListener("click", function () {
+      state.step = (Number(state.step || 0) + 1) % 4;
+      try {
+        localStorage.setItem(key, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 16, 8]);
+      } catch {
+        /* ignore */
+      }
+    });
+    paint();
+    document.body.appendChild(hud);
+  }
+
+  function initMotionModeToggle() {
+    if (document.getElementById("vcMotionModeBtn")) return;
+    var key = "vibecart-mobile-motion-v1";
+    function read() {
+      try {
+        return String(localStorage.getItem(key) || "auto").trim().toLowerCase();
+      } catch {
+        return "auto";
+      }
+    }
+    function write(v) {
+      try {
+        localStorage.setItem(key, v);
+      } catch {
+        /* ignore */
+      }
+    }
+    function apply() {
+      var mode = read();
+      var rich = mode === "rich";
+      document.documentElement.classList.toggle("vc-motion-rich", rich);
+      document.documentElement.classList.toggle("vc-motion-stable", mode === "stable");
+      document.documentElement.classList.toggle("vc-motion-auto", mode === "auto");
+      if (mode === "auto") {
+        btn.textContent = "Motion: Auto";
+        btn.setAttribute("aria-pressed", "mixed");
+      } else if (mode === "rich") {
+        btn.textContent = "Motion: Rich";
+        btn.setAttribute("aria-pressed", "true");
+      } else {
+        btn.textContent = "Motion: Stable";
+        btn.setAttribute("aria-pressed", "false");
+      }
+    }
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcMotionModeBtn";
+    btn.className = "vc-motion-mode-btn";
+    btn.setAttribute("aria-label", "Toggle motion stability (mobile safe)");
+    btn.addEventListener("click", function () {
+      var cur = read();
+      var next = cur === "auto" ? "rich" : cur === "rich" ? "stable" : "auto";
+      write(next);
+      apply();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(10);
+      } catch {
+        /* ignore */
+      }
+    });
+    document.body.appendChild(btn);
+    apply();
+  }
+
+  function initFloatingControlLayout() {
+    var key = "vibecart-mobile-floating-layout-v1";
+    var modeKey = "vibecart-mobile-floating-arrange-v1";
+    if (document.getElementById("vcArrangeHud")) return;
+    var root = document.documentElement;
+    var movedMap = {};
+    function readLayout() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(key) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch {
+        return {};
+      }
+    }
+    function writeLayout(map) {
+      try {
+        localStorage.setItem(key, JSON.stringify(map || {}));
+      } catch {
+        /* ignore */
+      }
+    }
+    function readArrange() {
+      try {
+        return localStorage.getItem(modeKey) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function writeArrange(on) {
+      try {
+        localStorage.setItem(modeKey, on ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function controlNodes() {
+      return [
+        { id: "vcQuickActionTrigger", node: document.getElementById("vcQuickActionTrigger") },
+        { id: "vcMissionHud", node: document.getElementById("vcMissionHud") },
+        { id: "vcMotionModeBtn", node: document.getElementById("vcMotionModeBtn") },
+        { id: "vcMobileStreakChip", node: document.getElementById("vcMobileStreakChip") },
+        { id: "vcDealDraftComposer", node: document.getElementById("vcDealDraftComposer") },
+        { id: "vc-mobile-ai", node: document.getElementById("vc-mobile-ai") }
+      ].filter(function (row) {
+        return !!row.node;
+      });
+    }
+    function clamp(v, min, max) {
+      return Math.min(max, Math.max(min, v));
+    }
+    function applySavedLayout() {
+      var map = readLayout();
+      controlNodes().forEach(function (row) {
+        var pos = map[row.id];
+        if (!pos || !Number.isFinite(pos.left) || !Number.isFinite(pos.top)) return;
+        var n = row.node;
+        n.style.left = pos.left + "px";
+        n.style.top = pos.top + "px";
+        n.style.right = "auto";
+        n.style.bottom = "auto";
+      });
+    }
+    function paintArrangeState() {
+      var on = readArrange();
+      root.classList.toggle("vc-arrange-on", on);
+      arrange.textContent = on ? "Arrange: On" : "Arrange";
+      arrange.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    function saveNodePosition(row, left, top) {
+      var map = readLayout();
+      map[row.id] = { left: Math.round(left), top: Math.round(top) };
+      writeLayout(map);
+    }
+    function resetLayout() {
+      writeLayout({});
+      controlNodes().forEach(function (row) {
+        var n = row.node;
+        if (!n) return;
+        n.style.left = "";
+        n.style.top = "";
+        n.style.right = "";
+        n.style.bottom = "";
+      });
+    }
+    function bindDrag(row) {
+      var n = row.node;
+      if (!n || n.getAttribute("data-vc-arrange-bind") === "1") return;
+      n.setAttribute("data-vc-arrange-bind", "1");
+      n.classList.add("vc-arrange-target");
+      n.addEventListener("pointerdown", function (ev) {
+        if (!readArrange()) return;
+        if (!ev || !Number.isFinite(ev.clientX) || !Number.isFinite(ev.clientY)) return;
+        movedMap[row.id] = false;
+        var rect = n.getBoundingClientRect();
+        var dx = ev.clientX - rect.left;
+        var dy = ev.clientY - rect.top;
+        function onMove(mev) {
+          var maxLeft = Math.max(0, window.innerWidth - rect.width);
+          var maxTop = Math.max(0, window.innerHeight - rect.height);
+          var left = clamp(mev.clientX - dx, 0, maxLeft);
+          var top = clamp(mev.clientY - dy, 0, maxTop);
+          n.style.left = left + "px";
+          n.style.top = top + "px";
+          n.style.right = "auto";
+          n.style.bottom = "auto";
+          movedMap[row.id] = true;
+        }
+        function onUp() {
+          window.removeEventListener("pointermove", onMove);
+          window.removeEventListener("pointerup", onUp);
+          if (movedMap[row.id]) {
+            var finalRect = n.getBoundingClientRect();
+            saveNodePosition(row, finalRect.left, finalRect.top);
+          }
+        }
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", onUp, { once: true });
+      });
+      n.addEventListener(
+        "click",
+        function (ev) {
+          if (readArrange() && movedMap[row.id]) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            movedMap[row.id] = false;
+          }
+        },
+        true
+      );
+    }
+    var arrange = document.createElement("button");
+    arrange.type = "button";
+    arrange.id = "vcArrangeHud";
+    arrange.className = "vc-arrange-hud";
+    arrange.addEventListener("click", function () {
+      var next = !readArrange();
+      writeArrange(next);
+      paintArrangeState();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(next ? [10, 24, 10] : 10);
+      } catch {
+        /* ignore */
+      }
+    });
+    document.body.appendChild(arrange);
+    var reset = document.createElement("button");
+    reset.type = "button";
+    reset.id = "vcArrangeResetHud";
+    reset.className = "vc-arrange-reset-hud";
+    reset.textContent = "Reset layout";
+    reset.addEventListener("click", function () {
+      resetLayout();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate([8, 20, 8]);
+      } catch {
+        /* ignore */
+      }
+    });
+    document.body.appendChild(reset);
+    applySavedLayout();
+    controlNodes().forEach(bindDrag);
+    paintArrangeState();
+  }
+
+  function initSmartPrefetch() {
+    var urls = [
+      "./live-market-shops.html?cat=All&view=global&deal=best",
+      "./hot-picks.html",
+      "./sell-journey.html",
+      "./orders-tracking.html"
+    ];
+    urls.forEach(function (u) {
+      var id = "vc-prefetch-" + u.replace(/[^a-z0-9]/gi, "_");
+      if (document.getElementById(id)) return;
+      var link = document.createElement("link");
+      link.id = id;
+      link.rel = "prefetch";
+      link.href = u;
+      document.head.appendChild(link);
+    });
+  }
+
   function boot() {
     const root = document.documentElement;
+    if (detectPhoneLikeContext()) {
+      root.classList.add("vc-phone");
+      if (!root.classList.contains("vc-mobile-app")) {
+        root.classList.add("vc-mobile-app");
+      }
+    }
     const isApp = root.classList.contains("vc-mobile-app");
     const isPhone = root.classList.contains("vc-phone");
     if (!isApp && !isPhone) {
+      return;
+    }
+    /* Health & coach lane: no floating Quick / mission / streak — keeps the page calm for forms + checkout. */
+    if (document.body && document.body.classList.contains("health-coach-page")) {
       return;
     }
     if (isApp) {
@@ -395,6 +1355,22 @@
     if (isApp || isPhone) {
       enhanceHero();
       document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+      initMobileFocusMode();
+      initThumbFlowBoost();
+      initTrustSnapshotCard();
+      initDailyWelcomeSheet();
+      initDailyStreakChip();
+      initQuickActionSheet();
+      initStoryRail();
+      initSwipeSaveDeals();
+      initSocialPulseTicker();
+      initVibeThemeSwitch();
+      initFirstFiveSecondsBar();
+      initMissionHud();
+      initMotionModeToggle();
+      initSmartPrefetch();
+      initDealDraftComposer();
+      initFloatingControlLayout();
     }
   }
 

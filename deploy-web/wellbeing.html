@@ -141,7 +141,7 @@
         <button id="coachMatchBtn" class="btn btn-primary" type="button">Generate coach recommendation</button>
       </p>
       <p class="note" id="coachMatcherHint" style="margin-top: 0.35rem; font-size: 0.85rem">
-        Uses your answers below (rules-based routing, not a remote medical AI). Weights optional. Paid checkout still uses the disclaimer where shown.
+        Uses your answers below. With <code>OPENAI_API_KEY</code> on the API, recommendations are generative; otherwise offline rules. Not medical advice. Paid checkout still uses the disclaimer where shown.
       </p>
       <p id="coachMatchOut" class="note coach-match-out" aria-live="polite" data-placeholder="true">
         Tap <strong>Generate</strong> to see a suggested plan and next steps.
@@ -214,6 +214,7 @@
     })();
   </script>
   <script src="./site-chrome.js?v=20260430matcher2" defer></script>
-  <script src="./wellbeing-coach-matcher.js?v=20260430matcher2" defer></script>
+  <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
+  <script src="./wellbeing-coach-matcher.js?v=20260430genai1" defer></script>
 </body>
 </html>

@@ -209,6 +209,58 @@
     });
   }
 
+  function readIntentMemory() {
+    function local(key) {
+      try {
+        return String(localStorage.getItem(key) || "").trim().toLowerCase();
+      } catch {
+        return "";
+      }
+    }
+    return {
+      category: local("vibecart-home-lite-category"),
+      partner: local("vibecart-home-lite-preferred-partner")
+    };
+  }
+
+  function scorePick(p) {
+    var mem = readIntentMemory();
+    var category = productCategory(p).toLowerCase();
+    var title = String(p.name || p.title || "").toLowerCase();
+    var target = pickTargetUrl(p).toLowerCase();
+    var trust = isCommissionTrackedUrl(target) ? 5 : 3;
+    var preference = 0;
+    if (mem.category && category.indexOf(mem.category) >= 0) preference += 4;
+    if (mem.partner && (title.indexOf(mem.partner) >= 0 || target.indexOf(mem.partner) >= 0)) preference += 5;
+    var urgency = /deal|sale|flash|special|today|limited/.test(title + " " + target) ? 3 : 1;
+    return trust * 4 + preference * 3 + urgency;
+  }
+
+  function rankPicks(rows) {
+    return rows.slice().sort(function (a, b) {
+      var sa = scorePick(a);
+      var sb = scorePick(b);
+      if (sb !== sa) return sb - sa;
+      return String(a.name || a.title || "").localeCompare(String(b.name || b.title || ""));
+    });
+  }
+
+  function paintFirstWinStatus(items) {
+    if (!status) return;
+    var mem = readIntentMemory();
+    var msg = mem.category || mem.partner
+      ? "Showing intent-ranked hot picks for your saved route."
+      : "Showing live hot picks ranked by trust and checkout clarity.";
+    status.textContent = msg + " First-win target: open one trusted source in under 60 seconds.";
+    if (items && items[0]) {
+      try {
+        localStorage.setItem("vibecart-first-win-top-pick-v1", String(items[0].name || items[0].title || "").slice(0, 120));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
   function normalizePayload(body) {
     if (!body) return [];
     if (Array.isArray(body)) return body;
@@ -265,18 +317,14 @@
           return productCategory(p).toLowerCase() === lane;
         });
       }
-      var top = filtered.slice(0, 12);
+      var top = rankPicks(filtered).slice(0, 12);
       if (!top.length) {
         if (status) {
           status.textContent = "No live picks available right now for this lane.";
         }
         return;
       }
-      if (status) {
-        status.textContent = lane
-          ? "Showing live " + lane + " picks."
-          : "Showing live hot picks right now.";
-      }
+      paintFirstWinStatus(top);
       render(top);
     } catch {
       if (status) {

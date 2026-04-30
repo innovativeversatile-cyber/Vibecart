@@ -24,7 +24,14 @@ Use this checklist to move from local demo to production safely.
 - Restrict inbound traffic with firewall/security groups.
 - If the database was created before `payment_webhook_events` existed, run `railway-migrations/20260213_payment_webhook_events.sql` in Railway MySQL (safe `IF NOT EXISTS`).
 
-## 2b) Payments (Stripe)
+## 2b) Generative AI (OpenAI on Railway)
+
+- Set **`OPENAI_API_KEY`** on the Railway service that runs `owner-auth-api.js` (same place as Stripe/MySQL secrets). Optional: **`OPENAI_MODEL`** (defaults to `gpt-4o-mini`).
+- Without the key, public **`POST /api/public/ai/generate`** returns **503** and the site falls back to offline rules where implemented; admin AI Ops falls back to heuristic recommendations.
+- Traffic is same-origin from the browser to **`/api/public/ai/generate`**; Netlify proxies to Railway; the OpenAI key never ships to clients.
+- Owner console helpers (AI prompt, ad creative, affiliate outreach drafts) use **`POST /api/owner/ai/generate`** with `authToken` in the JSON body; same OpenAI configuration. Unauthenticated callers cannot use these agents.
+
+## 2c) Payments (Stripe)
 
 - Set `PAYMENT_PROVIDER=stripe`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`.
 - Set **`PAYMENT_INTENT_API_SECRET`** to a long random string. Payment intent creation requires header `X-Payment-Intent-Secret` (never expose this in the static site; use a small server-side checkout or Netlify Function).

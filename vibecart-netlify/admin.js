@@ -1407,11 +1407,41 @@ function buildOutreachDraftPayload(programId) {
     programId: partner ? partner.id : "",
     partnerName,
     subjectLine,
-    body: filledBody
+    body: filledBody,
+    outreachMeta: {
+      partnerName,
+      siteName,
+      siteUrl,
+      ownerName: String(ownerName?.value || "VibeCart Partnerships").trim(),
+      replyEmail: String(replyEmail?.value || "").trim(),
+      draftType: chosenType,
+      trafficClicks: Number(trafficClicks?.value || 0),
+      trafficRegions: String(trafficRegions?.value || "Africa, Europe")
+    }
   };
 }
 
-function buildOutreachDraft() {
+function applyTemplateOutreachDraftToDom(payload) {
+  const partnerSelect = document.getElementById("outreachPartnerSelect");
+  const partnerEmail = document.getElementById("outreachPartnerEmail");
+  const subject = document.getElementById("outreachSubject");
+  const body = document.getElementById("outreachBody");
+  const status = document.getElementById("outreachStatus");
+  if (!partnerSelect || !subject || !body) {
+    return;
+  }
+  subject.value = payload.subjectLine;
+  body.value = payload.body;
+  if (status) {
+    status.textContent =
+      "Draft generated. Partner inbox (when listed) is filled from the affiliate directory; otherwise use the signup portal.";
+  }
+  if (partnerEmail && !partnerEmail.value.trim()) {
+    partnerEmail.placeholder = "If no direct email is available, apply via partner signup URL above.";
+  }
+}
+
+async function buildOutreachDraft() {
   const partnerSelect = document.getElementById("outreachPartnerSelect");
   const partnerEmail = document.getElementById("outreachPartnerEmail");
   const subject = document.getElementById("outreachSubject");
@@ -1425,15 +1455,37 @@ function buildOutreachDraft() {
     partnerEmail.value = String(program.contactEmail || "").trim();
   }
   const payload = buildOutreachDraftPayload(String(partnerSelect.value || ""));
-  subject.value = payload.subjectLine;
-  body.value = payload.body;
-  if (status) {
-    status.textContent =
-      "Draft generated. Partner inbox (when listed) is filled from the affiliate directory; otherwise use the signup portal.";
+  if (isSessionValid()) {
+    try {
+      const session = getSession();
+      const r = await fetch(`${getApiBase()}/api/owner/ai/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          authToken: session.token,
+          agent: "admin_outreach",
+          input: payload.outreachMeta || {}
+        })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (data.ok && data.result && data.result.subject && data.result.body) {
+        subject.value = data.result.subject;
+        body.value = data.result.body;
+        if (status) {
+          status.textContent =
+            "Generative draft ready. Review before sending; partner inbox rules still apply.";
+        }
+        if (partnerEmail && !partnerEmail.value.trim()) {
+          partnerEmail.placeholder = "If no direct email is available, apply via partner signup URL above.";
+        }
+        setStatus("Affiliate outreach draft (generative) applied.");
+        return;
+      }
+    } catch {
+      /* template fallback */
+    }
   }
-  if (partnerEmail && !partnerEmail.value.trim()) {
-    partnerEmail.placeholder = "If no direct email is available, apply via partner signup URL above.";
-  }
+  applyTemplateOutreachDraftToDom(payload);
 }
 
 function getSelectedOutreachProgramIds() {
@@ -3230,7 +3282,7 @@ async function logoutOwner() {
   location.reload();
 }
 
-function generateAiPrompt() {
+function generateAiPromptTemplate() {
   const task = document.getElementById("aiTaskText").value.trim();
   const prompt = [
     "You are helping maintain my VibeCart platform.",
@@ -3239,7 +3291,36 @@ function generateAiPrompt() {
     "Include: (1) risks, (2) implementation steps, (3) test checklist, (4) rollback plan."
   ].join("\n");
   document.getElementById("aiPromptText").value = prompt;
-  setStatus("AI prompt generated.");
+  setStatus("AI prompt generated (template).");
+}
+
+async function generateAiPrompt() {
+  const task = document.getElementById("aiTaskText").value.trim();
+  if (!isSessionValid()) {
+    generateAiPromptTemplate();
+    return;
+  }
+  try {
+    const session = getSession();
+    const r = await fetch(`${getApiBase()}/api/owner/ai/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        authToken: session.token,
+        agent: "admin_prompt",
+        input: { task }
+      })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (data.ok && data.result && data.result.prompt) {
+      document.getElementById("aiPromptText").value = data.result.prompt;
+      setStatus("Generative AI prompt ready.");
+      return;
+    }
+  } catch {
+    /* fall back */
+  }
+  generateAiPromptTemplate();
 }
 
 async function copyAiPrompt() {
@@ -3366,7 +3447,7 @@ function clearDoneSuggestions() {
   setStatus("Done suggestions cleared.");
 }
 
-function generateAdCreative() {
+function generateAdCreativeTemplate() {
   const slot = document.getElementById("adSlotShare").value;
   const budget = Number(document.getElementById("minAdBudget").value || "50");
   const suggestions = [
@@ -3376,7 +3457,39 @@ function generateAdCreative() {
     "Creative idea: 'Move Fast Fashion' cross-border seasonal campaign."
   ].join("\n");
   document.getElementById("adCreativeSuggestion").value = suggestions;
-  setStatus("Ad creative suggestions generated.");
+  setStatus("Ad creative suggestions generated (template).");
+}
+
+async function generateAdCreative() {
+  const slotEl = document.getElementById("adSlotShare");
+  const budgetEl = document.getElementById("minAdBudget");
+  const slot = String(slotEl?.value || "homepage").trim();
+  const budget = Number(budgetEl?.value || "50");
+  if (!isSessionValid()) {
+    generateAdCreativeTemplate();
+    return;
+  }
+  try {
+    const session = getSession();
+    const r = await fetch(`${getApiBase()}/api/owner/ai/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        authToken: session.token,
+        agent: "admin_ad_creative",
+        input: { slot, budget }
+      })
+    });
+    const data = await r.json().catch(() => ({}));
+    if (data.ok && data.result && data.result.suggestions) {
+      document.getElementById("adCreativeSuggestion").value = data.result.suggestions;
+      setStatus("Generative ad creative suggestions ready.");
+      return;
+    }
+  } catch {
+    /* fall back */
+  }
+  generateAdCreativeTemplate();
 }
 
 function initializeOwnerSecurity() {
@@ -3448,7 +3561,9 @@ bindClick("updateOwnerAuth", () => {
 bindClick("logoutOwner", () => {
   logoutOwner().catch(() => setStatus("Could not logout."));
 });
-bindClick("generateAiPrompt", generateAiPrompt);
+bindClick("generateAiPrompt", () => {
+  generateAiPrompt().catch(() => setStatus("Could not generate AI prompt."));
+});
 bindClick("saveAiSuggestion", saveCurrentPromptToFeed);
 bindClick("copyAiPrompt", () => {
   copyAiPrompt().catch(() => setStatus("Could not copy prompt."));
@@ -3460,7 +3575,9 @@ bindClick("copyAdminAppUrl", () => {
 bindClick("openAdminAppUrl", openAdminAppUrl);
 bindClick("runPendingDemos", runPendingDemos);
 bindClick("clearDoneSuggestions", clearDoneSuggestions);
-bindClick("generateAdCreative", generateAdCreative);
+bindClick("generateAdCreative", () => {
+  generateAdCreative().catch(() => setStatus("Could not generate ad creative."));
+});
 bindClick("applyPricingPreset", applyPricingPreset);
 bindClick("saveRevenueSettings", saveRevenueSettings);
 bindClick("seedRevenueProducts", () => {
@@ -3551,7 +3668,7 @@ bindClick("promoteMixedOffersHomepage", () => {
   promoteGreenOffersToHomepage("mixed_growth").catch((error) => setStatus(`Homepage promotion failed: ${error.message}`));
 });
 bindClick("generateOutreachDraft", () => {
-  buildOutreachDraft();
+  buildOutreachDraft().catch(() => setStatus("Could not generate outreach draft."));
 });
 bindClick("saveOutreachToInbox", () => {
   saveOutreachDraftToInbox().catch(() => setStatus("Could not save outreach draft to inbox."));

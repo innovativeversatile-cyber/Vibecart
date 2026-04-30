@@ -32,8 +32,8 @@
 
 The native shell is in `mobile-app/` (Expo). **Store links are not checked into this repo** — add them here after you publish:
 
-- **Android (Play) — when live:** `https://play.google.com/store/apps/details?id=com.vibecart.mobile`
-- **iOS (App Store) — when live:** add your App Store URL after submission.
+- **Android (Play):** Coming soon (publish pending).
+- **iOS (App Store):** Coming soon (publish pending).
 
 App config: `mobile-app/app.json` → `expo.extra.vibecartBaseUrl` / `vibecartApiBaseUrl` → **`https://vibe-cart.com`** (same-origin `/api`).
 

@@ -1948,13 +1948,13 @@
     var channel = document.getElementById("sgChannel");
     var owner = document.getElementById("sgOwnerName");
 
-    runBtn.addEventListener("click", function () {
+    function renderSellerGrowthFallback() {
       var n = String((niche && niche.value) || "general goods").trim();
       var r = String((region && region.value) || "core region").trim();
       var c = String((channel && channel.value) || "mixed").trim();
       var o = String((owner && owner.value) || "Owner").trim();
       out.innerHTML =
-        "<strong>VibeAI Growth Plan (premium mode)</strong>" +
+        "<strong>VibeAI Growth Plan</strong>" +
         "<p>1) " +
         o +
         ": recruit 3 micro-sellers in " +
@@ -1965,7 +1965,64 @@
         "<p>2) Use " +
         c +
         " outreach daily and run one trust-proof content drop every 72 hours.</p>" +
-        "<p>3) Convert at least 2 sellers/week into listing-health-complete status before scaling ad spend.</p>";
+        "<p>3) Convert at least 2 sellers/week into listing-health-complete status before scaling ad spend.</p>" +
+        "<p class='note'>Offline template — set OPENAI_API_KEY on Railway for a live generative plan.</p>";
+    }
+
+    runBtn.addEventListener("click", function () {
+      var sellerAck = document.getElementById("sellerFlowDisclaimerAck");
+      if (sellerAck && !sellerAck.checked) {
+        out.textContent = "Please accept the Start Selling disclaimer before generating the plan.";
+        return;
+      }
+      var n = String((niche && niche.value) || "general goods").trim();
+      var r = String((region && region.value) || "core region").trim();
+      var c = String((channel && channel.value) || "mixed").trim();
+      var o = String((owner && owner.value) || "Owner").trim();
+      if (typeof window.vibecartAiGenerate === "function") {
+        window
+          .vibecartAiGenerate("seller_growth_plan", {
+            niche: n,
+            region: r,
+            channel: c,
+            ownerName: o
+          })
+          .then(function (res) {
+            if (!out) {
+              return;
+            }
+            if (res && Array.isArray(res.steps) && res.steps.length) {
+              out.replaceChildren();
+              var wrap = document.createElement("div");
+              var title = document.createElement("strong");
+              title.textContent = res.title || "VibeAI growth plan";
+              wrap.appendChild(title);
+              res.steps.forEach(function (step) {
+                var p = document.createElement("p");
+                p.textContent = String(step || "");
+                wrap.appendChild(p);
+              });
+              if (res.caution) {
+                var note = document.createElement("p");
+                note.className = "note";
+                note.textContent = String(res.caution);
+                wrap.appendChild(note);
+              }
+              var tag = document.createElement("p");
+              tag.className = "note";
+              tag.textContent = "Generative AI — verify facts before outreach.";
+              wrap.appendChild(tag);
+              out.appendChild(wrap);
+              return;
+            }
+            renderSellerGrowthFallback();
+          })
+          .catch(function () {
+            renderSellerGrowthFallback();
+          });
+        return;
+      }
+      renderSellerGrowthFallback();
     });
   }
 

@@ -61,15 +61,70 @@
   transform-origin: 50% 45%;
 }
 
+.vc-hero-art svg .vc-hero-route-labels text {
+  paint-order: stroke fill;
+  stroke: rgba(13, 10, 31, 0.88);
+  stroke-width: 3px;
+}
+
 @media (max-width: 860px) {
   .vc-hero-art svg .vc-hero-route-labels text {
     font-size: 11px !important;
     letter-spacing: 0.08em;
+    stroke-width: 3.5px;
   }
 
   .vc-hero-art svg {
     max-height: min(58vw, 300px);
     margin-inline: auto;
+  }
+
+  .hero-aura-bridge {
+    width: 78%;
+    left: -16%;
+    top: 10%;
+    opacity: 0.92;
+  }
+
+  .hero-aura-trail {
+    width: 94%;
+    left: -14%;
+    top: 38%;
+    opacity: 0.76;
+  }
+
+  .hero-aura-pattern {
+    width: 58%;
+    left: 0%;
+    bottom: 2%;
+    opacity: 0.52;
+  }
+
+  .hero-masterpiece {
+    inset: 14% 4% 18% 4%;
+    transform: none;
+    border-radius: 14px;
+  }
+
+  .bg-orb-a {
+    width: 190px;
+    height: 190px;
+    left: -6%;
+    top: 4%;
+  }
+
+  .bg-orb-b {
+    width: 170px;
+    height: 170px;
+    right: -4%;
+    top: 30%;
+  }
+
+  .bg-orb-c {
+    width: 190px;
+    height: 190px;
+    right: 26%;
+    bottom: -8%;
   }
 }
 
@@ -467,12 +522,16 @@ body.vc-premium-unified .footer {
 
   .vc-premium-unified .vc-route-primary {
     stroke-dasharray: 42 58;
-    animation: vcRouteFlow 12s linear infinite;
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 8px rgba(12, 214, 255, 0.45));
+    animation: vcRouteFlow 12s linear infinite, vcRouteGlow 3.6s ease-in-out infinite;
   }
 
   .vc-premium-unified .vc-route-secondary {
     stroke-dasharray: 22 38;
-    animation: vcRouteFlow 18s linear infinite reverse;
+    stroke-dashoffset: 0;
+    filter: drop-shadow(0 0 6px rgba(143, 123, 255, 0.38));
+    animation: vcRouteFlow 18s linear infinite reverse, vcRouteGlow 4.8s ease-in-out infinite;
   }
 
   .vc-premium-unified .vc-noosphere-canvas svg {
@@ -502,6 +561,16 @@ body.vc-premium-unified .footer {
 @keyframes vcRouteFlow {
   to {
     stroke-dashoffset: -100;
+  }
+}
+
+@keyframes vcRouteGlow {
+  0%,
+  100% {
+    opacity: 0.78;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
@@ -711,6 +780,17 @@ html {
   html {
     scroll-behavior: auto;
   }
+
+  .hero-masterpiece,
+  .hero-master-line,
+  .hero-master-node,
+  .hero-bg-lane,
+  .hero-bg-node,
+  .hero-aura-bridge,
+  .hero-aura-trail,
+  .hero-aura-pattern {
+    animation: none !important;
+  }
 }
 
 /* Phones / touch pointers: native scroll + fewer layered animations = smoother, sharper frames */
@@ -734,10 +814,9 @@ html {
     stroke: rgba(186, 214, 255, 0.4);
   }
 
+  /* Keep hero route “pulse line” motion on phones — it is cheap (stroke only). Heavy layers stay off. */
   .vc-premium-unified .vc-hero-art svg,
   .vc-premium-unified .vc-noosphere-canvas svg,
-  .vc-premium-unified .vc-route-primary,
-  .vc-premium-unified .vc-route-secondary,
   .vc-premium-unified .vc-shock-scene .vc-scene-fill,
   .vc-premium-unified .vc-epic-card .vc-scene-fill,
   .vc-premium-unified .vc-noosphere-lattice::after {
@@ -750,6 +829,22 @@ html {
 
   body::before {
     opacity: 0.12;
+  }
+}
+
+@media (pointer: coarse) and (prefers-reduced-motion: no-preference) {
+  .vc-premium-unified .vc-route-primary {
+    stroke-dasharray: 36 64 !important;
+    stroke-dashoffset: 0 !important;
+    filter: drop-shadow(0 0 7px rgba(12, 214, 255, 0.42)) !important;
+    animation: vcRouteFlow 16s linear infinite !important, vcRouteGlow 4.4s ease-in-out infinite !important;
+  }
+
+  .vc-premium-unified .vc-route-secondary {
+    stroke-dasharray: 20 36 !important;
+    stroke-dashoffset: 0 !important;
+    filter: drop-shadow(0 0 5px rgba(143, 123, 255, 0.4)) !important;
+    animation: vcRouteFlow 22s linear infinite reverse !important, vcRouteGlow 5.3s ease-in-out infinite !important;
   }
 }
 
@@ -1032,6 +1127,7 @@ a {
   border-bottom: 1px solid rgba(232, 163, 23, 0.22);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: transform 240ms ease, opacity 240ms ease;
 }
 
 .topbar .brand,
@@ -1219,11 +1315,14 @@ a {
   display: flex;
   gap: 1rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .nav-links a {
   padding: 0.35rem 0.55rem;
   border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
   transition: background 0.2s ease, color 0.2s ease;
 }
 
@@ -1282,6 +1381,25 @@ main,
 .page-group--discover {
   border-left-color: var(--ochre);
   background: linear-gradient(168deg, rgba(60, 35, 18, 0.22), rgba(26, 15, 40, 0.5));
+  display: flex;
+  flex-direction: column;
+}
+
+/* User-requested full section swaps (layout order, not title-only) */
+.page-group--discover #shops {
+  order: 40;
+}
+
+.page-group--discover #categories {
+  order: 41;
+}
+
+.page-group--discover .vc-noosphere-lattice {
+  order: 85;
+}
+
+.page-group--discover #buyer-advantages {
+  order: 20;
 }
 
 .page-group--grow {
@@ -1292,6 +1410,16 @@ main,
 .page-group--assurance {
   border-left-color: var(--terracotta);
   background: linear-gradient(168deg, rgba(70, 28, 22, 0.2), rgba(20, 12, 30, 0.55));
+  display: flex;
+  flex-direction: column;
+}
+
+.page-group .section:nth-of-type(odd) {
+  background: linear-gradient(160deg, rgba(28, 18, 46, 0.72), rgba(14, 10, 28, 0.7));
+}
+
+.page-group .section:nth-of-type(even) {
+  background: linear-gradient(160deg, rgba(16, 34, 42, 0.62), rgba(22, 12, 34, 0.7));
 }
 
 .page-group .section {
@@ -1366,15 +1494,22 @@ body[data-vc-chronotope="night"] .hero-captivate-bg {
 
 .hero-captivate-bg {
   position: absolute;
-  inset: -12% -8% -12% -8%;
+  inset: 0 auto 0 0;
+  width: 64%;
   z-index: 0;
+  pointer-events: none;
+  border-radius: 18px;
+  overflow: hidden;
   background:
-    radial-gradient(circle at 16% 18%, rgba(255, 168, 46, 0.56), transparent 34%),
-    radial-gradient(circle at 80% 22%, rgba(8, 238, 193, 0.48), transparent 40%),
-    radial-gradient(circle at 50% 86%, rgba(157, 120, 255, 0.46), transparent 42%),
-    radial-gradient(ellipse 95% 72% at 50% 48%, rgba(10, 16, 38, 0.72), transparent 68%),
-    linear-gradient(150deg, rgba(8, 12, 28, 0.88), rgba(6, 10, 24, 0.96));
-  background-blend-mode: screen, screen, screen, multiply, normal;
+    radial-gradient(42% 46% at 22% 70%, rgba(255, 164, 102, 0.52), transparent 72%),
+    radial-gradient(38% 40% at 72% 64%, rgba(102, 236, 193, 0.5), transparent 72%),
+    radial-gradient(46% 42% at 48% 22%, rgba(146, 114, 255, 0.56), transparent 74%),
+    linear-gradient(162deg, rgba(12, 214, 255, 0) 16%, rgba(12, 214, 255, 0.3) 44%, rgba(12, 214, 255, 0) 72%),
+    linear-gradient(196deg, rgba(255, 63, 159, 0) 8%, rgba(255, 63, 159, 0.24) 36%, rgba(255, 63, 159, 0) 64%),
+    linear-gradient(150deg, rgba(8, 12, 28, 0.9), rgba(6, 10, 24, 0.98));
+  background-blend-mode: screen, screen, screen, screen, screen, normal;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 145% 145%, 145% 145%, 100% 100%;
+  animation: heroBgShift 14s ease-in-out infinite;
   opacity: 1;
   transition: transform 320ms ease;
 }
@@ -1390,8 +1525,59 @@ body[data-vc-chronotope="night"] .hero-captivate-bg {
       transparent 2px 18px
     );
   mix-blend-mode: soft-light;
-  opacity: 0.38;
+  opacity: 0.08;
   animation: heroSweep 9s linear infinite;
+}
+
+.hero-captivate-bg::after {
+  content: "";
+  position: absolute;
+  inset: -8% -10% -10% -8%;
+  background:
+    radial-gradient(40% 34% at 24% 66%, rgba(111, 43, 255, 0.48), transparent 72%),
+    radial-gradient(42% 36% at 54% 42%, rgba(12, 214, 255, 0.36), transparent 72%),
+    radial-gradient(28% 26% at 12% 82%, rgba(232, 163, 23, 0.3), transparent 72%),
+    repeating-linear-gradient(
+      166deg,
+      rgba(174, 247, 255, 0.14) 0 3px,
+      transparent 3px 22px
+    );
+  opacity: 0.14;
+  mix-blend-mode: screen;
+  animation: heroBeamDrift 13s linear infinite;
+  pointer-events: none;
+}
+
+.hero-showpiece {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  z-index: 5;
+  object-fit: cover;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+  display: block !important;
+  opacity: 1 !important;
+  mix-blend-mode: normal;
+  filter: saturate(1.2) contrast(1.14) brightness(1.05);
+  animation: heroShowpiecePulse 12s ease-in-out infinite;
+}
+
+.hero-copy {
+  grid-column: 2;
+}
+
+.hero-image.vc-hero-art {
+  display: none;
+}
+
+.hero-captivate-bg .hero-bg-scene,
+.hero-aura-bridge,
+.hero-aura-trail,
+.hero-aura-pattern {
+  display: none !important;
 }
 
 .hero-canvas-fx {
@@ -1401,10 +1587,196 @@ body[data-vc-chronotope="night"] .hero-captivate-bg {
   height: 100%;
   opacity: 0.62;
   mix-blend-mode: screen;
+  pointer-events: none;
 }
 
 .hero-canvas-fx--off {
   display: none !important;
+}
+
+.hero-masterpiece {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+  transform: none;
+  animation: none;
+}
+
+.hero-masterpiece svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background:
+    radial-gradient(55% 44% at 18% 76%, rgba(255, 160, 96, 0.35), transparent 70%),
+    radial-gradient(48% 38% at 72% 42%, rgba(90, 220, 255, 0.3), transparent 72%),
+    linear-gradient(140deg, rgba(8, 10, 24, 0.9), rgba(7, 11, 29, 0.96));
+}
+
+.hero-master-line {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+.hero-master-line--a {
+  animation: heroMasterLineFlow 7.8s linear infinite;
+}
+
+.hero-master-line--b {
+  animation: heroMasterLineFlow 10.5s linear infinite reverse;
+}
+
+.hero-master-node {
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.8));
+  animation: heroMasterNodePulse 2.8s ease-in-out infinite;
+}
+
+.hero-master-node--b { animation-delay: 0.35s; }
+.hero-master-node--c { animation-delay: 0.7s; }
+.hero-master-node--d { animation-delay: 1.1s; }
+
+.hero-bg-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  z-index: 4;
+  mix-blend-mode: normal;
+  pointer-events: none;
+}
+
+.hero-bg-lane {
+  fill: none;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.62));
+}
+
+.hero-bg-lane--main {
+  stroke: #9ef7ff;
+  stroke-width: 15;
+  stroke-dasharray: 34 18;
+  animation: heroBgLaneFlow 7.8s linear infinite;
+}
+
+.hero-bg-lane--alt {
+  stroke: #ffb3e6;
+  stroke-dasharray: 18 20;
+  opacity: 0.95;
+  animation: heroBgLaneFlowAlt 9.5s linear infinite reverse;
+}
+
+.hero-bg-lane--orbit {
+  stroke: #ffd98a;
+  stroke-dasharray: 12 16;
+  opacity: 0.92;
+  filter: drop-shadow(0 0 9px rgba(255, 214, 142, 0.44));
+  animation: heroBgLaneFlowAlt 7.1s linear infinite;
+}
+
+.hero-bg-emblem {
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.35));
+  animation: heroBgEmblemPulse 4.2s ease-in-out infinite;
+}
+
+.hero-bg-node {
+  fill: #ffffff;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.88));
+  animation: heroBgNodePulse 2.2s ease-in-out infinite;
+}
+
+.hero-bg-node--b { animation-delay: 0.4s; }
+.hero-bg-node--c { animation-delay: 0.9s; }
+.hero-bg-node--d { animation-delay: 1.3s; }
+.hero-bg-node--e { animation-delay: 1.7s; }
+
+.hero-aura-bridge,
+.hero-aura-trail,
+.hero-aura-pattern {
+  position: absolute;
+  pointer-events: none;
+}
+
+.hero-aura-bridge {
+  left: -6%;
+  top: 6%;
+  width: 66%;
+  height: 82%;
+  border-radius: 42% 58% 56% 44% / 40% 38% 62% 60%;
+  background:
+    radial-gradient(circle at 24% 28%, rgba(255, 242, 208, 0.4), transparent 34%),
+    radial-gradient(circle at 72% 56%, rgba(12, 214, 255, 0.34), transparent 36%),
+    linear-gradient(145deg, rgba(111, 43, 255, 0.44), rgba(255, 63, 159, 0.24), rgba(12, 214, 255, 0.22));
+  filter: blur(1px) saturate(1.12);
+  opacity: 0.88;
+  animation: heroAuraDrift 14s ease-in-out infinite;
+}
+
+.hero-aura-trail {
+  left: -6%;
+  top: 34%;
+  width: 88%;
+  height: 28%;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(
+      -16deg,
+      rgba(174, 247, 255, 0.78) 0 7px,
+      rgba(174, 247, 255, 0.12) 7px 14px,
+      transparent 14px 22px
+    );
+  box-shadow: 0 0 32px rgba(12, 214, 255, 0.35), 0 0 0 1px rgba(111, 43, 255, 0.22) inset;
+  transform: rotate(-13deg);
+  opacity: 0.66;
+  animation: heroTrailPulse 8.4s ease-in-out infinite;
+}
+
+.hero-aura-pattern {
+  left: 3%;
+  bottom: 4%;
+  width: 44%;
+  height: 30%;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(232, 163, 23, 0.2) 0 8px,
+      rgba(45, 155, 106, 0.18) 8px 16px,
+      rgba(111, 43, 255, 0.2) 16px 24px
+    );
+  mix-blend-mode: screen;
+  opacity: 0.44;
+  filter: blur(0.2px);
+  animation: heroPatternSlide 12s linear infinite;
+}
+
+.hero-captivate-bg .bg-orb {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  .hero-captivate-bg {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .hero-showpiece {
+    inset: 0;
+    opacity: 1 !important;
+  }
+}
+
+@keyframes heroBgShift {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0, 0% 50%, 100% 50%, 0 0;
+  }
+  50% {
+    background-position: 0 0, 0 0, 0 0, 100% 50%, 0% 50%, 0 0;
+  }
 }
 
 @keyframes heroSweep {
@@ -1412,37 +1784,143 @@ body[data-vc-chronotope="night"] .hero-captivate-bg {
   100% { transform: translateX(8%); }
 }
 
+@keyframes heroAuraDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translate3d(14px, -10px, 0) rotate(1.2deg) scale(1.05);
+  }
+}
+
+@keyframes heroTrailPulse {
+  0%,
+  100% {
+    transform: rotate(-16deg) translate3d(0, 0, 0);
+    opacity: 0.48;
+  }
+  50% {
+    transform: rotate(-13deg) translate3d(8px, -6px, 0);
+    opacity: 0.74;
+  }
+}
+
+@keyframes heroPatternSlide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(20px);
+  }
+}
+
+@keyframes heroBeamDrift {
+  0% {
+    transform: translate3d(-2%, 0, 0);
+  }
+  100% {
+    transform: translate3d(2%, -1.5%, 0);
+  }
+}
+
+@keyframes heroBgLaneFlow {
+  to {
+    stroke-dashoffset: -360;
+  }
+}
+
+@keyframes heroBgLaneFlowAlt {
+  to {
+    stroke-dashoffset: -240;
+  }
+}
+
+@keyframes heroBgNodePulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes heroMasterFloat {
+  0%,
+  100% {
+    transform: perspective(900px) rotateY(-4deg) rotateX(2deg) translateY(0);
+  }
+  50% {
+    transform: perspective(900px) rotateY(-2deg) rotateX(1deg) translateY(-6px);
+  }
+}
+
+@keyframes heroMasterLineFlow {
+  to {
+    stroke-dashoffset: -220;
+  }
+}
+
+@keyframes heroMasterNodePulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes heroBgEmblemPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.12);
+  }
+}
+
 .bg-orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(6px);
-  opacity: 0.52;
-  animation: orbFloat 9s ease-in-out infinite;
+  filter: blur(4px);
+  opacity: 0.74;
+  box-shadow: 0 0 36px rgba(255, 255, 255, 0.16), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  animation: orbFloat 8.4s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .bg-orb-a {
-  width: 180px;
-  height: 180px;
-  left: 5%;
-  top: 10%;
-  background: rgba(232, 163, 23, 0.45);
+  width: 240px;
+  height: 240px;
+  left: -2%;
+  top: 2%;
+  background: radial-gradient(circle at 34% 30%, rgba(255, 224, 156, 0.95), rgba(232, 163, 23, 0.46) 48%, rgba(232, 163, 23, 0.14) 70%);
 }
 
 .bg-orb-b {
-  width: 140px;
-  height: 140px;
-  right: 10%;
-  top: 8%;
-  background: rgba(45, 155, 106, 0.45);
+  width: 220px;
+  height: 220px;
+  right: 2%;
+  top: 24%;
+  background: radial-gradient(circle at 34% 34%, rgba(193, 255, 241, 0.88), rgba(12, 214, 255, 0.42) 52%, rgba(12, 214, 255, 0.12) 72%);
   animation-delay: 1.6s;
 }
 
 .bg-orb-c {
-  width: 160px;
-  height: 160px;
-  right: 28%;
-  bottom: 6%;
-  background: rgba(114, 84, 228, 0.4);
+  width: 260px;
+  height: 260px;
+  right: 30%;
+  bottom: -6%;
+  background: radial-gradient(circle at 36% 28%, rgba(215, 197, 255, 0.85), rgba(114, 84, 228, 0.44) 52%, rgba(114, 84, 228, 0.14) 72%);
   animation-delay: 2.4s;
 }
 
@@ -1634,6 +2112,350 @@ body.night-neon .signal-lens {
   font-size: 0.86rem;
 }
 
+.hero-social-proof {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.hero-social-proof article {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 0.55rem 0.6rem;
+  background: linear-gradient(145deg, rgba(8, 14, 26, 0.8), rgba(24, 11, 36, 0.78));
+}
+
+.hero-social-proof strong {
+  display: block;
+  font-size: 1.02rem;
+  color: #fff6df;
+}
+
+.hero-social-proof span {
+  color: rgba(216, 229, 255, 0.86);
+  font-size: 0.8rem;
+}
+
+.hero-left-upgrade-grid {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.hero-left-card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 0.7rem;
+  background: linear-gradient(145deg, rgba(8, 14, 26, 0.84), rgba(24, 11, 36, 0.8));
+}
+
+.hero-left-card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.96rem;
+}
+
+.hero-trust-pulse {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.hero-trust-pulse span {
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.24rem 0.48rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(16, 24, 42, 0.86);
+  color: rgba(217, 230, 255, 0.92);
+}
+
+.hero-trust-pulse span.is-live {
+  border-color: rgba(102, 236, 193, 0.65);
+  color: #d9fff2;
+  box-shadow: 0 0 0 1px rgba(102, 236, 193, 0.24) inset;
+}
+
+/* Hard-pass Wave 1: experience density bar */
+.vc-hardpass-uxbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 26, 0.7);
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.vc-hardpass-uxbar-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(216, 229, 255, 0.78);
+  padding-left: 0.3rem;
+}
+
+.vc-hardpass-uxbar-btn {
+  font-size: 0.78rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(16, 24, 42, 0.82);
+  color: rgba(225, 235, 255, 0.92);
+  cursor: pointer;
+}
+
+.vc-hardpass-uxbar-btn.is-active {
+  background: linear-gradient(120deg, rgba(232, 163, 23, 0.22), rgba(45, 155, 106, 0.18));
+  border-color: rgba(232, 163, 23, 0.55);
+  color: #fff5e0;
+}
+
+.vc-hardpass-uxbar-btn-immersive.is-active {
+  background: linear-gradient(120deg, rgba(111, 43, 255, 0.32), rgba(12, 214, 255, 0.22));
+  border-color: rgba(111, 43, 255, 0.65);
+  color: #f1edff;
+}
+
+.vc-hardpass-uxbar-status {
+  font-size: 0.74rem;
+  color: rgba(217, 230, 255, 0.82);
+}
+
+body.vc-hardpass-guided .vc-hardpass-collapsed {
+  display: none !important;
+}
+
+/* Hard-pass Wave 1: trust signals strip */
+.vc-hardpass-trust-strip {
+  margin: 0.7rem 0 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.vc-hardpass-trust-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(10, 14, 26, 0.78);
+  font-size: 0.78rem;
+  color: rgba(225, 235, 255, 0.92);
+}
+
+.vc-hardpass-trust-chip strong {
+  color: #fff6df;
+  font-weight: 700;
+}
+
+.vc-hardpass-trust-chip em {
+  font-style: normal;
+  color: rgba(217, 230, 255, 0.86);
+}
+
+.vc-hardpass-trust-chip.vc-tone-ok {
+  border-color: rgba(102, 236, 193, 0.5);
+  box-shadow: 0 0 0 1px rgba(102, 236, 193, 0.18) inset;
+}
+
+/* Hard-pass Wave 1: link resilience toast */
+.vc-hardpass-link-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(10, 14, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.84rem;
+  color: rgba(232, 240, 255, 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  max-width: min(92vw, 520px);
+  text-align: center;
+}
+
+/* Hard-pass Wave 2: cinematic moments */
+@keyframes vcCinematicEnter {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.vc-cinematic-enter {
+  animation: vcCinematicEnter 700ms ease-out both;
+}
+
+@keyframes vcCinematicPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.vc-cinematic-pulse {
+  animation: vcCinematicPulse 600ms ease-out;
+}
+
+body.vc-hardpass-immersive .hero-copy {
+  text-shadow: 0 0 18px rgba(12, 214, 255, 0.18);
+}
+
+body.vc-hardpass-immersive .hero-image {
+  filter: saturate(1.15) contrast(1.04);
+}
+
+body.vc-hardpass-immersive .hero-left-card {
+  border-color: rgba(111, 43, 255, 0.45);
+  background: linear-gradient(145deg, rgba(10, 8, 26, 0.92), rgba(28, 12, 48, 0.86));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-cinematic-enter,
+  .vc-cinematic-pulse {
+    animation: none !important;
+  }
+}
+
+/* Hard-pass Wave 2: mission journey progress */
+.vc-hardpass-mission-journey {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.45rem;
+}
+
+.vc-hardpass-mj-step {
+  width: 26px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: background-color 280ms ease, box-shadow 280ms ease;
+}
+
+.vc-hardpass-mj-step.is-done {
+  background: linear-gradient(120deg, rgba(232, 163, 23, 0.7), rgba(45, 155, 106, 0.7));
+  border-color: rgba(232, 163, 23, 0.65);
+  box-shadow: 0 0 0 1px rgba(232, 163, 23, 0.35) inset;
+}
+
+/* Hard-pass Wave 3: offer explain note */
+.vc-hardpass-offer-explain {
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(217, 230, 255, 0.86);
+}
+
+.vc-hardpass-promo-explain {
+  font-size: 0.78rem;
+  color: rgba(217, 230, 255, 0.82);
+  margin: 0.25rem 0 0.2rem;
+}
+
+.vc-hardpass-promo-fresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: rgba(102, 236, 193, 0.95);
+  margin: 0.1rem 0 0.4rem;
+}
+
+.vc-hardpass-fresh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #66ecc1;
+  box-shadow: 0 0 0 3px rgba(102, 236, 193, 0.18);
+  display: inline-block;
+}
+
+.vc-hardpass-preflight {
+  margin: 0.5rem 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.vc-hardpass-preflight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  color: rgba(225, 235, 255, 0.92);
+  padding: 0.32rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 26, 0.72);
+}
+
+.vc-hardpass-preflight-row.is-ok {
+  border-color: rgba(102, 236, 193, 0.5);
+}
+
+.vc-hardpass-preflight-row.is-blocked {
+  border-color: rgba(255, 110, 110, 0.55);
+  background: rgba(48, 12, 18, 0.55);
+}
+
+.vc-hardpass-preflight-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  display: inline-block;
+}
+
+.vc-hardpass-preflight-row.is-ok .vc-hardpass-preflight-icon {
+  background: #66ecc1;
+}
+
+.vc-hardpass-preflight-row.is-blocked .vc-hardpass-preflight-icon {
+  background: #ff6e6e;
+}
+
+#heroShopNowBtn {
+  position: relative;
+  border: 1px solid rgba(255, 230, 175, 0.85);
+  box-shadow: 0 14px 32px rgba(232, 163, 23, 0.42), 0 0 0 1px rgba(255, 230, 175, 0.35) inset;
+  animation: heroBuyNowPulse 2.6s ease-in-out infinite;
+}
+
+.hero-bridge-welcome {
+  margin-top: 0.95rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  background:
+    linear-gradient(145deg, rgba(10, 14, 30, 0.9), rgba(18, 12, 34, 0.9)),
+    repeating-linear-gradient(
+      135deg,
+      rgba(232, 163, 23, 0.08) 0 8px,
+      rgba(45, 155, 106, 0.08) 8px 16px,
+      rgba(111, 43, 255, 0.08) 16px 24px
+    );
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.26);
+}
+
+.hero-bridge-welcome p {
+  margin: 0 0 0.5rem;
+  color: rgba(239, 244, 255, 0.94);
+  font-weight: 600;
+}
+
+.hero-bridge-welcome ul {
+  margin: 0;
+  padding-left: 1.05rem;
+  display: grid;
+  gap: 0.35rem;
+  color: rgba(216, 229, 255, 0.9);
+}
+
 .signature-strip {
   margin-top: 0.85rem;
   display: flex;
@@ -1779,6 +2601,18 @@ button.btn {
   100% {
     transform: translateX(320%) skewX(-16deg);
     opacity: 0;
+  }
+}
+
+@keyframes heroBuyNowPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 14px 32px rgba(232, 163, 23, 0.42), 0 0 0 1px rgba(255, 230, 175, 0.35) inset;
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 36px rgba(232, 163, 23, 0.5), 0 0 0 1px rgba(255, 244, 210, 0.48) inset;
   }
 }
 
@@ -2481,7 +3315,10 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
 .shops-lane-page {
   min-height: 100vh;
   margin: 0;
-  background: radial-gradient(120% 80% at 50% 0%, rgba(232, 163, 23, 0.08), #0c0814 55%);
+  background:
+    radial-gradient(100% 68% at 10% 0%, rgba(232, 163, 23, 0.14), transparent 60%),
+    radial-gradient(110% 74% at 90% 26%, rgba(12, 214, 255, 0.14), transparent 62%),
+    linear-gradient(165deg, #130a1f 0%, #171238 42%, #102437 100%);
 }
 
 .shops-lane-topbar {
@@ -2497,11 +3334,59 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   background: linear-gradient(180deg, rgba(26, 15, 36, 0.96), rgba(18, 10, 26, 0.9));
   border-bottom: 1px solid rgba(232, 163, 23, 0.22);
   backdrop-filter: blur(10px);
+  transition: transform 240ms ease, opacity 240ms ease;
+}
+
+.topbar.vc-nav-hidden,
+.shops-lane-topbar.vc-nav-hidden {
+  transform: translateY(calc(-100% - 8px));
+  opacity: 0.98;
+  pointer-events: none;
+}
+
+.vc-back-top {
+  position: fixed;
+  right: 14px;
+  bottom: 16px;
+  z-index: 120;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(10, 14, 26, 0.92);
+  color: rgba(240, 246, 255, 0.95);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.82rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.vc-back-top.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 .shops-lane-main {
   max-width: min(1180px, 94vw);
   margin: 1rem auto 2.5rem;
+}
+
+.shops-lane-page .section {
+  background: linear-gradient(160deg, rgba(30, 16, 50, 0.9), rgba(12, 22, 40, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shops-lane-page .section:nth-of-type(odd) {
+  background: linear-gradient(160deg, rgba(40, 20, 56, 0.9), rgba(12, 20, 36, 0.88));
+}
+
+.shops-lane-page .btn.btn-primary {
+  background: linear-gradient(135deg, #ffd36b, #e8a317, #66ecc1);
+  color: #0b1329;
+  border: 1px solid rgba(255, 214, 140, 0.7);
+  box-shadow: 0 10px 24px rgba(232, 163, 23, 0.34);
 }
 
 .shops-lane-title {
@@ -2623,6 +3508,16 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   line-height: 1.25;
 }
 
+.shop-bubble-grid .shop .shop-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(8, 10, 24, 0.85);
+  margin-bottom: 0.45rem;
+}
+
 .shop-bubble-grid .shop h3 .shop-favicon {
   display: inline-block;
   width: 14px;
@@ -2631,6 +3526,16 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   vertical-align: -1px;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.06);
+}
+
+.shop-folder-card-title .shop-favicon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 0.44rem;
+  vertical-align: -3px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .product h3 .shop-favicon {
@@ -2647,6 +3552,13 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   margin: 0;
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.shop-bubble-grid .shop .shop-meta-badges {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 222, 170, 0.95);
 }
 
 .shop-bubble-grid .shop.is-disabled {
@@ -2866,6 +3778,125 @@ body.vc-vip-mode .vc-top-class-shell {
   flex-wrap: wrap;
 }
 
+.market-cta-deep {
+  margin-top: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid rgba(232, 163, 23, 0.34);
+  background:
+    radial-gradient(circle at 12% 20%, rgba(232, 163, 23, 0.16), transparent 46%),
+    radial-gradient(circle at 90% 78%, rgba(12, 214, 255, 0.14), transparent 44%),
+    linear-gradient(150deg, rgba(18, 12, 34, 0.92), rgba(10, 18, 34, 0.9));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  animation: vcMarketCtaPulse 6s ease-in-out infinite;
+}
+
+.market-cta-deep h3 {
+  margin: 0 0 0.35rem;
+}
+
+.market-cta-deep p {
+  margin: 0;
+}
+
+#market,
+#beauty-booking {
+  position: relative;
+  overflow: hidden;
+}
+
+#market::before,
+#beauty-booking::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.33;
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 214, 142, 0.42) 0 10px,
+      rgba(102, 236, 193, 0.34) 10px 20px,
+      rgba(146, 114, 255, 0.35) 20px 30px
+    );
+}
+
+.hero-captivate-bg::before {
+  opacity: 0.56;
+  background:
+    radial-gradient(circle at 12% 72%, rgba(255, 164, 102, 0.34), transparent 26%),
+    radial-gradient(circle at 72% 28%, rgba(102, 236, 193, 0.3), transparent 32%),
+    repeating-linear-gradient(
+      115deg,
+      rgba(255, 214, 142, 0.28) 0 3px,
+      rgba(102, 236, 193, 0.2) 3px 9px,
+      transparent 9px 16px
+    ),
+    repeating-linear-gradient(
+      -58deg,
+      rgba(255, 255, 255, 0.14) 0 2px,
+      transparent 2px 14px
+    );
+  animation: heroPatternDrift 12s linear infinite;
+}
+
+.product h3 .shop-favicon,
+.shop-folder-card-title .shop-favicon {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.5rem;
+  vertical-align: -4px;
+  border-radius: 5px;
+}
+
+@keyframes heroShowpieceReveal {
+  0% {
+    transform: scale(1.08) translate3d(0, 2%, 0);
+    opacity: 0.4;
+  }
+  55% {
+    transform: scale(1.02) translate3d(0, 0.4%, 0);
+    opacity: 0.98;
+  }
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 0.99;
+  }
+}
+
+@keyframes heroShowpiecePulse {
+  0%,
+  100% {
+    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 0.76;
+  }
+  50% {
+    transform: scale(1.03) translate3d(0, -1%, 0);
+    opacity: 0.9;
+  }
+}
+
+@keyframes heroPatternDrift {
+  0% {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 0 0, 180px 0, 0 0, -160px 0;
+  }
+}
+
+@keyframes vcMarketCtaPulse {
+  0%,
+  100% {
+    border-color: rgba(232, 163, 23, 0.34);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    border-color: rgba(102, 236, 193, 0.5);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(102, 236, 193, 0.12) inset;
+  }
+}
+
 #categoryFilter {
   background: #16203b;
   border: 1px solid #2a3459;
@@ -2916,6 +3947,26 @@ body.vc-vip-mode .vc-top-class-shell {
   margin: 2rem auto 3rem;
   color: var(--muted);
   text-align: center;
+}
+
+.footer-link-grid {
+  margin: 0.9rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.45rem 0.65rem;
+  text-align: left;
+}
+
+.footer-link-grid a {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.42rem 0.55rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.footer-link-grid a:hover {
+  background: rgba(232, 163, 23, 0.16);
+  border-color: rgba(232, 163, 23, 0.34);
 }
 
 .cinematic-intro {
@@ -3942,6 +4993,14 @@ body.admin-surface .section {
     text-align: center;
   }
 
+  .hero-social-proof {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-left-upgrade-grid {
+    grid-template-columns: 1fr;
+  }
+
   .section {
     margin: 1.35rem auto;
   }
@@ -4037,6 +5096,8 @@ body.admin-surface .section {
 /* —— VibeCart native app (WebView): class `vc-mobile-app` on <html> —— */
 html.vc-mobile-app {
   --vc-mobile-tab-h: 62px;
+  /* Fixed HUD row sits below sticky topbars so it never covers the brand / primary nav. */
+  --vc-topbar-clearance: calc(env(safe-area-inset-top, 0px) + 72px);
   width: 100% !important;
   min-width: 0 !important;
   overflow-x: hidden !important;
@@ -4671,6 +5732,7 @@ html.vc-phone .topbar {
 html.vc-phone {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  --vc-topbar-clearance: calc(env(safe-area-inset-top, 0px) + 72px);
 }
 
 html.vc-phone .brand-mark {
@@ -4745,6 +5807,24 @@ html.vc-phone .brand-mark::after {
   }
 }
 
+/* Keep VibeCoach (AI orb) away from the separate Quick actions trigger. */
+@supports selector(:has(*)) {
+  body:has(#vcQuickActionTrigger) .vc-mobile-ai {
+    right: auto;
+    left: 12px;
+    align-items: flex-start;
+  }
+
+  /* Reserve horizontal space for left-docked AI orb so the first CTA pill does not collide. */
+  body:has(#vcQuickActionTrigger) .vc-first5-bar {
+    left: 78px;
+  }
+
+  body:has(#vcQuickActionTrigger) .vc-deal-draft-composer {
+    bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 168px);
+  }
+}
+
 .vc-mobile-ai__panel {
   width: min(92vw, 320px);
   border-radius: 16px;
@@ -4752,6 +5832,255 @@ html.vc-phone .brand-mark::after {
   background: rgba(12, 8, 22, 0.96);
   padding: 0.85rem 0.9rem 1rem;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Mobile masterpiece pass: less computer-like, more thumb-native. */
+.vc-mobile-focus-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(16, 24, 42, 0.88);
+  color: rgba(233, 241, 255, 0.95);
+  border-radius: 999px;
+  padding: 0.35rem 0.62rem;
+  font-size: 0.78rem;
+}
+
+.vc-mobile-focus-toggle.is-on {
+  border-color: rgba(111, 43, 255, 0.66);
+  background: linear-gradient(120deg, rgba(111, 43, 255, 0.28), rgba(12, 214, 255, 0.2));
+}
+
+.vc-mobile-trust-snapshot {
+  margin: 0.5rem 0 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 236, 193, 0.38);
+  background: rgba(8, 16, 30, 0.78);
+  padding: 0.52rem 0.62rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.vc-mobile-trust-snapshot strong {
+  font-size: 0.82rem;
+  color: #dffdf2;
+}
+
+.vc-mobile-trust-snapshot span {
+  font-size: 0.76rem;
+  color: rgba(216, 229, 255, 0.88);
+}
+
+.vc-mobile-welcome-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  background: rgba(5, 10, 18, 0.56);
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+}
+
+.vc-mobile-welcome-card {
+  width: min(96vw, 520px);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(155deg, rgba(14, 10, 26, 0.98), rgba(10, 20, 40, 0.96));
+  padding: 0.9rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+html.vc-mobile-focus .section:nth-of-type(n + 5),
+html.vc-mobile-focus #vcSenseDeck,
+html.vc-mobile-focus #settings-hub {
+  display: none !important;
+}
+
+.vc-mobile-streak-chip {
+  position: fixed;
+  top: var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px));
+  right: 12px;
+  z-index: 132;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(11, 16, 30, 0.86);
+  color: #fff2da;
+  font-size: 0.76rem;
+  padding: 0.34rem 0.56rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.vc-mobile-streak-chip.is-pop {
+  transform: scale(1.05);
+}
+
+.vc-quick-action-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20050;
+  background: rgba(5, 10, 18, 0.58);
+  display: grid;
+  place-items: end center;
+  padding: 10px;
+}
+
+.vc-quick-action-sheet:not(.is-open) {
+  pointer-events: none;
+}
+
+.vc-quick-action-card {
+  width: min(96vw, 520px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(150deg, rgba(16, 10, 28, 0.98), rgba(10, 20, 40, 0.96));
+  padding: 0.85rem;
+}
+
+.vc-deal-draft-composer {
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 118px);
+  z-index: 133;
+}
+
+.vc-deal-draft-fab {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(16, 24, 42, 0.9);
+  color: #e9f0ff;
+  font-size: 0.74rem;
+  padding: 0.36rem 0.58rem;
+}
+
+.vc-deal-draft-panel {
+  margin-top: 0.4rem;
+  width: min(88vw, 320px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(10, 14, 26, 0.96);
+  padding: 0.5rem;
+}
+
+.vc-deal-draft-panel textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 6, 16, 0.88);
+  color: #eef4ff;
+  font: inherit;
+  padding: 0.42rem 0.5rem;
+}
+
+.vc-story-rail {
+  margin: 0.2rem 0 0.6rem;
+  display: flex;
+  gap: 0.42rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.vc-story-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.vc-story-pill {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(14, 20, 36, 0.86);
+  color: rgba(233, 241, 255, 0.95);
+  border-radius: 999px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.vc-social-pulse {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem;
+  color: rgba(188, 255, 221, 0.94);
+}
+
+.vc-saved-pop {
+  outline: 2px solid rgba(102, 236, 193, 0.55);
+  box-shadow: 0 0 0 4px rgba(102, 236, 193, 0.16);
+}
+
+.vc-vibe-mode-btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 0.34rem 0.58rem;
+  background: rgba(16, 24, 42, 0.86);
+  color: rgba(231, 239, 255, 0.95);
+  font-size: 0.76rem;
+}
+
+.vc-vibe-mode-btn.is-on {
+  border-color: rgba(12, 214, 255, 0.66);
+  background: linear-gradient(120deg, rgba(12, 214, 255, 0.25), rgba(111, 43, 255, 0.22));
+}
+
+.vc-quick-action-trigger {
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 14px);
+  z-index: 20040;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 0.42rem 0.7rem;
+  background: rgba(14, 22, 40, 0.9);
+  color: rgba(235, 243, 255, 0.98);
+  font-size: 0.78rem;
+  line-height: 1;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: auto;
+}
+
+html.vc-vibe-neon body {
+  filter: saturate(1.09) contrast(1.03);
+}
+
+.vc-first5-bar {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 54px);
+  z-index: 131;
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vc-first5-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.vc-first5-pill {
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(14, 20, 36, 0.88);
+  color: #eaf2ff;
+  border-radius: 999px;
+  padding: 0.34rem 0.58rem;
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.vc-mission-hud {
+  position: fixed;
+  left: auto;
+  right: 12px;
+  top: auto;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 88px);
+  z-index: 131;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(12, 16, 30, 0.88);
+  color: #d8fff1;
+  font-size: 0.74rem;
+  padding: 0.33rem 0.56rem;
+  max-width: min(200px, 46vw);
+  text-align: center;
 }
 
 .vc-mobile-ai__panel[hidden] {
@@ -5052,6 +6381,34 @@ body.vc-layout-exclusive .shop-search-input {
   background: rgba(5, 7, 12, 0.95);
 }
 
+body.vc-mode-full-experience .hero {
+  box-shadow: 0 18px 44px rgba(255, 98, 180, 0.22);
+}
+
+body.vc-mode-home-focused .hero,
+body.vc-interaction-simple .hero {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+}
+
+body.vc-interaction-simple .page-group--grow,
+body.vc-interaction-simple #seller-ai-toolkit,
+body.vc-interaction-simple #seller-marketing {
+  opacity: 0.88;
+}
+
+.vc-auto-debug-output {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(4, 8, 16, 0.8);
+  color: rgba(212, 243, 255, 0.95);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 860px) {
   .topbar-primary {
     flex-direction: column;
@@ -5071,10 +6428,44 @@ body.vc-layout-exclusive .shop-search-input {
     -webkit-overflow-scrolling: touch;
   }
 
+  .topbar-lang {
+    gap: 0.3rem;
+    font-size: 0.74rem;
+  }
+
+  .topbar-lang label {
+    display: none;
+  }
+
   .topbar-lang select {
-    min-height: 44px;
-    width: 100%;
-    max-width: 100%;
+    min-height: 36px;
+    padding: 0.24rem 0.4rem;
+    width: auto;
+    min-width: 6.9rem;
+    max-width: 10rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .vc-first5-bar {
+    gap: 0.28rem;
+    bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 50px);
+  }
+
+  .vc-first5-pill {
+    padding: 0.29rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .vc-mobile-ai__orb {
+    width: 48px;
+    height: 48px;
+  }
+
+  @supports selector(:has(*)) {
+    body:has(#vcQuickActionTrigger) .vc-first5-bar {
+      left: 72px;
+    }
   }
 }
 
@@ -6152,6 +7543,9 @@ html.vc-mobile-kinetic main .page-group {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   background: linear-gradient(155deg, rgba(16, 20, 32, 0.9), rgba(10, 12, 22, 0.95));
+  padding: 1rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .vc-visual-splash-title {
@@ -6164,8 +7558,8 @@ html.vc-mobile-kinetic main .page-group {
 
 .vc-visual-splash-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .vc-epic-experience {
@@ -6173,6 +7567,9 @@ html.vc-mobile-kinetic main .page-group {
   border-radius: 14px;
   background: linear-gradient(155deg, rgba(12, 14, 26, 0.96), rgba(8, 10, 18, 0.98));
   overflow: hidden;
+  padding: 0.85rem;
+  width: 100%;
+  max-width: 100%;
 }
 
 .vc-epic-head {
@@ -6362,9 +7759,15 @@ html.vc-mobile-kinetic main .page-group {
   position: relative;
   border-radius: 12px;
   overflow: hidden;
-  min-height: 170px;
+  min-height: 210px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+@media (min-width: 1200px) {
+  .vc-visual-splash-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .vc-visual-tile img,
@@ -6395,16 +7798,17 @@ html.vc-mobile-kinetic main .page-group {
     display: none;
   }
   .vc-visual-splash-grid {
-    display: flex;
-    overflow-x: auto;
-    gap: 0.55rem;
-    padding-bottom: 0.2rem;
-    scroll-snap-type: x mandatory;
+    display: grid;
+    grid-template-columns: 1fr;
+    overflow: visible;
+    gap: 0.65rem;
+    padding-bottom: 0;
+    scroll-snap-type: none;
   }
   .vc-visual-tile {
-    min-width: 78%;
+    min-width: 100%;
     min-height: 190px;
-    scroll-snap-align: start;
+    scroll-snap-align: none;
   }
   .vc-epic-track {
     min-height: 360px;
@@ -6442,6 +7846,33 @@ html.vc-mobile-kinetic main .page-group {
   .vc-mobile-rail-sub {
     display: none;
   }
+}
+
+body.vc-top-class-active {
+  background:
+    radial-gradient(120% 85% at 10% 0%, rgba(255, 196, 120, 0.18), transparent 60%),
+    radial-gradient(120% 90% at 90% 0%, rgba(102, 236, 193, 0.16), transparent 62%),
+    linear-gradient(180deg, #07050f 0%, #0b0818 45%, #08060f 100%);
+}
+
+body.vc-top-class-active .hero,
+body.vc-top-class-active .section {
+  border-color: rgba(255, 214, 130, 0.32);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 214, 130, 0.12) inset;
+}
+
+body.vc-top-class-active .vc-visual-tile,
+body.vc-top-class-active .vc-epic-experience {
+  transform: translateZ(0) scale(1.01);
+  border-color: rgba(102, 236, 193, 0.38);
+}
+
+.vc-topclass-ai-suite {
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 130, 0.34);
+  background: linear-gradient(145deg, rgba(12, 10, 26, 0.92), rgba(8, 12, 24, 0.92));
 }
 
 .vc-experience-shell {
@@ -6852,6 +8283,31 @@ body.vc-luxe-surprise::after {
   .vc-signal-cinema .vc-sig-dash {
     animation: vcSigDashFlow 11s linear infinite;
   }
+
+  .vc-signal-cinema .vc-sig-dash--alt {
+    animation-duration: 8.8s;
+    animation-direction: reverse;
+  }
+
+  .vc-signal-cinema .vc-sig-node {
+    animation: vcSigNodeGlow 3.2s ease-in-out infinite;
+  }
+
+  .vc-signal-cinema .vc-sig-node--b {
+    animation-delay: 0.6s;
+  }
+
+  .vc-signal-cinema .vc-sig-node--c {
+    animation-delay: 1.2s;
+  }
+
+  .vc-signal-cinema .vc-sig-pulse {
+    animation: vcSigPulseRun 5.4s linear infinite;
+  }
+
+  .vc-signal-cinema .vc-sig-pulse--2 {
+    animation-delay: 2.1s;
+  }
 }
 
 @keyframes vcSigDashFlow {
@@ -6860,10 +8316,39 @@ body.vc-luxe-surprise::after {
   }
 }
 
+@keyframes vcSigNodeGlow {
+  0%,
+  100% {
+    opacity: 0.72;
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.45));
+  }
+}
+
+@keyframes vcSigPulseRun {
+  0% {
+    opacity: 0;
+    transform: translateX(-78px) translateY(16px);
+  }
+  15%,
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(84px) translateY(-14px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vc-signal-cinema__beats span,
   .vc-signal-cinema__scan,
-  .vc-signal-cinema__stage .vc-sig-dash {
+  .vc-signal-cinema__stage .vc-sig-dash,
+  .vc-signal-cinema__stage .vc-sig-node,
+  .vc-signal-cinema__stage .vc-sig-pulse {
     animation: none !important;
   }
 
@@ -6946,4 +8431,858 @@ body.vc-luxe-surprise::after {
   border-radius: 10px;
   margin-bottom: 0.55rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Hard fallback: guaranteed visible hero left panel */
+.hero.hero--hue-drift::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 66% !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background-color: #0a0d24 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2309071b'/%3E%3Cstop offset='1' stop-color='%23060f1d'/%3E%3C/linearGradient%3E%3ClinearGradient id='r' x1='0' y1='1' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23ffc778'/%3E%3Cstop offset='0.5' stop-color='%230cd6ff'/%3E%3Cstop offset='1' stop-color='%23907dff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1200' height='800' fill='url(%23g)'/%3E%3Cpath d='M130 610 C 290 410, 470 310, 630 312 S 900 360, 1080 332' fill='none' stroke='url(%23r)' stroke-width='18' stroke-linecap='round' stroke-dasharray='28 18'/%3E%3Cpath d='M150 650 C 340 540, 500 500, 660 500 S 920 540, 1100 452' fill='none' stroke='%2366ecc1' stroke-opacity='0.9' stroke-width='9' stroke-linecap='round' stroke-dasharray='12 14'/%3E%3Ccircle cx='140' cy='620' r='9' fill='white'/%3E%3Ccircle cx='420' cy='420' r='8' fill='white'/%3E%3Ccircle cx='660' cy='500' r='9' fill='white'/%3E%3Ccircle cx='1080' cy='332' r='10' fill='white'/%3E%3C/svg%3E") !important;
+  background-size: cover !important;
+  background-position: center !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35) !important;
+}
+
+.hero.hero--hue-drift .hero-captivate-bg {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  .hero.hero--hue-drift::before {
+    width: 100% !important;
+    border-radius: 14px !important;
+  }
+}
+
+/* Final reliability override: static hero image mode (no layered animation dependencies) */
+.hero.hero--hue-drift::before {
+  content: none !important;
+  display: none !important;
+}
+
+.hero.hero--hue-drift .hero-captivate-bg {
+  display: block !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 58% !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background:
+    linear-gradient(to right, rgba(4, 7, 20, 0.14) 0%, rgba(4, 7, 20, 0.48) 60%, rgba(4, 7, 20, 0.86) 100%),
+    repeating-linear-gradient(
+      150deg,
+      rgba(0, 229, 255, 0.14) 0 8px,
+      rgba(255, 70, 166, 0.11) 8px 16px,
+      rgba(255, 196, 110, 0.08) 16px 24px
+    ),
+    radial-gradient(62% 44% at 20% 74%, rgba(255, 173, 90, 0.28), transparent 74%),
+    radial-gradient(44% 36% at 74% 30%, rgba(95, 228, 255, 0.2), transparent 72%),
+    url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1900&q=85")
+      center / cover no-repeat !important;
+  opacity: 1 !important;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(102, 236, 193, 0.14) inset !important;
+}
+
+.hero.hero--hue-drift .hero-copy {
+  position: relative;
+  z-index: 3;
+}
+
+.hero.hero--hue-drift .hero-captivate-bg::before,
+.hero.hero--hue-drift .hero-captivate-bg::after,
+.hero.hero--hue-drift .hero-showpiece,
+.hero.hero--hue-drift .hero-masterpiece,
+.hero.hero--hue-drift .hero-canvas-fx,
+.hero.hero--hue-drift .hero-bg-scene,
+.hero.hero--hue-drift .hero-aura-bridge,
+.hero.hero--hue-drift .hero-aura-trail,
+.hero.hero--hue-drift .hero-aura-pattern,
+.hero.hero--hue-drift .bg-orb {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  .hero.hero--hue-drift .hero-captivate-bg {
+    width: 100% !important;
+    border-radius: 14px !important;
+  }
+}
+
+/* Hero unification: remove cramped lane lines and keep one clean mission image panel */
+.hero.hero--hue-drift {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+.hero.hero--hue-drift .hero-captivate-bg {
+  width: 50% !important;
+  background:
+    linear-gradient(to right, rgba(6, 8, 22, 0.2) 0%, rgba(6, 8, 22, 0.5) 60%, rgba(6, 8, 22, 0.82) 100%),
+    radial-gradient(58% 42% at 18% 70%, rgba(255, 172, 97, 0.24), transparent 72%),
+    radial-gradient(42% 34% at 66% 32%, rgba(96, 226, 255, 0.18), transparent 72%),
+    url("https://images.unsplash.com/photo-1518081461904-9a9f5f1f3f66?auto=format&fit=crop&w=1800&q=84")
+      center / cover no-repeat !important;
+  border-radius: 14px !important;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28) !important;
+}
+
+.hero.hero--hue-drift .hero-masterpiece,
+.hero.hero--hue-drift .hero-showpiece,
+.hero.hero--hue-drift .hero-canvas-fx,
+.hero.hero--hue-drift .hero-bg-scene,
+.hero.hero--hue-drift .hero-aura-bridge,
+.hero.hero--hue-drift .hero-aura-trail,
+.hero.hero--hue-drift .hero-aura-pattern,
+.hero.hero--hue-drift .bg-orb {
+  display: none !important;
+}
+
+body.start-selling-page .shop-search,
+body.start-selling-page .vc-site-chrome-search {
+  display: none !important;
+}
+
+@media (max-width: 860px) {
+  .hero.hero--hue-drift {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero.hero--hue-drift .hero-captivate-bg {
+    position: relative !important;
+    width: 100% !important;
+    min-height: 220px !important;
+    margin-bottom: 0.85rem !important;
+  }
+}
+
+/* Final hero stabilization: restore classic visual, prevent overlap */
+.hero.hero--hue-drift {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  align-items: stretch !important;
+}
+
+.hero.hero--hue-drift .hero-captivate-bg {
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 52% !important;
+  background: linear-gradient(145deg, rgba(8, 10, 24, 0.55), rgba(8, 10, 28, 0.78)) !important;
+}
+
+.hero.hero--hue-drift .hero-masterpiece {
+  display: block !important;
+  position: absolute !important;
+  inset: 8% 6% 12% 4% !important;
+  z-index: 6 !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.4) !important;
+  overflow: hidden !important;
+}
+
+.hero.hero--hue-drift .hero-showpiece,
+.hero.hero--hue-drift .hero-canvas-fx,
+.hero.hero--hue-drift .hero-bg-scene,
+.hero.hero--hue-drift .hero-aura-bridge,
+.hero.hero--hue-drift .hero-aura-trail,
+.hero.hero--hue-drift .hero-aura-pattern,
+.hero.hero--hue-drift .bg-orb {
+  display: none !important;
+}
+
+.hero.hero--hue-drift .hero-copy {
+  grid-column: 2 !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+@media (max-width: 860px) {
+  .hero.hero--hue-drift {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hero.hero--hue-drift .hero-captivate-bg {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    min-height: 220px !important;
+    margin-bottom: 0.9rem !important;
+    border-radius: 14px !important;
+  }
+
+  .hero.hero--hue-drift .hero-masterpiece {
+    inset: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .hero.hero--hue-drift .hero-copy {
+    grid-column: 1 !important;
+  }
+}
+
+/* Health coach pages: keep UI clean, no search bar */
+body.health-coach-page .shop-search,
+body.health-coach-page .vc-site-chrome-search {
+  display: none !important;
+}
+
+/* If luxe reveal ran before skip (cache), keep coach sections fully visible and tappable. */
+body.health-coach-page main section.vc-luxe-reveal,
+body.health-coach-page main section.vc-luxe-reveal-in {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none;
+  pointer-events: auto;
+}
+
+body.health-coach-page .vc-luxe-score,
+body.health-coach-page .vc-experience-shell {
+  display: none !important;
+}
+
+.coach-match-out {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 236, 193, 0.28);
+  background: linear-gradient(145deg, rgba(12, 22, 28, 0.92), rgba(14, 12, 28, 0.88));
+  min-height: 3.25rem;
+  position: relative;
+  z-index: 6;
+}
+
+.coach-match-result__title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.coach-match-result__tag {
+  display: inline-block;
+  margin-left: 0.25rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  color: rgba(255, 244, 220, 0.95);
+  background: rgba(232, 163, 23, 0.12);
+}
+
+.coach-match-result__why {
+  margin: 0.5rem 0 0.35rem;
+  padding-left: 1.15rem;
+  color: rgba(228, 236, 255, 0.92);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.coach-match-result__legal {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+body.health-coach-page #bundleCheckoutBtn.is-disabled {
+  pointer-events: none;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body.health-coach-page #coach-packages,
+body.health-coach-page #coach-packages ~ section,
+body.health-coach-page #coachMatchOut {
+  scroll-margin-top: 6.5rem;
+}
+
+/* Long coach page: keep the matcher CTA scrollable above fixed Quick / tab chrome (tap was landing on HUD). */
+html.vc-phone body.health-coach-page main.shops-lane-main,
+html.vc-mobile-app body.health-coach-page main.shops-lane-main {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--vc-mobile-tab-h, 62px) + 8.5rem);
+}
+
+body.health-coach-page #coachMatchBtn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 4;
+}
+
+/* Better-than-market baseline: faster trust + bargain clarity in first 5 seconds */
+.hero.hero--hue-drift .hero-captivate-bg {
+  width: 48% !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(to right, rgba(5, 8, 24, 0.1) 0%, rgba(5, 8, 24, 0.44) 58%, rgba(5, 8, 24, 0.82) 100%),
+    radial-gradient(62% 45% at 16% 72%, rgba(255, 176, 102, 0.28), transparent 74%),
+    radial-gradient(44% 35% at 68% 28%, rgba(113, 228, 255, 0.2), transparent 72%),
+    url("https://images.unsplash.com/photo-1481437156560-3205f6a55735?auto=format&fit=crop&w=1800&q=84")
+      center / cover no-repeat !important;
+}
+
+.hero-copy #heroTitle {
+  font-size: clamp(2rem, 3.9vw, 3.4rem) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.hero-quick-lanes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.hero-lane-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, rgba(18, 23, 48, 0.82), rgba(18, 29, 56, 0.66));
+  color: #edf7ff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.hero-lane-pill:hover,
+.hero-lane-pill:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(102, 236, 193, 0.55);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+}
+
+.vc-promo-feed {
+  margin: 1rem 0 1.15rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(9, 14, 30, 0.9), rgba(12, 22, 42, 0.76));
+}
+
+.vc-afro-market-intro {
+  position: relative;
+  margin: 0.7rem 0 0.95rem;
+  padding: 0.8rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 143, 0.34);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 179, 71, 0.14) 0 10px,
+      rgba(102, 236, 193, 0.1) 10px 20px,
+      rgba(130, 170, 255, 0.08) 20px 30px
+    ),
+    linear-gradient(145deg, rgba(24, 10, 42, 0.82), rgba(11, 24, 38, 0.84));
+}
+
+/* Deprecated intro strip removed from live market view */
+.vc-afro-market-intro {
+  display: none !important;
+}
+
+.vc-afro-market-intro h2 {
+  margin: 0 0 0.28rem;
+  font-size: 1.03rem;
+}
+
+.vc-promo-slider {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-top: 0.6rem;
+  scroll-behavior: smooth;
+}
+
+.vc-promo-track {
+  display: flex;
+  gap: 0.72rem;
+  min-width: min-content;
+}
+
+.vc-promo-track .vc-promo-card {
+  min-width: 240px;
+  max-width: 240px;
+}
+
+.vc-promo-feed-head h2 {
+  margin: 0 0 0.3rem;
+}
+
+.vc-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.72rem;
+  margin-top: 0.65rem;
+}
+
+.vc-promo-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(8, 13, 27, 0.92);
+}
+
+.vc-promo-card img {
+  width: 100%;
+  height: 118px;
+  object-fit: cover;
+  display: block;
+}
+
+.vc-promo-card-copy {
+  padding: 0.58rem;
+}
+
+.vc-promo-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(102, 236, 193, 0.95);
+}
+
+.vc-promo-card h3 {
+  margin: 0.24rem 0 0.3rem;
+  font-size: 0.95rem;
+}
+
+.vc-promo-card p {
+  margin: 0 0 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.shop-bubble-grid .shop .shop-logo {
+  min-width: 28px;
+  min-height: 28px;
+  width: 34px;
+  height: 34px;
+  display: block;
+  opacity: 1 !important;
+  object-fit: contain !important;
+  background: #0f1933 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+@media (max-width: 860px) {
+  .hero.hero--hue-drift .hero-captivate-bg {
+    width: 100% !important;
+    min-height: 240px !important;
+  }
+}
+
+/* Mobile WebView stability (default): clamp the worst flicker sources while keeping
+   the page usable. “Rich” mode opts into motion again, but we still avoid the most
+   expensive compositing patterns on phone WebViews.
+
+   Opt into motion by adding `vc-motion-rich` on <html> (see mobile-app-shell.js). */
+
+/* Stable (default): keep hero field calmer + kill the AI orb pulse (tiny but constant). */
+html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-hero-aurora,
+html.vc-phone:not(.vc-motion-rich) .vc-mobile-hero-aurora,
+html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-ai__pulse,
+html.vc-phone:not(.vc-motion-rich) .vc-mobile-ai__pulse {
+  animation: none !important;
+  transition: none !important;
+}
+
+html.vc-mobile-app:not(.vc-motion-rich) .hero-captivate-bg,
+html.vc-phone:not(.vc-motion-rich) .hero-captivate-bg,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-captivate-bg::before,
+html.vc-phone:not(.vc-motion-rich) .hero-captivate-bg::before,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-captivate-bg::after,
+html.vc-phone:not(.vc-motion-rich) .hero-captivate-bg::after,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-showpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-showpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-phone:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-bg-scene,
+html.vc-phone:not(.vc-motion-rich) .hero-bg-scene,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-aura-bridge,
+html.vc-phone:not(.vc-motion-rich) .hero-aura-bridge,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-aura-trail,
+html.vc-phone:not(.vc-motion-rich) .hero-aura-trail,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-aura-pattern,
+html.vc-phone:not(.vc-motion-rich) .hero-aura-pattern,
+html.vc-mobile-app:not(.vc-motion-rich) .bg-orb,
+html.vc-phone:not(.vc-motion-rich) .bg-orb {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Stable: remove animated filters on large hero layers (common flicker trigger). */
+html.vc-mobile-app:not(.vc-motion-rich) .hero-showpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-showpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-phone:not(.vc-motion-rich) .hero-masterpiece,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-phone:not(.vc-motion-rich) .hero-canvas-fx,
+html.vc-mobile-app:not(.vc-motion-rich) .hero-bg-scene,
+html.vc-phone:not(.vc-motion-rich) .hero-bg-scene {
+  filter: none !important;
+}
+
+html.vc-mobile-app:not(.vc-motion-rich) body,
+html.vc-phone:not(.vc-motion-rich) body {
+  filter: none !important;
+}
+
+/* Rich: bring motion back, but keep WebView-safe compositing defaults on the hero field. */
+@media (max-width: 1024px) {
+  html.vc-mobile-app.vc-motion-rich .hero,
+  html.vc-phone.vc-motion-rich .hero {
+    isolation: isolate;
+    contain: paint;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Keep large hero imagery from animating filters (still allows transform/opacity animations). */
+  html.vc-mobile-app.vc-motion-rich .hero-showpiece,
+  html.vc-phone.vc-motion-rich .hero-showpiece,
+  html.vc-mobile-app.vc-motion-rich .hero-masterpiece,
+  html.vc-phone.vc-motion-rich .hero-masterpiece {
+    filter: none !important;
+  }
+
+  html.vc-mobile-app.vc-motion-rich body,
+  html.vc-phone.vc-motion-rich body {
+    filter: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  html:not(.vc-motion-rich) .mobile-quick-nav {
+    backdrop-filter: none !important;
+  }
+}
+
+.vc-motion-mode-btn {
+  position: fixed;
+  left: 12px;
+  top: var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px));
+  z-index: 132;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(12, 16, 30, 0.88);
+  color: #d8fff1;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.52rem;
+}
+
+.vc-arrange-hud {
+  position: fixed;
+  left: 12px;
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 38px);
+  z-index: 132;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(12, 16, 30, 0.88);
+  color: #d8fff1;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.52rem;
+}
+
+.vc-arrange-reset-hud {
+  position: fixed;
+  left: 12px;
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 74px);
+  z-index: 132;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(24, 14, 22, 0.88);
+  color: #ffd8e8;
+  font-size: 0.7rem;
+  padding: 0.27rem 0.5rem;
+}
+
+html.vc-arrange-on .vc-arrange-target {
+  outline: 1px dashed rgba(12, 214, 255, 0.65);
+  outline-offset: 2px;
+  cursor: move;
+  touch-action: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.vc-mobile-app .hero,
+  html.vc-phone .hero,
+  html.vc-mobile-app .hero *,
+  html.vc-phone .hero *,
+  html.vc-mobile-app .vc-mobile-hero-aurora,
+  html.vc-phone .vc-mobile-hero-aurora,
+  html.vc-mobile-app .vc-mobile-ai__pulse,
+  html.vc-phone .vc-mobile-ai__pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html.vc-mobile-app .hero,
+  html.vc-phone .hero,
+  html.vc-mobile-app .hero *,
+  html.vc-phone .hero * {
+    filter: none !important;
+  }
+
+  html.vc-mobile-app body,
+  html.vc-phone body {
+    filter: none !important;
+  }
+
+  .mobile-quick-nav {
+    backdrop-filter: none !important;
+  }
+}
+
+/* Final guard: keep stable mode safe; rich mode is now an explicit user choice. */
+html.vc-mobile-app:not(.vc-motion-rich) .hero,
+html.vc-phone:not(.vc-motion-rich) .hero,
+html.vc-mobile-app:not(.vc-motion-rich) .hero *,
+html.vc-phone:not(.vc-motion-rich) .hero *,
+html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-hero-aurora,
+html.vc-phone:not(.vc-motion-rich) .vc-mobile-hero-aurora,
+html.vc-mobile-app:not(.vc-motion-rich) .vc-mobile-ai__pulse,
+html.vc-phone:not(.vc-motion-rich) .vc-mobile-ai__pulse {
+  animation: none !important;
+  transition: none !important;
+}
+
+html.vc-mobile-app:not(.vc-motion-rich) .hero,
+html.vc-phone:not(.vc-motion-rich) .hero,
+html.vc-mobile-app:not(.vc-motion-rich) .hero *,
+html.vc-phone:not(.vc-motion-rich) .hero * {
+  filter: none !important;
+}
+
+html.vc-mobile-app:not(.vc-motion-rich) body,
+html.vc-phone:not(.vc-motion-rich) body {
+  filter: none !important;
+}
+
+/* —— Competitive edge lane (vs generic classifieds / OLX-style boards) —— */
+.vc-edge-lane {
+  position: relative;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(90% 120% at 0% 0%, rgba(111, 43, 255, 0.22), transparent 55%),
+    radial-gradient(80% 100% at 100% 20%, rgba(12, 214, 255, 0.14), transparent 50%),
+    linear-gradient(168deg, rgba(10, 8, 26, 0.94), rgba(6, 4, 18, 0.92));
+  box-shadow: 0 20px 60px rgba(4, 2, 14, 0.45);
+  overflow: hidden;
+}
+
+.vc-edge-lane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: vc-edge-shimmer 9s ease-in-out infinite;
+}
+
+@keyframes vc-edge-shimmer {
+  0%,
+  100% {
+    background-position: 130% 0;
+  }
+  50% {
+    background-position: -30% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-edge-lane::before {
+    animation: none;
+  }
+}
+
+.vc-edge-head {
+  position: relative;
+  z-index: 1;
+  max-width: 62ch;
+}
+
+.vc-edge-lead {
+  font-size: clamp(0.95rem, 2.1vw, 1.08rem);
+  line-height: 1.55;
+  color: rgba(232, 220, 200, 0.88);
+}
+
+.vc-edge-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.35rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+.vc-edge-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem 1.1rem 1.15rem 1.35rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 10, 28, 0.72);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease, box-shadow 0.35s ease;
+}
+
+.vc-edge-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12%;
+  bottom: 12%;
+  width: 3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e8a317, #0cd6ff, #6f2bff);
+  opacity: 0.85;
+}
+
+.vc-edge-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(232, 163, 23, 0.35);
+  box-shadow: 0 18px 48px rgba(8, 4, 22, 0.42);
+}
+
+.vc-edge-card--finale {
+  border-color: rgba(102, 236, 193, 0.22);
+  background: linear-gradient(145deg, rgba(18, 14, 36, 0.88), rgba(8, 22, 28, 0.75));
+}
+
+.vc-edge-num {
+  display: inline-block;
+  font-family: var(--vc-font-display, Syne, system-ui, sans-serif);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: rgba(232, 163, 23, 0.75);
+  margin-bottom: 0.35rem;
+}
+
+.vc-edge-card h3 {
+  font-family: var(--vc-font-display, Syne, system-ui, sans-serif);
+  font-size: clamp(1rem, 2.4vw, 1.15rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.45rem;
+  color: #f6f2ff;
+}
+
+.vc-edge-pain {
+  margin: 0 0 0.5rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(168, 176, 208, 0.92);
+}
+
+.vc-edge-answer {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(220, 228, 255, 0.94);
+}
+
+.vc-edge-kicker {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.12rem 0.45rem 0.1rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #041a14;
+  background: linear-gradient(120deg, #66ecc1, #3daa7a);
+  vertical-align: 0.08em;
+}
+
+.vc-edge-cta {
+  margin-top: 0.15rem;
+  align-self: flex-start;
+}
+
+html.vc-mobile-app .vc-edge-card:hover,
+html.vc-phone .vc-edge-card:hover {
+  transform: none;
+}
+
+html.vc-mobile-app .vc-edge-lane::before,
+html.vc-phone .vc-edge-lane::before {
+  animation: none;
+}
+
+/* Compact edge strip (secondary shop / hub pages) */
+.vc-edge-lane--compact {
+  margin: 0.75rem 0 1.2rem;
+  padding: 0.95rem 1rem 1.05rem;
+  border-radius: 18px;
+}
+
+.vc-edge-lane--compact .vc-edge-head {
+  max-width: none;
+}
+
+.vc-edge-lane--compact .vc-edge-grid {
+  margin-top: 0.8rem;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.vc-edge-lane--compact .vc-edge-card {
+  padding: 0.85rem 0.85rem 0.95rem 1.1rem;
+}
+
+.vc-edge-lane--compact .vc-edge-card h3 {
+  font-size: clamp(0.92rem, 2.8vw, 1.05rem);
+}
+
+.vc-edge-lane--compact .vc-edge-pain {
+  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+}
+
+.vc-edge-lane--compact .vc-edge-answer {
+  display: none;
+}
+
+.vc-edge-lane--compact .vc-edge-num {
+  display: none;
+}
+
+.shops-lane-main .vc-edge-lane--compact h2 {
+  margin: 0.2rem 0 0.35rem;
+  font-family: var(--vc-font-display, Syne, system-ui, sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #f6f2ff;
+  font-size: clamp(1.05rem, 3.2vw, 1.35rem);
+  line-height: 1.15;
 }

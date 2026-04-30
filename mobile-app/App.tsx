@@ -251,6 +251,9 @@ export default function App(): JSX.Element {
   const [webViewKey, setWebViewKey] = useState(0);
   const [dockActive, setDockActive] = useState<DockKey>("home");
   const [dockCoachVisible, setDockCoachVisible] = useState(false);
+  const [coachTipLine, setCoachTipLine] = useState(
+    "Lanes, bridge routes, and trust stack move as one — tap a dock tab when you change intent."
+  );
   const webViewRef = useRef<WebViewType>(null);
   const sceneHapticTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHapticScene = useRef<string>("");
@@ -259,6 +262,7 @@ export default function App(): JSX.Element {
   const appStateRef = useRef(AppState.currentState);
   const resumePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const splashStartRef = useRef(Date.now());
+  const loadSuccessHapticDoneRef = useRef(false);
 
   const baseUrl = useMemo(() => {
     const fromConfig = Constants.expoConfig?.extra?.vibecartBaseUrl;
@@ -319,6 +323,30 @@ export default function App(): JSX.Element {
       }
     };
   }, [acceptedDisclaimer]);
+
+  useEffect(() => {
+    if (!dockCoachVisible || !apiBaseUrl) {
+      return;
+    }
+    const ac = new AbortController();
+    fetch(`${apiBaseUrl}/api/public/ai/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent: "vibecoach_tip",
+        input: { path: "/mobile-app-dock", mode: "mobile_app", category: "", partner: "" }
+      }),
+      signal: ac.signal
+    })
+      .then(async (r) => {
+        const data = (await r.json().catch(() => null)) as { ok?: boolean; result?: { tip?: string } } | null;
+        if (data?.ok && data.result?.tip) {
+          setCoachTipLine(String(data.result.tip));
+        }
+      })
+      .catch(() => {});
+    return () => ac.abort();
+  }, [dockCoachVisible, apiBaseUrl]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
@@ -432,7 +460,7 @@ export default function App(): JSX.Element {
   }, [allowedHost, baseUrl]);
 
   const navigateDock = (key: DockKey) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setDockActive(key);
     const root = baseUrl.replace(/\/$/, "");
     const map: Record<DockKey, string> = {
@@ -447,7 +475,7 @@ export default function App(): JSX.Element {
   };
 
   const navigateWebPath = (pathWithQuery: string) => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     const root = baseUrl.replace(/\/$/, "");
     const suffix = pathWithQuery.startsWith("/") ? pathWithQuery : `/${pathWithQuery}`;
     const target = `${root}${suffix}`;
@@ -480,6 +508,7 @@ export default function App(): JSX.Element {
     setErrorText("");
     setIsLoading(true);
     splashOp.setValue(1);
+    loadSuccessHapticDoneRef.current = false;
     setWebViewKey((n) => n + 1);
   };
 
@@ -566,6 +595,10 @@ export default function App(): JSX.Element {
               useNativeDriver: true
             }).start(() => {
               setIsLoading(false);
+              if (!loadSuccessHapticDoneRef.current) {
+                loadSuccessHapticDoneRef.current = true;
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+              }
             });
           }, wait);
         }}
@@ -666,10 +699,10 @@ export default function App(): JSX.Element {
       {!acceptedDisclaimer && (
         <View style={styles.acceptanceOverlay}>
           <View style={styles.acceptanceCard}>
-            <Text style={styles.acceptanceTitle}>Welcome in</Text>
+            <Text style={styles.acceptanceTitle}>Step into the bridge</Text>
             <Text style={styles.acceptanceLead}>
-              After this pulse fades you land on a calmer, folder-first home — with a dock and an on-device VibeCoach
-              for tips.
+              A cross-border marketplace with lane memory, live trust signals, and generative VibeCoach guidance — built
+              to feel natural on phone, not like a resized classifieds board.
             </Text>
             <Text style={styles.acceptanceText}>
               I understand and accept the VibeCart risk disclaimer and legal-use policy.
@@ -691,7 +724,7 @@ export default function App(): JSX.Element {
         <View style={[styles.dockShell, { paddingBottom: bottomPad }]}>
           {dockCoachVisible ? (
             <View style={styles.dockCoach}>
-              <Text style={styles.dockCoachText}>Pick a lane — the marketplace moves with you.</Text>
+              <Text style={styles.dockCoachText}>{coachTipLine}</Text>
             </View>
           ) : null}
           <View style={styles.quickChrome} accessibilityRole="toolbar">
@@ -1026,12 +1059,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(6, 3, 14, 0.55)"
   },
   dockCoachText: {
-    fontSize: 11,
-    lineHeight: 15,
-    color: "#9a8fb8",
+    fontSize: 12,
+    lineHeight: 16,
+    color: "#c9bdd8",
     textAlign: "center",
     fontWeight: "600",
-    letterSpacing: 0.2
+    letterSpacing: 0.15,
+    maxWidth: 520,
+    alignSelf: "center",
+    paddingHorizontal: 8
   },
   dock: {
     flexDirection: "row",

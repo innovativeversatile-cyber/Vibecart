@@ -57,7 +57,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
-    <link rel="stylesheet" href="./styles.css?v=20260425signal1" />
+    <link rel="stylesheet" href="./styles.css?v=20260430edge1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -114,30 +114,11 @@
       </div>
       <div class="topbar-rest">
         <nav class="nav-links" aria-label="Primary">
-          <a class="nav-primary" href="#categories" data-i18n="nav.categories">Categories</a>
-          <a class="nav-primary" href="./regional-shops.html" data-i18n="nav.shops">Regional shops</a>
+          <a class="nav-primary" href="./live-market-shops.html?cat=All&view=global">Global Market</a>
           <a class="nav-primary" href="./wellbeing.html" data-i18n="nav.wellbeing">Health coach</a>
+          <a class="nav-primary" href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
+          <a class="nav-primary" href="./service-provider-hub.html">MyBusiness</a>
           <a class="nav-primary" href="./account-hub.html" data-i18n="nav.account">Account</a>
-
-          <a class="nav-extra" href="./hot-picks.html" data-i18n="nav.hot">Hot Picks</a>
-          <a class="nav-extra" href="./rewards-hub.html" data-i18n="nav.rewards">Rewards</a>
-          <a class="nav-extra" href="./insurance.html" data-i18n="nav.insurance">Insurance</a>
-          <a class="nav-extra nav-settings" href="./legal-settings.html" data-i18n="nav.settings">Settings</a>
-          <a class="nav-extra" href="./seller-boost.html" data-i18n="nav.sellerBoost">Seller Boost</a>
-          <a class="nav-extra hidden" href="#communication" id="vcPrivateInboxTop" aria-label="Private inbox">✉ Inbox</a>
-          <a class="nav-extra cta-small" href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
-
-          <details class="nav-more">
-            <summary>More</summary>
-            <div class="nav-more-menu">
-              <a href="./hot-picks.html" data-i18n="nav.hot">Hot Picks</a>
-              <a href="./rewards-hub.html" data-i18n="nav.rewards">Rewards</a>
-              <a href="./insurance.html" data-i18n="nav.insurance">Insurance</a>
-              <a href="./legal-settings.html" data-i18n="nav.settings">Settings</a>
-              <a href="./seller-boost.html" data-i18n="nav.sellerBoost">Seller Boost</a>
-              <a href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
-            </div>
-          </details>
         </nav>
         <div class="topbar-lang">
           <label for="siteLanguage" data-i18n="lang.label">Language</label>
@@ -180,16 +161,10 @@
     <div id="vcJurisdictionStrip" class="vc-jurisdiction-strip" role="region" aria-label="Lane context">
       <div class="vc-jurisdiction-strip-inner">
         <p id="vcJurisdictionLine" class="vc-jurisdiction-line"></p>
-        <button type="button" id="vcJurisdictionExplain" class="btn btn-secondary vc-jurisdiction-explain" data-i18n="jurisdiction.explain">
-          Why this line?
-        </button>
       </div>
       <div class="vc-jurisdiction-meta-row" aria-label="Lane rhythm">
         <p id="vcLaneWeather" class="vc-lane-weather"></p>
         <p id="vcQuietHoursNote" class="vc-quiet-hours hidden"></p>
-      </div>
-      <div id="vcJurisdictionPanel" class="vc-jurisdiction-panel hidden">
-        <p id="vcJurisdictionPanelBody" data-i18n="jurisdiction.panel"></p>
       </div>
     </div>
 
@@ -198,27 +173,118 @@
       <section class="hero hero--hue-drift" id="scene-top" data-vc-scene="intro" data-vc-frag-k="K">
         <div class="hero-captivate-bg" aria-hidden="true">
           <canvas id="heroCanvasFx" class="hero-canvas-fx"></canvas>
+          <img class="hero-showpiece" src="./hero-masterpiece-afro-euro-asia.svg" alt="" />
+          <div class="hero-masterpiece">
+            <svg viewBox="0 0 640 360" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="heroMasterLane" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#ffd98a" />
+                  <stop offset="45%" stop-color="#0cd6ff" />
+                  <stop offset="100%" stop-color="#ff3f9f" />
+                </linearGradient>
+              </defs>
+              <rect width="640" height="360" fill="rgba(8,10,24,0.28)" />
+              <path d="M18 292 C 160 132, 308 126, 442 188 S 566 272, 626 78" fill="none" stroke="url(#heroMasterLane)" stroke-width="10" stroke-linecap="round" stroke-dasharray="30 18" class="hero-master-line hero-master-line--a"/>
+              <path d="M20 332 C 182 214, 330 208, 462 258 S 582 334, 634 150" fill="none" stroke="#9ef7ff" stroke-width="5" stroke-linecap="round" stroke-dasharray="12 14" class="hero-master-line hero-master-line--b"/>
+              <circle cx="88" cy="250" r="8" fill="#fff" class="hero-master-node"/>
+              <circle cx="252" cy="172" r="7" fill="#fff" class="hero-master-node hero-master-node--b"/>
+              <circle cx="430" cy="216" r="8" fill="#fff" class="hero-master-node hero-master-node--c"/>
+              <circle cx="602" cy="110" r="9" fill="#fff" class="hero-master-node hero-master-node--d"/>
+            </svg>
+          </div>
+          <svg class="hero-bg-scene" viewBox="0 0 900 520" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="heroBridgeGlow" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6f2bff" />
+                <stop offset="52%" stop-color="#0cd6ff" />
+                <stop offset="100%" stop-color="#ff3f9f" />
+              </linearGradient>
+            </defs>
+            <path class="hero-bg-lane hero-bg-lane--main" d="M20 430 C 180 300, 340 250, 470 300 S 760 410, 880 180" stroke="url(#heroBridgeGlow)" stroke-width="11" />
+            <path class="hero-bg-lane hero-bg-lane--alt" d="M42 470 C 190 360, 338 326, 470 360 S 760 468, 888 262" stroke="rgba(174,247,255,0.82)" stroke-width="6" />
+            <path class="hero-bg-lane hero-bg-lane--orbit" d="M54 362 C 196 212, 378 170, 560 230 S 822 364, 892 122" stroke="rgba(255,214,142,0.86)" stroke-width="4" />
+            <polygon class="hero-bg-emblem" points="452,226 486,248 486,292 452,314 418,292 418,248" fill="rgba(255,255,255,0.2)" />
+            <circle class="hero-bg-node hero-bg-node--a" cx="128" cy="406" r="8" />
+            <circle class="hero-bg-node hero-bg-node--b" cx="320" cy="302" r="7" />
+            <circle class="hero-bg-node hero-bg-node--c" cx="510" cy="320" r="8" />
+            <circle class="hero-bg-node hero-bg-node--d" cx="716" cy="398" r="7" />
+            <circle class="hero-bg-node hero-bg-node--e" cx="872" cy="188" r="8" />
+          </svg>
+          <span class="hero-aura-bridge"></span>
+          <span class="hero-aura-trail"></span>
+          <span class="hero-aura-pattern"></span>
           <span class="bg-orb bg-orb-a"></span>
           <span class="bg-orb bg-orb-b"></span>
           <span class="bg-orb bg-orb-c"></span>
         </div>
         <div class="hero-copy">
-          <p id="heroBadge" class="badge" data-i18n="hero.badge">Africa-Europe-Asia Trade Bridge</p>
-          <h1 id="heroTitle" data-i18n="hero.title">Discover bold finds. Buy fast. Sell globally.</h1>
+          <p id="heroBadge" class="badge" data-i18n="hero.badge">Africa-Europe-Asia Trade Bridge Marketplace</p>
+          <h1 id="heroTitle" data-i18n="hero.title">Find real bargains in seconds. Trade safely across Africa, Europe, and Asia.</h1>
           <p id="heroSubtitle">
             <span id="regionHeadline" data-i18n="hero.regionHeadline"
-              >VibeCart is your verified cross-border marketplace with fast checkout and clear, trusted buying flows.</span>
+              >VibeCart is where Africa, Europe, Dubai, and Asia meet to buy and sell safely.</span>
             <span data-i18n="hero.subtitleExtended">
-              Discover top categories fast, compare regional pricing, and open seller pages in fewer taps. Trade in both
-              directions across Africa, Europe, and selected global lanes using approved logistics and trusted payment options.
-              AI supports discovery and safety checks while you stay in control of final decisions.
+              Discover verified sellers, pay with confidence, and track every shipment. Build your own cross-border business from one account and one trusted marketplace flow.
             </span>
           </p>
           <div class="hero-actions">
-            <a href="./world-shop-experience.html" class="btn btn-primary" data-i18n="hero.shopNow">Shop Now</a>
+            <a href="./live-market-shops.html?cat=All&view=global" class="btn btn-primary" id="heroShopNowBtn" data-i18n="hero.shopNow">Browse global market now</a>
             <a href="./sell-journey.html" class="btn btn-secondary" data-i18n="hero.listItem">List an Item</a>
             <button id="openOnboarding" class="btn btn-secondary" type="button" data-i18n="hero.smartTour">Start Smart Tour</button>
             <button id="installAppBtn" class="btn btn-secondary hidden" type="button" data-i18n="hero.installApp">Install App</button>
+          </div>
+          <div class="hero-quick-lanes" aria-label="Quick bargain lanes">
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=All&view=global&deal=best">Best bargains</a>
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Fashion&view=global&deal=fashion">Fashion deals</a>
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Electronics&view=global&deal=electronics">Electronics offers</a>
+            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Books&view=global&deal=books">Books and study</a>
+          </div>
+          <section class="hero-left-upgrade-grid" aria-label="Smart hero upgrades">
+            <article class="hero-left-card">
+              <h3>Cinematic concierge rail</h3>
+              <p id="vcHeroConciergeLine" class="note">Loading your next best route...</p>
+              <a id="vcHeroConciergeGo" class="btn btn-secondary" href="./live-market-shops.html?cat=All&view=global">Take suggested route</a>
+            </article>
+            <article class="hero-left-card">
+              <h3>Live trust pulse</h3>
+              <p class="note">Realtime confidence signals while you browse.</p>
+              <div id="vcHeroTrustPulse" class="hero-trust-pulse" aria-live="polite"></div>
+            </article>
+            <article class="hero-left-card" id="vcHeroPrestigePreview">
+              <h3>Prestige preview lock</h3>
+              <p id="vcHeroPrestigeLine" class="note">Top-Class unlocks concierge-first routing and premium visual energy.</p>
+              <a class="btn btn-secondary" href="#topClassExperience">Preview Top-Class unlock</a>
+            </article>
+            <article class="hero-left-card">
+              <h3>AI mission card</h3>
+              <p id="vcHeroMission" class="note">Loading your mission...</p>
+              <div class="hero-actions">
+                <button id="vcHeroMissionApply" type="button" class="btn btn-primary">Apply mission now</button>
+              </div>
+              <p class="note">Guidance only. Not legal, medical, or financial advice.</p>
+            </article>
+          </section>
+          <div class="hero-social-proof" aria-label="Social proof">
+            <article>
+              <strong>12K+</strong>
+              <span>verified listings</span>
+            </article>
+            <article>
+              <strong>4.8/5</strong>
+              <span>buyer trust rating</span>
+            </article>
+            <article>
+              <strong>42</strong>
+              <span>active bridge routes</span>
+            </article>
+          </div>
+          <div class="hero-bridge-welcome" aria-label="How VibeCart works">
+            <p>Welcome to the Bridge: one clear flow from discovery to delivery.</p>
+            <ul>
+              <li>Choose your lane: Europe, Mama Africa, Asia &amp; Gulf, Scents, or Global.</li>
+              <li>Buy with protected checkout and real delivery tracking.</li>
+              <li>Or switch to seller mode and start trading across borders.</li>
+            </ul>
           </div>
           <div class="hero-trust-row">
             <span data-i18n="hero.trust1">Trusted payments</span>
@@ -309,11 +375,76 @@
               letter-spacing="0.1em"
             >
               <text x="68" y="366">AFRICA</text>
-              <text x="208" y="212">EUROPE</text>
+              <text x="208" y="198">EUROPE</text>
               <text x="332" y="246">DUBAI</text>
               <text x="474" y="332">ASIA</text>
             </g>
           </svg>
+        </div>
+      </section>
+
+      <section class="section alt vc-edge-lane" id="vcVsClassifieds" aria-labelledby="vcEdgeLaneTitle">
+        <div class="vc-edge-head">
+          <p class="badge" data-i18n="edge.badge">Beyond basic classifieds</p>
+          <h2 id="vcEdgeLaneTitle" data-i18n="edge.title">
+            Why people leave OLX-style chaos for a bridge marketplace
+          </h2>
+          <p class="note vc-edge-lead" data-i18n="edge.lead">
+            Classified boards excel at volume; they rarely choreograph trust, lanes, and cross-border rhythm in one
+            flow. VibeCart counters each friction with a deliberate stack you feel from the first scroll.
+          </p>
+        </div>
+        <div class="vc-edge-grid" role="list">
+          <article class="vc-edge-card" role="listitem">
+            <span class="vc-edge-num" aria-hidden="true">01</span>
+            <h3 data-i18n="edge.r1h">Scattered chats &amp; ghosting</h3>
+            <p class="vc-edge-pain" data-i18n="edge.r1pain">Typical marketplaces trap you in endless DMs with no single source of truth.</p>
+            <p class="vc-edge-answer">
+              <span class="vc-edge-kicker">VibeCart</span>
+              <span data-i18n="edge.r1body"> order-centric messaging, tracking surfaces, and lane-aware prompts so the conversation stays tied to delivery reality.</span>
+            </p>
+            <a class="btn btn-secondary vc-edge-cta" href="./orders-tracking.html" data-i18n="edge.r1cta">See tracking flow</a>
+          </article>
+          <article class="vc-edge-card" role="listitem">
+            <span class="vc-edge-num" aria-hidden="true">02</span>
+            <h3 data-i18n="edge.r2h">No cross-border coherence</h3>
+            <p class="vc-edge-pain" data-i18n="edge.r2pain">Listings rarely explain routes, duties rhythm, or which corridor is live.</p>
+            <p class="vc-edge-answer">
+              <span class="vc-edge-kicker">VibeCart</span>
+              <span data-i18n="edge.r2body"> Africa–Europe–Asia bridge lanes, regional shop folders, and route-native art so geography is a guide—not guesswork.</span>
+            </p>
+            <a class="btn btn-secondary vc-edge-cta" href="./bridge-hub.html" data-i18n="edge.r2cta">Open trade bridge</a>
+          </article>
+          <article class="vc-edge-card" role="listitem">
+            <span class="vc-edge-num" aria-hidden="true">03</span>
+            <h3 data-i18n="edge.r3h">Trust is just a star rating</h3>
+            <p class="vc-edge-pain" data-i18n="edge.r3pain">Stars without logistics, insurance, or safety context age badly.</p>
+            <p class="vc-edge-answer">
+              <span class="vc-edge-kicker">VibeCart</span>
+              <span data-i18n="edge.r3body"> verified seller posture, insurance &amp; wellbeing lanes, chat safety logging, and AI-assisted checks—layered, not cosmetic.</span>
+            </p>
+            <a class="btn btn-secondary vc-edge-cta" href="./security-overview.html" data-i18n="edge.r3cta">Security overview</a>
+          </article>
+          <article class="vc-edge-card" role="listitem">
+            <span class="vc-edge-num" aria-hidden="true">04</span>
+            <h3 data-i18n="edge.r4h">Flat, forgettable mobile UX</h3>
+            <p class="vc-edge-pain" data-i18n="edge.r4pain">Most apps feel like shrunken websites with the same grid fatigue.</p>
+            <p class="vc-edge-answer">
+              <span class="vc-edge-kicker">App</span>
+              <span data-i18n="edge.r4body"> Dock + scroll intelligence, VibeCoach tips, haptic-ready journeys, and a cinematic hero that responds to how you move through lanes.</span>
+            </p>
+            <a class="btn btn-secondary vc-edge-cta" href="./wellbeing.html" data-i18n="edge.r4cta">Health coach lane</a>
+          </article>
+          <article class="vc-edge-card vc-edge-card--finale" role="listitem">
+            <span class="vc-edge-num" aria-hidden="true">05</span>
+            <h3 data-i18n="edge.r5h">Checkout feels bolted on</h3>
+            <p class="vc-edge-pain" data-i18n="edge.r5pain">Handoffs to random payment links erode confidence on big carts.</p>
+            <p class="vc-edge-answer">
+              <span class="vc-edge-kicker">VibeCart</span>
+              <span data-i18n="edge.r5body"> Protected checkout story, rewards memory, and global market lanes designed as one continuous arc from discovery to delivery.</span>
+            </p>
+            <a class="btn btn-primary vc-edge-cta" href="./live-market-shops.html?cat=All&amp;view=global" data-i18n="edge.r5cta">Browse global market</a>
+          </article>
         </div>
       </section>
 
@@ -345,7 +476,7 @@
       <section class="section alt vc-noosphere-lattice" aria-labelledby="vcNoosphereTitle">
         <div class="vc-noosphere-head">
           <p class="badge">Noosphere lattice</p>
-          <h2 id="vcNoosphereTitle">Vector-native commerce instrumentation — not stock scenes</h2>
+          <h2 id="vcNoosphereTitle">Why buying on VibeCart is smoother</h2>
           <p class="note">
             A proprietary lattice of clearance corridors, vault pulses, and orbital ledgers. Rendered inline as geometry you will not find on any other marketplace shell.
           </p>
@@ -493,6 +624,17 @@
             <span id="premiumPlanPriceChip" class="vc-origin-chip">EUR 39.99 / month</span>
           </div>
           <p id="premiumRenewStatus" class="note" aria-live="polite"></p>
+          <div id="topClassAiSuite" class="vc-topclass-ai-suite hidden">
+            <h3>Top-Class Autonomous AI Suite</h3>
+            <p id="topClassAiDisclaimer" class="note">
+              AI suggestions, alerts, and advice are assistant guidance only and are not legal, medical, or financial advice.
+            </p>
+            <div class="hero-actions">
+              <button id="topClassAiSuggest" type="button" class="btn btn-primary">Get premium AI suggestions</button>
+              <button id="topClassAiAlert" type="button" class="btn btn-secondary">Run risk alert scan</button>
+            </div>
+            <p id="topClassAiOutput" class="note" aria-live="polite"></p>
+          </div>
         </div>
       </section>
 
@@ -1023,7 +1165,7 @@
       </section>
 
       <section id="categories" class="section" data-vc-scene="categories">
-        <h2 data-i18n="categories.title">Popular Categories</h2>
+        <h2 data-i18n="categories.title">Regional Trade Shops</h2>
         <p class="note" style="margin: -0.35rem 0 0.75rem">
           <a href="./browse-categories.html">Open the full category browser</a> (lanes, filters, and browse mode) in a dedicated page.
         </p>
@@ -1151,7 +1293,7 @@
       </section>
 
       <section id="shops" class="section alt" data-vc-scene="shops">
-        <h2 data-i18n="shops.title">Regional shop folders</h2>
+        <h2 data-i18n="shops.title">Popular Categories</h2>
         <p id="shopSearchStatus" class="note shop-search-status" aria-live="polite"></p>
         <p id="vibePassportBadge" class="vibe-passport-badge" aria-live="polite"></p>
         <p id="vibeAuraLine" class="vibe-aura-line" aria-live="polite"></p>
@@ -1179,31 +1321,31 @@
           <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes">
             <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html" data-vc-region="europe">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Europe</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/zalando.com" alt="Europe shop logo" loading="lazy" decoding="async" />Europe</h3>
               <p class="vc-origin-chip" data-i18n="originChip.europe">Origin line: EU hubs → bridge carts</p>
               <p>Continental EU, United Kingdom, and Ireland — campus routes plus national retailers.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--mama-africa" href="./shops-mama-africa.html" data-vc-region="mama-africa">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Mama Africa</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/takealot.com" alt="Africa shop logo" loading="lazy" decoding="async" />Mama Africa</h3>
               <p class="vc-origin-chip" data-i18n="originChip.africa">Origin line: African makers &amp; importers</p>
               <p>ZA, KE, NG, ZW, and more — includes a Zimbabwe row on the lane page.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--asia" href="./shops-asia.html" data-vc-region="asia">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Asia &amp; Gulf</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/shopee.sg" alt="Asia shop logo" loading="lazy" decoding="async" />Asia &amp; Gulf</h3>
               <p class="vc-origin-chip" data-i18n="originChip.asia">Origin line: Asia &amp; Gulf bridge nodes</p>
               <p>India, SEA, Japan, Korea, and the China cluster — plus Dubai bridge entry.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--scents" href="./shops-scents.html" data-vc-region="scents">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Scents</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/sephora.com" alt="Scents shop logo" loading="lazy" decoding="async" />Scents</h3>
               <p class="vc-origin-chip" data-i18n="originChip.scents">Origin line: niche &amp; prestige retailers</p>
               <p>Perfume, cologne, niche fragrance, and prestige beauty retailers worldwide.</p>
             </a>
             <a class="shop-folder-card shop-folder-card--global" href="./shops-global.html" data-vc-region="global">
               <span class="shop-folder-card-eyebrow">Open folder</span>
-              <h3 class="shop-folder-card-title">Global brands</h3>
+              <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/amazon.com" alt="Global shop logo" loading="lazy" decoding="async" />Global brands</h3>
               <p class="vc-origin-chip" data-i18n="originChip.global">Origin line: mainstream &amp; resale mix</p>
               <p>Mainstream fashion, tech, marketplaces, and vintage / resale picks.</p>
             </a>
@@ -1270,6 +1412,14 @@
             <option value="asia">Asia</option>
           </select>
         </div>
+        <aside class="market-cta-deep" aria-label="Global market call to action">
+          <h3>Enter the global market lane now</h3>
+          <p>Switch destination, compare live route options, and open verified shops in seconds. Every click stays anchored to trust checks and delivery transparency.</p>
+          <div class="hero-actions">
+            <a href="./live-market-shops.html?cat=All&view=global" class="btn btn-primary">Buy now</a>
+            <a href="./sell-journey.html" class="btn btn-secondary">Become a seller</a>
+          </div>
+        </aside>
         <p id="buyerDestinationHint" class="note">
           Destination defaults switch automatically with the active bridge path.
         </p>
@@ -1304,7 +1454,7 @@
                 <rect x="36" y="108" width="128" height="8" rx="2" fill="rgba(255,255,255,0.08)" />
               </svg>
             </div>
-            <h3>Amazon Electronics</h3>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/amazon.com" alt="Amazon logo" loading="lazy" decoding="async" />Amazon Electronics</h3>
             <p class="price">Real shop</p>
             <p>Live electronics listings</p>
             <p class="note">External checkout on source site.</p>
@@ -1326,7 +1476,7 @@
                 <circle cx="100" cy="108" r="5" fill="#e8a317" />
               </svg>
             </div>
-            <h3>Zalando</h3>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/zalando.com" alt="Zalando logo" loading="lazy" decoding="async" />Zalando</h3>
             <p class="price">Real shop</p>
             <p>Live fashion listings</p>
             <p class="note">External checkout on source site.</p>
@@ -1350,7 +1500,7 @@
                 <rect x="70" y="98" width="60" height="10" rx="2" fill="#e8a317" opacity="0.85" />
               </svg>
             </div>
-            <h3>AbeBooks</h3>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/abebooks.com" alt="AbeBooks logo" loading="lazy" decoding="async" />AbeBooks</h3>
             <p class="price">Real shop</p>
             <p>Live book and textbook listings</p>
             <p class="note">External checkout on source site.</p>
@@ -1371,7 +1521,7 @@
                 <circle cx="100" cy="118" r="6" fill="#66ecc1" opacity="0.9" />
               </svg>
             </div>
-            <h3>Steam Store</h3>
+            <h3><img class="shop-favicon" src="https://logo.clearbit.com/steampowered.com" alt="Steam logo" loading="lazy" decoding="async" />Steam Store</h3>
             <p class="price">Real shop</p>
             <p>Live gaming listings</p>
             <p class="note">External checkout on source site.</p>
@@ -1434,7 +1584,7 @@
       </section>
 
       <section id="buyer-advantages" class="section alt buyer-advantages" aria-labelledby="buyer-adv-title">
-        <h2 id="buyer-adv-title" data-i18n="buyerAdv.title">Why buying on VibeCart is smoother</h2>
+        <h2 id="buyer-adv-title" data-i18n="buyerAdv.title">Vector Native Commerce</h2>
         <p class="note" data-i18n="buyerAdv.lead">
           Built for speed: one place for trusted checkout, delivery tracking, and clear policies — without turning the homepage into an internal tools dashboard.
         </p>
@@ -1466,6 +1616,12 @@
         <h2 data-i18n="sellerHub.title">Sell in 3 easy steps — then use the tools below</h2>
         <p class="note" data-i18n="sellerHub.intro">
           Scroll down on this same page for marketing, growth AI, and ads. Internal “signals” and policy rails are grouped here so everyday shoppers are not overwhelmed on the homepage.
+        </p>
+        <p class="note">
+          <label style="display:flex;align-items:center;gap:.45rem;">
+            <input id="sellerFlowDisclaimerAck" type="checkbox" />
+            I confirm listings and outreach in Start Selling must follow platform policy and local laws.
+          </label>
         </p>
         <div class="vc-visual-hero">
           <img src="./icon-maskable.svg" alt="seller visual marker" width="72" height="72" />
@@ -1567,7 +1723,7 @@
                 Full Aura embrace: gradients, pulse logo, softer corners — tuned for phones first.
               </p>
               <button type="button" class="btn btn-primary" id="vcPersonaFun" aria-pressed="false" data-i18n="orbit.personaFun">
-                Aura
+                Full experience
               </button>
             </div>
             <div class="vc-orbit-card">
@@ -1575,7 +1731,7 @@
                 Exclusive layout: minimal chrome, crisp grids, faster visual rhythm on small screens.
               </p>
               <button type="button" class="btn btn-secondary" id="vcPersonaEff" aria-pressed="true" data-i18n="orbit.personaEff">
-                Exclusive
+                Back to home focused
               </button>
             </div>
           </div>
@@ -1836,6 +1992,12 @@
         <p>
           Track weight loss, weight gain, and muscle goals with private check-ins.
           This coach supports routine fitness and long-term health follow-up workflows.
+        </p>
+        <p class="note">
+          <label style="display:flex;align-items:center;gap:.45rem;">
+            <input id="coachDisclaimerAck" type="checkbox" />
+            I understand this coach is guidance only, not medical diagnosis or emergency care.
+          </label>
         </p>
         <div class="ai-grid">
           <label for="coachFocus">Coach Focus</label>
@@ -2121,6 +2283,18 @@
               </label>
             </div>
           </article>
+          <article class="settings-card settings-card--wide">
+            <span class="vc-icon vc-icon-security" aria-hidden="true"></span>
+            <h3>Autonomous Debug Copilot</h3>
+            <p class="note">
+              Run automatic platform checks for broken flows, hidden blockers, and unsafe links. This gives a fast bug
+              report before manual QA.
+            </p>
+            <div class="hero-actions">
+              <button id="vcRunAutoDebug" type="button" class="btn btn-primary">Run full debug sweep</button>
+            </div>
+            <pre id="vcAutoDebugOutput" class="vc-auto-debug-output" aria-live="polite">No debug sweep has run yet.</pre>
+          </article>
         </div>
 
         <div id="settings-security" class="settings-security-block">
@@ -2173,8 +2347,21 @@
     <footer class="footer">
       <p class="note build-id-note" data-build-id="20260422ux2">Release 20260422ux2</p>
       <p>VibeCart - Discover, trade, and grow your vibe globally.</p>
+      <div class="footer-link-grid" aria-label="Footer navigation">
+        <a href="#scene-top">Home</a>
+        <a href="./live-market-shops.html?cat=All&view=global">Global Market</a>
+        <a href="./wellbeing.html">Health Coach</a>
+        <a href="./sell-journey.html">Start Selling</a>
+        <a href="./service-provider-hub.html">MyBusiness</a>
+        <a href="./account-hub.html">Account</a>
+        <a href="./regional-shops.html">Regional Shops</a>
+        <a href="./hot-picks.html">Hot Picks</a>
+        <a href="./rewards-hub.html">Rewards</a>
+        <a href="./insurance.html">Insurance</a>
+        <a href="./bridge-hub.html">Bridge Hub</a>
+        <a href="./legal-settings.html">Settings &amp; Legal</a>
+      </div>
       <p>Contact: <a href="mailto:1vibe.cart@gmail.com">1vibe.cart@gmail.com</a></p>
-      <p><a href="./legal-settings.html">Settings &amp; Legal Center</a></p>
     </footer>
 
     <div id="onboardingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
@@ -2201,9 +2388,11 @@
     <div id="vcSealedToast" class="vc-sealed-toast" role="status" aria-live="polite" data-i18n="sealed.word">Sealed.</div>
 
     <!-- Staged rebuild: re-enable i18n only; interaction scripts stay disabled for stability. -->
-    <script src="./i18n.js?v=20260426langhotfix6"></script>
-    <script src="./script-safe.js?v=20260425hashnav1"></script>
-    <script src="./homepage-min.js?v=20260425signal1" defer></script>
-    <script src="./mobile-app-shell.js?v=20260429quickactionfix9" defer></script>
+    <script src="./i18n.js?v=20260430edge1" ></script>
+    <script src="./script-safe.js?v=20260429hardpass1"></script>
+    <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
+    <script src="./homepage-min.js?v=20260430genai1" defer></script>
+    <script src="./mobile-app-shell.js?v=20260430edge1" defer></script>
+    <script src="./runtime-killswitch-20260429a.js?v=20260429hardpass1" defer></script>
   </body>
 </html>

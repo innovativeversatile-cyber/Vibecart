@@ -87,6 +87,31 @@
     var autoRenewEl = document.getElementById("checkoutAutoRenew");
     var taxDisclosureEl = document.getElementById("checkoutTaxDisclosure");
     var saveLaterLink = document.getElementById("checkoutSaveLaterLink");
+    var protectionPanel = null;
+
+    function ensureProtectionPanel() {
+      if (protectionPanel) return protectionPanel;
+      var host = document.querySelector(".section") || document.querySelector("main") || document.body;
+      if (!host) return null;
+      var panel = document.createElement("section");
+      panel.id = "vcCheckoutProtectionPanel";
+      panel.className = "card";
+      panel.style.marginTop = "0.75rem";
+      panel.innerHTML =
+        "<p class='badge'>Buyer protection</p>" +
+        "<h3 style='margin:.2rem 0 .35rem'>Protected checkout checklist</h3>" +
+        "<p class='note' id='vcCheckoutProtectionText'>Identity, payment route, and destination checks are active.</p>";
+      host.appendChild(panel);
+      protectionPanel = panel;
+      return panel;
+    }
+
+    function setProtectionMessage(text) {
+      var panel = ensureProtectionPanel();
+      if (!panel) return;
+      var textNode = document.getElementById("vcCheckoutProtectionText");
+      if (textNode) textNode.textContent = String(text || "");
+    }
 
     var params = new URLSearchParams(window.location.search || "");
     var flow = String(params.get("flow") || "").toLowerCase();
@@ -111,6 +136,7 @@
     }
 
     if (flow === "insurance") {
+      setProtectionMessage("Insurance is referral-only: VibeCart does not capture insurance payments directly.");
       if (typeEl) {
         typeEl.value = "coach";
       }
@@ -142,6 +168,7 @@
     }
 
     if (flow !== "coach" && flow !== "service_booking") {
+      setProtectionMessage("External checkout protected mode: destination validation and source transparency are enforced.");
       if (title) {
         title.textContent = "External checkout only";
       }
@@ -178,6 +205,7 @@
     }
 
     if (flow === "coach" || flow === "service_booking") {
+      setProtectionMessage("Internal secure checkout: validated contact details, tax disclosure, and payment-route integrity checks are active.");
       if (typeEl) {
         typeEl.value = flow;
       }
@@ -423,6 +451,7 @@
         }
 
         // Prefer navigation, but surface a clear error if the API proxy is unavailable.
+        setProtectionMessage("Final protection pass in progress: validating redirect integrity before opening payment.");
         fetch(checkoutUrl, { method: "GET", redirect: "manual", cache: "no-store" })
           .then(function (res) {
             if (res.type === "opaqueredirect") {
