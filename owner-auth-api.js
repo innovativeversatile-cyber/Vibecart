@@ -5140,11 +5140,37 @@ function stripeCheckoutCustomText() {
  * Stripe success/cancel URLs must point at the static site (Netlify), not the API host (Railway).
  * Set PUBLIC_WEB_ORIGIN or VIBECART_WEB_URL (e.g. https://vibe-cart.com) in production if proxies omit X-Forwarded-Host.
  */
+function tryPublicSiteOriginFromReferer(req) {
+  const trimOrigin = (s) => String(s || "").trim().replace(/\/+$/, "");
+  const ref = String(req.headers.referer || req.headers.referrer || "").trim();
+  if (!ref) {
+    return "";
+  }
+  try {
+    const u = new URL(ref);
+    const o = trimOrigin(u.origin);
+    if (!o || !/^https?:\/\//i.test(o)) {
+      return "";
+    }
+    const low = o.toLowerCase();
+    if (low.includes("railway.app") || low.includes(".rlwy.net")) {
+      return "";
+    }
+    return o;
+  } catch {
+    return "";
+  }
+}
+
 function resolvePublicWebBaseUrl(req) {
   const trimOrigin = (s) => String(s || "").trim().replace(/\/+$/, "");
   const fromEnv = trimOrigin(process.env.PUBLIC_WEB_ORIGIN || process.env.VIBECART_WEB_URL || "");
   if (fromEnv && /^https?:\/\//i.test(fromEnv)) {
     return fromEnv;
+  }
+  const fromRef = tryPublicSiteOriginFromReferer(req);
+  if (fromRef) {
+    return fromRef;
   }
   const xfRaw = String(req.headers["x-forwarded-host"] || "").trim();
   const xfHost = xfRaw.split(",")[0].trim();
