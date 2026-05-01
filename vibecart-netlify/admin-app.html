@@ -51,6 +51,15 @@
         color: #a8b0d0;
         font-size: 0.92rem;
       }
+      .status {
+        margin-top: 0.55rem;
+        color: #d5dcff;
+        font-size: 0.92rem;
+      }
+      .danger {
+        background: linear-gradient(120deg, #e88717, #b9384d);
+        color: #fff9ef;
+      }
       .row {
         display: flex;
         gap: 0.55rem;
@@ -105,13 +114,26 @@
           <button id="testNotification" class="btn">Send Test Notification</button>
         </div>
         <p id="notifyStatus" class="small">Notification status: checking...</p>
+        <p id="installHint" class="small hidden"></p>
       </section>
 
       <section id="gateCard" class="card">
         <h2>Admin Device Gate</h2>
-        <p class="small">Set a local admin device PIN for quick access on this phone only.</p>
-        <input id="devicePin" type="password" placeholder="Enter admin device PIN (min 6 chars)" />
-        <button id="openPanelInApp" class="btn">Open Admin Panel</button>
+        <p id="gateHint" class="small">Set a local admin device PIN for quick access on this phone only.</p>
+        <form id="pinForm" action="./admin-app.html" method="get">
+          <input type="hidden" name="pinAction" value="save" />
+          <input id="devicePin" name="pinValue" type="password" placeholder="Enter admin device PIN (min 6 chars)" />
+          <button id="saveDevicePin" class="btn" type="submit">Save / Update PIN</button>
+        </form>
+        <div class="row">
+          <a id="openPanelInApp" class="btn" href="./admin.html">Open Admin Panel</a>
+          <a id="resetDevicePin" class="btn danger" href="./admin-app.html?resetPin=1">Reset PIN</a>
+        </div>
+        <div id="securityQuestionWrap" class="hidden">
+          <p class="small">Security question: what was my nickname as a child?</p>
+          <input id="securityAnswer" type="password" placeholder="Answer security question to allow reset" />
+        </div>
+        <p id="gateStatus" class="status"></p>
       </section>
 
       <section id="panelCard" class="card hidden">
@@ -125,11 +147,69 @@
       const gateCard = document.getElementById("gateCard");
       const panelCard = document.getElementById("panelCard");
       const pinInput = document.getElementById("devicePin");
+      const pinForm = document.getElementById("pinForm");
       const openBtn = document.getElementById("openPanelInApp");
       const installBtn = document.getElementById("installAdminApp");
+      const installHint = document.getElementById("installHint");
       const enableNotificationsBtn = document.getElementById("enableNotifications");
       const testNotificationBtn = document.getElementById("testNotification");
       const notifyStatus = document.getElementById("notifyStatus");
+      const resetPinBtn = document.getElementById("resetDevicePin");
+      const gateHint = document.getElementById("gateHint");
+      const gateStatus = document.getElementById("gateStatus");
+      const securityAnswerInput = document.getElementById("securityAnswer");
+      const securityQuestionWrap = document.getElementById("securityQuestionWrap");
+      const PIN_JUST_SAVED_KEY = "vibecart-admin-pin-just-saved-v1";
+      const RESET_ANSWER = "chibhonda";
+      (function handleResetFromQuery() {
+        try {
+          const url = new URL(window.location.href);
+          if (url.searchParams.get("resetPin") === "1") {
+            const answer = String(url.searchParams.get("secAnswer") || "").trim().toLowerCase();
+            if (answer !== RESET_ANSWER) {
+              setGateStatus("Security answer is required before reset.");
+              url.searchParams.delete("resetPin");
+              url.searchParams.delete("secAnswer");
+              history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+              return;
+            }
+            localStorage.removeItem(PIN_KEY);
+            url.searchParams.delete("resetPin");
+            url.searchParams.delete("secAnswer");
+            history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+            setGateStatus("Device PIN reset. Enter and save a new PIN.");
+          }
+        } catch {
+          /* ignore */
+        }
+      })();
+
+      (function handleSavePinFromQuery() {
+        try {
+          const url = new URL(window.location.href);
+          const action = String(url.searchParams.get("pinAction") || "").trim().toLowerCase();
+          const value = String(url.searchParams.get("pinValue") || "").trim();
+          if (action === "save") {
+            if (value.length < 6) {
+              setGateStatus("PIN must be at least 6 characters.");
+            } else {
+              localStorage.setItem(PIN_KEY, hashPin(value));
+              try {
+                sessionStorage.setItem(PIN_JUST_SAVED_KEY, "1");
+              } catch {
+                /* ignore */
+              }
+              setGateStatus("PIN saved on this device.");
+            }
+            url.searchParams.delete("pinAction");
+            url.searchParams.delete("pinValue");
+            history.replaceState(null, "", url.pathname + (url.search ? url.search : ""));
+          }
+        } catch {
+          /* ignore */
+        }
+      })();
+
       const AUTH_SESSION_KEY = "vibecart-owner-api-session";
       const LAST_UNREAD_KEY = "vibecart-admin-last-unread-count-v1";
       let deferredPrompt = null;
@@ -144,34 +224,94 @@
         return String(hash);
       }
 
+      function refreshGateHint() {
+        const existing = localStorage.getItem(PIN_KEY);
+        if (existing) {
+          gateHint.textContent = "This device already has an admin PIN. Enter that PIN to continue.";
+          pinInput.placeholder = "Enter your existing admin device PIN";
+        } else {
+          gateHint.textContent = "Create a local admin device PIN for quick access on this phone only.";
+          pinInput.placeholder = "Create admin device PIN (min 6 chars)";
+        }
+      }
+
       function openPanel() {
         gateCard.classList.add("hidden");
         panelCard.classList.remove("hidden");
         window.location.href = "./admin.html";
       }
 
-      openBtn.addEventListener("click", () => {
+      function setGateStatus(text) {
+        gateStatus.textContent = String(text || "").trim();
+      }
+
+      openBtn.addEventListener("click", (event) => {
         const value = String(pinInput.value || "").trim();
-        if (value.length < 6) {
-          alert("Use at least 6 characters for device PIN.");
+        if (value.length < 6 && !localStorage.getItem(PIN_KEY)) {
+          event.preventDefault();
+          setGateStatus("Use at least 6 characters to create a new device PIN.");
           return;
         }
         const existing = localStorage.getItem(PIN_KEY);
+        const justSaved = (function () {
+          try {
+            return sessionStorage.getItem(PIN_JUST_SAVED_KEY) === "1";
+          } catch {
+            return false;
+          }
+        })();
+        if (existing && !value && justSaved) {
+          try {
+            sessionStorage.removeItem(PIN_JUST_SAVED_KEY);
+          } catch {
+            /* ignore */
+          }
+          setGateStatus("PIN saved. Opening admin panel...");
+          return;
+        }
         const hashed = hashPin(value);
         if (existing && existing !== hashed) {
-          alert("Wrong device PIN.");
+          event.preventDefault();
+          setGateStatus("Wrong PIN. Tap 'Forgot PIN / Reset' then create a new one.");
           return;
         }
         if (!existing) {
           localStorage.setItem(PIN_KEY, hashed);
         }
-        openPanel();
+        setGateStatus("Opening admin panel...");
+      });
+
+      pinForm.addEventListener("submit", () => {
+        setGateStatus("Saving PIN...");
+      });
+
+      openDirectBtn.addEventListener("click", () => {
+        setGateStatus("Bypass enabled. Opening admin panel...");
+      });
+
+      resetPinBtn.addEventListener("click", (event) => {
+        if (securityQuestionWrap.classList.contains("hidden")) {
+          event.preventDefault();
+          securityQuestionWrap.classList.remove("hidden");
+          setGateStatus("Answer the security question, then tap Reset PIN again.");
+          return;
+        }
+        const answer = String(securityAnswerInput.value || "").trim();
+        if (!answer) {
+          event.preventDefault();
+          setGateStatus("Enter security answer before reset.");
+          return;
+        }
+        const href = `./admin-app.html?resetPin=1&secAnswer=${encodeURIComponent(answer)}`;
+        resetPinBtn.setAttribute("href", href);
+        setGateStatus("Checking security answer...");
       });
 
       window.addEventListener("beforeinstallprompt", (event) => {
         event.preventDefault();
         deferredPrompt = event;
         installBtn.classList.remove("hidden");
+        installHint.classList.add("hidden");
       });
 
       installBtn.addEventListener("click", async () => {
@@ -181,6 +321,23 @@
         deferredPrompt = null;
         installBtn.classList.add("hidden");
       });
+
+      function renderInstallFallbackHint() {
+        if (deferredPrompt) {
+          return;
+        }
+        const ua = String(navigator.userAgent || "").toLowerCase();
+        const isIos = /iphone|ipad|ipod/.test(ua);
+        const isAndroid = /android/.test(ua);
+        let text = "Install tip: use your browser menu and choose 'Install app' or 'Add to Home screen'.";
+        if (isIos) {
+          text = "Install on iPhone: Safari -> Share -> Add to Home Screen.";
+        } else if (isAndroid) {
+          text = "Install on Android: browser menu (⋮) -> Install app / Add to Home screen.";
+        }
+        installHint.textContent = text;
+        installHint.classList.remove("hidden");
+      }
 
       function setNotifyStatus(message) {
         notifyStatus.textContent = `Notification status: ${message}`;
@@ -289,6 +446,8 @@
       }
 
       refreshNotificationState();
+      refreshGateHint();
+      renderInstallFallbackHint();
     </script>
   </body>
 </html>

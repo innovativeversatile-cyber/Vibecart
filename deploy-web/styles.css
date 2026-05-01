@@ -8919,6 +8919,15 @@ body.health-coach-page .vc-experience-shell {
   color: var(--muted);
 }
 
+.coach-checkout-disclaimer {
+  margin-top: 0.35rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 236, 193, 0.35);
+  background: linear-gradient(145deg, rgba(18, 32, 42, 0.95), rgba(14, 18, 36, 0.92));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
 body.health-coach-page #bundleCheckoutBtn.is-disabled {
   pointer-events: none;
   opacity: 0.55;

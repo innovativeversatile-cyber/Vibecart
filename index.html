@@ -26,18 +26,14 @@
     <meta property="og:site_name" content="VibeCart" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://vibe-cart.com/" />
-    <meta
-      property="og:image"
-      content="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&h=630&q=80"
-    />
+    <meta property="og:image" content="https://vibe-cart.com/vibecart-og.png?v=20260501b" />
+    <meta property="og:image:secure_url" content="https://vibe-cart.com/vibecart-og.png?v=20260501b" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Colourful global marketplace goods representing VibeCart cross-border trade" />
-    <meta
-      name="twitter:image"
-      content="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&h=630&q=80"
-    />
-    <meta name="twitter:image:alt" content="Colourful global marketplace goods representing VibeCart cross-border trade" />
+    <meta property="og:image:alt" content="VibeCart global marketplace bridge with fast secure cross-border buying and selling" />
+    <meta name="twitter:image" content="https://vibe-cart.com/vibecart-og.png?v=20260501b" />
+    <meta name="twitter:image:alt" content="VibeCart global marketplace bridge with fast secure cross-border buying and selling" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VibeCart | Africa-Europe-Asia Marketplace Bridge" />
     <meta name="twitter:description" content="Buy and sell legal products between Africa, Europe, Dubai, and Asia with secure payments and trusted delivery routes." />
@@ -50,8 +46,6 @@
     <link rel="canonical" href="https://vibe-cart.com/" />
     <link rel="alternate" hreflang="en" href="https://vibe-cart.com/" />
     <link rel="alternate" hreflang="x-default" href="https://vibe-cart.com/" />
-    <link rel="preconnect" href="https://images.unsplash.com" />
-    <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <link rel="dns-prefetch" href="https://vibe-cart.com" />
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
@@ -129,7 +123,7 @@
           <a class="nav-primary" href="./live-market-shops.html?cat=All&view=global">Global Market</a>
           <a class="nav-primary" href="./wellbeing.html" data-i18n="nav.wellbeing">Health coach</a>
           <a class="nav-primary" href="./sell-journey.html" data-i18n="nav.sell">Start Selling</a>
-          <a class="nav-primary" href="./service-provider-hub.html">MyBusiness</a>
+          <a class="nav-primary" href="./my-business.html">MyBusiness</a>
           <a class="nav-primary" href="./account-hub.html" data-i18n="nav.account">Account</a>
         </nav>
         <div class="topbar-lang">
@@ -397,13 +391,13 @@
 
       <section class="section alt vc-edge-lane" id="vcVsClassifieds" aria-labelledby="vcEdgeLaneTitle">
         <div class="vc-edge-head">
-          <p class="badge" data-i18n="edge.badge">Beyond basic classifieds</p>
+          <p class="badge" data-i18n="edge.badge">Beyond classic marketplace flows</p>
           <h2 id="vcEdgeLaneTitle" data-i18n="edge.title">
-            Why people leave OLX-style chaos for a bridge marketplace
+            A bridge marketplace built for trust, speed, and clarity
           </h2>
           <p class="note vc-edge-lead" data-i18n="edge.lead">
-            Classified boards excel at volume; they rarely choreograph trust, lanes, and cross-border rhythm in one
-            flow. VibeCart counters each friction with a deliberate stack you feel from the first scroll.
+            VibeCart combines trust, lane guidance, and cross-border flow in one seamless journey from the first
+            scroll.
           </p>
         </div>
         <div class="vc-edge-grid" role="list">
@@ -1412,6 +1406,7 @@
           <select id="buyerDestinationSelect" aria-label="Buyer destination">
             <option value="africa">Africa buyer</option>
             <option value="europe">Europe buyer</option>
+            <option value="ireland">Ireland buyer (Republic &amp; Northern Ireland)</option>
           </select>
           <label for="marketRegionSelect">Market region</label>
           <select id="marketRegionSelect" aria-label="Market region targeting">
@@ -1420,6 +1415,7 @@
             <option value="ke">Kenya</option>
             <option value="zw">Zimbabwe</option>
             <option value="eu">Europe</option>
+            <option value="ie">Ireland (Republic &amp; Northern Ireland)</option>
             <option value="gulf">Gulf</option>
             <option value="asia">Asia</option>
           </select>
@@ -1428,7 +1424,8 @@
           <h3>Enter the global market lane now</h3>
           <p>Switch destination, compare live route options, and open verified shops in seconds. Every click stays anchored to trust checks and delivery transparency.</p>
           <div class="hero-actions">
-            <a href="./live-market-shops.html?cat=All&view=global" class="btn btn-primary">Buy now</a>
+            <a href="./live-market-shops.html?cat=All&amp;region=ie" class="btn btn-primary">Ireland shops</a>
+            <a href="./live-market-shops.html?cat=All" class="btn btn-secondary">Buy now (auto region)</a>
             <a href="./sell-journey.html" class="btn btn-secondary">Become a seller</a>
           </div>
         </aside>
@@ -1912,7 +1909,7 @@
         <div class="alt">
           <div class="chat-input-row">
             <label for="chatShopInput">Shop</label>
-            <input id="chatShopInput" list="chatShopSuggestions" type="text" placeholder="Type any shop name (e.g. H&M, Zara, OLX...)" />
+            <input id="chatShopInput" list="chatShopSuggestions" type="text" placeholder="Type any shop name..." />
             <datalist id="chatShopSuggestions"></datalist>
           </div>
           <div id="messagesBox" class="messages-box" aria-live="polite"></div>
@@ -1974,7 +1971,7 @@
         <div id="bookingSlotsResult" class="ai-result"></div>
         <div class="hero-actions" style="margin-top:0.8rem;">
           <a id="bookingPrepayRouteBtn" class="btn btn-primary" href="./account-hub.html#bookings">Require prepayment to confirm booking</a>
-          <a class="btn btn-secondary" href="./service-provider-hub.html">Provider setup template</a>
+          <a class="btn btn-secondary" href="./my-business.html">Open MyBusiness dashboard</a>
         </div>
       </section>
 
@@ -2378,7 +2375,7 @@
         <a href="./live-market-shops.html?cat=All&view=global">Global Market</a>
         <a href="./wellbeing.html">Health Coach</a>
         <a href="./sell-journey.html">Start Selling</a>
-        <a href="./service-provider-hub.html">MyBusiness</a>
+        <a href="./my-business.html">MyBusiness</a>
         <a href="./account-hub.html">Account</a>
         <a href="./regional-shops.html">Regional Shops</a>
         <a href="./hot-picks.html">Hot Picks</a>
@@ -2415,8 +2412,9 @@
 
     <!-- Staged rebuild: re-enable i18n only; interaction scripts stay disabled for stability. -->
     <script src="./i18n.js?v=20260430edge1" ></script>
+    <script src="./session-device.js?v=20260501sess1"></script>
     <script src="./analytics-visit.js?v=20260501visit1" defer></script>
-    <script src="./script-safe.js?v=20260429hardpass1"></script>
+    <script src="./script-safe.js?v=20260501ire2"></script>
     <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
     <script src="./homepage-min.js?v=20260430genai1" defer></script>
     <script src="./mobile-app-shell.js?v=20260430edge1" defer></script>

@@ -57,10 +57,10 @@
       "hero.chipHintCheckout": "Showing buyer safeguards & checkout flow — scroll the page for live listings next.",
       "hero.chipHintSellers": "Regional shop lanes — each folder opens verified seller routes you can browse.",
       "hero.chipHintDelivery": "Tracking & delivery updates — simulate steps to see how buyers stay informed.",
-      "edge.badge": "Beyond basic classifieds",
-      "edge.title": "Why people leave OLX-style chaos for a bridge marketplace",
+      "edge.badge": "Beyond classic marketplace flows",
+      "edge.title": "A bridge marketplace built for trust, speed, and clarity",
       "edge.lead":
-        "Classified boards excel at volume; they rarely choreograph trust, lanes, and cross-border rhythm in one flow. VibeCart counters each friction with a deliberate stack you feel from the first scroll.",
+        "VibeCart combines trust, lane guidance, and cross-border rhythm in one seamless flow from the first scroll.",
       "edge.r1h": "Scattered chats & ghosting",
       "edge.r1pain": "Typical marketplaces trap you in endless DMs with no single source of truth.",
       "edge.r1body":

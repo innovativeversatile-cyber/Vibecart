@@ -13,7 +13,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png" />
   <link rel="apple-touch-icon" href="./icon-180.png" />
-  <link rel="stylesheet" href="./styles.css?v=20260501pwa1" />
+  <link rel="stylesheet" href="./styles.css?v=20260501pwa2" />
 </head>
 <body class="shops-lane-page health-coach-page">
   <header class="shops-lane-topbar">
@@ -36,6 +36,15 @@
     </p>
     <section id="coach-packages" style="margin-top: 1.25rem">
       <h2>Coach packages</h2>
+      <div class="coach-checkout-disclaimer" style="max-width: 42rem">
+        <p class="note" style="margin: 0">
+          <label style="display: inline-flex; gap: 0.45rem; align-items: flex-start; cursor: pointer">
+            <input id="coachFlowDisclaimerAck" type="checkbox" style="margin-top: 0.2rem" />
+            <span>I confirm my coach data and goals are truthful and I accept the policy terms. I must tick this before opening checkout.</span>
+          </label>
+        </p>
+      </div>
+      <p class="note" id="coachDisclaimerGateHint" aria-live="polite" style="max-width: 42rem; min-height: 1.25em"></p>
       <div class="shop-bubble-grid">
         <article class="shop package-card">
           <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=900&h=520&q=75" alt="Starter coach preview" loading="lazy" />
@@ -79,9 +88,6 @@
         </article>
       </div>
     </section>
-    <p class="note" style="margin-top: 1rem">
-      <label><input id="coachFlowDisclaimerAck" type="checkbox" /> I confirm my coach data and goals are truthful and I accept policy terms.</label>
-    </p>
     <p class="hero-actions" style="margin-top: 1.25rem">
       <a class="btn btn-primary" href="./coach-experience.html?flow=coach&plan=starter">View package experience</a>
       <a class="btn btn-secondary" href="./insurance.html">Compare insurance plans</a>
@@ -158,6 +164,33 @@
   <script src="./package-pricing.js?v=20260420flowfix17" defer></script>
   <script>
     (function () {
+      var mainEl = document.querySelector("main.shops-lane-main");
+      var ackEl = document.getElementById("coachFlowDisclaimerAck");
+      var gateHint = document.getElementById("coachDisclaimerGateHint");
+      if (mainEl) {
+        mainEl.addEventListener("click", function (ev) {
+          var a = ev.target && ev.target.closest ? ev.target.closest("a[href*='checkout-details.html']") : null;
+          if (!a) return;
+          if (ackEl && !ackEl.checked) {
+            ev.preventDefault();
+            if (gateHint) {
+              gateHint.textContent = "Tick the coach disclaimer above to continue to checkout.";
+            }
+            try {
+              var panel = document.querySelector(".coach-checkout-disclaimer");
+              if (panel && panel.scrollIntoView) {
+                panel.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      }
+    })();
+  </script>
+  <script>
+    (function () {
       var primaryEl = document.getElementById("bundlePrimaryPlan");
       var secondEl = document.getElementById("bundleSecondPlan");
       var btn = document.getElementById("bundleCheckoutBtn");
@@ -192,9 +225,11 @@
       }
       function tryNavigate(ev) {
         var ack = document.getElementById("coachFlowDisclaimerAck");
+        var gateHint = document.getElementById("coachDisclaimerGateHint");
         if (ack && !ack.checked) {
           if (ev) ev.preventDefault();
           if (status) status.textContent = "Accept the coach disclaimer first.";
+          if (gateHint) gateHint.textContent = "Tick the coach disclaimer above to continue to checkout.";
           return false;
         }
         var primary = String(primaryEl.value || "starter").trim().toLowerCase();

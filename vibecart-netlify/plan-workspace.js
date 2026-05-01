@@ -35,10 +35,12 @@
     if (!token) {
       return Promise.resolve("");
     }
+    var gh = { Authorization: "Bearer " + token };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+      gh = window.VibeCartSessionDevice.authHeaders(token);
+    }
     return fetch("/api/public/user/preferences", {
-      headers: {
-        Authorization: "Bearer " + token
-      }
+      headers: gh
     })
       .then(function (res) {
         if (!res.ok) {
@@ -62,12 +64,13 @@
     if (!token) {
       return;
     }
+    var ph = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+      ph = window.VibeCartSessionDevice.merge(token, { "Content-Type": "application/json" });
+    }
     fetch("/api/public/user/preferences", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
+      headers: ph,
       body: JSON.stringify({
         preferences: {
           planViewMode: String(mode || "merged").trim().toLowerCase()

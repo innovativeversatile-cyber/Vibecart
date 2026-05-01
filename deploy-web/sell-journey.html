@@ -4,30 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Guided selling · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260428hotfix-publish1" />
+  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
 </head>
-<body class="shops-lane-page start-selling-page">
+<body class="shops-lane-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-primary" href="./seller-boost.html">Seller Boost</a>
+    <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
+    <a class="btn btn-secondary" href="./my-business.html">MyBusiness</a>
   </header>
   <main class="section alt shops-lane-main vc-flow-shell" data-vc-flow-root="sell">
     <h1 class="shops-lane-title">List without losing your place</h1>
-    <p class="note" data-flow-step-label style="margin-top: 0">Step 1 of 4</p>
+    <p class="note" data-flow-step-label style="margin-top: 0">Step 1 of 2</p>
     <div class="vc-flow-progress-wrap" aria-hidden="true"><div class="vc-flow-progress-bar" data-flow-progress></div></div>
 
     <div class="vc-flow-step-box" data-flow-step>
-      <h2>1 · Intent &amp; lane</h2>
-      <p class="note">Confirm you are selling legal goods on an allowed route. Bridge path on the hub controls buyer hints.</p>
-      <p class="note">
-        <label><input id="sellJourneyDisclaimerAck" type="checkbox" /> I confirm my listing follows platform policy and local laws.</label>
-      </p>
-      <p class="hero-actions"><button type="button" class="btn btn-primary" data-flow-next>Continue</button></p>
-      <p class="note" id="sellStep1Status" aria-live="polite"></p>
-    </div>
-
-    <div class="vc-flow-step-box" data-flow-step hidden>
-      <h2>2 · Photos &amp; truth</h2>
+      <h2>1 · Listing details</h2>
       <p class="note">Hero shots, condition notes, and “photo = this unit” build first-order trust.</p>
       <div class="ai-grid" style="margin-top: 0.75rem">
         <label for="vcSellPhotos">Upload listing photos (demo — stored on this device only)</label>
@@ -41,37 +33,39 @@
           <option>Good — light wear</option>
           <option>Fair — visible wear</option>
         </select>
+        <label for="vcSellCategory">Category</label>
+        <select id="vcSellCategory">
+          <option>Fashion</option>
+          <option>Electronics</option>
+          <option>Books</option>
+          <option>Gaming</option>
+        </select>
+        <label for="vcSellPrice">Price</label>
+        <input id="vcSellPrice" type="number" min="0" step="0.01" placeholder="49.99" />
+        <label for="vcSellStock">Stock</label>
+        <input id="vcSellStock" type="number" min="1" step="1" value="1" />
+        <label for="vcSellCountry">Origin country (ISO2)</label>
+        <input id="vcSellCountry" type="text" maxlength="2" placeholder="ZA" />
+        <label for="vcSellDescription">Description</label>
+        <textarea id="vcSellDescription" rows="3" placeholder="Material, size, condition, what buyer gets."></textarea>
       </div>
       <p class="hero-actions">
-        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
         <button type="button" class="btn btn-primary" id="sellStep2Continue" data-flow-next>Continue</button>
       </p>
       <p class="note" id="sellStep2Status" aria-live="polite"></p>
     </div>
 
     <div class="vc-flow-step-box" data-flow-step hidden>
-      <h2>3 · Shipping band</h2>
+      <h2>2 · Shipping + publish live</h2>
       <p class="note">State realistic delivery windows — EU↔Africa often 7–21 days tracked; remote longer.</p>
       <div class="ai-grid" style="margin-top: 0.75rem">
         <label for="vcSellShipMode">Shipping mode</label>
         <select id="vcSellShipMode">
           <option value="">Select shipping mode</option>
+          <option value="standard">Standard</option>
           <option value="tracked">Tracked courier (recommended)</option>
           <option value="economy">Economy parcel</option>
           <option value="pickup">Local pickup</option>
-        </select>
-        <label for="vcSellCourierCompany">Delivery company</label>
-        <select id="vcSellCourierCompany">
-          <option value="DHL" selected>DHL Express</option>
-          <option value="FedEx">FedEx</option>
-          <option value="UPS">UPS</option>
-          <option value="Aramex">Aramex</option>
-          <option value="DPD">DPD</option>
-          <option value="GLS">GLS</option>
-          <option value="Poczta Polska">Poczta Polska</option>
-          <option value="Royal Mail">Royal Mail</option>
-          <option value="Pargo">Pargo</option>
-          <option value="Sendy">Sendy</option>
         </select>
         <label for="vcSellShipWindow">Estimated delivery window</label>
         <select id="vcSellShipWindow">
@@ -83,26 +77,16 @@
       </div>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <button type="button" class="btn btn-primary" id="sellStep3Continue" data-flow-next>Continue</button>
+        <button type="button" class="btn btn-primary" id="sellPublishBtn">Publish now</button>
+        <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
+        <a class="btn btn-primary" id="sellPreviewBtn" href="./live-market-shops.html">View live market</a>
       </p>
       <p class="note" id="sellStep3Status" aria-live="polite"></p>
     </div>
-
-    <div class="vc-flow-step-box" data-flow-step hidden>
-      <h2>4 · Broadcast to buyers</h2>
-      <p class="note">
-        Preview your lane, then open the live marketplace grid so shoppers can see your drop alongside route-trusted
-        listings. Sign in from the seller hub when you are ready for payouts.
-      </p>
-      <p class="hero-actions">
-        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
-        <a class="btn btn-secondary" href="./seller-boost.html">Seller tools</a>
-        <a class="btn btn-primary" id="sellPreviewBtn" href="./seller-live-preview.html" data-flow-done>Preview live market</a>
-      </p>
-    </div>
   </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./flow-shell.js?v=20260419haptic1" defer></script>
-  <script src="./sell-journey.js?v=20260428hotfix-publish1" defer></script>
+  <script src="./sell-journey.js?v=20260501sessbind1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

@@ -2141,23 +2141,10 @@
 
   function initPwaBootstrapLite() {
     if (!("serviceWorker" in navigator)) return;
-    // Temporary hard reset: avoid stale homepage assets by removing existing SW registrations.
-    if (typeof navigator.serviceWorker.getRegistrations === "function") {
-      navigator.serviceWorker
-        .getRegistrations()
-        .then(function (regs) {
-          (regs || []).forEach(function (reg) {
-            try {
-              reg.unregister();
-            } catch {
-              /* ignore */
-            }
-          });
-        })
-        .catch(function () {
-          /* ignore */
-        });
-    }
+    // Register for installability + offline shell. Bump ?v= when service-worker.js CACHE_NAME changes.
+    navigator.serviceWorker.register("./service-worker.js?v=20260501pwa2").catch(function () {
+      /* ignore */
+    });
   }
 
   function initHealthCoachIntelLite() {

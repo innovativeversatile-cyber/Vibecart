@@ -6,17 +6,23 @@
     { title: "Global search", url: "./global-search.html", keywords: "search find everything" },
     { title: "Passport welcome", url: "./passport-welcome.html", keywords: "welcome citizen passport signup" },
     { title: "Lane passport", url: "./lane-passport.html", keywords: "passport register sign up create account login email password" },
+    { title: "My Business dashboard", url: "./my-business.html", keywords: "my business my hustle bakery baker booking portfolio prices requirements styles themes" },
     { title: "Service provider hub", url: "./service-provider-hub.html", keywords: "provider business booking payment deposit barber salon" },
     { title: "Fashion trends lane", url: "./fashion-trends.html", keywords: "fashion trends outfits style runway clothes shoes" },
-    { title: "Live market shops", url: "./live-market-shops.html", keywords: "market shops fashion electronics books gaming affiliate" },
+    { title: "Live market shops", url: "./live-market-shops.html", keywords: "market shops fashion electronics books gaming affiliate ireland dublin belfast northern ireland ROI" },
     { title: "World shop experience", url: "./world-shop-experience.html", keywords: "world shop experience preview lanes" },
     { title: "Brainrot Studio partner", url: "/api/public/shop/redirect?shop=Brainrot%20Studio&cat=Electronics&partner=Brainrot%20Studio&target=https%3A%2F%2Fbrainrot.mov%3Fref%3DApLX4MJQoF", keywords: "brainrot affiliate ai video creator studio partner" },
     { title: "Popular market", url: "./popular-market.html", keywords: "popular market categories" },
     { title: "Live market folders", url: "./live-market.html", keywords: "live market folders" },
-    { title: "Regional shops", url: "./regional-shops.html", keywords: "africa europe asia regional shops folders" },
+    { title: "Regional shops", url: "./regional-shops.html", keywords: "africa europe asia ireland regional shops folders" },
+    {
+      title: "Ireland — live shops (ROI & NI)",
+      url: "./live-market-shops.html?cat=All&region=ie",
+      keywords: "ireland southern ireland republic dublin cork galway limerick northern ireland belfast country IE register shops"
+    },
     { title: "Europe shops", url: "./shops-europe.html", keywords: "fashion europe beauty allegro zara hm poland uk ireland" },
     { title: "Asia shops", url: "./shops-asia.html", keywords: "asia shopee shein fashion electronics" },
-    { title: "Global shops", url: "./shops-global.html", keywords: "global amazon asos worldwide ebay shein temu aliexpress walmart target best buy" },
+    { title: "Global shops", url: "./shops-global.html", keywords: "global amazon asos worldwide" },
     { title: "Mama Africa shops", url: "./shops-mama-africa.html", keywords: "africa takealot jumia nigeria kenya zimbabwe" },
     { title: "Scents and beauty", url: "./shops-scents.html", keywords: "perfume fragrance beauty cosmetics sephora cult" },
     { title: "Wellbeing coach", url: "./wellbeing.html", keywords: "wellbeing fitness ai coach health goals" },
@@ -24,9 +30,11 @@
     { title: "Account hub", url: "./account-hub.html", keywords: "account bookings profile passport login register" },
     { title: "Trade bridge hub", url: "./bridge-hub.html", keywords: "bridge trade africa europe asia communication route" },
     { title: "Browse categories", url: "./browse-categories.html", keywords: "categories browse lanes" },
-    { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks live offers trending now ebay shein amazon temu aliexpress" },
+    { title: "Hot picks", url: "./hot-picks.html", keywords: "hot picks live offers trending now" },
     { title: "Rewards hub", url: "./rewards-hub.html", keywords: "rewards points loyalty" },
     { title: "Orders tracking", url: "./orders-tracking.html", keywords: "orders tracking delivery shipment" },
+    { title: "Buyer Orders", url: "./buyer-orders.html", keywords: "buyer orders confirm received escrow release" },
+    { title: "Seller Orders", url: "./seller-orders.html", keywords: "seller orders payout disputes confirm order" },
     { title: "Coach subscription checkout", url: "./checkout-details.html?flow=coach&plan=starter", keywords: "coach checkout subscription payment" },
     { title: "Payment confirmation", url: "./payment-confirmation.html", keywords: "payment confirmation receipt" },
     { title: "Buy journey", url: "./buy-journey.html?flow=buy&lane=fashion", keywords: "buy journey checkout steps fashion buyer" },
@@ -59,22 +67,6 @@
     }
   }
 
-  function scoreMatch(item, tokens) {
-    var hay = (item.title + " " + item.keywords + " " + item.url).toLowerCase();
-    var score = 0;
-    for (var i = 0; i < tokens.length; i += 1) {
-      var t = tokens[i];
-      if (!t) continue;
-      if (hay.indexOf(t) >= 0) {
-        score += 1;
-      }
-      if (item.title.toLowerCase().indexOf(t) >= 0) {
-        score += 1;
-      }
-    }
-    return score;
-  }
-
   function paint(query) {
     if (!results || !status) {
       return;
@@ -85,23 +77,13 @@
       status.textContent = "";
       return;
     }
-    var tokens = q.split(/\s+/).filter(Boolean);
-    var ranked = siteIndex
-      .map(function (item) {
-        return { item: item, score: scoreMatch(item, tokens) };
-      })
-      .filter(function (row) {
-        return row.score > 0 || row.item.title.toLowerCase().indexOf(q) >= 0;
-      })
-      .sort(function (a, b) {
-        return b.score - a.score;
-      });
-    var matches = ranked.slice(0, 20).map(function (row) {
-      return row.item;
+    var matches = siteIndex.filter(function (item) {
+      var hay = (item.title + " " + item.keywords + " " + item.url).toLowerCase();
+      return hay.indexOf(q) >= 0;
     });
     status.textContent = matches.length
       ? matches.length + " VibeCart results found."
-      : "No exact site match yet. Try a broader term or use web search below.";
+      : "No direct site match. Use web search buttons below.";
     results.innerHTML = "";
     matches.forEach(function (item) {
       var row = document.createElement("a");

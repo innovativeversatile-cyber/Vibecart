@@ -11,6 +11,15 @@
       if (tz.indexOf("johannesburg") >= 0) return { code: "+27", country: "ZA" };
       if (tz.indexOf("harare") >= 0) return { code: "+263", country: "ZW" };
       if (tz.indexOf("lagos") >= 0) return { code: "+234", country: "NG" };
+      if (
+        tz.indexOf("dublin") >= 0 ||
+        tz.indexOf("cork") >= 0 ||
+        tz.indexOf("galway") >= 0 ||
+        tz.indexOf("limerick") >= 0 ||
+        tz === "europe/dublin"
+      ) {
+        return { code: "+353", country: "IE" };
+      }
       if (tz.indexOf("london") >= 0) return { code: "+44", country: "GB" };
       if (tz.indexOf("new_york") >= 0 || tz.indexOf("los_angeles") >= 0 || tz.indexOf("chicago") >= 0) {
         return { code: "+1", country: "US" };
@@ -24,12 +33,44 @@
       if (locale.endsWith("-ZA")) return { code: "+27", country: "ZA" };
       if (locale.endsWith("-ZW")) return { code: "+263", country: "ZW" };
       if (locale.endsWith("-NG")) return { code: "+234", country: "NG" };
+      if (locale.endsWith("-IE")) return { code: "+353", country: "IE" };
       if (locale.endsWith("-GB")) return { code: "+44", country: "GB" };
       if (locale.endsWith("-US")) return { code: "+1", country: "US" };
     } catch {
       /* ignore */
     }
     return fallback;
+  }
+
+  function readPublicAuth() {
+    try {
+      var token = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+      var raw = localStorage.getItem("vibecart-public-auth-user");
+      var user = raw ? JSON.parse(raw) : {};
+      return { token: token, user: user && typeof user === "object" ? user : {} };
+    } catch {
+      return { token: "", user: {} };
+    }
+  }
+
+  function dialCodeForCountry(selectEl, countryCode) {
+    var want = String(countryCode || "").toUpperCase();
+    if (!selectEl || want.length !== 2) {
+      return "";
+    }
+    var opts = selectEl.options;
+    for (var i = 0; i < opts.length; i++) {
+      var o = opts[i];
+      var dc = String((o && o.getAttribute("data-country")) || "").toUpperCase();
+      if (dc === want) {
+        return String(o.value || "");
+      }
+    }
+    return "";
+  }
+
+  function phoneDigitCount(raw) {
+    return String(raw || "").replace(/\D/g, "").length;
   }
 
   function taxRateByCountry(countryCode) {
@@ -40,6 +81,7 @@
       ZW: 0.15,
       NG: 0.075,
       GB: 0.2,
+      IE: 0.23,
       US: 0
     };
     return Number(map[code] || 0.2);
@@ -79,6 +121,8 @@
     var newFields = document.getElementById("checkoutNewUserFields");
     var accountEmailEl = document.getElementById("checkoutAccountEmail");
     var passcodeEl = document.getElementById("checkoutPasscode");
+    var passcodeWrap = document.getElementById("checkoutPasscodeWrap");
+    var fastSignedHint = document.getElementById("checkoutFastTrackSignedInHint");
     var confirmBtn = document.getElementById("checkoutConfirmBtn");
     var statusEl = document.getElementById("checkoutStatus");
     var paymentMethodEl = document.getElementById("checkoutPaymentMethod");
@@ -176,9 +220,12 @@
         note.textContent = "Selected package: " + (plan || "standard") + bundleText + ". Complete payment details below.";
       }
       if (back) {
-        back.href = "./buy-journey.html?flow=" + encodeURIComponent(flow) + "&plan=" + encodeURIComponent(plan);
+        back.href = "./wellbeing.html#coach-packages";
+        back.textContent = "Back to coach packages";
       }
     }
+
+    var pubAuth = readPublicAuth();
 
     try {
       var draft = JSON.parse(sessionStorage.getItem("vibecart-checkout-draft") || "{}");
@@ -196,20 +243,46 @@
 
     var applyModeUi = function () {
       var mode = modeEl ? String(modeEl.value || "new") : "new";
+      var tokenNow = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
       if (fastFields) {
         fastFields.hidden = mode !== "fast";
       }
       if (newFields) {
         newFields.hidden = mode === "fast";
       }
+      if (passcodeWrap) {
+        passcodeWrap.hidden = mode !== "fast" || Boolean(tokenNow);
+      }
+      if (fastSignedHint) {
+        fastSignedHint.hidden = mode !== "fast" || !tokenNow;
+      }
     };
     if (modeEl) {
       modeEl.addEventListener("change", applyModeUi);
+    }
+    if (pubAuth.token && modeEl) {
+      modeEl.value = "fast";
+    }
+    if (accountEmailEl && pubAuth.user) {
+      var uem = String(pubAuth.user.email || pubAuth.user.userEmail || "").trim();
+      if (uem && isValidEmail(uem)) {
+        accountEmailEl.value = uem;
+      }
+    }
+    if (nameEl && pubAuth.user && !nameEl.value) {
+      var unm = String(pubAuth.user.fullName || pubAuth.user.name || "").trim();
+      if (unm) {
+        nameEl.value = unm;
+      }
     }
     applyModeUi();
 
     var dial = resolveDialCode();
     var selectedCountry = dial.country;
+    var savedCc = String((pubAuth.user && pubAuth.user.countryCode) || "").trim().toUpperCase();
+    if (savedCc.length === 2) {
+      selectedCountry = savedCc;
+    }
     var updateTaxDisclosure = function () {
       if (!taxDisclosureEl) {
         return;
@@ -258,11 +331,15 @@
       }
     };
     if (dialCodeEl) {
-      dialCodeEl.value = dial.code;
+      var initialDial = dialCodeForCountry(dialCodeEl, selectedCountry) || dial.code;
+      dialCodeEl.value = initialDial;
       dialCodeEl.addEventListener("change", function () {
         applyDialCode(dialCodeEl.value);
         var selected = dialCodeEl.options[dialCodeEl.selectedIndex];
         selectedCountry = String((selected && selected.getAttribute("data-country")) || selectedCountry || "PL").toUpperCase();
+        if (countryEl && selectedCountry.length === 2) {
+          countryEl.value = selectedCountry;
+        }
         updateTaxDisclosure();
       });
     }
@@ -270,9 +347,18 @@
       applyDialCode(dialCodeEl ? dialCodeEl.value : dial.code);
     }
     if (countryEl) {
-      countryEl.value = selectedCountry;
+      if (selectedCountry.length === 2) {
+        countryEl.value = selectedCountry;
+      }
       countryEl.addEventListener("change", function () {
         selectedCountry = String(countryEl.value || selectedCountry || "PL").toUpperCase();
+        if (dialCodeEl) {
+          var nextDial = dialCodeForCountry(dialCodeEl, selectedCountry);
+          if (nextDial) {
+            dialCodeEl.value = nextDial;
+            applyDialCode(nextDial);
+          }
+        }
         updateTaxDisclosure();
       });
     }
@@ -294,15 +380,24 @@
         };
         if (mode === "fast") {
           var accEmail = String((accountEmailEl && accountEmailEl.value) || "").trim();
+          var tokenAtPay = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
           var pass = String((passcodeEl && passcodeEl.value) || "").trim();
-          if (!isValidEmail(accEmail) || pass.length < 4) {
+          if (!isValidEmail(accEmail)) {
             if (statusEl) {
-              statusEl.textContent = "Fast track requires a valid account email and passcode.";
+              statusEl.textContent = "Fast track requires a valid account email.";
+            }
+            return;
+          }
+          if (!tokenAtPay && pass.length < 4) {
+            if (statusEl) {
+              statusEl.textContent =
+                "Sign in from Account hub to use fast track, or enter the one-time passcode from your account email. Otherwise choose “I am new”.";
             }
             return;
           }
           payload.name = "Existing account";
           payload.email = accEmail;
+          payload.country = String((countryEl && countryEl.value) || selectedCountry || "").trim().toUpperCase();
           payload.fastTrack = true;
         } else {
           var nm = String((nameEl && nameEl.value) || "").trim();
@@ -312,9 +407,10 @@
           var city = String((cityEl && cityEl.value) || "").trim();
           var postal = String((postalEl && postalEl.value) || "").trim();
           var country = String((countryEl && countryEl.value) || selectedCountry || "PL").trim().toUpperCase();
-          if (!nm || !isValidEmail(em) || ph.length < 7 || ad.length < 4 || city.length < 2 || postal.length < 3 || country.length !== 2) {
+          var digits = phoneDigitCount(ph);
+          if (!nm || !isValidEmail(em) || digits < 7 || digits > 15 || ad.length < 4 || city.length < 2 || postal.length < 3 || country.length !== 2) {
             if (statusEl) {
-              statusEl.textContent = "Please enter valid name, email, phone, street, city, postal code, and country.";
+              statusEl.textContent = "Please enter valid name, email, phone (with country code), street, city, postal code, and country.";
             }
             return;
           }
@@ -335,33 +431,35 @@
         if (statusEl) {
           statusEl.textContent = "Details confirmed. Opening secure payment...";
         }
-        window.location.assign(
+        var payToken = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        var loc =
           "/api/public/payments/checkout/redirect?flow=" +
-            encodeURIComponent(payload.flow || "service") +
-            "&plan=" +
-            encodeURIComponent(payload.plan || "standard") +
-            (payload.addonPlan
-              ? "&addonPlan=" + encodeURIComponent(payload.addonPlan)
-              : "") +
-            "&paymentMethod=" +
-            encodeURIComponent(payload.method || "card") +
-            "&autoRenew=" +
-            encodeURIComponent(payload.autoRenew ? "1" : "0") +
-            "&customerName=" +
-            encodeURIComponent(payload.name || "") +
-            "&customerEmail=" +
-            encodeURIComponent(payload.email || "") +
-            "&customerPhone=" +
-            encodeURIComponent(payload.phone || "") +
-            "&customerAddress=" +
-            encodeURIComponent(payload.address || "") +
-            "&customerCity=" +
-            encodeURIComponent(payload.city || "") +
-            "&customerPostalCode=" +
-            encodeURIComponent(payload.postalCode || "") +
-            "&customerCountry=" +
-            encodeURIComponent(payload.country || "")
-        );
+          encodeURIComponent(payload.flow || "service") +
+          "&plan=" +
+          encodeURIComponent(payload.plan || "standard") +
+          (payload.addonPlan ? "&addonPlan=" + encodeURIComponent(payload.addonPlan) : "") +
+          "&paymentMethod=" +
+          encodeURIComponent(payload.method || "card") +
+          "&autoRenew=" +
+          encodeURIComponent(payload.autoRenew ? "1" : "0") +
+          "&customerName=" +
+          encodeURIComponent(payload.name || "") +
+          "&customerEmail=" +
+          encodeURIComponent(payload.email || "") +
+          "&customerPhone=" +
+          encodeURIComponent(payload.phone || "") +
+          "&customerAddress=" +
+          encodeURIComponent(payload.address || "") +
+          "&customerCity=" +
+          encodeURIComponent(payload.city || "") +
+          "&customerPostalCode=" +
+          encodeURIComponent(payload.postalCode || "") +
+          "&customerCountry=" +
+          encodeURIComponent(payload.country || "");
+        if (payToken) {
+          loc += "&authToken=" + encodeURIComponent(payToken);
+        }
+        window.location.assign(loc);
       });
     }
   }

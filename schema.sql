@@ -19,10 +19,12 @@ CREATE TABLE user_auth_sessions (
   id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT UNSIGNED NOT NULL,
   session_token_hash VARCHAR(255) NOT NULL UNIQUE,
+  device_binding_hash VARCHAR(64) NULL,
   ip_address VARCHAR(45) NULL,
   user_agent VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   expires_at DATETIME NOT NULL,
+  last_token_rotated_at DATETIME NULL,
   revoked_at DATETIME NULL,
   FOREIGN KEY (user_id) REFERENCES users(id),
   INDEX idx_user_auth_sessions_user_expiry (user_id, expires_at)

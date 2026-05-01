@@ -1895,7 +1895,7 @@
 
   function initPwaBootstrapLite() {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("./service-worker.js?v=20260424freeze1").catch(function () {
+    navigator.serviceWorker.register("./service-worker.js?v=20260501pwa2").catch(function () {
       /* ignore */
     });
   }

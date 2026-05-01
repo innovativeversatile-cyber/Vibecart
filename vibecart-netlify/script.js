@@ -604,6 +604,20 @@ const PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
 const PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
 const PUBLIC_AUTH_JOURNEY_KEY = "vibecart-public-auth-journey";
 const easterKeyBuffer = [];
+
+function vcPublicAuthHeaders(token) {
+  if (typeof window !== "undefined" && window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+    return window.VibeCartSessionDevice.authHeaders(token);
+  }
+  return { Authorization: `Bearer ${token}` };
+}
+
+function vcDeviceRegisterExtras() {
+  if (typeof window !== "undefined" && window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.registerPayloadField === "function") {
+    return window.VibeCartSessionDevice.registerPayloadField();
+  }
+  return {};
+}
 const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "TZ", "UG", "RW", "BW", "ZM"]);
 const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
 const BRIDGE_PATH_KEY = "vibecart-bridge-path";
@@ -1169,17 +1183,35 @@ function getPathLabel(path) {
 
 function getBuyerCountryCode() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  return destination === "europe" ? "PL" : "ZA";
+  if (destination === "europe") {
+    return "PL";
+  }
+  if (destination === "ireland") {
+    return "IE";
+  }
+  return "ZA";
 }
 
 function getBuyerShippingMethod() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  return destination === "europe" ? "priority-eu-lane" : "express-africa-lane";
+  if (destination === "europe") {
+    return "priority-eu-lane";
+  }
+  if (destination === "ireland") {
+    return "standard";
+  }
+  return "express-africa-lane";
 }
 
 function getBuyerDestinationLabel() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  return destination === "europe" ? "Europe buyer" : "Africa buyer";
+  if (destination === "europe") {
+    return "Europe buyer";
+  }
+  if (destination === "ireland") {
+    return "Ireland buyer";
+  }
+  return "Africa buyer";
 }
 
 function updateBuyerDestinationHint() {
@@ -1189,6 +1221,9 @@ function updateBuyerDestinationHint() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
   if (destination === "europe") {
     buyerDestinationHint.textContent = "Checkout defaults: Europe buyer (country PL), priority EU lane shipping.";
+  } else if (destination === "ireland") {
+    buyerDestinationHint.textContent =
+      "Checkout defaults: Ireland buyer (country IE) — Republic & Northern Ireland routes; quotes use standard shipping tier.";
   } else {
     buyerDestinationHint.textContent = "Checkout defaults: Africa buyer (country ZA), express Africa lane shipping.";
   }
@@ -3125,6 +3160,10 @@ function wireOneClickBuy() {
         encodeURIComponent(cat) +
         "&partner=" +
         encodeURIComponent(shop) +
+        (function () {
+          var pid = Number(btn.getAttribute("data-product-id") || 0);
+          return pid > 0 ? "&productId=" + encodeURIComponent(String(pid)) : "";
+        })() +
         "&target=" +
         encodeURIComponent(target);
       trackAffiliateClick({ source: "index-buy-button", shop, target, commissionEligible: isCommissionTrackedUrl(target) });
@@ -3175,7 +3214,7 @@ function clearPublicAuth() {
 async function validatePublicSession(token) {
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: vcPublicAuthHeaders(token)
     });
     const body = await response.json().catch(() => ({}));
     return Boolean(response.ok && body.ok && body.user);
@@ -3345,7 +3384,7 @@ async function refreshPublicSessionOnLoad() {
   }
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: { Authorization: `Bearer ${auth.token}` }
+      headers: vcPublicAuthHeaders(auth.token)
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.ok || !body.user) {
@@ -3353,7 +3392,8 @@ async function refreshPublicSessionOnLoad() {
       paintAuthLoggedOut();
       return;
     }
-    persistPublicAuth(auth.token, body.user);
+    const nextToken = body.token || auth.token;
+    persistPublicAuth(nextToken, body.user);
     paintAuthLoggedIn(body.user);
   } catch {
     clearPublicAuth();
@@ -3530,7 +3570,7 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role, fullName, countryCode })
+        body: JSON.stringify({ email, password, role, fullName, countryCode, ...vcDeviceRegisterExtras() })
       });
       const body = await response.json().catch(() => ({}));
       if (response.status === 409) {
@@ -3594,7 +3634,7 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, ...vcDeviceRegisterExtras() })
       });
       const body = await response.json().catch(() => ({}));
       if (response.status === 401) {
@@ -3631,7 +3671,7 @@ function initPublicAccountAuth() {
         try {
           await fetch("/api/public/auth/logout", {
             method: "POST",
-            headers: { Authorization: `Bearer ${auth.token}` }
+            headers: vcPublicAuthHeaders(auth.token)
           });
         } catch {
           /* ignore */
@@ -3677,7 +3717,8 @@ async function ensureQuickBuyerToken() {
       password: generatedPassword,
       role: "buyer",
       fullName: "Quick Buyer",
-      countryCode: "ZA"
+      countryCode: "ZA",
+      ...vcDeviceRegisterExtras()
     })
   });
   const registerBody = await registerResponse.json();
@@ -3714,7 +3755,7 @@ async function runLiveOneClickCheckout(itemTitle) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
+      ...vcPublicAuthHeaders(token)
     },
     body: JSON.stringify({
       productId,
@@ -3728,7 +3769,7 @@ async function runLiveOneClickCheckout(itemTitle) {
     throw new Error(createBody.code || "ORDER_CREATE_FAILED");
   }
   const trackResponse = await fetch(`/api/public/orders/track?orderId=${Number(createBody.order.orderId)}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: vcPublicAuthHeaders(token)
   });
   const trackBody = await trackResponse.json();
   if (!trackResponse.ok || !trackBody.ok || !trackBody.order) {
@@ -3752,7 +3793,7 @@ async function startOrderTrackingPoll(orderId, token) {
   for (let i = 0; i < maxChecks; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, waitMs));
     const trackResponse = await fetch(`/api/public/orders/track?orderId=${Number(orderId)}`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: vcPublicAuthHeaders(token)
     });
     const trackBody = await trackResponse.json();
     if (!trackResponse.ok || !trackBody.ok || !trackBody.order) {
@@ -3824,6 +3865,16 @@ function resolveMarketFromLocale() {
   if (tz.includes("kolkata") || tz.includes("singapore") || tz.includes("tokyo")) {
     return "asia";
   }
+  if (
+    locale.includes("en-ie") ||
+    tz.includes("dublin") ||
+    tz.includes("cork") ||
+    tz.includes("galway") ||
+    tz.includes("limerick") ||
+    tz.includes("belfast")
+  ) {
+    return "ireland";
+  }
   return "africa-general";
 }
 
@@ -3837,6 +3888,8 @@ function setMarketCopy(market) {
     zimbabwe: "Optimized for Zimbabwe buyers with legal products from Poland and Europe.",
     dubai: "Optimized for Dubai market users with secure cross-border sourcing from Europe, Africa, and Asia.",
     asia: "Optimized for Asian market users with secure trade routes to Europe and Africa.",
+    ireland:
+      "Built for Ireland — Republic and Northern Ireland — with regional shops, delivery-aware picks, and the same secure VibeCart experience island-wide.",
     "africa-general": "Optimized for African, European, Dubai, and Asian markets with legal cross-border sourcing."
   };
 

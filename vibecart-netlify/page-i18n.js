@@ -72,7 +72,7 @@
       "account.edge.c2p": "Shipment tools and partner coverage sit beside the account — not buried in forums.",
       "account.edge.c2cta": "Orders & tracking",
       "account.edge.c3h": "Wellbeing lane",
-      "account.edge.c3p": "Optional coach and goals — uncommon on classified-style apps.",
+      "account.edge.c3p": "Optional coach and goals — designed for clear progress.",
       "account.edge.c3cta": "Health coach",
       "seller.title": "Seller Boost",
       "seller.intro": "Growth tools stay in one clean workspace.",
@@ -146,7 +146,7 @@
       "account.edge.c2p": "Narzędzia wysyłki i ochrona partnerów są obok konta, nie ukryte na forach.",
       "account.edge.c2cta": "Zamówienia i tracking",
       "account.edge.c3h": "Pas wellbeing",
-      "account.edge.c3p": "Opcjonalny coach i cele — rzadko spotykane w aplikacjach classified.",
+      "account.edge.c3p": "Opcjonalny coach i cele — zaprojektowane dla jasnego postępu.",
       "account.edge.c3cta": "Health coach"
     },
     fr: {
@@ -184,7 +184,7 @@
       "account.edge.c2p": "Les outils d'expédition et la couverture partenaire sont près du compte, pas cachés dans des forums.",
       "account.edge.c2cta": "Commandes et suivi",
       "account.edge.c3h": "Couloir wellbeing",
-      "account.edge.c3p": "Coach optionnel et objectifs — rare dans les apps style classifieds.",
+      "account.edge.c3p": "Coach optionnel et objectifs — pensés pour une progression claire.",
       "account.edge.c3cta": "Health coach"
     },
     pt: {
@@ -222,7 +222,7 @@
       "account.edge.c2p": "Ferramentas de envio e cobertura parceira ficam ao lado da conta, não enterradas em fóruns.",
       "account.edge.c2cta": "Pedidos e tracking",
       "account.edge.c3h": "Faixa wellbeing",
-      "account.edge.c3p": "Coach opcional e metas — incomum em apps estilo classificados.",
+      "account.edge.c3p": "Coach opcional e metas — desenhado para progresso claro.",
       "account.edge.c3cta": "Health coach"
     },
     ar: {
@@ -374,7 +374,7 @@
       "account.edge.c2p": "शिपमेंट टूल और पार्टनर कवरेज अकाउंट के पास रहते हैं, फोरम में छिपे नहीं।",
       "account.edge.c2cta": "ऑर्डर और ट्रैकिंग",
       "account.edge.c3h": "वेलबीइंग लेन",
-      "account.edge.c3p": "वैकल्पिक कोच और लक्ष्य — classifieds-स्टाइल ऐप्स में कम दिखता है।",
+      "account.edge.c3p": "वैकल्पिक कोच और लक्ष्य — स्पष्ट प्रगति के लिए डिज़ाइन किया गया अनुभव।",
       "account.edge.c3cta": "हेल्थ कोच"
     },
     sw: {
@@ -433,7 +433,7 @@
       "account.edge.c2p": "Zana za usafirishaji na bima za washirika ziko karibu na account, si kufichwa kwenye forum.",
       "account.edge.c2cta": "Orders na tracking",
       "account.edge.c3h": "Njia ya wellbeing",
-      "account.edge.c3p": "Coach wa hiari na malengo — si kawaida kwenye apps za classifieds.",
+      "account.edge.c3p": "Coach wa hiari na malengo — imeundwa kwa maendeleo yaliyo wazi na thabiti.",
       "account.edge.c3cta": "Health coach"
     },
     sn: {
@@ -492,7 +492,7 @@
       "account.edge.c2p": "Shipment tools nepartner coverage zviri pedyo neaccount, kwete kuvigwa mumaforum.",
       "account.edge.c2cta": "Orders & tracking",
       "account.edge.c3h": "Wellbeing lane",
-      "account.edge.c3p": "Optional coach nemagoals — hazviwanzo kuoneka pa classified-style apps.",
+      "account.edge.c3p": "Optional coach nemagoals — zvakagadzirirwa kufambira mberi kwakajeka.",
       "account.edge.c3cta": "Health coach"
     },
     nd: {
@@ -551,7 +551,7 @@
       "account.edge.c2p": "Amathuluzi e-shipment le-partner coverage kuseceleni kwe-account, akufihlwanga kuma-forum.",
       "account.edge.c2cta": "Ama-order le-tracking",
       "account.edge.c3h": "I-wellbeing lane",
-      "account.edge.c3p": "I-coach yokuzikhethela lamagoli — akuvamile kuma-apps esitayela se-classified.",
+      "account.edge.c3p": "I-coach yokuzikhethela lamagoli — yakhelwe inqubekela phambili ecacile.",
       "account.edge.c3cta": "Health coach"
     },
     xh: {
@@ -610,7 +610,7 @@
       "account.edge.c2p": "Izixhobo zokuthunyelwa kunye ne-partner coverage zikufuphi ne-akhawunti, azifihlwanga kwiiforum.",
       "account.edge.c2cta": "Ii-order kunye ne-tracking",
       "account.edge.c3h": "I-wellbeing lane",
-      "account.edge.c3p": "I-coach yokuzikhethela kunye neenjongo — ayiqhelekanga kwi-apps zohlobo lwe-classified.",
+      "account.edge.c3p": "I-coach yokuzikhethela kunye neenjongo — yenzelwe inkqubela ecacileyo.",
       "account.edge.c3cta": "Health coach"
     },
     zu: {
@@ -669,7 +669,7 @@
       "account.edge.c2p": "Amathuluzi okuthumela ne-partner coverage kuseceleni kwe-akhawunti, akufihlwanga kuma-forum.",
       "account.edge.c2cta": "Ama-order ne-tracking",
       "account.edge.c3h": "I-wellbeing lane",
-      "account.edge.c3p": "I-coach yokuzikhethela nezinhloso — akuvamile kuma-apps esitayela se-classified.",
+      "account.edge.c3p": "I-coach yokuzikhethela nezinhloso — yakhelwe inqubekela phambili ecacile.",
       "account.edge.c3cta": "Health coach"
     }
   };

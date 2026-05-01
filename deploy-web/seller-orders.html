@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seller Orders · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <style>
+    .vc-seller-orders-shell { max-width: 1040px; margin: 0 auto; }
+    .vc-seller-order-card { border: 1px solid rgba(255,255,255,.14); border-radius: 14px; background: rgba(8,10,20,.7); padding: .9rem; margin-top: .85rem; }
+  </style>
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
+    <a class="btn btn-primary" href="./my-business.html">MyBusiness</a>
+  </header>
+  <main class="section alt shops-lane-main vc-seller-orders-shell">
+    <h1 class="shops-lane-title">Seller Orders</h1>
+    <p class="note">Confirm your side, monitor payout status, and open disputes securely.</p>
+    <p class="hero-actions">
+      <button class="btn btn-primary" id="sellerOrdersRefreshBtn" type="button">Refresh</button>
+      <span class="note" id="sellerOrdersStatus" aria-live="polite"></span>
+    </p>
+    <section id="sellerOrdersList"></section>
+  </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./seller-orders.js?v=20260501sessbind1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

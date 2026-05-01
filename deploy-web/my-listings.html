@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Listings · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <style>
+    .vc-listings-shell { max-width: 1080px; margin: 0 auto; }
+    .vc-listings-grid { display: grid; gap: 0.85rem; margin-top: 1rem; }
+    .vc-listing-card { border: 1px solid rgba(255,255,255,0.16); border-radius: 14px; padding: 0.95rem; background: rgba(8, 10, 20, 0.7); }
+    .vc-listing-head { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; flex-wrap: wrap; }
+    .vc-stats { display: flex; gap: 0.55rem; flex-wrap: wrap; margin-top: 0.55rem; }
+    .vc-stat-chip { border-radius: 999px; padding: 0.26rem 0.58rem; background: rgba(255,255,255,0.08); font-size: 0.82rem; }
+    .vc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.7rem; }
+    .vc-notice-list { display: grid; gap: 0.5rem; margin-top: 0.6rem; }
+    .vc-notice-item { border-left: 3px solid #82e6ff; padding: 0.5rem 0.65rem; background: rgba(130,230,255,0.08); border-radius: 8px; }
+    .vc-inline-input { max-width: 110px; }
+  </style>
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-secondary" href="./sell-journey.html">Selling checklist</a>
+    <a class="btn btn-primary" href="./seller-boost.html">Seller Boost</a>
+    <a class="btn btn-secondary" href="./seller-orders.html">Seller orders</a>
+  </header>
+  <main class="section alt shops-lane-main vc-listings-shell">
+    <h1 class="shops-lane-title">My Listings</h1>
+    <p class="note">Monitor active, paused, and sold items with real views/clicks stats and sale alerts.</p>
+    <p class="hero-actions">
+      <button class="btn btn-primary" id="vcListingsRefreshBtn" type="button">Refresh</button>
+      <span class="note" id="vcListingsStatus" aria-live="polite"></span>
+    </p>
+
+    <section class="vc-listing-card">
+      <h2 style="margin-top:0;">Sold notifications</h2>
+      <div id="vcSellerNotifications" class="vc-notice-list">
+        <p class="note">No sale alerts yet.</p>
+      </div>
+    </section>
+
+    <section class="vc-listing-card">
+      <h2 style="margin-top:0;">Orders in progress</h2>
+      <div id="vcOrdersProgress" class="vc-notice-list">
+        <p class="note">No active orders yet.</p>
+      </div>
+    </section>
+
+    <section id="vcListingsGrid" class="vc-listings-grid" aria-live="polite"></section>
+  </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./my-listings.js?v=20260501sessbind1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

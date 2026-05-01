@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Secure checkout · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260426healthcoach2" />
+  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
 </head>
-<body class="shops-lane-page health-coach-page">
+<body class="shops-lane-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
-    <a class="btn btn-primary" id="checkoutBackLink" href="./buy-journey.html">Back to flow</a>
+    <a class="btn btn-primary" id="checkoutBackLink" href="./wellbeing.html">Back to flow</a>
   </header>
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title" id="checkoutTitle">Secure checkout</h1>
@@ -28,8 +28,15 @@
         <option value="fast">Fast track (I already have an account)</option>
       </select>
       <div id="checkoutFastTrackFields" class="admin-grid" hidden>
+        <p class="note" id="checkoutFastTrackSignedInHint" hidden style="grid-column:1/-1;margin:0">
+          You are signed in — your account email is filled below. Continue when ready.
+        </p>
         <label for="checkoutAccountEmail">Account email</label>
         <input id="checkoutAccountEmail" type="email" placeholder="your account email" />
+        <div id="checkoutPasscodeWrap">
+          <label for="checkoutPasscode">One-time passcode</label>
+          <input id="checkoutPasscode" type="text" placeholder="From your sign-in email (if prompted)" />
+        </div>
       </div>
       <div id="checkoutNewUserFields" class="admin-grid">
       <label for="checkoutServiceType">Service type</label>
@@ -48,6 +55,7 @@
         <option value="+263" data-country="ZW">Zimbabwe (+263)</option>
         <option value="+234" data-country="NG">Nigeria (+234)</option>
         <option value="+44" data-country="GB">United Kingdom (+44)</option>
+        <option value="+353" data-country="IE">Ireland (+353)</option>
         <option value="+1" data-country="US">United States (+1)</option>
       </select>
       <label for="checkoutPhone">Phone</label>
@@ -65,9 +73,9 @@
         <option value="ZW">Zimbabwe</option>
         <option value="NG">Nigeria</option>
         <option value="GB">United Kingdom</option>
+        <option value="IE">Ireland (Republic)</option>
         <option value="US">United States</option>
       </select>
-      </div>
       <label for="checkoutPaymentMethod">Payment option</label>
       <select id="checkoutPaymentMethod">
         <option value="card">Bank card (Visa/Mastercard)</option>
@@ -78,22 +86,22 @@
         <option value="google-pay">Google Pay</option>
         <option value="mobile-money">Mobile money</option>
         <option value="bank-transfer">Bank transfer</option>
-        <option value="cash">Cash on appointment</option>
       </select>
       <label class="note" for="checkoutAutoRenew" style="display:flex;align-items:center;gap:.45rem;">
         <input id="checkoutAutoRenew" type="checkbox" checked />
         Enable automatic subscription renewal (secure auto-deduction)
       </label>
+      </div>
     </div>
 
     <p class="hero-actions" style="margin-top: 1rem">
       <button class="btn btn-primary" id="checkoutConfirmBtn" type="button">Confirm and continue to secure payment</button>
-      <a class="btn btn-secondary" id="checkoutSaveLaterLink" href="./account-hub.html#account-access">Save and continue later</a>
+      <a class="btn btn-secondary" href="./account-hub.html#account-access">Save and continue later</a>
     </p>
     <p class="note">After you confirm details, you will continue directly to secure Stripe checkout.</p>
     <p class="note" id="checkoutStatus" aria-live="polite"></p>
   </main>
-  <script src="./checkout-details.js?v=20260430checkoutredirectfix2" defer></script>
+  <script src="./checkout-details.js?v=20260501coach1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

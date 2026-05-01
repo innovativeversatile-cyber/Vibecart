@@ -168,6 +168,7 @@ const AI_AUTOPILOT_INTERVAL_MINUTES = Math.max(15, Number(process.env.AI_AUTOPIL
 const AI_AUTOPILOT_DEDUPE_HOURS = Math.max(1, Number(process.env.AI_AUTOPILOT_DEDUPE_HOURS || 24));
 const PROMO_SCOUT_ENABLED = false;
 const PROMO_SCOUT_INTERVAL_MINUTES = Math.max(10, Number(process.env.PROMO_SCOUT_INTERVAL_MINUTES || 30));
+const FIRST5_FLASH_WINDOW_MINUTES = Math.max(5, Number(process.env.FIRST5_FLASH_WINDOW_MINUTES || 15));
 
 const _mysqlPublicRaw = process.env.MYSQL_PUBLIC_URL;
 if (_mysqlPublicRaw && String(_mysqlPublicRaw).includes("${{")) {
@@ -225,6 +226,16 @@ const RATE_MAX = 60;
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 8;
 const PUBLIC_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** HMAC-style binding: server pepper + per-device secret from client (never store raw secret). */
+const SESSION_DEVICE_PEPPER = String(
+  process.env.SESSION_DEVICE_PEPPER || CRON_SECRET || "vibecart-session-device-dev"
+).trim();
+/** Min 5m. Default 12h: rotates bearer token to narrow replay window; client must persist new token from /auth/session. */
+const SESSION_TOKEN_ROTATE_MS = Math.max(
+  5 * 60 * 1000,
+  Number(process.env.SESSION_TOKEN_ROTATE_MS || 12 * 60 * 60 * 1000)
+);
+let publicSessionDeviceColumnsEnsured = false;
 const logoEmailIpHits = new Map();
 const LOGO_EMAIL_WINDOW_MS = 60 * 60 * 1000;
 const LOGO_EMAIL_MAX_PER_HOUR = 10;
@@ -291,7 +302,7 @@ function applyCorsHeaders(req, res) {
     res.setHeader("Access-Control-Allow-Origin", "*");
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-VibeCart-Device-Binding");
 }
 
 function setSecurityHeaders(res) {
@@ -431,22 +442,92 @@ function verifyPublicPassword(password, storedHash) {
   return hashPublicPassword(password, saltHex) === digestHex;
 }
 
-async function createPublicSession(userId, ipAddress, userAgent) {
+function normalizeDeviceBindingSecret(raw) {
+  const s = String(raw || "").trim();
+  if (s.length < 16 || s.length > 256) {
+    return "";
+  }
+  return s;
+}
+
+function hashDeviceBindingSecret(secret) {
+  const norm = normalizeDeviceBindingSecret(secret);
+  if (!norm) {
+    return "";
+  }
+  return sha256(`${SESSION_DEVICE_PEPPER}|${norm}`);
+}
+
+function getDeviceBindingFromRequest(req) {
+  if (!req || !req.headers) {
+    return "";
+  }
+  const h = req.headers["x-vibecart-device-binding"] || req.headers["X-VibeCart-Device-Binding"];
+  return normalizeDeviceBindingSecret(h);
+}
+
+function deviceBindingMatchesStored(storedHashHex, presentedSecret) {
+  if (!storedHashHex || !presentedSecret) {
+    return false;
+  }
+  const want = hashDeviceBindingSecret(presentedSecret);
+  if (!want || want.length !== String(storedHashHex).length) {
+    return false;
+  }
+  try {
+    const a = Buffer.from(String(storedHashHex), "hex");
+    const b = Buffer.from(want, "hex");
+    if (a.length !== b.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+async function ensurePublicSessionDeviceColumns() {
+  if (publicSessionDeviceColumnsEnsured) {
+    return;
+  }
+  const alters = [
+    "ALTER TABLE user_auth_sessions ADD COLUMN device_binding_hash VARCHAR(64) NULL",
+    "ALTER TABLE user_auth_sessions ADD COLUMN last_token_rotated_at DATETIME NULL"
+  ];
+  for (const sql of alters) {
+    try {
+      await pool.execute(sql);
+    } catch (err) {
+      const msg = String((err && err.message) || err);
+      if (!/Duplicate column name/i.test(msg)) {
+        throw err;
+      }
+    }
+  }
+  publicSessionDeviceColumnsEnsured = true;
+}
+
+async function createPublicSession(userId, ipAddress, userAgent, deviceBindingSecret) {
+  await ensurePublicSessionDeviceColumns();
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = sha256(token);
   const expiresAt = new Date(Date.now() + PUBLIC_SESSION_TTL_MS);
+  const bindNorm = normalizeDeviceBindingSecret(deviceBindingSecret);
+  const deviceHash = bindNorm ? hashDeviceBindingSecret(bindNorm) : null;
   await pool.execute(
-    `INSERT INTO user_auth_sessions (user_id, session_token_hash, ip_address, user_agent, expires_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    [userId, tokenHash, ipAddress || null, userAgent || null, expiresAt]
+    `INSERT INTO user_auth_sessions (user_id, session_token_hash, device_binding_hash, ip_address, user_agent, expires_at, last_token_rotated_at)
+     VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+    [userId, tokenHash, deviceHash, ipAddress || null, userAgent || null, expiresAt]
   );
   return { token, expiresAt };
 }
 
-async function requirePublicSession(token) {
+async function requirePublicSession(token, req, opts) {
+  await ensurePublicSessionDeviceColumns();
   const tokenHash = sha256(token);
   const [rows] = await pool.execute(
-    `SELECT s.id, s.user_id, s.expires_at, s.revoked_at, u.email, u.full_name, u.role, u.country_code, u.is_verified
+    `SELECT s.id, s.user_id, s.expires_at, s.revoked_at, s.device_binding_hash, s.last_token_rotated_at,
+            u.email, u.full_name, u.role, u.country_code, u.is_verified
      FROM user_auth_sessions s
      JOIN users u ON u.id = s.user_id
      WHERE s.session_token_hash = ?
@@ -460,7 +541,38 @@ async function requirePublicSession(token) {
   if (row.revoked_at || new Date(row.expires_at).getTime() <= Date.now()) {
     return null;
   }
+  const skipBinding = Boolean(opts && opts.skipDeviceBinding);
+  if (row.device_binding_hash && !skipBinding) {
+    const presented = req ? getDeviceBindingFromRequest(req) : "";
+    if (!deviceBindingMatchesStored(row.device_binding_hash, presented)) {
+      return null;
+    }
+  }
   return row;
+}
+
+async function maybeRotatePublicSessionToken(sessionRow) {
+  if (!sessionRow || !sessionRow.id) {
+    return null;
+  }
+  const last = sessionRow.last_token_rotated_at ? new Date(sessionRow.last_token_rotated_at).getTime() : 0;
+  if (Date.now() - last < SESSION_TOKEN_ROTATE_MS) {
+    return null;
+  }
+  const newToken = crypto.randomBytes(32).toString("hex");
+  const newHash = sha256(newToken);
+  const expiresAt = new Date(Date.now() + PUBLIC_SESSION_TTL_MS);
+  const [result] = await pool.execute(
+    `UPDATE user_auth_sessions
+     SET session_token_hash = ?, expires_at = ?, last_token_rotated_at = NOW()
+     WHERE id = ? AND revoked_at IS NULL
+     LIMIT 1`,
+    [newHash, expiresAt, Number(sessionRow.id)]
+  );
+  if (!result || Number(result.affectedRows || 0) < 1) {
+    return null;
+  }
+  return { token: newToken, expiresAt };
 }
 
 function getBearerToken(req) {
@@ -477,7 +589,7 @@ async function requirePublicSessionRole(req, res, allowedRoles) {
     sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
     return null;
   }
-  const session = await requirePublicSession(token);
+  const session = await requirePublicSession(token, req);
   if (!session) {
     sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
     return null;
@@ -500,10 +612,12 @@ function sendHighValueAccountRequired(res) {
 
 async function requirePublicAccountSession(req, res, allowedRoles = null) {
   let token = getBearerToken(req);
+  let tokenFromQuery = false;
   if (!token && req && req.url) {
     try {
       const urlObj = new URL(req.url, "http://localhost");
       token = String(urlObj.searchParams.get("token") || urlObj.searchParams.get("authToken") || "").trim();
+      tokenFromQuery = Boolean(token);
     } catch {
       // ignore URL parse errors and continue with header-only auth
     }
@@ -512,7 +626,7 @@ async function requirePublicAccountSession(req, res, allowedRoles = null) {
     sendHighValueAccountRequired(res);
     return null;
   }
-  const session = await requirePublicSession(token);
+  const session = await requirePublicSession(token, req, { skipDeviceBinding: tokenFromQuery });
   if (!session) {
     sendHighValueAccountRequired(res);
     return null;
@@ -563,6 +677,595 @@ async function ensureCategoryIdByName(categoryName) {
     [normalized]
   );
   return { categoryId: Number(insertResult.insertId), categoryName: normalized };
+}
+
+async function ensureSellerProductMetricsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS seller_product_metrics (
+      product_id BIGINT UNSIGNED PRIMARY KEY,
+      view_count INT UNSIGNED NOT NULL DEFAULT 0,
+      click_count INT UNSIGNED NOT NULL DEFAULT 0,
+      sold_count INT UNSIGNED NOT NULL DEFAULT 0,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_seller_product_metrics_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    )`
+  );
+}
+
+async function ensureSellerSaleNotificationsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS seller_sale_notifications (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      seller_user_id BIGINT UNSIGNED NOT NULL,
+      product_id BIGINT UNSIGNED NOT NULL,
+      order_id BIGINT UNSIGNED NOT NULL,
+      message VARCHAR(255) NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      read_at DATETIME NULL,
+      INDEX idx_seller_sale_notifications_user (seller_user_id, created_at),
+      INDEX idx_seller_sale_notifications_order (order_id)
+    )`
+  );
+}
+
+async function incrementSellerProductMetric(productId, fieldName, by = 1) {
+  const pid = Number(productId || 0);
+  if (!pid || !["view_count", "click_count", "sold_count"].includes(fieldName)) {
+    return;
+  }
+  await ensureSellerProductMetricsTable();
+  await pool.execute(
+    `INSERT INTO seller_product_metrics (product_id, ${fieldName})
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE ${fieldName} = ${fieldName} + VALUES(${fieldName})`,
+    [pid, Math.max(1, Number(by || 1))]
+  );
+}
+
+async function handlePublicSellerListings(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  if (!session) return;
+  await ensureSellerProductMetricsTable();
+  const [rows] = await pool.execute(
+    `SELECT
+      p.id,
+      p.title,
+      p.description,
+      p.base_price,
+      p.currency,
+      p.stock,
+      p.status,
+      p.origin_country,
+      p.created_at,
+      c.name AS category_name,
+      COALESCE(m.view_count, 0) AS view_count,
+      COALESCE(m.click_count, 0) AS click_count,
+      COALESCE(m.sold_count, 0) AS sold_count,
+      (
+        SELECT COUNT(*)
+        FROM order_items oi
+        JOIN orders o ON o.id = oi.order_id
+        WHERE oi.product_id = p.id
+          AND o.status IN ('pending', 'paid', 'shipped', 'delivered')
+      ) AS order_count
+     FROM products p
+     JOIN shops s ON s.id = p.shop_id
+     LEFT JOIN categories c ON c.id = p.category_id
+     LEFT JOIN seller_product_metrics m ON m.product_id = p.id
+     WHERE s.owner_user_id = ?
+     ORDER BY p.id DESC
+     LIMIT 300`,
+    [Number(session.user_id)]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    count: rows.length,
+    listings: rows.map((row) => ({
+      id: Number(row.id),
+      title: String(row.title || ""),
+      description: String(row.description || ""),
+      categoryName: String(row.category_name || ""),
+      basePrice: Number(row.base_price || 0),
+      currency: String(row.currency || "EUR"),
+      stock: Number(row.stock || 0),
+      status: String(row.status || "active"),
+      originCountry: String(row.origin_country || ""),
+      createdAt: row.created_at,
+      stats: {
+        views: Number(row.view_count || 0),
+        clicks: Number(row.click_count || 0),
+        soldQty: Number(row.sold_count || 0),
+        orders: Number(row.order_count || 0)
+      }
+    }))
+  });
+}
+
+async function handlePublicSellerListingUpdate(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  if (!session) return;
+  const body = await readJson(req);
+  const productId = Number(body.productId || 0);
+  const nextStatusRaw = String(body.status || "").trim().toLowerCase();
+  const stockRaw = body.stock;
+  const basePriceRaw = body.basePrice;
+  if (!productId) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_PRODUCT_ID" });
+  }
+  const [ownedRows] = await pool.execute(
+    `SELECT p.id
+     FROM products p
+     JOIN shops s ON s.id = p.shop_id
+     WHERE p.id = ? AND s.owner_user_id = ?
+     LIMIT 1`,
+    [productId, Number(session.user_id)]
+  );
+  if (!ownedRows.length) {
+    return sendJson(res, 403, { ok: false, code: "LISTING_FORBIDDEN" });
+  }
+  const updates = [];
+  const params = [];
+  if (Number.isFinite(Number(basePriceRaw)) && Number(basePriceRaw) > 0) {
+    updates.push("base_price = ?");
+    params.push(Number(Number(basePriceRaw).toFixed(2)));
+  }
+  if (stockRaw != null && Number.isFinite(Number(stockRaw))) {
+    updates.push("stock = ?");
+    params.push(Math.max(0, Math.min(9999, Math.floor(Number(stockRaw)))));
+  }
+  if (nextStatusRaw) {
+    const nextStatus = nextStatusRaw === "paused" ? "paused" : "active";
+    updates.push("status = ?");
+    params.push(nextStatus);
+  }
+  if (!updates.length) {
+    return sendJson(res, 400, { ok: false, code: "NO_UPDATES" });
+  }
+  params.push(productId);
+  await pool.execute(`UPDATE products SET ${updates.join(", ")} WHERE id = ? LIMIT 1`, params);
+  return sendJson(res, 200, { ok: true });
+}
+
+async function handlePublicSellerSaleNotifications(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  if (!session) return;
+  await ensureSellerSaleNotificationsTable();
+  const [rows] = await pool.execute(
+    `SELECT id, product_id, order_id, message, created_at, read_at
+     FROM seller_sale_notifications
+     WHERE seller_user_id = ?
+     ORDER BY id DESC
+     LIMIT 120`,
+    [Number(session.user_id)]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    count: rows.length,
+    notifications: rows.map((row) => ({
+      id: Number(row.id),
+      productId: Number(row.product_id),
+      orderId: Number(row.order_id),
+      message: String(row.message || ""),
+      createdAt: row.created_at,
+      readAt: row.read_at
+    }))
+  });
+}
+
+async function ensureBakeryServicesTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS bakery_services (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      baker_user_id BIGINT UNSIGNED NOT NULL,
+      business_name VARCHAR(160) NOT NULL,
+      work_title VARCHAR(160) NOT NULL,
+      style_theme VARCHAR(180) NULL,
+      base_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+      currency VARCHAR(8) NOT NULL DEFAULT 'USD',
+      requirements_text TEXT NULL,
+      image_url VARCHAR(500) NULL,
+      is_active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_bakery_services_baker (baker_user_id, is_active, id)
+    )`
+  );
+}
+
+async function ensureBakeryBookingsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS bakery_bookings (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      service_id BIGINT UNSIGNED NOT NULL,
+      baker_user_id BIGINT UNSIGNED NOT NULL,
+      buyer_user_id BIGINT UNSIGNED NULL,
+      customer_name VARCHAR(140) NOT NULL,
+      customer_phone VARCHAR(60) NULL,
+      event_date DATE NOT NULL,
+      occasion_type VARCHAR(120) NULL,
+      style_theme VARCHAR(180) NULL,
+      request_details TEXT NULL,
+      budget_amount DECIMAL(12,2) NULL,
+      booking_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_bakery_bookings_baker (baker_user_id, booking_status, id),
+      INDEX idx_bakery_bookings_service (service_id, id)
+    )`
+  );
+}
+
+async function handlePublicBakeryServiceUpsert(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  await ensureBakeryServicesTable();
+  const body = await readJson(req);
+  const serviceId = Number(body.serviceId || 0);
+  const businessName = String(body.businessName || "").trim().slice(0, 160);
+  const workTitle = String(body.workTitle || "").trim().slice(0, 160);
+  const styleTheme = String(body.styleTheme || "").trim().slice(0, 180);
+  const requirementsText = String(body.requirementsText || "").trim().slice(0, 4000);
+  const imageUrl = String(body.imageUrl || "").trim().slice(0, 500);
+  const currency = String(body.currency || "USD").trim().toUpperCase().slice(0, 8) || "USD";
+  const basePrice = Number.isFinite(Number(body.basePrice)) ? Math.max(0, Number(Number(body.basePrice).toFixed(2))) : 0;
+  if (!businessName || !workTitle) {
+    return sendJson(res, 400, { ok: false, code: "BUSINESS_AND_WORK_REQUIRED" });
+  }
+  if (serviceId > 0) {
+    await pool.execute(
+      `UPDATE bakery_services
+       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?
+       WHERE id = ? AND baker_user_id = ?
+       LIMIT 1`,
+      [businessName, workTitle, styleTheme || null, basePrice, currency, requirementsText || null, imageUrl || null, serviceId, Number(session.user_id)]
+    );
+    return sendJson(res, 200, { ok: true, serviceId });
+  }
+  const [inserted] = await pool.execute(
+    `INSERT INTO bakery_services (
+      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+    [Number(session.user_id), businessName, workTitle, styleTheme || null, basePrice, currency, requirementsText || null, imageUrl || null]
+  );
+  return sendJson(res, 200, { ok: true, serviceId: Number(inserted.insertId || 0) });
+}
+
+async function handlePublicBakeryServicesMine(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  await ensureBakeryServicesTable();
+  const [rows] = await pool.execute(
+    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, is_active, created_at, updated_at
+     FROM bakery_services
+     WHERE baker_user_id = ?
+     ORDER BY id DESC
+     LIMIT 200`,
+    [Number(session.user_id)]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    services: rows.map((row) => ({
+      id: Number(row.id),
+      businessName: String(row.business_name || ""),
+      workTitle: String(row.work_title || ""),
+      styleTheme: String(row.style_theme || ""),
+      basePrice: Number(row.base_price || 0),
+      currency: String(row.currency || "USD"),
+      requirementsText: String(row.requirements_text || ""),
+      imageUrl: String(row.image_url || ""),
+      isActive: Boolean(Number(row.is_active || 0)),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }))
+  });
+}
+
+async function handlePublicBakeryServicesDiscover(req, res) {
+  await ensureBakeryServicesTable();
+  const urlObj = new URL(req.url, "http://localhost");
+  const q = String(urlObj.searchParams.get("q") || "").trim().toLowerCase();
+  const [rows] = await pool.execute(
+    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url,
+            u.full_name
+     FROM bakery_services bs
+     JOIN users u ON u.id = bs.baker_user_id
+     WHERE bs.is_active = 1
+     ORDER BY bs.id DESC
+     LIMIT 150`
+  );
+  const filtered = rows.filter((row) => {
+    if (!q) return true;
+    const text = `${row.business_name || ""} ${row.work_title || ""} ${row.style_theme || ""} ${row.full_name || ""}`.toLowerCase();
+    return text.includes(q);
+  });
+  return sendJson(res, 200, {
+    ok: true,
+    services: filtered.map((row) => ({
+      id: Number(row.id),
+      bakerUserId: Number(row.baker_user_id),
+      bakerName: String(row.full_name || "Baker"),
+      businessName: String(row.business_name || ""),
+      workTitle: String(row.work_title || ""),
+      styleTheme: String(row.style_theme || ""),
+      basePrice: Number(row.base_price || 0),
+      currency: String(row.currency || "USD"),
+      requirementsText: String(row.requirements_text || ""),
+      imageUrl: String(row.image_url || "")
+    }))
+  });
+}
+
+async function handlePublicBakeryServiceToggle(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  await ensureBakeryServicesTable();
+  const body = await readJson(req);
+  const serviceId = Number(body.serviceId || 0);
+  const isActive = Number(body.isActive ? 1 : 0);
+  if (!serviceId) {
+    return sendJson(res, 400, { ok: false, code: "SERVICE_ID_REQUIRED" });
+  }
+  await pool.execute(
+    `UPDATE bakery_services
+     SET is_active = ?
+     WHERE id = ? AND baker_user_id = ?
+     LIMIT 1`,
+    [isActive, serviceId, Number(session.user_id)]
+  );
+  return sendJson(res, 200, { ok: true, serviceId, isActive: Boolean(isActive) });
+}
+
+async function handlePublicBakeryBookingCreate(req, res) {
+  const maybeToken = getBearerToken(req);
+  const session = maybeToken ? await requirePublicSession(maybeToken, req) : null;
+  const body = await readJson(req);
+  await ensureBakeryServicesTable();
+  await ensureBakeryBookingsTable();
+  const serviceId = Number(body.serviceId || 0);
+  const customerName = String(body.customerName || "").trim().slice(0, 140);
+  const customerPhone = String(body.customerPhone || "").trim().slice(0, 60);
+  const eventDate = String(body.eventDate || "").trim().slice(0, 10);
+  const occasionType = String(body.occasionType || "").trim().slice(0, 120);
+  const styleTheme = String(body.styleTheme || "").trim().slice(0, 180);
+  const requestDetails = String(body.requestDetails || "").trim().slice(0, 4000);
+  const budgetAmount = Number.isFinite(Number(body.budgetAmount)) ? Number(Number(body.budgetAmount).toFixed(2)) : null;
+  if (!serviceId || !customerName || !eventDate || !requestDetails) {
+    return sendJson(res, 400, { ok: false, code: "BOOKING_FIELDS_REQUIRED" });
+  }
+  const [services] = await pool.execute(
+    `SELECT id, baker_user_id, work_title
+     FROM bakery_services
+     WHERE id = ? AND is_active = 1
+     LIMIT 1`,
+    [serviceId]
+  );
+  const svc = services[0];
+  if (!svc) {
+    return sendJson(res, 404, { ok: false, code: "BAKERY_SERVICE_NOT_FOUND" });
+  }
+  const [inserted] = await pool.execute(
+    `INSERT INTO bakery_bookings (
+      service_id, baker_user_id, buyer_user_id, customer_name, customer_phone, event_date, occasion_type, style_theme, request_details, budget_amount, booking_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    [
+      serviceId,
+      Number(svc.baker_user_id),
+      session && Number(session.user_id) > 0 ? Number(session.user_id) : null,
+      customerName,
+      customerPhone || null,
+      eventDate,
+      occasionType || null,
+      styleTheme || null,
+      requestDetails,
+      budgetAmount
+    ]
+  );
+  try {
+    await sendPushToUser(Number(svc.baker_user_id), {
+      title: "New bakery booking request",
+      body: `${customerName} requested "${String(svc.work_title || "your bakery service")}" for ${eventDate}.`,
+      data: {
+        type: "bakery_booking",
+        bookingId: Number(inserted.insertId || 0),
+        serviceId
+      }
+    });
+  } catch {
+    /* ignore push failures */
+  }
+  return sendJson(res, 200, { ok: true, bookingId: Number(inserted.insertId || 0) });
+}
+
+async function handlePublicBakeryBookingsMine(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  await ensureBakeryBookingsTable();
+  const [rows] = await pool.execute(
+    `SELECT b.id, b.service_id, b.customer_name, b.customer_phone, b.event_date, b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.booking_status, b.created_at,
+            s.work_title, s.business_name
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.baker_user_id = ?
+     ORDER BY b.id DESC
+     LIMIT 200`,
+    [Number(session.user_id)]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    bookings: rows.map((row) => ({
+      id: Number(row.id),
+      serviceId: Number(row.service_id),
+      businessName: String(row.business_name || ""),
+      workTitle: String(row.work_title || ""),
+      customerName: String(row.customer_name || ""),
+      customerPhone: String(row.customer_phone || ""),
+      eventDate: row.event_date,
+      occasionType: String(row.occasion_type || ""),
+      styleTheme: String(row.style_theme || ""),
+      requestDetails: String(row.request_details || ""),
+      budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
+      bookingStatus: String(row.booking_status || "pending"),
+      createdAt: row.created_at
+    }))
+  });
+}
+
+async function handlePublicBakeryBookingStatusUpdate(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  await ensureBakeryBookingsTable();
+  const body = await readJson(req);
+  const bookingId = Number(body.bookingId || 0);
+  const status = String(body.status || "").trim().toLowerCase();
+  const allowed = new Set(["pending", "confirmed", "declined", "completed"]);
+  if (!bookingId || !allowed.has(status)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_BOOKING_STATUS" });
+  }
+  await pool.execute(
+    `UPDATE bakery_bookings
+     SET booking_status = ?
+     WHERE id = ? AND baker_user_id = ?
+     LIMIT 1`,
+    [status, bookingId, Number(session.user_id)]
+  );
+  return sendJson(res, 200, { ok: true, bookingId, status });
+}
+
+async function ensureOrderSettlementTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS order_settlements (
+      order_id BIGINT UNSIGNED PRIMARY KEY,
+      buyer_confirmed_at DATETIME NULL,
+      seller_confirmed_at DATETIME NULL,
+      released_at DATETIME NULL,
+      seller_user_id BIGINT UNSIGNED NOT NULL,
+      seller_shop_id BIGINT UNSIGNED NOT NULL,
+      seller_payout_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      service_fee_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+      currency VARCHAR(8) NOT NULL DEFAULT 'EUR',
+      payout_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+      payout_reference VARCHAR(160) NULL,
+      assistant_summary TEXT NULL,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`
+  );
+}
+
+async function ensureSellerPayoutAccountsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS seller_payout_accounts (
+      seller_user_id BIGINT UNSIGNED PRIMARY KEY,
+      stripe_account_id VARCHAR(80) NOT NULL,
+      updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )`
+  );
+}
+
+function resolveShippingQuote(methodRaw, isCrossBorder, subtotal) {
+  const method = String(methodRaw || "standard").trim().toLowerCase();
+  const shippingRates = isCrossBorder
+    ? { pickup: 0, economy: 9.5, standard: 14.5, express: 19.5 }
+    : { pickup: 0, economy: 4.5, standard: 6.5, express: 9.5 };
+  const safeMethod = shippingRates[method] != null ? method : "standard";
+  const shippingFee = Number(shippingRates[safeMethod].toFixed(2));
+  const serviceFee = Number((Number(subtotal || 0) * 0.03).toFixed(2));
+  return {
+    method: safeMethod,
+    shippingFee,
+    serviceFee,
+    estimatedTotal: Number((Number(subtotal || 0) + shippingFee + serviceFee).toFixed(2))
+  };
+}
+
+function buildOrderAssistantSummary(order, settlement) {
+  const buyerDone = Boolean(settlement && settlement.buyer_confirmed_at);
+  const sellerDone = Boolean(settlement && settlement.seller_confirmed_at);
+  if (!buyerDone && !sellerDone) {
+    return "AI mediator: waiting for buyer and seller confirmation. Funds remain protected in escrow until both sides confirm delivery details.";
+  }
+  if (buyerDone && !sellerDone) {
+    return "AI mediator: buyer confirmed. Seller confirmation is pending. Auto-release will run immediately once seller confirms.";
+  }
+  if (!buyerDone && sellerDone) {
+    return "AI mediator: seller confirmed dispatch/completion. Buyer confirmation is pending before escrow release.";
+  }
+  if (settlement && settlement.released_at) {
+    return `AI mediator: both sides confirmed. Escrow released automatically. Seller payout sent (${Number(
+      settlement.seller_payout_amount || 0
+    ).toFixed(2)} ${String(settlement.currency || "EUR")}) and service fee retained by platform.`;
+  }
+  return `AI mediator: both sides confirmed. Finalizing automatic payout now for order #${Number(order?.id || 0)}.`;
+}
+
+async function tryReleaseOrderSettlement(orderId) {
+  await ensureOrderSettlementTable();
+  const [rows] = await pool.execute(
+    `SELECT os.order_id, os.buyer_confirmed_at, os.seller_confirmed_at, os.released_at, os.seller_user_id, os.seller_payout_amount, os.service_fee_amount, os.currency,
+            o.status
+     FROM order_settlements os
+     JOIN orders o ON o.id = os.order_id
+     WHERE os.order_id = ?
+     LIMIT 1`,
+    [Number(orderId)]
+  );
+  const row = rows[0];
+  if (!row) return { ok: false, code: "ORDER_SETTLEMENT_NOT_FOUND" };
+  const buyerConfirmed = Boolean(row.buyer_confirmed_at);
+  const sellerConfirmed = Boolean(row.seller_confirmed_at);
+  if (!buyerConfirmed || !sellerConfirmed) {
+    return { ok: true, released: false };
+  }
+  if (row.released_at) {
+    return { ok: true, released: true, alreadyReleased: true, payoutStatus: row.payout_status || "released" };
+  }
+  let payoutStatus = "released_no_connect";
+  let payoutReference = "";
+  await ensureSellerPayoutAccountsTable();
+  const [acctRows] = await pool.execute(
+    `SELECT stripe_account_id
+     FROM seller_payout_accounts
+     WHERE seller_user_id = ?
+     LIMIT 1`,
+    [Number(row.seller_user_id)]
+  );
+  const stripeAccountId = String(acctRows[0]?.stripe_account_id || "").trim();
+  if (stripe && stripeAccountId) {
+    try {
+      const transfer = await stripe.transfers.create({
+        amount: Math.max(1, Math.round(Number(row.seller_payout_amount || 0) * 100)),
+        currency: String(row.currency || "EUR").toLowerCase(),
+        destination: stripeAccountId,
+        description: `VibeCart order payout #${Number(orderId)}`,
+        transfer_group: `order_${Number(orderId)}`
+      });
+      payoutStatus = "released";
+      payoutReference = String(transfer.id || "");
+    } catch {
+      payoutStatus = "release_failed";
+    }
+  }
+  await pool.execute(
+    `UPDATE order_settlements
+     SET released_at = CURRENT_TIMESTAMP,
+         payout_status = ?,
+         payout_reference = ?
+     WHERE order_id = ?
+     LIMIT 1`,
+    [payoutStatus, payoutReference || null, Number(orderId)]
+  );
+  await pool.execute(`UPDATE orders SET status = 'completed' WHERE id = ? LIMIT 1`, [Number(orderId)]);
+  await pool.execute(
+    `INSERT INTO order_status_updates (
+      order_id, status_code, status_message, actor_role, notify_buyer, notify_seller
+    ) VALUES (?, 'escrow_released', ?, 'system', 1, 1)`,
+    [
+      Number(orderId),
+      payoutStatus === "released"
+        ? "Both parties confirmed. Escrow released and seller payout sent automatically."
+        : "Both parties confirmed. Escrow released; seller payout queued (Stripe Connect account required)."
+    ]
+  );
+  return { ok: true, released: true, payoutStatus, payoutReference };
 }
 
 async function handlePublicProductPublish(req, res) {
@@ -694,7 +1397,13 @@ async function handlePublicAuthRegister(req, res) {
     );
   }
 
-  const session = await createPublicSession(userId, getIp(req), String(req.headers["user-agent"] || ""));
+  const deviceBinding = String(body.deviceBinding || "").trim();
+  const session = await createPublicSession(
+    userId,
+    getIp(req),
+    String(req.headers["user-agent"] || ""),
+    deviceBinding
+  );
   return sendJson(res, 200, {
     ok: true,
     token: session.token,
@@ -715,6 +1424,7 @@ async function handlePublicAuthLogin(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   const role = String(body.role || "").trim().toLowerCase();
+  const deviceBinding = String(body.deviceBinding || "").trim();
   const ip = getIp(req);
   if (!isValidEmail(email) || !password) {
     return sendJson(res, 400, { ok: false, code: "INVALID_LOGIN_INPUT" });
@@ -739,7 +1449,12 @@ async function handlePublicAuthLogin(req, res) {
   }
 
   clearLoginLimit(ip, email);
-  const session = await createPublicSession(Number(user.id), ip, String(req.headers["user-agent"] || ""));
+  const session = await createPublicSession(
+    Number(user.id),
+    ip,
+    String(req.headers["user-agent"] || ""),
+    deviceBinding
+  );
   return sendJson(res, 200, {
     ok: true,
     token: session.token,
@@ -760,11 +1475,12 @@ async function handlePublicAuthSession(req, res) {
   if (!token) {
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
-  const session = await requirePublicSession(token);
+  const session = await requirePublicSession(token, req);
   if (!session) {
     return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
   }
-  return sendJson(res, 200, {
+  const rotated = await maybeRotatePublicSessionToken(session);
+  const payload = {
     ok: true,
     user: {
       id: Number(session.user_id),
@@ -774,7 +1490,12 @@ async function handlePublicAuthSession(req, res) {
       countryCode: String(session.country_code),
       isVerified: Boolean(session.is_verified)
     }
-  });
+  };
+  if (rotated && rotated.token) {
+    payload.token = rotated.token;
+    payload.expiresAt = rotated.expiresAt;
+  }
+  return sendJson(res, 200, payload);
 }
 
 async function handlePublicAuthLogout(req, res) {
@@ -782,11 +1503,16 @@ async function handlePublicAuthLogout(req, res) {
   if (!token) {
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
   await pool.execute(
     `UPDATE user_auth_sessions
      SET revoked_at = NOW()
-     WHERE session_token_hash = ?`,
-    [sha256(token)]
+     WHERE id = ?
+     LIMIT 1`,
+    [Number(session.id)]
   );
   return sendJson(res, 200, { ok: true });
 }
@@ -1220,7 +1946,7 @@ async function handlePublicUserPreferencesGet(req, res) {
   if (!token) {
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
-  const session = await requirePublicSession(token);
+  const session = await requirePublicSession(token, req);
   if (!session) {
     return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
   }
@@ -1267,7 +1993,7 @@ async function handlePublicUserPreferencesUpsert(req, res) {
   if (!token) {
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
-  const session = await requirePublicSession(token);
+  const session = await requirePublicSession(token, req);
   if (!session) {
     return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
   }
@@ -2061,6 +2787,8 @@ async function handlePublicShopRedirect(req, res) {
   const refFromQuery = String(urlObj.searchParams.get("ref") || "").trim();
   const referredUserIdRaw = String(urlObj.searchParams.get("referredUserId") || "").trim();
   const referredUserId = referredUserIdRaw ? Number(referredUserIdRaw) : null;
+  const productIdRaw = Number(urlObj.searchParams.get("productId") || 0);
+  const productId = Number.isFinite(productIdRaw) && productIdRaw > 0 ? productIdRaw : 0;
   const fallback = "/live-market-shops.html";
   let safeTarget = fallback;
   let referenceCode = refFromQuery || `shop-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -2086,6 +2814,13 @@ async function handlePublicShopRedirect(req, res) {
     });
   } catch {
     /* ignore tracking failures and continue redirect */
+  }
+  if (productId > 0) {
+    try {
+      await incrementSellerProductMetric(productId, "click_count", 1);
+    } catch {
+      /* ignore metric failures */
+    }
   }
   try {
     const targetUrl = new URL(safeTarget);
@@ -3135,6 +3870,114 @@ async function handlePublicPlatformRiskScoreboard(req, res) {
   });
 }
 
+async function handlePublicMobileFirst5State(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const locale = String(urlObj.searchParams.get("locale") || req.headers["accept-language"] || "en").toLowerCase();
+  const timezone = String(urlObj.searchParams.get("timezone") || "").toLowerCase();
+  const countryCodeRaw = String(urlObj.searchParams.get("countryCode") || "").trim().toUpperCase();
+  const now = new Date();
+  const hour = now.getUTCHours();
+
+  let countryCode = countryCodeRaw;
+  if (countryCode.length !== 2) {
+    try {
+      const guessed = getMacroRegionFromCountry(countryCodeRaw);
+      if (guessed && guessed.length === 2) {
+        countryCode = guessed.toUpperCase();
+      }
+    } catch {
+      countryCode = "";
+    }
+  }
+  const regionSignal = `${locale} ${timezone} ${countryCode}`.toLowerCase();
+
+  let intentDefault = "buy";
+  if (hour >= 12 && hour <= 17) {
+    intentDefault = "sell";
+  } else if (hour >= 18 || hour <= 5) {
+    intentDefault = /africa|za|ke|ng|zw|tz|ug|sn|nd|xh|zu/.test(regionSignal) ? "fast" : "buy";
+  }
+
+  const nowMs = Date.now();
+  const campaignWindowMs = FIRST5_FLASH_WINDOW_MINUTES * 60 * 1000;
+  const campaignSlot = Math.floor(nowMs / campaignWindowMs);
+  const endsAtMs = (campaignSlot + 1) * campaignWindowMs;
+  const remainingMs = Math.max(0, endsAtMs - nowMs);
+
+  let activeShoppers = 0;
+  let closingDeals = 0;
+  let verifiedSellers = 0;
+  try {
+    const [activeVisitorsR] = await pool.execute(
+      `SELECT COUNT(DISTINCT visitor_day_hash) AS n
+       FROM site_analytics_visits
+       WHERE created_at >= (NOW() - INTERVAL 20 MINUTE)`
+    );
+    const [closingDealsR] = await pool.execute(
+      `SELECT COUNT(*) AS n
+       FROM products
+       WHERE status = 'active'
+         AND stock > 0
+         AND created_at >= (NOW() - INTERVAL 7 DAY)`
+    );
+    const [verifiedSellerR] = await pool.execute(
+      `SELECT COUNT(DISTINCT shop_id) AS n
+       FROM products
+       WHERE status = 'active'
+         AND stock > 0`
+    );
+    activeShoppers = Math.max(0, Number((activeVisitorsR[0] && activeVisitorsR[0].n) || 0));
+    closingDeals = Math.max(0, Number((closingDealsR[0] && closingDealsR[0].n) || 0));
+    verifiedSellers = Math.max(0, Number((verifiedSellerR[0] && verifiedSellerR[0].n) || 0));
+  } catch {
+    activeShoppers = 0;
+    closingDeals = 0;
+    verifiedSellers = 0;
+  }
+
+  const insightMap = {
+    buy: "Focus on trust + delivery certainty first, then lock the best offer.",
+    sell: "Lead with one niche product story and conversion improves faster.",
+    fast: "Use speed lane: shortlist quickly, verify checkout, and execute."
+  };
+  const tipsMap = {
+    buy: [
+      "Compare 2-3 listings, then decide by delivery confidence.",
+      "Check seller response speed before final payment."
+    ],
+    sell: [
+      "Clear title + strong first image improves listing performance.",
+      "Answer buyer questions with ETA and policy in one message."
+    ],
+    fast: [
+      "Use Hot Picks for discovery, then verify on Security overview.",
+      "Track order immediately after checkout for confidence."
+    ]
+  };
+
+  return sendJson(res, 200, {
+    ok: true,
+    serverTime: now.toISOString(),
+    first5: {
+      intentDefault,
+      flash: {
+        campaignId: `flash-${campaignSlot}`,
+        endsAt: new Date(endsAtMs).toISOString(),
+        remainingMs
+      },
+      proof: {
+        activeShoppers,
+        closingDeals,
+        verifiedSellers
+      },
+      brandon: {
+        insight: insightMap[intentDefault] || insightMap.buy,
+        tips: tipsMap[intentDefault] || tipsMap.buy
+      }
+    }
+  });
+}
+
 async function handlePublicPlatformRiskPlan(req, res) {
   const body = await readJson(req);
   const allowed = new Set(["liquidity", "trust", "bad_debt", "compliance", "scaling", "cac", "logistics"]);
@@ -3518,7 +4361,7 @@ async function handlePublicOrderCreate(req, res) {
   const body = await readJson(req);
   const productId = Number(body.productId || 0);
   const quantity = Math.max(1, Math.min(20, Number(body.quantity || 1)));
-  const shippingMethod = String(body.shippingMethod || "express").trim().toLowerCase();
+  const shippingMethod = String(body.shippingMethod || "standard").trim().toLowerCase();
   const buyerCountry = String(body.buyerCountry || session.country_code || "").trim().toUpperCase();
   if (!productId || buyerCountry.length !== 2) {
     return sendJson(res, 400, { ok: false, code: "INVALID_ORDER_INPUT" });
@@ -3547,9 +4390,10 @@ async function handlePublicOrderCreate(req, res) {
     const unitPrice = Number(product.base_price || 0);
     const subtotal = Number((unitPrice * quantity).toFixed(2));
     const isCrossBorder = String(product.origin_country || "").toUpperCase() !== buyerCountry;
-    const shippingFee = isCrossBorder ? 12.5 : 6.5;
-    const markupAmount = Number((subtotal * 0.03).toFixed(2));
-    const totalAmount = Number((subtotal + shippingFee + markupAmount).toFixed(2));
+    const shippingQuote = resolveShippingQuote(shippingMethod, isCrossBorder, subtotal);
+    const shippingFee = Number(shippingQuote.shippingFee || 0);
+    const markupAmount = Number(shippingQuote.serviceFee || 0);
+    const totalAmount = Number(shippingQuote.estimatedTotal || 0);
     const [insertOrder] = await conn.execute(
       `INSERT INTO orders (
         buyer_user_id, seller_shop_id, subtotal, markup_amount, shipping_fee, total_amount, currency, buyer_country, status
@@ -3583,7 +4427,74 @@ async function handlePublicOrderCreate(req, res) {
       ) VALUES (?, 'order_created', ?, 'buyer', 1, 1)`,
       [orderId, `Order created for ${String(product.title || "item")} (${quantity}x).`]
     );
+    await ensureSellerSaleNotificationsTable();
+    const [sellerRows] = await conn.execute(
+      `SELECT owner_user_id
+       FROM shops
+       WHERE id = ?
+       LIMIT 1`,
+      [Number(product.shop_id)]
+    );
+    const sellerUserId = Number(sellerRows[0]?.owner_user_id || 0);
+    if (sellerUserId > 0) {
+      await conn.execute(
+        `INSERT INTO seller_sale_notifications (
+          seller_user_id, product_id, order_id, message
+        ) VALUES (?, ?, ?, ?)`,
+        [
+          sellerUserId,
+          productId,
+          orderId,
+          `Sale: ${String(product.title || "item")} (${quantity}x) was ordered.`
+        ]
+      );
+    }
+    await ensureOrderSettlementTable();
+    const sellerPayoutAmount = Number((totalAmount - markupAmount).toFixed(2));
+    await conn.execute(
+      `INSERT INTO order_settlements (
+        order_id, seller_user_id, seller_shop_id, seller_payout_amount, service_fee_amount, currency, payout_status, assistant_summary
+      ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`,
+      [
+        orderId,
+        sellerUserId > 0 ? sellerUserId : 0,
+        Number(product.shop_id),
+        sellerPayoutAmount,
+        markupAmount,
+        String(product.currency || "EUR").toUpperCase(),
+        "AI mediator: escrow started. Waiting for buyer and seller confirmation."
+      ]
+    );
     await conn.commit();
+    try {
+      await incrementSellerProductMetric(productId, "sold_count", quantity);
+    } catch {
+      /* ignore metric failures */
+    }
+    try {
+      const [sellerOwnerRows] = await pool.execute(
+        `SELECT owner_user_id
+         FROM shops
+         WHERE id = ?
+         LIMIT 1`,
+        [Number(product.shop_id)]
+      );
+      const sellerUserId = Number(sellerOwnerRows[0]?.owner_user_id || 0);
+      if (sellerUserId > 0) {
+        await sendPushToUser(sellerUserId, {
+          title: "Item sold on VibeCart",
+          body: `${String(product.title || "One item")} (${quantity}x) has a new order.`,
+          data: {
+            type: "seller_sale",
+            orderId,
+            productId,
+            shopId: Number(product.shop_id)
+          }
+        });
+      }
+    } catch {
+      /* ignore push failures */
+    }
     return sendJson(res, 200, {
       ok: true,
       order: {
@@ -3595,6 +4506,8 @@ async function handlePublicOrderCreate(req, res) {
         markupAmount,
         shippingFee,
         totalAmount,
+        payoutToSeller: sellerPayoutAmount,
+        serviceFee: markupAmount,
         currency: String(product.currency || "EUR").toUpperCase(),
         fromCountry: String(product.origin_country || "").toUpperCase(),
         toCountry: buyerCountry,
@@ -3602,7 +4515,8 @@ async function handlePublicOrderCreate(req, res) {
       },
       next: {
         paymentIntentEndpoint: "/api/public/payments/intent/create",
-        trackingEndpoint: `/api/public/orders/track?orderId=${orderId}`
+        trackingEndpoint: `/api/public/orders/track?orderId=${orderId}`,
+        confirmEndpoint: "/api/public/orders/confirm"
       }
     });
   } catch (error) {
@@ -3622,7 +4536,7 @@ async function handlePublicOrderTrack(req, res) {
   if (!token) {
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
-  const session = await requirePublicSession(token);
+  const session = await requirePublicSession(token, req);
   if (!session) {
     return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
   }
@@ -3671,6 +4585,25 @@ async function handlePublicOrderTrack(req, res) {
      LIMIT 20`,
     [orderId]
   );
+  await ensureOrderSettlementTable();
+  const [settlementRows] = await pool.execute(
+    `SELECT buyer_confirmed_at, seller_confirmed_at, released_at, seller_payout_amount, service_fee_amount, currency, payout_status, payout_reference, assistant_summary
+     FROM order_settlements
+     WHERE order_id = ?
+     LIMIT 1`,
+    [orderId]
+  );
+  const settlement = settlementRows[0] || null;
+  const assistantSummary = buildOrderAssistantSummary(order, settlement);
+  if (settlement && String(settlement.assistant_summary || "") !== assistantSummary) {
+    await pool.execute(
+      `UPDATE order_settlements
+       SET assistant_summary = ?
+       WHERE order_id = ?
+       LIMIT 1`,
+      [assistantSummary, orderId]
+    );
+  }
   return sendJson(res, 200, {
     ok: true,
     order: {
@@ -3701,8 +4634,274 @@ async function handlePublicOrderTrack(req, res) {
       statusMessage: String(row.status_message),
       actorRole: String(row.actor_role),
       createdAt: row.created_at
+    })),
+    settlement: settlement
+      ? {
+          buyerConfirmedAt: settlement.buyer_confirmed_at,
+          sellerConfirmedAt: settlement.seller_confirmed_at,
+          releasedAt: settlement.released_at,
+          sellerPayoutAmount: Number(settlement.seller_payout_amount || 0),
+          serviceFeeAmount: Number(settlement.service_fee_amount || 0),
+          currency: String(settlement.currency || "EUR"),
+          payoutStatus: String(settlement.payout_status || "pending"),
+          payoutReference: String(settlement.payout_reference || "")
+        }
+      : null,
+    assistant: {
+      summary: assistantSummary
+    }
+  });
+}
+
+async function handlePublicOrderQuote(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const productId = Number(urlObj.searchParams.get("productId") || 0);
+  const buyerCountry = String(urlObj.searchParams.get("buyerCountry") || "").trim().toUpperCase();
+  const shippingMethod = String(urlObj.searchParams.get("shippingMethod") || "standard").trim().toLowerCase();
+  const quantity = Math.max(1, Math.min(20, Number(urlObj.searchParams.get("quantity") || 1)));
+  if (!productId || buyerCountry.length !== 2) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_QUOTE_INPUT" });
+  }
+  const [rows] = await pool.execute(
+    `SELECT id, title, base_price, currency, origin_country
+     FROM products
+     WHERE id = ? AND status = 'active'
+     LIMIT 1`,
+    [productId]
+  );
+  const product = rows[0];
+  if (!product) {
+    return sendJson(res, 404, { ok: false, code: "PRODUCT_NOT_AVAILABLE" });
+  }
+  const subtotal = Number((Number(product.base_price || 0) * quantity).toFixed(2));
+  const isCrossBorder = String(product.origin_country || "").toUpperCase() !== buyerCountry;
+  const quote = resolveShippingQuote(shippingMethod, isCrossBorder, subtotal);
+  return sendJson(res, 200, {
+    ok: true,
+    quote: {
+      productId,
+      title: String(product.title || ""),
+      quantity,
+      shippingMethod: quote.method,
+      subtotal,
+      shippingFee: quote.shippingFee,
+      serviceFee: quote.serviceFee,
+      totalAmount: quote.estimatedTotal,
+      currency: String(product.currency || "EUR").toUpperCase(),
+      fromCountry: String(product.origin_country || "").toUpperCase(),
+      toCountry: buyerCountry,
+      options: isCrossBorder
+        ? [
+            { code: "economy", fee: 9.5 },
+            { code: "standard", fee: 14.5 },
+            { code: "express", fee: 19.5 },
+            { code: "pickup", fee: 0 }
+          ]
+        : [
+            { code: "economy", fee: 4.5 },
+            { code: "standard", fee: 6.5 },
+            { code: "express", fee: 9.5 },
+            { code: "pickup", fee: 0 }
+          ]
+    }
+  });
+}
+
+async function handlePublicOrderConfirm(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  const body = await readJson(req);
+  const orderId = Number(body.orderId || 0);
+  if (!orderId) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_ORDER_ID" });
+  }
+  const [orderRows] = await pool.execute(
+    `SELECT id, buyer_user_id, seller_shop_id
+     FROM orders
+     WHERE id = ?
+     LIMIT 1`,
+    [orderId]
+  );
+  const order = orderRows[0];
+  if (!order) {
+    return sendJson(res, 404, { ok: false, code: "ORDER_NOT_FOUND" });
+  }
+  const [sellerRows] = await pool.execute(
+    `SELECT owner_user_id
+     FROM shops
+     WHERE id = ?
+     LIMIT 1`,
+    [Number(order.seller_shop_id)]
+  );
+  const sellerUserId = Number(sellerRows[0]?.owner_user_id || 0);
+  const isBuyer = Number(order.buyer_user_id) === Number(session.user_id);
+  const isSeller = sellerUserId > 0 && sellerUserId === Number(session.user_id);
+  if (!isBuyer && !isSeller) {
+    return sendJson(res, 403, { ok: false, code: "ORDER_FORBIDDEN" });
+  }
+  await ensureOrderSettlementTable();
+  if (isBuyer) {
+    await pool.execute(
+      `UPDATE order_settlements
+       SET buyer_confirmed_at = COALESCE(buyer_confirmed_at, CURRENT_TIMESTAMP)
+       WHERE order_id = ?
+       LIMIT 1`,
+      [orderId]
+    );
+  }
+  if (isSeller) {
+    await pool.execute(
+      `UPDATE order_settlements
+       SET seller_confirmed_at = COALESCE(seller_confirmed_at, CURRENT_TIMESTAMP)
+       WHERE order_id = ?
+       LIMIT 1`,
+      [orderId]
+    );
+  }
+  await pool.execute(
+    `INSERT INTO order_status_updates (
+      order_id, status_code, status_message, actor_role, notify_buyer, notify_seller
+    ) VALUES (?, 'delivery_confirmation', ?, ?, 1, 1)`,
+    [orderId, isBuyer ? "Buyer confirmed delivery details." : "Seller confirmed fulfillment details.", isBuyer ? "buyer" : "seller"]
+  );
+  const release = await tryReleaseOrderSettlement(orderId);
+  return sendJson(res, 200, {
+    ok: true,
+    orderId,
+    side: isBuyer ? "buyer" : "seller",
+    released: Boolean(release && release.released),
+    payoutStatus: release?.payoutStatus || "pending"
+  });
+}
+
+async function handlePublicOrdersMine(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  const [sellerShopRows] = await pool.execute(
+    `SELECT id
+     FROM shops
+     WHERE owner_user_id = ?
+     ORDER BY id ASC
+     LIMIT 1`,
+    [Number(session.user_id)]
+  );
+  const sellerShopId = Number(sellerShopRows[0]?.id || 0);
+  const [rows] = await pool.execute(
+    `SELECT o.id, o.status, o.total_amount, o.currency, o.created_at, o.buyer_user_id, o.seller_shop_id,
+            oi.product_id, oi.quantity, p.title,
+            os.buyer_confirmed_at, os.seller_confirmed_at, os.released_at, os.payout_status, os.seller_payout_amount, os.service_fee_amount, os.assistant_summary
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     LEFT JOIN products p ON p.id = oi.product_id
+     LEFT JOIN order_settlements os ON os.order_id = o.id
+     WHERE o.buyer_user_id = ? OR (? > 0 AND o.seller_shop_id = ?)
+     ORDER BY o.id DESC
+     LIMIT 150`,
+    [Number(session.user_id), sellerShopId, sellerShopId]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    orders: rows.map((row) => ({
+      orderId: Number(row.id),
+      status: String(row.status || ""),
+      totalAmount: Number(row.total_amount || 0),
+      currency: String(row.currency || "EUR"),
+      createdAt: row.created_at,
+      productId: Number(row.product_id || 0),
+      title: String(row.title || ""),
+      quantity: Number(row.quantity || 1),
+      progress: {
+        buyerConfirmedAt: row.buyer_confirmed_at,
+        sellerConfirmedAt: row.seller_confirmed_at,
+        releasedAt: row.released_at,
+        payoutStatus: String(row.payout_status || "pending"),
+        sellerPayoutAmount: row.seller_payout_amount == null ? null : Number(row.seller_payout_amount),
+        serviceFeeAmount: row.service_fee_amount == null ? null : Number(row.service_fee_amount),
+        assistantSummary: String(row.assistant_summary || "")
+      }
     }))
   });
+}
+
+async function handlePublicOrderDisputeCreate(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  const body = await readJson(req);
+  const orderId = Number(body.orderId || 0);
+  const reason = String(body.reason || "").trim().slice(0, 600);
+  if (!orderId || reason.length < 8) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_DISPUTE_INPUT" });
+  }
+  const [orderRows] = await pool.execute(
+    `SELECT o.id, o.buyer_user_id, o.seller_shop_id, s.owner_user_id AS seller_user_id
+     FROM orders o
+     LEFT JOIN shops s ON s.id = o.seller_shop_id
+     WHERE o.id = ?
+     LIMIT 1`,
+    [orderId]
+  );
+  const order = orderRows[0];
+  if (!order) {
+    return sendJson(res, 404, { ok: false, code: "ORDER_NOT_FOUND" });
+  }
+  const isBuyer = Number(order.buyer_user_id) === Number(session.user_id);
+  const isSeller = Number(order.seller_user_id || 0) === Number(session.user_id);
+  if (!isBuyer && !isSeller) {
+    return sendJson(res, 403, { ok: false, code: "ORDER_FORBIDDEN" });
+  }
+  const actorRole = isBuyer ? "buyer" : "seller";
+  await pool.execute(
+    `INSERT INTO order_status_updates (
+      order_id, status_code, status_message, actor_role, notify_buyer, notify_seller
+    ) VALUES (?, 'dispute_opened', ?, ?, 1, 1)`,
+    [orderId, `Dispute opened by ${actorRole}: ${reason}`, actorRole]
+  );
+  await pool.execute(`UPDATE orders SET status = 'disputed' WHERE id = ? LIMIT 1`, [orderId]);
+  await ensureOrderSettlementTable();
+  await pool.execute(
+    `UPDATE order_settlements
+     SET assistant_summary = ?
+     WHERE order_id = ?
+     LIMIT 1`,
+    ["AI mediator: dispute opened. Auto-release paused until resolution update is posted.", orderId]
+  );
+  return sendJson(res, 200, { ok: true, orderId, status: "disputed" });
+}
+
+async function handlePublicSellerPayoutAccountUpsert(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  const body = await readJson(req);
+  const stripeAccountId = String(body.stripeAccountId || "").trim();
+  if (!/^acct_[a-zA-Z0-9]+$/.test(stripeAccountId)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_STRIPE_ACCOUNT_ID" });
+  }
+  await ensureSellerPayoutAccountsTable();
+  await pool.execute(
+    `INSERT INTO seller_payout_accounts (seller_user_id, stripe_account_id)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE stripe_account_id = VALUES(stripe_account_id)`,
+    [Number(session.user_id), stripeAccountId]
+  );
+  return sendJson(res, 200, { ok: true, stripeAccountId });
 }
 
 async function handlePublicProductsLive(req, res) {
@@ -3774,6 +4973,22 @@ async function handlePublicProductsLive(req, res) {
      ORDER BY p.id DESC
      LIMIT ${limit}`;
   const [rows] = params.length > 0 ? await pool.execute(sql, params) : await pool.query(sql);
+  if (Array.isArray(rows) && rows.length) {
+    const ids = rows.map((row) => Number(row.id || 0)).filter((id) => id > 0);
+    if (ids.length) {
+      try {
+        await ensureSellerProductMetricsTable();
+        const values = ids.map((id) => `(${id},1)`).join(",");
+        await pool.query(
+          `INSERT INTO seller_product_metrics (product_id, view_count)
+           VALUES ${values}
+           ON DUPLICATE KEY UPDATE view_count = view_count + VALUES(view_count)`
+        );
+      } catch {
+        /* ignore metric failures */
+      }
+    }
+  }
   return sendJson(res, 200, {
     ok: true,
     count: rows.length,
@@ -4134,7 +5349,10 @@ async function handlePublicCheckoutRedirect(req, res) {
   const customerAddress = String(urlObj.searchParams.get("customerAddress") || "").trim();
   const customerCity = String(urlObj.searchParams.get("customerCity") || "").trim();
   const customerPostalCode = String(urlObj.searchParams.get("customerPostalCode") || "").trim();
-  const customerCountry = String(urlObj.searchParams.get("customerCountry") || "").trim().toUpperCase();
+  let customerCountry = String(urlObj.searchParams.get("customerCountry") || "").trim().toUpperCase();
+  if (!customerCountry || customerCountry.length !== 2) {
+    customerCountry = String(session.country_code || "").trim().toUpperCase() || "PL";
+  }
   const amountMeta = resolveCheckoutAmount(flow, plan, addonPlan);
   const money = resolveStripeCheckoutMoney(amountMeta, method);
   const paymentTypes = resolveStripePaymentTypes(method);
@@ -4352,6 +5570,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/mobile/feedback") {
       return await handlePublicMobileFeedback(req, res);
     }
+    if (req.method === "GET" && pathname === "/api/public/mobile/first5/state") {
+      return await handlePublicMobileFirst5State(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/brand/email-logo") {
       return await handlePublicBrandEmailLogo(req, res, ip);
     }
@@ -4413,8 +5634,44 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/products/publish") {
       return await handlePublicProductPublish(req, res);
     }
+    if (req.method === "GET" && pathname === "/api/public/seller/listings") {
+      return await handlePublicSellerListings(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/seller/listings/update") {
+      return await handlePublicSellerListingUpdate(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/seller/notifications") {
+      return await handlePublicSellerSaleNotifications(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/services/upsert") {
+      return await handlePublicBakeryServiceUpsert(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/bakery/services/mine") {
+      return await handlePublicBakeryServicesMine(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/bakery/services/discover")) {
+      return await handlePublicBakeryServicesDiscover(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/services/toggle") {
+      return await handlePublicBakeryServiceToggle(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/bookings/create") {
+      return await handlePublicBakeryBookingCreate(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/bakery/bookings/mine") {
+      return await handlePublicBakeryBookingsMine(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/bookings/status/update") {
+      return await handlePublicBakeryBookingStatusUpdate(req, res);
+    }
     if (req.method === "GET" && req.url.startsWith("/api/public/orders/track")) {
       return await handlePublicOrderTrack(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/orders/quote")) {
+      return await handlePublicOrderQuote(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/orders/mine") {
+      return await handlePublicOrdersMine(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/platform-risk/plan") {
       return await handlePublicPlatformRiskPlan(req, res);
@@ -4448,6 +5705,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/orders/create") {
       return await handlePublicOrderCreate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/orders/confirm") {
+      return await handlePublicOrderConfirm(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/orders/dispute/create") {
+      return await handlePublicOrderDisputeCreate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/seller/payout-account/upsert") {
+      return await handlePublicSellerPayoutAccountUpsert(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/payments/intent/create") {
       return await handlePublicCreatePaymentIntent(req, res);
@@ -4709,7 +5975,14 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+async function startOwnerAuthApiServer() {
+  try {
+    await ensurePublicSessionDeviceColumns();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[vibecart] ensurePublicSessionDeviceColumns:", String((err && err.message) || err));
+  }
+  server.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Owner auth API running on http://localhost:${PORT}`);
   if (PROMO_SCOUT_ENABLED) {
@@ -4736,4 +6009,7 @@ server.listen(PORT, () => {
     // eslint-disable-next-line no-console
     console.log(`AI autopilot enabled. Interval: every ${AI_AUTOPILOT_INTERVAL_MINUTES} minutes.`);
   }
-});
+  });
+}
+
+startOwnerAuthApiServer();

@@ -6,6 +6,108 @@
   var LUXE_VISIT_KEY = "vibecart-luxe-visited-v1";
   var LUXE_SCENE_KEY = "vibecart-luxe-scene-v1";
   var LUXE_MOTION_KEY = "vibecart-luxe-motion-v1";
+  var MOBILE_LOCK_KEY = "vibecart-mobile-lock-active-v1";
+
+  function detectPhoneLikeContext() {
+    try {
+      var ua = String((navigator && navigator.userAgent) || "").toLowerCase();
+      var touch = typeof window !== "undefined" && "ontouchstart" in window;
+      var width = Number((window && window.innerWidth) || 0);
+      return /iphone|android|mobile|ipad|ipod/.test(ua) || (touch && width > 0 && width <= 1024);
+    } catch {
+      return false;
+    }
+  }
+
+  function initMobileSecurityHardening() {
+    try {
+      if (window.top && window.top !== window.self) {
+        window.top.location = window.location.href;
+      }
+    } catch {
+      /* cross-origin frame access blocked: keep running safely */
+    }
+    try {
+      var proto = String(window.location.protocol || "").toLowerCase();
+      var host = String(window.location.hostname || "").toLowerCase();
+      var isLocal = host === "localhost" || host === "127.0.0.1";
+      if (proto === "http:" && !isLocal) {
+        window.location.replace("https://" + window.location.host + window.location.pathname + window.location.search + window.location.hash);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    if (!detectPhoneLikeContext()) {
+      return;
+    }
+    var lockTimeoutMs = 5 * 60 * 1000;
+    var timer = 0;
+    var overlay = null;
+    function ensureOverlay() {
+      if (overlay) return overlay;
+      overlay = document.createElement("div");
+      overlay.style.cssText =
+        "position:fixed;inset:0;z-index:99999;background:rgba(8,10,20,.92);display:none;align-items:center;justify-content:center;padding:1rem;";
+      overlay.innerHTML =
+        '<div style="max-width:420px;width:100%;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:1rem;background:#121420;color:#fff;text-align:center;">' +
+        "<h3 style='margin-top:0'>Session locked</h3>" +
+        "<p style='opacity:.9'>Security lock activated for your phone session. Tap unlock to continue.</p>" +
+        '<button id="vcMobileUnlockBtn" class="btn btn-primary" type="button">Unlock session</button>' +
+        "</div>";
+      document.body.appendChild(overlay);
+      var unlockBtn = overlay.querySelector("#vcMobileUnlockBtn");
+      if (unlockBtn) {
+        unlockBtn.addEventListener("click", function () {
+          overlay.style.display = "none";
+          try {
+            sessionStorage.removeItem(MOBILE_LOCK_KEY);
+          } catch {
+            /* ignore */
+          }
+          restartTimer();
+        });
+      }
+      return overlay;
+    }
+    function lockNow() {
+      ensureOverlay().style.display = "flex";
+      try {
+        sessionStorage.setItem(MOBILE_LOCK_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      try {
+        sessionStorage.removeItem("vibecart-quick-buy-token");
+      } catch {
+        /* ignore */
+      }
+    }
+    function restartTimer() {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(lockNow, lockTimeoutMs);
+    }
+    ["pointerdown", "keydown", "touchstart", "scroll"].forEach(function (evt) {
+      document.addEventListener(evt, restartTimer, { passive: true });
+    });
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) {
+        lockNow();
+      } else {
+        try {
+          if (sessionStorage.getItem(MOBILE_LOCK_KEY) === "1") {
+            ensureOverlay().style.display = "flex";
+          }
+        } catch {
+          /* ignore */
+        }
+        restartTimer();
+      }
+    });
+    restartTimer();
+  }
+
+  initMobileSecurityHardening();
   if (document.getElementById("vcSiteChromeBar")) {
     return;
   }

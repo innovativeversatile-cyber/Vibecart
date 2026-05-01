@@ -18,6 +18,13 @@
     <p class="note shops-lane-intro" id="coachExpIntro">
       Preview what you get before payment: routine style, update cadence, and support depth.
     </p>
+    <p class="note" style="max-width: 42rem">
+      <label style="display: inline-flex; gap: 0.45rem; align-items: flex-start; cursor: pointer">
+        <input id="coachFlowDisclaimerAck" type="checkbox" style="margin-top: 0.2rem" />
+        <span>I confirm my coach data and goals are truthful and I accept the policy terms before checkout.</span>
+      </label>
+    </p>
+    <p class="note" id="coachDisclaimerGateHint" aria-live="polite" style="max-width: 42rem; min-height: 1.25em"></p>
     <div class="grid cards" id="coachExperienceGallery">
       <article class="card">
         <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&h=600&q=75" alt="Workout preview" loading="lazy" />
@@ -102,8 +109,20 @@
         list.appendChild(li);
       });
       var checkoutHref = "./checkout-details.html?flow=coach&plan=" + encodeURIComponent(plan);
-      document.getElementById("coachProceedTop").setAttribute("href", checkoutHref);
-      document.getElementById("coachProceedBottom").setAttribute("href", checkoutHref);
+      var topBtn = document.getElementById("coachProceedTop");
+      var botBtn = document.getElementById("coachProceedBottom");
+      topBtn.setAttribute("href", checkoutHref);
+      botBtn.setAttribute("href", checkoutHref);
+      function gateCheckout(ev) {
+        var ack = document.getElementById("coachFlowDisclaimerAck");
+        var hint = document.getElementById("coachDisclaimerGateHint");
+        if (ack && !ack.checked) {
+          ev.preventDefault();
+          if (hint) hint.textContent = "Tick the coach disclaimer above to continue to checkout.";
+        }
+      }
+      topBtn.addEventListener("click", gateCheckout);
+      botBtn.addEventListener("click", gateCheckout);
     })();
   </script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>

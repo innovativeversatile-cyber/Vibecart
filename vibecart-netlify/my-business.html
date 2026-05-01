@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Business · My Hustle · VibeCart</title>
+  <meta name="description" content="Run your hustle dashboard with listings, bakery portfolio, and client bookings in one place." />
+  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <style>
+    .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
+    .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
+    .vc-biz-grid { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); margin-top: .85rem; }
+    .vc-biz-card { border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: .85rem; background: rgba(8,10,20,.68); }
+    .vc-biz-form { display: grid; gap: .55rem; margin-top: .65rem; }
+    .vc-biz-row { display: grid; gap: .55rem; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); }
+    .vc-pill { display: inline-flex; border-radius: 999px; padding: .25rem .6rem; background: rgba(255,255,255,.09); font-size: .8rem; }
+    .vc-work-list, .vc-booking-list { display: grid; gap: .65rem; margin-top: .7rem; }
+    .vc-work-item, .vc-booking-item { border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: .75rem; }
+    .vc-work-item img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; margin-top: .45rem; }
+  </style>
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
+    <a class="btn btn-secondary" href="./seller-orders.html">Seller orders</a>
+    <a class="btn btn-primary" href="./service-provider-hub.html">Provider template</a>
+  </header>
+
+  <main class="section alt shops-lane-main vc-biz-shell">
+    <section class="vc-biz-hero">
+      <h1 class="shops-lane-title">My Business / My Hustle Dashboard</h1>
+      <p class="note">Run products, service offers, and Bakery bookings from one attractive control center.</p>
+      <p class="hero-actions">
+        <button class="btn btn-primary" id="bizRefreshBtn" type="button">Refresh dashboard</button>
+        <span class="note" id="bizStatus" aria-live="polite"></span>
+      </p>
+      <div class="vc-biz-grid" id="bizKpis"></div>
+    </section>
+
+    <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Bakery setup (for bakers)</h2>
+      <p class="note">Add your best work images, prices, and clear requirements so clients can book with confidence.</p>
+      <div class="vc-biz-form">
+        <div class="vc-biz-row">
+          <input id="bakeryBusinessName" type="text" placeholder="Bakery name (e.g. Sweet Crumbs)" />
+          <input id="bakeryWorkTitle" type="text" placeholder="Work type (e.g. Wedding cake 3-tier)" />
+          <input id="bakeryStyleTheme" type="text" placeholder="Style/theme (minimal, floral, luxury...)" />
+        </div>
+        <div class="vc-biz-row">
+          <input id="bakeryBasePrice" type="number" min="0" step="0.01" placeholder="Base price" />
+          <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
+          <input id="bakeryImageUrl" type="url" placeholder="Work image URL" />
+        </div>
+        <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
+        <p class="hero-actions">
+          <button class="btn btn-primary" id="bakerySaveBtn" type="button">Save bakery work card</button>
+        </p>
+      </div>
+      <div id="bakeryWorkList" class="vc-work-list"></div>
+      <hr style="opacity:.2;margin:1rem 0;" />
+      <h3 style="margin:.2rem 0;">Automatic payout setup</h3>
+      <p class="note">Connect Stripe account ID (`acct_...`) so funds auto-release to seller once both buyer and seller confirm.</p>
+      <div class="vc-biz-row">
+        <input id="sellerStripeAccountId" type="text" placeholder="acct_1234..." />
+        <button class="btn btn-secondary" id="savePayoutAccountBtn" type="button">Save payout account</button>
+      </div>
+    </section>
+
+    <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Client booking requests (for bakers)</h2>
+      <p class="note">Review requests, dates, style/theme preferences, and update status quickly.</p>
+      <div id="bakeryBookingList" class="vc-booking-list"></div>
+    </section>
+
+    <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Calendar view (quick schedule)</h2>
+      <div id="bakeryCalendarView" class="vc-booking-list"></div>
+    </section>
+
+    <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Book a bakery service (for customers)</h2>
+      <p class="note">Tell the baker what you want, pick your date, and provide style + theme details.</p>
+      <div class="vc-biz-form">
+        <div class="vc-biz-row">
+          <input id="discoverQuery" type="search" placeholder="Search baker, style, business..." />
+          <button class="btn btn-secondary" id="discoverBtn" type="button">Find bakery styles</button>
+        </div>
+        <select id="bookingService"></select>
+        <div class="vc-biz-row">
+          <input id="bookingCustomerName" type="text" placeholder="Your name" />
+          <input id="bookingPhone" type="text" placeholder="Phone / WhatsApp" />
+          <input id="bookingDate" type="date" />
+        </div>
+        <div class="vc-biz-row">
+          <input id="bookingOccasion" type="text" placeholder="Occasion (birthday, wedding...)" />
+          <input id="bookingStyleTheme" type="text" placeholder="Preferred style/theme" />
+          <input id="bookingBudget" type="number" min="0" step="0.01" placeholder="Budget (optional)" />
+        </div>
+        <textarea id="bookingDetails" rows="3" placeholder="What exactly do you want? Include flavors, servings, colors, decor, and any custom questions."></textarea>
+        <p class="hero-actions">
+          <button class="btn btn-primary" id="bookingSubmitBtn" type="button">Send booking request</button>
+        </p>
+      </div>
+    </section>
+
+    <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Secure order mediator center</h2>
+      <p class="note">AI mediator keeps buyer/seller informed. Confirm your side to release escrow automatically when both sides are done.</p>
+      <div id="orderMediatorList" class="vc-booking-list"></div>
+    </section>
+  </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./my-business.js?v=20260501sessbind1" defer></script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>
