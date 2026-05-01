@@ -136,7 +136,10 @@
           }
         }
         if (summary && String(params.get("plan_locked") || "") === "1") {
-          summary.textContent = "My active plan unlocks only after a successful package payment.";
+          summary.innerHTML =
+            "If you already paid but did not reach your plan page, open " +
+            "<a href=\"./coach-payment-recovery.html\">Restore coach access</a> — no second charge. " +
+            "Otherwise complete checkout from the Health coach lane.";
         }
         if (summary && String(params.get("seller_required") || "") === "1") {
           summary.innerHTML =

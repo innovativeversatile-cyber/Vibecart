@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restore coach access · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260501pwa2" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./account-hub.html">← Account hub</a>
+    <a class="btn btn-primary" href="./wellbeing.html">Coach packages</a>
+  </header>
+  <main class="section alt shops-lane-main" style="max-width: 40rem">
+    <h1 class="shops-lane-title">Restore coach access (no second charge)</h1>
+    <p class="note">
+      If payment succeeded but you saw an error screen instead of your plan workspace, your purchase is still valid. Paste the
+      <strong>Checkout session ID</strong> from your Stripe or bank receipt (it starts with <code>cs_</code>). We verify it with
+      Stripe and open your coach workspace — you are not charged again.
+    </p>
+    <div class="admin-grid" style="margin-top: 1rem">
+      <label for="recoverSessionId">Checkout session ID</label>
+      <input id="recoverSessionId" type="text" autocomplete="off" placeholder="cs_live_… or cs_test_…" />
+    </div>
+    <p class="hero-actions" style="margin-top: 1rem">
+      <button class="btn btn-primary" id="recoverBtn" type="button">Verify and open my plan</button>
+    </p>
+    <p class="note" id="recoverStatus" aria-live="polite"></p>
+    <p class="note" style="margin-top: 1rem">
+      You must be <strong>signed in</strong> with the same VibeCart account (and email) you used at checkout. If you cannot find
+      the session ID, check the email receipt from Stripe or your card statement’s reference line.
+    </p>
+  </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script>
+    (function () {
+      var input = document.getElementById("recoverSessionId");
+      var btn = document.getElementById("recoverBtn");
+      var status = document.getElementById("recoverStatus");
+      function token() {
+        try {
+          return String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        } catch {
+          return "";
+        }
+      }
+      function authHeaders(tok) {
+        var h = { Authorization: "Bearer " + tok };
+        if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+          h = window.VibeCartSessionDevice.authHeaders(tok);
+        }
+        return h;
+      }
+      if (!btn || !input) return;
+      btn.addEventListener("click", function () {
+        var sid = String(input.value || "").trim();
+        if (!/^cs_[a-zA-Z0-9]+$/.test(sid)) {
+          if (status) status.textContent = "Enter a valid session ID starting with cs_.";
+          return;
+        }
+        var tok = token();
+        if (!tok) {
+          if (status) status.textContent = "Sign in from Account hub first, then return here.";
+          return;
+        }
+        if (status) status.textContent = "Verifying with Stripe…";
+        btn.disabled = true;
+        fetch("/api/public/payments/checkout/recover?session_id=" + encodeURIComponent(sid), {
+          headers: authHeaders(tok)
+        })
+          .then(function (r) {
+            return r.json().then(function (j) {
+              return { ok: r.ok, body: j };
+            });
+          })
+          .then(function (x) {
+            if (x.body && x.body.ok && x.body.redirectUrl) {
+              if (status) status.textContent = "Success. Opening your plan workspace…";
+              window.location.assign(x.body.redirectUrl);
+              return;
+            }
+            var msg =
+              (x.body && (x.body.message || x.body.code)) ||
+              (x.ok ? "Unexpected response." : "Could not verify this session.");
+            if (status) status.textContent = String(msg);
+          })
+          .catch(function () {
+            if (status) status.textContent = "Network error. Try again in a moment.";
+          })
+          .finally(function () {
+            btn.disabled = false;
+          });
+      });
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+</body>
+</html>

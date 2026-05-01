@@ -76,6 +76,7 @@ const {
   startCoachSubscription,
   purchaseCoachAddon,
   recordCoachPartnerEvent,
+  fulfillStripeCoachCheckoutSession,
   listChatSafetyEvents,
   getCoachMetricsSummary,
   queueDailyHealthReminders
@@ -5362,6 +5363,99 @@ async function handlePublicCheckoutStart(req, res) {
   });
 }
 
+/**
+ * Lets a signed-in buyer reopen their coach workspace after a bad post-pay redirect (e.g. wrong host),
+ * without charging again. Retrieves the Stripe Checkout session, confirms it is paid and belongs to
+ * this account, then runs the same idempotent fulfillment as the webhook.
+ */
+async function handlePublicCheckoutRecover(req, res) {
+  const acct = await requirePublicAccountSession(req, res);
+  if (!acct) {
+    return;
+  }
+  if (!stripe) {
+    return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
+  }
+  let sessionId = "";
+  try {
+    const urlObj = new URL(req.url, "http://localhost");
+    sessionId = String(urlObj.searchParams.get("session_id") || "").trim();
+  } catch {
+    sessionId = "";
+  }
+  if (!/^cs_[a-zA-Z0-9]+$/.test(sessionId)) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "INVALID_SESSION_ID",
+      message: "Use the Checkout session ID from your Stripe receipt (starts with cs_)."
+    });
+  }
+  let checkoutSession;
+  try {
+    checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "STRIPE_SESSION_NOT_FOUND" });
+  }
+  const paymentStatus = String(checkoutSession.payment_status || "").toLowerCase();
+  if (paymentStatus !== "paid") {
+    return sendJson(res, 400, { ok: false, code: "PAYMENT_NOT_COMPLETE", paymentStatus });
+  }
+  const metadata = checkoutSession.metadata || {};
+  const flow = String(metadata.flow || "").trim().toLowerCase();
+  if (flow !== "coach") {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "NOT_COACH_CHECKOUT",
+      message: "This receipt is not for a health coach package."
+    });
+  }
+  const metaUser = Number(metadata.vibecart_user_id || metadata.userId || 0);
+  const stripeEmail = String(
+    checkoutSession.customer_details?.email || checkoutSession.customer_email || ""
+  )
+    .trim()
+    .toLowerCase();
+  const acctEmail = String(acct.email || "")
+    .trim()
+    .toLowerCase();
+  const ownUserId = Number(acct.user_id);
+  if (metaUser && metaUser !== ownUserId) {
+    return sendJson(res, 403, {
+      ok: false,
+      code: "NOT_YOUR_PURCHASE",
+      message: "This payment is tied to a different VibeCart account."
+    });
+  }
+  if (!metaUser) {
+    if (!stripeEmail || stripeEmail !== acctEmail) {
+      return sendJson(res, 403, {
+        ok: false,
+        code: "EMAIL_MISMATCH",
+        message: "Sign in with the same email you used at checkout, then try again."
+      });
+    }
+  }
+  const fulfillResult = await fulfillStripeCoachCheckoutSession(pool, checkoutSession);
+  if (!fulfillResult.ok) {
+    return sendJson(res, 400, fulfillResult);
+  }
+  const baseUrl = resolvePublicWebBaseUrl(req);
+  const plan = String(metadata.plan || "starter").trim().toLowerCase();
+  const addonPlan = String(metadata.addonPlan || "").trim().toLowerCase();
+  const method = String(metadata.selectedMethod || "card")
+    .trim()
+    .toLowerCase();
+  let redirectUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
+  if (!redirectUrl.includes("session_id=")) {
+    redirectUrl += (redirectUrl.includes("?") ? "&" : "?") + "session_id=" + encodeURIComponent(sessionId);
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    fulfillment: fulfillResult,
+    redirectUrl
+  });
+}
+
 async function handlePublicCheckoutRedirect(req, res) {
   const session = await requirePublicAccountSession(req, res);
   if (!session) {
@@ -5751,6 +5845,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && pathname === "/api/public/payments/checkout/redirect") {
       return await handlePublicCheckoutRedirect(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/payments/checkout/recover") {
+      return await handlePublicCheckoutRecover(req, res);
     }
     if (req.method === "GET" && pathname === "/api/public/shop/redirect") {
       return await handlePublicShopRedirect(req, res);
