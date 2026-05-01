@@ -1116,7 +1116,7 @@ async function recordOwnerDecisionForMessageCenter(pool, ownerAuthId, messageTex
     `INSERT INTO owner_message_center (owner_auth_id, message_type, message_text) VALUES (?, ?, ?)`,
     [oid, type, text]
   );
-  const pushUid = Number(String(process.env.OWNER_NOTIFICATION_USER_ID || "").trim() || 0);
+  const pushUid = await resolveOwnerNotificationUserId(pool);
   if (pushUid > 0) {
     try {
       await sendPushToUser(pool, {
@@ -1129,6 +1129,61 @@ async function recordOwnerDecisionForMessageCenter(pool, ownerAuthId, messageTex
     } catch (err) {
       console.error("Owner decision push failed:", err.message || err);
     }
+  }
+}
+
+let ownerNotificationUserIdCache = { value: 0, expiresAt: 0 };
+async function resolveOwnerNotificationUserId(poolRef) {
+  const envUid = Number(String(process.env.OWNER_NOTIFICATION_USER_ID || "").trim() || 0);
+  if (envUid > 0) {
+    return envUid;
+  }
+  const now = Date.now();
+  if (ownerNotificationUserIdCache.value > 0 && ownerNotificationUserIdCache.expiresAt > now) {
+    return ownerNotificationUserIdCache.value;
+  }
+  try {
+    const [rows] = await poolRef.execute(
+      `SELECT user_id
+       FROM device_push_tokens
+       WHERE active = 1
+       ORDER BY updated_at DESC
+       LIMIT 1`
+    );
+    const resolved = Number(rows && rows[0] ? rows[0].user_id : 0);
+    if (resolved > 0) {
+      ownerNotificationUserIdCache = {
+        value: resolved,
+        expiresAt: now + 5 * 60 * 1000
+      };
+      return resolved;
+    }
+  } catch {
+    // no-op: fallback to disabled
+  }
+  return 0;
+}
+
+async function notifyOwnerMessageCenterPush(poolRef, eventType, messageText) {
+  const pushUid = await resolveOwnerNotificationUserId(poolRef);
+  if (pushUid <= 0) {
+    return;
+  }
+  const eventNorm = String(eventType || "update").trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_") || "update";
+  const text = String(messageText || "Admin message center updated.").trim().slice(0, 300);
+  if (!text) {
+    return;
+  }
+  try {
+    await sendPushToUser(poolRef, {
+      userId: pushUid,
+      title: "VibeCart Admin Inbox",
+      message: text,
+      deepLink: "vibecart://admin-messages",
+      eventType: `owner_message_${eventNorm}`
+    });
+  } catch (err) {
+    console.error("Owner message center push failed:", err.message || err);
   }
 }
 
@@ -1473,6 +1528,11 @@ async function handleOwnerMessageCenterCreate(req, res) {
      VALUES (?, ?, ?)`,
     [Number(data.session.owner_auth_id), type, text]
   );
+  await notifyOwnerMessageCenterPush(
+    pool,
+    "create",
+    `${type.toUpperCase()}: ${text.slice(0, 160)}`
+  );
   return sendJson(res, 200, {
     ok: true,
     id: Number(inserted.insertId || 0)
@@ -1500,6 +1560,7 @@ async function handleOwnerMessageCenterMarkRead(req, res) {
        AND read_at IS NULL`,
     [Number(data.session.owner_auth_id)]
   );
+  await notifyOwnerMessageCenterPush(pool, "mark_read", "All admin inbox messages marked as read.");
   return sendJson(res, 200, { ok: true });
 }
 
@@ -1522,6 +1583,7 @@ async function handleOwnerMessageCenterClear(req, res) {
      WHERE owner_auth_id = ?`,
     [Number(data.session.owner_auth_id)]
   );
+  await notifyOwnerMessageCenterPush(pool, "clear", "Admin inbox was cleared.");
   return sendJson(res, 200, { ok: true });
 }
 
@@ -1573,6 +1635,11 @@ async function handleOwnerMessageCenterUpdate(req, res) {
       if (!result.affectedRows) {
         return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
       }
+      await notifyOwnerMessageCenterPush(
+        pool,
+        "update",
+        `Admin inbox message updated: ${nextType.toUpperCase()} · ${readNorm === "read" ? "marked read" : "marked unread"}.`
+      );
       return sendJson(res, 200, { ok: true });
     }
     if (hasReadPatch) {
@@ -1587,6 +1654,11 @@ async function handleOwnerMessageCenterUpdate(req, res) {
       if (!result.affectedRows) {
         return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
       }
+      await notifyOwnerMessageCenterPush(
+        pool,
+        "read_state",
+        `Admin inbox message ${readNorm === "read" ? "marked read" : "marked unread"}.`
+      );
       return sendJson(res, 200, { ok: true });
     }
     const [result] = await pool.execute(
@@ -1599,6 +1671,11 @@ async function handleOwnerMessageCenterUpdate(req, res) {
     if (!result.affectedRows) {
       return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
     }
+    await notifyOwnerMessageCenterPush(
+      pool,
+      "type",
+      `Admin inbox message moved to ${nextType.toUpperCase()}.`
+    );
     return sendJson(res, 200, { ok: true });
   } catch (error) {
     return sendJson(res, 503, {
@@ -1637,6 +1714,7 @@ async function handleOwnerMessageCenterDelete(req, res) {
     if (!result.affectedRows) {
       return sendJson(res, 404, { ok: false, code: "MESSAGE_NOT_FOUND" });
     }
+    await notifyOwnerMessageCenterPush(pool, "delete", "An admin inbox message was deleted.");
     return sendJson(res, 200, { ok: true });
   } catch (error) {
     return sendJson(res, 503, {
@@ -1645,6 +1723,88 @@ async function handleOwnerMessageCenterDelete(req, res) {
       message: String(error.message || error)
     });
   }
+}
+
+async function handleOwnerMessageCenterStream(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const token = String(urlObj.searchParams.get("authToken") || urlObj.searchParams.get("token") || "").trim();
+  const session = await requireActiveSession(token);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "MESSAGE_CENTER_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+
+  applyCorsHeaders(req, res);
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.statusCode = 200;
+  if (typeof res.flushHeaders === "function") {
+    res.flushHeaders();
+  }
+
+  const ownerAuthId = Number(session.owner_auth_id);
+  let lastSignature = "";
+  let closed = false;
+
+  const emit = (eventName, payload) => {
+    if (closed) {
+      return;
+    }
+    res.write(`event: ${eventName}\n`);
+    res.write(`data: ${JSON.stringify(payload || {})}\n\n`);
+  };
+
+  const loadSnapshot = async () => {
+    const [rows] = await pool.execute(
+      `SELECT
+         COALESCE(MAX(id), 0) AS latest_id,
+         SUM(CASE WHEN read_at IS NULL THEN 1 ELSE 0 END) AS unread_count,
+         COUNT(*) AS total_count
+       FROM owner_message_center
+       WHERE owner_auth_id = ?`,
+      [ownerAuthId]
+    );
+    const row = rows && rows[0] ? rows[0] : {};
+    const latestId = Number(row.latest_id || 0);
+    const unreadCount = Number(row.unread_count || 0);
+    const totalCount = Number(row.total_count || 0);
+    return { latestId, unreadCount, totalCount };
+  };
+
+  const pushSnapshotIfChanged = async () => {
+    const snapshot = await loadSnapshot();
+    const signature = `${snapshot.latestId}|${snapshot.unreadCount}|${snapshot.totalCount}`;
+    if (signature !== lastSignature) {
+      lastSignature = signature;
+      emit("message_delta", snapshot);
+    } else {
+      emit("keepalive", { ok: true, ts: Date.now() });
+    }
+  };
+
+  emit("connected", { ok: true, ts: Date.now() });
+  await pushSnapshotIfChanged();
+
+  const timer = setInterval(() => {
+    pushSnapshotIfChanged().catch(() => {
+      emit("error", { ok: false, code: "STREAM_POLL_FAILED" });
+    });
+  }, 7000);
+
+  req.on("close", () => {
+    closed = true;
+    clearInterval(timer);
+  });
 }
 
 async function handlePublicMobilePushRegister(req, res) {
@@ -4363,6 +4523,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/messages/delete") {
       return await handleOwnerMessageCenterDelete(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/owner/messages/stream") {
+      return await handleOwnerMessageCenterStream(req, res);
     }
     if (req.method === "POST" && pathname === "/api/push/register-device-token") {
       return await handlePushRegister(req, res);

@@ -136,15 +136,69 @@ async function markNotificationFailed(db, eventId, errorMessage) {
 async function sendViaProvider(tokens, title, message, deepLink) {
   const list = Array.isArray(tokens) ? tokens : [];
   const fcmKey = String(process.env.FCM_SERVER_KEY || "").trim();
-  if (!fcmKey || !list.length) {
-    return list.map((token) => ({
-      token,
-      success: false,
-      providerMessageId: null
-    }));
+  if (!list.length) {
+    return [];
   }
-  const results = [];
+  const expoTokens = [];
+  const fcmTokens = [];
   for (const token of list) {
+    const t = String(token || "").trim();
+    if (!t) {
+      continue;
+    }
+    if (/^(ExponentPushToken|ExpoPushToken)\[.+\]$/i.test(t)) {
+      expoTokens.push(t);
+    } else {
+      fcmTokens.push(t);
+    }
+  }
+
+  const results = [];
+  if (expoTokens.length) {
+    for (const token of expoTokens) {
+      try {
+        const res = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+          },
+          body: JSON.stringify({
+            to: token,
+            title: String(title || "").slice(0, 120),
+            body: String(message || "").slice(0, 500),
+            sound: "default",
+            data: deepLink ? { url: String(deepLink).slice(0, 512) } : {}
+          })
+        });
+        const body = await res.json().catch(() => ({}));
+        const payload = body && body.data ? body.data : {};
+        const ok = res.ok && String(payload.status || "").toLowerCase() === "ok";
+        results.push({
+          token,
+          success: ok,
+          providerMessageId: payload.id ? String(payload.id) : null
+        });
+      } catch {
+        results.push({ token, success: false, providerMessageId: null });
+      }
+    }
+  }
+
+  if (!fcmTokens.length) {
+    return results;
+  }
+  if (!fcmKey) {
+    return results.concat(
+      fcmTokens.map((token) => ({
+        token,
+        success: false,
+        providerMessageId: null
+      }))
+    );
+  }
+
+  for (const token of fcmTokens) {
     const t = String(token || "").trim();
     if (!t) {
       continue;

@@ -30,6 +30,9 @@
   let activeTab = "all";
   let items = [];
   let usingLocalFallback = false;
+  let refreshTimer = 0;
+  let stream = null;
+  let lastStreamSignature = "";
 
   function setStatus(text, isError) {
     if (!statusEl) {
@@ -136,6 +139,38 @@
     }
   }
 
+  function startLiveMessageStream() {
+    try {
+      if (stream) {
+        stream.close();
+        stream = null;
+      }
+      const token = String(getSession().token || "").trim();
+      if (!token) {
+        return;
+      }
+      const streamUrl = `${getApiBase().replace(/\/+$/, "")}/api/owner/messages/stream?authToken=${encodeURIComponent(token)}`;
+      stream = new EventSource(streamUrl);
+      stream.addEventListener("message_delta", function (event) {
+        try {
+          const data = JSON.parse(event.data || "{}");
+          const sig = `${Number(data.latestId || 0)}|${Number(data.unreadCount || 0)}|${Number(data.totalCount || 0)}`;
+          if (sig !== lastStreamSignature) {
+            lastStreamSignature = sig;
+            refreshItems().catch(function () {});
+          }
+        } catch {
+          /* ignore malformed stream payload */
+        }
+      });
+      stream.addEventListener("error", function () {
+        // EventSource auto-reconnects; keep current UI state.
+      });
+    } catch {
+      /* stream unavailable; polling still active */
+    }
+  }
+
   function hasValidAdminSession() {
     const session = getSession();
     const expiresAtMs = new Date(session.expiresAt || "").getTime();
@@ -149,6 +184,11 @@
 
   function saveLocalFallback(nextItems) {
     localStorage.setItem(MESSAGE_CENTER_KEY, JSON.stringify(nextItems.slice(0, 120)));
+    try {
+      localStorage.setItem("vibecart-admin-message-sync-at", String(Date.now()));
+    } catch {
+      /* ignore */
+    }
   }
 
   function getLocalFallback() {
@@ -506,4 +546,28 @@
 
   setActiveTab("all");
   refreshItems().catch(function () {});
+  startLiveMessageStream();
+  refreshTimer = window.setInterval(function () {
+    if (document.hidden) {
+      return;
+    }
+    refreshItems().catch(function () {});
+  }, 45000);
+  window.addEventListener("beforeunload", function () {
+    if (refreshTimer) {
+      window.clearInterval(refreshTimer);
+    }
+    if (stream) {
+      stream.close();
+      stream = null;
+    }
+  });
+  window.addEventListener("storage", function (event) {
+    if (event.key === MESSAGE_CENTER_KEY || event.key === "vibecart-admin-message-sync-at") {
+      if (usingLocalFallback) {
+        items = normalizeItems(getLocalFallback());
+        render();
+      }
+    }
+  });
 })();

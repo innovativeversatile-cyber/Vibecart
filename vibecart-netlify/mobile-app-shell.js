@@ -976,6 +976,41 @@
     startVisibilityAwareInterval(paint, 3400);
   }
 
+  function initInboxPulse() {
+    if (document.getElementById("vcMobileInboxPulse")) return;
+    var key = "vibecart-public-inbox-unread-v1";
+    var pill = document.createElement("button");
+    pill.type = "button";
+    pill.id = "vcMobileInboxPulse";
+    pill.className = "vc-mobile-streak-chip";
+    function paint() {
+      var unread = 0;
+      try {
+        unread = Math.max(0, Number(localStorage.getItem(key) || "0"));
+      } catch {
+        unread = 0;
+      }
+      if (unread <= 0) {
+        pill.style.display = "none";
+        return;
+      }
+      pill.style.display = "";
+      pill.textContent = "Inbox " + unread;
+    }
+    pill.addEventListener("click", function () {
+      try {
+        localStorage.setItem(key, "0");
+      } catch {
+        /* ignore */
+      }
+      paint();
+      window.location.assign("./index.html#communication");
+    });
+    window.addEventListener("storage", paint);
+    paint();
+    document.body.appendChild(pill);
+  }
+
   function initVibeThemeSwitch() {
     var key = "vibecart-mobile-vibe-theme-v1";
     var nav = document.getElementById("mobileQuickNav");
@@ -1364,6 +1399,7 @@
       initStoryRail();
       initSwipeSaveDeals();
       initSocialPulseTicker();
+      initInboxPulse();
       initVibeThemeSwitch();
       initFirstFiveSecondsBar();
       initMissionHud();

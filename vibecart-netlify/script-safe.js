@@ -726,6 +726,8 @@
       var shopInput = document.getElementById("chatShopInput");
       var shopSuggestions = document.getElementById("chatShopSuggestions");
       var status = document.getElementById("chatDispatchStatus");
+      var safetyAlert = document.getElementById("chatSafetyAlert");
+      var UNREAD_KEY = "vibecart-public-inbox-unread-v1";
       if (!input || !sendBtn || !messagesBox) {
         return;
       }
@@ -796,7 +798,58 @@
         messagesBox.appendChild(p);
       }
 
-      sendBtn.addEventListener("click", function () {
+      function bumpUnread() {
+        try {
+          var current = Number(localStorage.getItem(UNREAD_KEY) || "0");
+          localStorage.setItem(UNREAD_KEY, String(Math.max(0, current) + 1));
+        } catch {
+          /* ignore */
+        }
+      }
+
+      async function runChatSafetyCheck(messageText, shop) {
+        if (safetyAlert) {
+          safetyAlert.classList.add("hidden");
+          safetyAlert.textContent = "";
+        }
+        try {
+          var response = await fetch("/api/public/chat/safety-check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              senderUserId: userKey,
+              conversationId: null,
+              messageText: String(messageText || ""),
+              shopName: String(shop || "")
+            })
+          });
+          var payload = await response.json().catch(function () {
+            return {};
+          });
+          if (!payload || !payload.ok || payload.riskLevel === "low") {
+            return;
+          }
+          if (safetyAlert) {
+            var matched = Array.isArray(payload.matchedRules) && payload.matchedRules.length
+              ? " Indicators: " + payload.matchedRules.join(", ") + "."
+              : "";
+            safetyAlert.textContent =
+              "Safety warning (" +
+              String(payload.riskLevel) +
+              "): this message may contain scam patterns." +
+              matched;
+            safetyAlert.classList.remove("hidden");
+          }
+        } catch {
+          if (safetyAlert) {
+            safetyAlert.textContent =
+              "Safety check is temporarily unavailable. Do not share OTPs or pay outside VibeCart.";
+            safetyAlert.classList.remove("hidden");
+          }
+        }
+      }
+
+      sendBtn.addEventListener("click", async function () {
         var text = String(input.value || "").trim();
         if (!text) {
           return;
@@ -820,17 +873,32 @@
         if (status) {
           status.textContent = "Message sent to " + shop + ". Waiting for seller reply...";
         }
+        await runChatSafetyCheck(text, shop);
         window.setTimeout(function () {
           var reply = shop + " -> You: Thanks, we received your message and will update shipping details shortly.";
           appendMessage(reply, "msg-seller");
           thread.push({ who: "seller", text: reply, at: new Date().toISOString() });
           writeThread(shop, thread.slice(-100));
+          bumpUnread();
           if (status) {
             status.textContent = "New reply from " + shop + ".";
           }
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
             try {
-              new Notification("New shop reply", { body: shop + " replied in Communication Hub." });
+              if ("serviceWorker" in navigator) {
+                navigator.serviceWorker.ready
+                  .then(function (registration) {
+                    return registration.showNotification("New shop reply", {
+                      body: shop + " replied in Communication Hub.",
+                      icon: "./icon-192.png",
+                      badge: "./icon-192.png",
+                      tag: "vibecart-shop-reply"
+                    });
+                  })
+                  .catch(function () {});
+              } else {
+                new Notification("New shop reply", { body: shop + " replied in Communication Hub." });
+              }
             } catch {
               /* ignore */
             }
@@ -852,6 +920,12 @@
           }
         });
       }
+      input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendBtn.click();
+        }
+      });
     }
 
     // Restore forward progression for key journey buttons.

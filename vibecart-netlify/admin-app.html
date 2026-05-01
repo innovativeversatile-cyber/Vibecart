@@ -51,6 +51,11 @@
         color: #a8b0d0;
         font-size: 0.92rem;
       }
+      .row {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+      }
       .hidden {
         display: none;
       }
@@ -94,7 +99,12 @@
       <section class="card shine">
         <h1>VibeCart Admin App</h1>
         <p class="small">Admin-only application entry. Use your owner credentials in the panel before making changes.</p>
-        <button id="installAdminApp" class="btn hidden">Install Admin App</button>
+        <div class="row">
+          <button id="installAdminApp" class="btn hidden">Install Admin App</button>
+          <button id="enableNotifications" class="btn">Enable Notifications</button>
+          <button id="testNotification" class="btn">Send Test Notification</button>
+        </div>
+        <p id="notifyStatus" class="small">Notification status: checking...</p>
       </section>
 
       <section id="gateCard" class="card">
@@ -117,7 +127,13 @@
       const pinInput = document.getElementById("devicePin");
       const openBtn = document.getElementById("openPanelInApp");
       const installBtn = document.getElementById("installAdminApp");
+      const enableNotificationsBtn = document.getElementById("enableNotifications");
+      const testNotificationBtn = document.getElementById("testNotification");
+      const notifyStatus = document.getElementById("notifyStatus");
+      const AUTH_SESSION_KEY = "vibecart-owner-api-session";
+      const LAST_UNREAD_KEY = "vibecart-admin-last-unread-count-v1";
       let deferredPrompt = null;
+      let swReady = null;
 
       function hashPin(pin) {
         let hash = 0;
@@ -166,11 +182,113 @@
         installBtn.classList.add("hidden");
       });
 
+      function setNotifyStatus(message) {
+        notifyStatus.textContent = `Notification status: ${message}`;
+      }
+
+      function refreshNotificationState() {
+        if (!("Notification" in window)) {
+          setNotifyStatus("not supported on this browser/device");
+          return;
+        }
+        setNotifyStatus(Notification.permission);
+      }
+
+      function getSessionToken() {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY) || "{}");
+          return String(parsed.token || "").trim();
+        } catch {
+          return "";
+        }
+      }
+
+      async function checkInboxForNewUnread() {
+        const token = getSessionToken();
+        if (!token) {
+          return;
+        }
+        try {
+          const response = await fetch("/api/owner/messages/list", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ authToken: token, token, limit: 40 })
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload.ok) {
+            return;
+          }
+          const unread = Math.max(0, Number(payload.unreadCount || 0));
+          const previous = Math.max(0, Number(localStorage.getItem(LAST_UNREAD_KEY) || "0"));
+          localStorage.setItem(LAST_UNREAD_KEY, String(unread));
+          if (unread > previous && Notification.permission === "granted") {
+            const registration = swReady || (await navigator.serviceWorker.ready);
+            await registration.showNotification("VibeCart Admin Inbox", {
+              body: `You have ${unread} unread admin message${unread === 1 ? "" : "s"}.`,
+              icon: "./icon-192.png",
+              badge: "./icon-192.png",
+              tag: "vibecart-admin-inbox",
+              data: { url: "./admin-messages.html" }
+            });
+          }
+        } catch {
+          // silent in background check
+        }
+      }
+
+      enableNotificationsBtn.addEventListener("click", async () => {
+        if (!("Notification" in window)) {
+          alert("Notifications are not supported on this browser.");
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        refreshNotificationState();
+        if (permission !== "granted") {
+          alert("Notification permission was not granted.");
+          return;
+        }
+        alert("Notifications enabled for this admin app.");
+      });
+
+      testNotificationBtn.addEventListener("click", async () => {
+        if (!("Notification" in window)) {
+          alert("Notifications are not supported on this browser.");
+          return;
+        }
+        if (Notification.permission !== "granted") {
+          alert("Please enable notifications first.");
+          return;
+        }
+        try {
+          const registration = swReady || (await navigator.serviceWorker.ready);
+          await registration.showNotification("VibeCart Admin", {
+            body: "Test notification is working on this device.",
+            icon: "./icon-192.png",
+            badge: "./icon-192.png",
+            tag: "vibecart-admin-test"
+          });
+        } catch (error) {
+          alert("Could not send test notification.");
+        }
+      });
+
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("./admin-app-sw.js?v=20260417ultra").catch(() => {});
+          navigator.serviceWorker
+            .register("./admin-app-sw.js?v=20260501notify1")
+            .then(() => navigator.serviceWorker.ready)
+            .then((registration) => {
+              swReady = registration;
+              checkInboxForNewUnread().catch(() => {});
+              window.setInterval(() => {
+                checkInboxForNewUnread().catch(() => {});
+              }, 45000);
+            })
+            .catch(() => {});
         });
       }
+
+      refreshNotificationState();
     </script>
   </body>
 </html>

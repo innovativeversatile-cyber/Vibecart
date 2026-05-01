@@ -817,6 +817,7 @@ function showPanelUnlocked(message) {
   document.getElementById("panelBox").classList.remove("hidden");
   fillForm().catch(() => {});
   fillOwnerAuthForm();
+  startAdminMessageStream();
   updateOwnerCommandDeck("Panel unlocked");
   setStatus(message);
   refreshStrictLiveBanner();
@@ -3671,6 +3672,54 @@ function bindClick(id, handler) {
 }
 
 updateMessageBadge().catch(() => {});
+let adminMessageStream = null;
+let adminMessageStreamSig = "";
+function startAdminMessageStream() {
+  try {
+    if (adminMessageStream) {
+      adminMessageStream.close();
+      adminMessageStream = null;
+    }
+    const session = getSession();
+    const token = String(session && session.token ? session.token : "").trim();
+    if (!token) {
+      return;
+    }
+    const streamUrl = `${getApiBase().replace(/\/+$/, "")}/api/owner/messages/stream?authToken=${encodeURIComponent(token)}`;
+    adminMessageStream = new EventSource(streamUrl);
+    adminMessageStream.addEventListener("message_delta", (event) => {
+      try {
+        const data = JSON.parse(event.data || "{}");
+        const sig = `${Number(data.latestId || 0)}|${Number(data.unreadCount || 0)}|${Number(data.totalCount || 0)}`;
+        if (sig !== adminMessageStreamSig) {
+          adminMessageStreamSig = sig;
+          updateMessageBadge().catch(() => {});
+        }
+      } catch {
+        // ignore malformed payloads
+      }
+    });
+  } catch {
+    // non-blocking; interval refresh still applies
+  }
+}
+startAdminMessageStream();
+window.setInterval(() => {
+  if (!document.hidden) {
+    updateMessageBadge().catch(() => {});
+  }
+}, 45000);
+window.addEventListener("storage", (event) => {
+  if (event.key === MESSAGE_CENTER_KEY || event.key === "vibecart-admin-message-sync-at") {
+    updateMessageBadge().catch(() => {});
+  }
+});
+window.addEventListener("beforeunload", () => {
+  if (adminMessageStream) {
+    adminMessageStream.close();
+    adminMessageStream = null;
+  }
+});
 
 bindClick("unlockBtn", () => {
   unlockPanel().catch((error) => {

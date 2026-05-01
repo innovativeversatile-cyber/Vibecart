@@ -579,27 +579,34 @@ async function logChatSafetyEvent(db, payload) {
   ensure(messageText, "Missing messageText.");
   const evaluation = evaluateChatRisk(messageText);
   const convId = conversationId ? Number(conversationId) : 0;
-  if (!convId) {
-    return { ok: true, logged: false, skipReason: "no_conversation_id", ...evaluation };
-  }
-  const [convRows] = await db.execute(`SELECT id FROM conversations WHERE id = ? LIMIT 1`, [convId]);
-  if (!convRows || !convRows[0]) {
-    return { ok: true, logged: false, skipReason: "unknown_conversation", ...evaluation };
+  const senderIdNum = Number(senderUserId || 0);
+  const senderId = Number.isFinite(senderIdNum) && senderIdNum > 0 ? senderIdNum : null;
+  let validConvId = null;
+  if (convId) {
+    const [convRows] = await db.execute(`SELECT id FROM conversations WHERE id = ? LIMIT 1`, [convId]);
+    if (convRows && convRows[0]) {
+      validConvId = convId;
+    }
   }
   await db.execute(
     `INSERT INTO chat_safety_events (
       conversation_id, sender_user_id, risk_level, risk_score, matched_rules, message_excerpt
     ) VALUES (?, ?, ?, ?, ?, ?)`,
     [
-      convId,
-      senderUserId ? Number(senderUserId) : null,
+      validConvId,
+      senderId,
       evaluation.riskLevel,
       evaluation.riskScore,
       evaluation.matchedRules.join(", "),
       String(messageText).slice(0, 255)
     ]
   );
-  return { ok: true, logged: true, ...evaluation };
+  return {
+    ok: true,
+    logged: true,
+    conversationAttached: Boolean(validConvId),
+    ...evaluation
+  };
 }
 
 async function upsertCoachProfile(db, payload) {
