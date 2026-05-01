@@ -35,7 +35,8 @@ Use this checklist to move from local demo to production safely.
 
 - Set `PAYMENT_PROVIDER=stripe`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`.
 - Set **`PAYMENT_INTENT_API_SECRET`** to a long random string. Payment intent creation requires header `X-Payment-Intent-Secret` (never expose this in the static site; use a small server-side checkout or Netlify Function).
-- Stripe webhook URL: `https://<your-railway-host>/api/public/payments/webhook/stripe` with events `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`.
+- Stripe webhook URL: `https://<your-railway-host>/api/public/payments/webhook/stripe` with events `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded` (`checkout.session.completed` persists **coach** wellbeing checkouts into `health_feature_entitlements` via `stripe_checkout_fulfillment_events`).
+- **Owner phone alerts (decisions only):** set **`OWNER_NOTIFICATION_USER_ID`** to the **`users.id`** of the account that registered device tokens in the mobile app, and set **`FCM_SERVER_KEY`** (Firebase Cloud Messaging **legacy server key**) so pushes are delivered for real (no mock IDs). Without the key, notification rows are still written but delivery is marked failed until FCM is configured.
 - Confirm `approved_payment_providers` and `approved_payment_provider_routes` include every country/currency pair you will sell (see `schema.sql` seed inserts).
 
 ## 3) Database

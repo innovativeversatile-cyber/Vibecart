@@ -31,6 +31,22 @@ const COACH_PLAN_FEATURES = Object.freeze({
   ]
 });
 
+/** Wellbeing Stripe checkout slugs → entitlement keys (matches client `STRIPE_COACH_FEATURE_PACKS`). */
+function normalizeCoachCheckoutPlanSlug(raw) {
+  const p = String(raw || "").trim().toLowerCase();
+  if (p === "pro" || p === "plus" || p === "ai-home" || p === "starter") {
+    return p;
+  }
+  return "";
+}
+
+const COACH_CHECKOUT_SLUG_FEATURES = Object.freeze({
+  starter: [...COACH_FREE_FEATURES],
+  "ai-home": [...COACH_FREE_FEATURES, "checkin_unlimited", "custom_plan_monthly"],
+  plus: [...COACH_PLAN_FEATURES.PLUS],
+  pro: [...COACH_PLAN_FEATURES.PRO]
+});
+
 async function ensureCoachMonetizationTables(db) {
   await db.execute(
     `CREATE TABLE IF NOT EXISTS health_subscription_plans (
@@ -107,6 +123,24 @@ async function ensureCoachMonetizationTables(db) {
     )`
   );
   await db.execute(
+    `CREATE TABLE IF NOT EXISTS stripe_checkout_fulfillment_events (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      stripe_checkout_session_id VARCHAR(255) NOT NULL,
+      user_id BIGINT UNSIGNED NOT NULL,
+      event_type VARCHAR(80) NOT NULL DEFAULT 'checkout.session.completed',
+      flow VARCHAR(40) NOT NULL,
+      plan_slug VARCHAR(40) NOT NULL,
+      addon_slug VARCHAR(40) NULL,
+      payment_status VARCHAR(40) NULL,
+      currency CHAR(8) NULL,
+      amount_total DECIMAL(12,2) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_stripe_checkout_session (stripe_checkout_session_id),
+      KEY idx_stripe_fulfillment_user (user_id, created_at),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`
+  );
+  await db.execute(
     `INSERT INTO health_subscription_plans (plan_code, plan_name, monthly_price, currency, interval_days, features_json, active)
      VALUES
       ('FREE', 'VibeFit Free', 0.00, 'EUR', 30, JSON_ARRAY('coach_profile_basic','coach_dashboard','checkin_basic','wearable_basic'), 1),
@@ -120,6 +154,121 @@ async function ensureCoachMonetizationTables(db) {
       features_json = VALUES(features_json),
       active = VALUES(active)`
   );
+}
+
+const COACH_STRIPE_PROMO_DAYS = 365;
+
+/**
+ * Idempotent fulfillment for Stripe Checkout coach purchases: records the session once,
+ * then inserts `health_feature_entitlements` rows (source_type promo) so `getCoachMonetizationState` picks them up.
+ */
+async function fulfillStripeCoachCheckoutSession(db, session) {
+  await ensureCoachMonetizationTables(db);
+  const sessionId = String(session.id || "").trim();
+  if (!sessionId) {
+    return { ok: false, code: "MISSING_SESSION_ID" };
+  }
+  const paymentStatus = String(session.payment_status || "").toLowerCase();
+  if (paymentStatus !== "paid") {
+    return { ok: true, skipped: true, reason: "payment_not_paid", paymentStatus };
+  }
+  const metadata = session.metadata || {};
+  const flow = String(metadata.flow || "").trim().toLowerCase();
+  if (flow !== "coach") {
+    return { ok: true, skipped: true, reason: "not_coach_flow", flow };
+  }
+  let userId = Number(metadata.vibecart_user_id || metadata.userId || 0);
+  if (!userId) {
+    const email = String(session.customer_email || session.customer_details?.email || "")
+      .trim()
+      .toLowerCase();
+    if (email) {
+      const [urows] = await db.execute(`SELECT id FROM users WHERE email = ? LIMIT 1`, [email]);
+      userId = Number(urows[0]?.id || 0);
+    }
+  }
+  if (!userId) {
+    return {
+      ok: false,
+      code: "USER_NOT_RESOLVED",
+      message: "Checkout session missing vibecart_user_id metadata and no matching user email."
+    };
+  }
+  const plan = normalizeCoachCheckoutPlanSlug(metadata.plan);
+  const addonPlan = normalizeCoachCheckoutPlanSlug(metadata.addonPlan);
+  if (!plan) {
+    return { ok: true, skipped: true, reason: "unknown_plan", plan: String(metadata.plan || "") };
+  }
+  const amountCents = Number(session.amount_total);
+  const amountEur = Number.isFinite(amountCents) ? amountCents / 100 : null;
+  const currency = String(session.currency || "eur").toUpperCase().slice(0, 8) || "EUR";
+
+  const [existingFulfill] = await db.execute(
+    `SELECT id FROM stripe_checkout_fulfillment_events WHERE stripe_checkout_session_id = ? LIMIT 1`,
+    [sessionId]
+  );
+  if (existingFulfill.length > 0) {
+    return { ok: true, skipped: true, reason: "already_fulfilled", sessionId };
+  }
+
+  const featureSet = new Set();
+  const addPack = (slug) => {
+    const pack = COACH_CHECKOUT_SLUG_FEATURES[slug];
+    if (pack) {
+      pack.forEach((f) => featureSet.add(String(f || "").trim().toLowerCase()));
+    }
+  };
+  addPack(plan);
+  if (addonPlan) {
+    addPack(addonPlan);
+  }
+  featureSet.delete("medication_tracking");
+
+  const conn = await db.getConnection();
+  let fulfillEventId = 0;
+  try {
+    await conn.beginTransaction();
+    const [ins] = await conn.execute(
+      `INSERT INTO stripe_checkout_fulfillment_events (
+        stripe_checkout_session_id, user_id, event_type, flow, plan_slug, addon_slug, payment_status, currency, amount_total
+      ) VALUES (?, ?, 'checkout.session.completed', ?, ?, ?, ?, ?, ?)`,
+      [sessionId, userId, flow, plan, addonPlan || null, paymentStatus, currency, amountEur]
+    );
+    fulfillEventId = Number(ins.insertId);
+    for (const featureKey of featureSet) {
+      await conn.execute(
+        `INSERT INTO health_feature_entitlements (user_id, feature_key, source_type, source_id, starts_at, expires_at)
+         VALUES (?, ?, 'promo', ?, NOW(), DATE_ADD(NOW(), INTERVAL ? DAY))`,
+        [userId, featureKey, fulfillEventId, COACH_STRIPE_PROMO_DAYS]
+      );
+    }
+    await conn.commit();
+  } catch (err) {
+    try {
+      await conn.rollback();
+    } catch {
+      /* ignore */
+    }
+    const dup =
+      Number(err.errno) === 1062 ||
+      String(err.code || "") === "ER_DUP_ENTRY" ||
+      String(err.message || "").toLowerCase().includes("duplicate");
+    if (dup) {
+      return { ok: true, skipped: true, reason: "already_fulfilled", sessionId };
+    }
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  return {
+    ok: true,
+    status: "coach_checkout_fulfilled",
+    providerReference: sessionId,
+    userId,
+    featureCount: featureSet.size,
+    fulfillEventId
+  };
 }
 
 function normalizeFeatureSet(features) {
@@ -711,6 +860,7 @@ module.exports = {
   startCoachSubscription,
   purchaseCoachAddon,
   recordCoachPartnerEvent,
+  fulfillStripeCoachCheckoutSession,
   listChatSafetyEvents,
   getCoachMetricsSummary,
   queueDailyHealthReminders

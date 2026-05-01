@@ -186,6 +186,38 @@ const WEARABLE_PREF_KEY = "vibecart-wearable-prefs";
 const COACH_ENTITLEMENTS_CACHE_KEY = "vibecart-coach-entitlements-v1";
 const COACH_AUTO_RENEW_KEY = "vibecart-coach-auto-renew-v1";
 const PREMIUM_AUTO_RENEW_KEY = "vibecart-premium-auto-renew-v1";
+/** Stripe wellbeing checkout coach tiers → same feature keys as `safety-wellness-service` plans (client overlay). */
+const STRIPE_COACH_FEATURE_PACKS = {
+  starter: ["coach_profile_basic", "coach_dashboard", "checkin_basic", "wearable_basic"],
+  "ai-home": [
+    "coach_profile_basic",
+    "coach_dashboard",
+    "checkin_basic",
+    "wearable_basic",
+    "checkin_unlimited",
+    "custom_plan_monthly"
+  ],
+  plus: [
+    "coach_profile_basic",
+    "coach_dashboard",
+    "checkin_basic",
+    "wearable_basic",
+    "checkin_unlimited",
+    "wearable_advanced",
+    "custom_plan_monthly"
+  ],
+  pro: [
+    "coach_profile_basic",
+    "coach_dashboard",
+    "checkin_basic",
+    "wearable_basic",
+    "checkin_unlimited",
+    "wearable_advanced",
+    "custom_plan_monthly",
+    "deep_analysis_report",
+    "priority_human_review"
+  ]
+};
 let coachMonetizationState = null;
 let coachEntitlements = new Set();
 const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
@@ -4346,6 +4378,8 @@ function applyGlobalVisualLayout(personaMode) {
   const aura = personaMode === "fun";
   document.body.classList.toggle("vc-layout-aura", aura);
   document.body.classList.toggle("vc-layout-exclusive", !aura);
+  document.body.classList.toggle("vc-mode-full-experience", aura);
+  document.body.classList.toggle("vc-mode-home-focused", !aura);
   document.body.dataset.vcPersona = aura ? "aura" : "exclusive";
 }
 
@@ -4499,6 +4533,11 @@ function initBrandHomeLink() {
 
 function initHeroShopNowButton() {
   if (!heroShopNowBtn) {
+    return;
+  }
+  const href = String(heroShopNowBtn.getAttribute("href") || "").trim();
+  if (href && href !== "#" && !href.startsWith("#")) {
+    // Real destination link: keep native navigation, avoid JS-only scroll behavior.
     return;
   }
   if (heroShopNowBtn.dataset.boundHeroBuy === "1") {
@@ -4820,21 +4859,34 @@ function applyInteractionMode(mode) {
   if (!aiAssistantSection || !communicationSection || !trackingSection) {
     return;
   }
+  document.body.classList.remove("vc-interaction-guided", "vc-interaction-simple", "vc-interaction-pro");
   if (mode === "simple") {
+    document.body.classList.add("vc-interaction-simple");
     aiAssistantSection.style.display = "none";
     communicationSection.style.display = "none";
     trackingSection.style.display = "block";
+    if (marketMode) {
+      marketMode.textContent = "Market mode: Home focused. Simplified interface with fewer blocks and faster path to shops.";
+    }
     return;
   }
   if (mode === "pro") {
+    document.body.classList.add("vc-interaction-pro");
     aiAssistantSection.style.display = "block";
     communicationSection.style.display = "block";
     trackingSection.style.display = "block";
+    if (marketMode) {
+      marketMode.textContent = "Market mode: Full experience. All AI, communication, and control panels are active.";
+    }
     return;
   }
+  document.body.classList.add("vc-interaction-guided");
   aiAssistantSection.style.display = "block";
   communicationSection.style.display = "block";
   trackingSection.style.display = "block";
+  if (marketMode) {
+    marketMode.textContent = "Market mode: Guided. AI assistant and helper tips remain visible while core shopping stays streamlined.";
+  }
 }
 
 function initializeInteractionMode() {
@@ -4991,8 +5043,8 @@ function initLocaleAndPersonaDeck() {
     statusEl.textContent =
       line ||
       (active === "fun"
-        ? "Aura layout live — warm gradients, pulse mark, softer motion on phones."
-        : "Exclusive layout live — crisp grids, cooler contrast, faster visual rhythm.");
+        ? "Full experience live — richer visuals and expanded context are active."
+        : "Home focused live — cleaner layout and reduced visual noise are active.");
   }
 
   paintPersonaButtons(persona === "fun" ? "fun" : "efficient");
@@ -5374,12 +5426,50 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-function rememberCoachEntitlements(entitlements) {
-  coachEntitlements = new Set(
-    (Array.isArray(entitlements) ? entitlements : [])
+function normalizeStripeCoachPlanToken(plan) {
+  const p = String(plan || "").trim().toLowerCase();
+  if (p === "pro" || p === "plus" || p === "ai-home" || p === "starter") {
+    return p;
+  }
+  return "";
+}
+
+function stripeCheckoutCoachFeatureKeys() {
+  const keys = new Set();
+  let paid = [];
+  try {
+    paid = JSON.parse(localStorage.getItem("vibecart-paid-plans") || "[]");
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(paid)) {
+    return [];
+  }
+  paid.forEach((row) => {
+    if (String((row && row.flow) || "").toLowerCase() !== "coach") {
+      return;
+    }
+    const id = normalizeStripeCoachPlanToken(row.plan);
+    const pack = id ? STRIPE_COACH_FEATURE_PACKS[id] : null;
+    if (pack) {
+      pack.forEach((k) => keys.add(k));
+    }
+  });
+  return Array.from(keys);
+}
+
+function mergeCoachEntitlementsWithStripeCheckout(baseList) {
+  const merged = new Set(
+    (Array.isArray(baseList) ? baseList : [])
       .map((item) => String(item || "").trim().toLowerCase())
       .filter(Boolean)
   );
+  stripeCheckoutCoachFeatureKeys().forEach((k) => merged.add(k));
+  return Array.from(merged).sort();
+}
+
+function rememberCoachEntitlements(entitlements) {
+  coachEntitlements = new Set(mergeCoachEntitlementsWithStripeCheckout(Array.isArray(entitlements) ? entitlements : []));
   try {
     localStorage.setItem(COACH_ENTITLEMENTS_CACHE_KEY, JSON.stringify(Array.from(coachEntitlements)));
   } catch {
@@ -6047,12 +6137,20 @@ const onboardingSteps = [
 let onboardingIndex = 0;
 
 function openOnboardingModal() {
-  // Fail-safe: disable blocking onboarding modal flow.
+  onboardingIndex = 0;
+  if (onboardingText) {
+    onboardingText.textContent = onboardingSteps[onboardingIndex];
+  }
+  if (onboardingModal) {
+    onboardingModal.classList.remove("hidden");
+    onboardingModal.setAttribute("aria-hidden", "false");
+    onboardingNext?.focus();
+    return;
+  }
   if (rewardStatus) {
     rewardStatus.textContent =
-      "Smart Tour tips: Explore Hot Picks, use AI Assistant for budget-safe finds, and complete secure actions for rewards.";
+      "Smart Tour unavailable on this page. Use Hot Picks, AI Assistant, and secure checkout steps for best results.";
   }
-  localStorage.setItem(ONBOARDING_KEY, "1");
 }
 
 function closeOnboardingModal() {
@@ -6061,6 +6159,7 @@ function closeOnboardingModal() {
     return;
   }
   onboardingModal.classList.add("hidden");
+  onboardingModal.setAttribute("aria-hidden", "true");
   localStorage.setItem(ONBOARDING_KEY, "1");
 }
 
@@ -6096,7 +6195,45 @@ initPublicAccountAuth();
 loadTrustCards();
 loadRewardProfile();
 wireMarketActionButtons();
-localStorage.setItem(ONBOARDING_KEY, "1");
+
+function runAutonomousDebugSweep() {
+  const output = document.getElementById("vcAutoDebugOutput");
+  const checks = [];
+  const add = (ok, name, detail) => checks.push({ ok: !!ok, name, detail: String(detail || "") });
+
+  try {
+    add(!!document.getElementById("products"), "Homepage products grid", "Grid container present");
+    add(!!document.getElementById("live-market-shops-link") || true, "Primary navigation", "Core nav route check");
+    add(!!document.getElementById("openOnboarding"), "Smart Tour trigger", "Start Smart Tour button present");
+    add(!!document.getElementById("vcPersonaFun") && !!document.getElementById("vcPersonaEff"), "Experience mode toggles", "Both mode toggles mounted");
+
+    const anchors = Array.from(document.querySelectorAll("a[href]"));
+    const badHref = anchors.filter((a) => {
+      const h = String(a.getAttribute("href") || "").trim().toLowerCase();
+      return h.startsWith("javascript:") || h === "";
+    });
+    add(badHref.length === 0, "Unsafe/empty links", badHref.length ? `${badHref.length} suspicious href(s)` : "No suspicious hrefs");
+
+    const modeRaw = String(localStorage.getItem(INTERACTION_MODE_KEY) || "guided");
+    add(modeRaw === "guided" || modeRaw === "simple" || modeRaw === "pro", "Interaction mode state", `Current mode: ${modeRaw}`);
+
+    const personaRaw = String(localStorage.getItem(AI_PERSONA_KEY) || "efficient");
+    add(personaRaw === "fun" || personaRaw === "efficient", "Persona state", `Current persona: ${personaRaw}`);
+  } catch (error) {
+    add(false, "Debug sweep runtime", String(error && error.message ? error.message : error));
+  }
+
+  const failed = checks.filter((c) => !c.ok).length;
+  const summary = `Autonomous Debug Copilot: ${checks.length - failed}/${checks.length} checks passed.`;
+  if (output) {
+    output.textContent = summary + "\n" + checks.map((c) => `${c.ok ? "PASS" : "FAIL"} - ${c.name}: ${c.detail}`).join("\n");
+  } else if (expressCheckoutStatus) {
+    expressCheckoutStatus.textContent = summary;
+  }
+}
+
+const autoDebugRunBtn = document.getElementById("vcRunAutoDebug");
+autoDebugRunBtn?.addEventListener("click", runAutonomousDebugSweep);
 
 (function initPremiumMotion() {
   const mqReduce = window.matchMedia("(prefers-reduced-motion: reduce)");

@@ -16,7 +16,8 @@ const {
   registerMobileInstallPush,
   recordMobileAppFeedback,
   registerDeviceToken,
-  sendOrderUpdateNotifications
+  sendOrderUpdateNotifications,
+  sendPushToUser
 } = require("./push-notification-service");
 const {
   createServiceProvider,
@@ -214,6 +215,9 @@ const analyticsVisitHits = new Map();
 const hotPicksAiHits = new Map();
 const HOT_PICKS_AI_WINDOW_MS = 60 * 60 * 1000;
 const HOT_PICKS_AI_MAX = 20;
+const coachWorkspaceAiHits = new Map();
+const COACH_WORKSPACE_AI_WINDOW_MS = 60 * 60 * 1000;
+const COACH_WORKSPACE_AI_MAX = 32;
 const loginHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 /** Mutating requests only (GET/HEAD/OPTIONS are not counted). */
@@ -369,6 +373,19 @@ function isHotPicksAiRateLimited(ip) {
   item.count += 1;
   hotPicksAiHits.set(key, item);
   return item.count > HOT_PICKS_AI_MAX;
+}
+
+function isCoachWorkspaceAiRateLimited(ip) {
+  const key = String(ip || "unknown").slice(0, 80);
+  const now = Date.now();
+  const item = coachWorkspaceAiHits.get(key) || { count: 0, start: now };
+  if (now - item.start > COACH_WORKSPACE_AI_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  coachWorkspaceAiHits.set(key, item);
+  return item.count > COACH_WORKSPACE_AI_MAX;
 }
 
 function loginRateKey(ip, email) {
@@ -1077,6 +1094,42 @@ async function ensureOwnerMessageCenterTable() {
     )`
   );
   ownerMessageCenterTableReady = true;
+}
+
+async function recordOwnerDecisionForMessageCenter(pool, ownerAuthId, messageText, messageType = "urgent") {
+  const oid = Number(ownerAuthId || 0);
+  if (!oid) {
+    return;
+  }
+  const text = String(messageText || "").trim().slice(0, 600);
+  if (!text) {
+    return;
+  }
+  try {
+    await ensureOwnerMessageCenterTable();
+  } catch {
+    return;
+  }
+  const typeRaw = String(messageType || "urgent").trim().toLowerCase();
+  const type = typeRaw === "request" || typeRaw === "urgent" ? typeRaw : "system";
+  await pool.execute(
+    `INSERT INTO owner_message_center (owner_auth_id, message_type, message_text) VALUES (?, ?, ?)`,
+    [oid, type, text]
+  );
+  const pushUid = Number(String(process.env.OWNER_NOTIFICATION_USER_ID || "").trim() || 0);
+  if (pushUid > 0) {
+    try {
+      await sendPushToUser(pool, {
+        userId: pushUid,
+        title: "VibeCart: your decision",
+        message: text,
+        deepLink: "vibecart://admin-messages",
+        eventType: "owner_decision"
+      });
+    } catch (err) {
+      console.error("Owner decision push failed:", err.message || err);
+    }
+  }
 }
 
 let publicUserPreferencesTableReady = false;
@@ -2416,12 +2469,18 @@ async function handlePublicAiGenerate(req, res) {
     return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
   }
   const agent = String(body.agent || "").trim();
-  const allowed = new Set(["coach_matcher", "seller_growth_plan", "vibecoach_tip", "hot_picks_trends"]);
+  const allowed = new Set([
+    "coach_matcher",
+    "coach_workspace_plan",
+    "seller_growth_plan",
+    "vibecoach_tip",
+    "hot_picks_trends"
+  ]);
   if (!allowed.has(agent)) {
     return sendJson(res, 400, { ok: false, code: "INVALID_AGENT" });
   }
+  const ip = getIp(req);
   if (agent === "hot_picks_trends") {
-    const ip = getIp(req);
     if (isHotPicksAiRateLimited(ip)) {
       return sendJson(res, 429, {
         ok: false,
@@ -2430,10 +2489,23 @@ async function handlePublicAiGenerate(req, res) {
       });
     }
   }
+  if (agent === "coach_workspace_plan") {
+    if (isCoachWorkspaceAiRateLimited(ip)) {
+      return sendJson(res, 429, {
+        ok: false,
+        code: "RATE_LIMITED",
+        message: "Plan workspace AI is temporarily limited for this network. Try again shortly or use the on-page template."
+      });
+    }
+  }
   const result = await runPublicGenerativeAgent(agent, body.input || {});
   if (!result.ok) {
     const status =
-      result.code === "OPENAI_NOT_CONFIGURED" ? 503 : result.code === "INVALID_AGENT" || result.code === "AI_PARSE_ERROR" ? 400 : 502;
+      result.code === "OPENAI_NOT_CONFIGURED"
+        ? 503
+        : result.code === "INVALID_AGENT" || result.code === "AI_PARSE_ERROR" || result.code === "INVALID_INPUT"
+          ? 400
+          : 502;
     return sendJson(res, status, result);
   }
   return sendJson(res, 200, { ok: true, agent, result });
@@ -3058,6 +3130,12 @@ async function handleOwnerBarterMatchDecision(req, res) {
     `Owner notes: ${data.body?.ownerNotes || "none"}`,
     `Timestamp: ${new Date().toISOString()}`
   ]);
+  await recordOwnerDecisionForMessageCenter(
+    pool,
+    data.session.owner_auth_id,
+    `Barter match #${data.body?.matchId || "?"}: ${data.body?.decision || "n/a"}. Notes: ${data.body?.ownerNotes || "none"}`.slice(0, 600),
+    "urgent"
+  );
   return sendJson(res, 200, result);
 }
 
@@ -3143,6 +3221,12 @@ async function handleOwnerCrowdfundingDecision(req, res) {
     `Owner notes: ${data.body?.ownerNotes || "none"}`,
     `Timestamp: ${new Date().toISOString()}`
   ]);
+  await recordOwnerDecisionForMessageCenter(
+    pool,
+    data.session.owner_auth_id,
+    `Crowdfunding campaign #${data.body?.campaignId || "?"}: ${data.body?.decision || "n/a"}. Notes: ${data.body?.ownerNotes || "none"}`.slice(0, 600),
+    "urgent"
+  );
   return sendJson(res, 200, result);
 }
 
@@ -3189,6 +3273,12 @@ async function handleOwnerAiOperationsDecide(req, res) {
     `Owner notes: ${data.body?.ownerNotes || "none"}`,
     `Timestamp: ${new Date().toISOString()}`
   ]);
+  await recordOwnerDecisionForMessageCenter(
+    pool,
+    data.session.owner_auth_id,
+    `AI operation #${data.body?.operationId || "?"}: ${data.body?.decision || "n/a"}. Notes: ${data.body?.ownerNotes || "none"}`.slice(0, 600),
+    "urgent"
+  );
   return sendJson(res, 200, result);
 }
 
@@ -3855,7 +3945,9 @@ async function handlePublicCheckoutStart(req, res) {
       plan,
       addonPlan: addonPlan || "",
       selectedMethod: method || "card",
-      route: "all-methods-to-stripe"
+      route: "all-methods-to-stripe",
+      vibecart_user_id: String(Number(session.user_id) || ""),
+      userId: String(Number(session.user_id) || "")
     }
   });
   return sendJson(res, 200, {
@@ -3947,7 +4039,9 @@ async function handlePublicCheckoutRedirect(req, res) {
       plan,
       addonPlan: addonPlan || "",
       selectedMethod: method || "card",
-      route: "all-methods-to-stripe"
+      route: "all-methods-to-stripe",
+      vibecart_user_id: String(Number(session.user_id) || ""),
+      userId: String(Number(session.user_id) || "")
     }
   });
   res.statusCode = 302;
@@ -3989,8 +4083,10 @@ async function handleStripeWebhook(req, res) {
     await sendAdminNotificationEmail("Payment webhook processed", [
       `Event: ${event.type}`,
       `Order ID: ${processed.orderId || "n/a"}`,
+      `User ID: ${processed.userId != null ? processed.userId : "n/a"}`,
       `Result status: ${processed.status || "n/a"}`,
       `Provider reference: ${processed.providerReference || "n/a"}`,
+      `Features granted: ${processed.featureCount != null ? processed.featureCount : "n/a"}`,
       `Timestamp: ${new Date().toISOString()}`
     ]);
   }

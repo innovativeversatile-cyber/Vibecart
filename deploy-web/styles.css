@@ -4530,6 +4530,96 @@ body.vc-vip-mode .vc-top-class-shell {
   max-height: min(70vh, 560px);
 }
 
+.install-pwa-section {
+  max-width: 720px;
+  margin: 1.25rem auto 2rem;
+}
+
+.install-ios-steps {
+  margin: 0.75rem 0 0;
+  padding-left: 1.35rem;
+  line-height: 1.55;
+  color: var(--text, #e8ecff);
+}
+
+.install-ios-steps li {
+  margin-bottom: 0.45rem;
+}
+
+.admin-msg-status {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(20, 28, 54, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.88rem;
+  min-height: 2.5rem;
+}
+
+.admin-msg-status.msg-status--error {
+  border-color: rgba(255, 92, 118, 0.55);
+  background: rgba(56, 18, 27, 0.55);
+}
+
+.admin-message-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.admin-message-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 18, 36, 0.9);
+}
+
+.admin-message-time {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.message-page .admin-message-actions {
+  margin-top: 0.55rem;
+  justify-content: flex-start;
+}
+
+.message-page .admin-message-actions .btn {
+  min-height: 40px;
+  padding: 0.35rem 0.65rem;
+}
+
+.message-page .admin-message-item {
+  cursor: default;
+}
+
+.message-page .admin-message-item .admin-message-body {
+  cursor: text;
+  user-select: text;
+}
+
+.message-page textarea#msgInput {
+  width: 100%;
+  min-height: 4.5rem;
+  border-radius: 10px;
+  border: 1px solid #2a3459;
+  background: #121b34;
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
 /* Keep admin pages lightweight and stable on mobile. */
 body.admin-surface {
   background: #0d1224;

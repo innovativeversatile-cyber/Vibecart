@@ -186,6 +186,38 @@ const WEARABLE_PREF_KEY = "vibecart-wearable-prefs";
 const COACH_ENTITLEMENTS_CACHE_KEY = "vibecart-coach-entitlements-v1";
 const COACH_AUTO_RENEW_KEY = "vibecart-coach-auto-renew-v1";
 const PREMIUM_AUTO_RENEW_KEY = "vibecart-premium-auto-renew-v1";
+/** Stripe wellbeing checkout coach tiers → same feature keys as `safety-wellness-service` plans (client overlay). */
+const STRIPE_COACH_FEATURE_PACKS = {
+  starter: ["coach_profile_basic", "coach_dashboard", "checkin_basic", "wearable_basic"],
+  "ai-home": [
+    "coach_profile_basic",
+    "coach_dashboard",
+    "checkin_basic",
+    "wearable_basic",
+    "checkin_unlimited",
+    "custom_plan_monthly"
+  ],
+  plus: [
+    "coach_profile_basic",
+    "coach_dashboard",
+    "checkin_basic",
+    "wearable_basic",
+    "checkin_unlimited",
+    "wearable_advanced",
+    "custom_plan_monthly"
+  ],
+  pro: [
+    "coach_profile_basic",
+    "coach_dashboard",
+    "checkin_basic",
+    "wearable_basic",
+    "checkin_unlimited",
+    "wearable_advanced",
+    "custom_plan_monthly",
+    "deep_analysis_report",
+    "priority_human_review"
+  ]
+};
 let coachMonetizationState = null;
 let coachEntitlements = new Set();
 const BRIDGE_JUMP_ALLOW_KEY = "vibecart-allow-bridge-jump-once";
@@ -5394,12 +5426,50 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-function rememberCoachEntitlements(entitlements) {
-  coachEntitlements = new Set(
-    (Array.isArray(entitlements) ? entitlements : [])
+function normalizeStripeCoachPlanToken(plan) {
+  const p = String(plan || "").trim().toLowerCase();
+  if (p === "pro" || p === "plus" || p === "ai-home" || p === "starter") {
+    return p;
+  }
+  return "";
+}
+
+function stripeCheckoutCoachFeatureKeys() {
+  const keys = new Set();
+  let paid = [];
+  try {
+    paid = JSON.parse(localStorage.getItem("vibecart-paid-plans") || "[]");
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(paid)) {
+    return [];
+  }
+  paid.forEach((row) => {
+    if (String((row && row.flow) || "").toLowerCase() !== "coach") {
+      return;
+    }
+    const id = normalizeStripeCoachPlanToken(row.plan);
+    const pack = id ? STRIPE_COACH_FEATURE_PACKS[id] : null;
+    if (pack) {
+      pack.forEach((k) => keys.add(k));
+    }
+  });
+  return Array.from(keys);
+}
+
+function mergeCoachEntitlementsWithStripeCheckout(baseList) {
+  const merged = new Set(
+    (Array.isArray(baseList) ? baseList : [])
       .map((item) => String(item || "").trim().toLowerCase())
       .filter(Boolean)
   );
+  stripeCheckoutCoachFeatureKeys().forEach((k) => merged.add(k));
+  return Array.from(merged).sort();
+}
+
+function rememberCoachEntitlements(entitlements) {
+  coachEntitlements = new Set(mergeCoachEntitlementsWithStripeCheckout(Array.isArray(entitlements) ? entitlements : []));
   try {
     localStorage.setItem(COACH_ENTITLEMENTS_CACHE_KEY, JSON.stringify(Array.from(coachEntitlements)));
   } catch {

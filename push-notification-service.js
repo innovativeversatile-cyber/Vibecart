@@ -134,13 +134,78 @@ async function markNotificationFailed(db, eventId, errorMessage) {
 }
 
 async function sendViaProvider(tokens, title, message, deepLink) {
-  // Stub integration: replace with Expo/FCM/APNs call.
-  // Return shape should include provider message IDs.
-  return tokens.map((token) => ({
-    token,
-    success: true,
-    providerMessageId: `mock-${Date.now()}`
-  }));
+  const list = Array.isArray(tokens) ? tokens : [];
+  const fcmKey = String(process.env.FCM_SERVER_KEY || "").trim();
+  if (!fcmKey || !list.length) {
+    return list.map((token) => ({
+      token,
+      success: false,
+      providerMessageId: null
+    }));
+  }
+  const results = [];
+  for (const token of list) {
+    const t = String(token || "").trim();
+    if (!t) {
+      continue;
+    }
+    try {
+      const res = await fetch("https://fcm.googleapis.com/fcm/send", {
+        method: "POST",
+        headers: {
+          Authorization: `key=${fcmKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          to: t,
+          notification: { title: String(title || "").slice(0, 120), body: String(message || "").slice(0, 500) },
+          data: deepLink ? { url: String(deepLink).slice(0, 512) } : {}
+        })
+      });
+      const body = await res.json().catch(() => ({}));
+      const ok = res.ok && Number(body.success || 0) >= 1;
+      results.push({
+        token: t,
+        success: ok,
+        providerMessageId: body.message_id ? String(body.message_id) : body.multicast_id != null ? String(body.multicast_id) : null
+      });
+    } catch {
+      results.push({ token: t, success: false, providerMessageId: null });
+    }
+  }
+  return results;
+}
+
+/**
+ * Sends a push to every active device token for a public `users.id` (owner phone when that user registers the app).
+ * Requires `FCM_SERVER_KEY` (Firebase Cloud Messaging legacy server key) in the Railway environment.
+ */
+async function sendPushToUser(db, opts) {
+  const userId = Number(opts.userId || 0);
+  const title = String(opts.title || "VibeCart").trim().slice(0, 120);
+  const message = String(opts.message || "").trim().slice(0, 500);
+  const deepLink = String(opts.deepLink || "vibecart://").trim().slice(0, 512);
+  const eventType = String(opts.eventType || "owner_alert").trim().slice(0, 64);
+  if (!userId) {
+    return { ok: false, code: "MISSING_USER_ID" };
+  }
+  const tokens = await getActiveTokensByUser(db, userId);
+  if (!tokens.length) {
+    return { ok: true, skipped: true, reason: "no_device_tokens" };
+  }
+  const eventId = await logNotificationEvent(db, userId, eventType, title, message, deepLink);
+  try {
+    const results = await sendViaProvider(tokens, title, message, deepLink);
+    const anySent = results.some((item) => item.success);
+    if (anySent) {
+      await markNotificationSent(db, eventId, results.find((r) => r.success)?.providerMessageId || null);
+    } else {
+      await markNotificationFailed(db, eventId, "push_provider_failed_or_fcm_not_configured");
+    }
+  } catch (error) {
+    await markNotificationFailed(db, eventId, String(error.message || error));
+  }
+  return { ok: true, eventId };
 }
 
 async function sendOrderUpdateNotifications(db, payload) {
@@ -186,5 +251,6 @@ module.exports = {
   registerMobileInstallPush,
   recordMobileAppFeedback,
   registerDeviceToken,
-  sendOrderUpdateNotifications
+  sendOrderUpdateNotifications,
+  sendPushToUser
 };

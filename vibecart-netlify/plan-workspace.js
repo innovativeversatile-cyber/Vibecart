@@ -331,41 +331,100 @@
 
   function renderAutoPlan(params, profile, out, list, planStatus, ownedPlans) {
     var routine = buildRoutine(profile, params.flow, ownedPlans);
-    if (out) {
-      out.textContent = routine;
-    }
     var notifications = buildNotifications(params.flow, ownedPlans);
-    if (list) {
-      list.innerHTML = "";
-      notifications.forEach(function (msg) {
-        var li = document.createElement("li");
-        li.textContent = msg;
-        list.appendChild(li);
+
+    function commitPlan(r, n, sourceTag) {
+      if (out) {
+        out.textContent = r;
+      }
+      if (list) {
+        list.innerHTML = "";
+        n.forEach(function (msg) {
+          var li = document.createElement("li");
+          li.textContent = msg;
+          list.appendChild(li);
+        });
+      }
+      saveActivePlan({
+        flow: params.flow,
+        plan: params.plan,
+        addonPlan: params.addonPlan || "",
+        ownedPlans: ownedPlans,
+        provider: params.provider,
+        sessionId: params.sessionId,
+        routine: r,
+        notifications: n,
+        profile: profile,
+        updatedAt: new Date().toISOString(),
+        contentSource: sourceTag || "template"
       });
+      try {
+        localStorage.setItem("vibecart-active-plan-profile", JSON.stringify(profile));
+      } catch {
+        /* ignore */
+      }
+      if (planStatus) {
+        planStatus.textContent =
+          sourceTag === "generative"
+            ? "Generative AI plan loaded. Refine fields above and tap Refine to regenerate."
+            : "AI plan is activated. All purchased package benefits are unlocked.";
+      }
     }
-    saveActivePlan({
-      flow: params.flow,
-      plan: params.plan,
-      addonPlan: params.addonPlan || "",
-      ownedPlans: ownedPlans,
-      provider: params.provider,
-      sessionId: params.sessionId,
-      routine: routine,
-      notifications: notifications,
-      profile: profile,
-      updatedAt: new Date().toISOString()
-    });
-    try {
-      localStorage.setItem("vibecart-active-plan-profile", JSON.stringify(profile));
-    } catch {
-      /* ignore */
+
+    commitPlan(routine, notifications, "template");
+
+    var canCallAi =
+      params.flow === "coach" &&
+      typeof window.vibecartAiGenerate === "function" &&
+      Array.isArray(ownedPlans) &&
+      ownedPlans.length > 0;
+
+    function pushFirstLine(lines) {
+      if (lines && lines.length > 0) {
+        pushNotifyNow("VibeCart Coach", lines[0]);
+      }
     }
-    if (notifications.length > 0) {
-      pushNotifyNow("VibeCart Coach", notifications[0]);
+
+    if (!canCallAi) {
+      pushFirstLine(notifications);
+      return;
     }
-    if (planStatus) {
-      planStatus.textContent = "AI plan is activated. All purchased package benefits are unlocked.";
-    }
+
+    window
+      .vibecartAiGenerate("coach_workspace_plan", {
+        flow: params.flow,
+        ownedPlans: ownedPlans,
+        profile: {
+          goal: profile.goal || "",
+          diet: profile.diet || "",
+          activity: profile.activity || "",
+          wake: profile.wake || "",
+          notes: profile.notes || ""
+        }
+      })
+      .then(function (ai) {
+        if (!ai) {
+          pushFirstLine(notifications);
+          return;
+        }
+        var r = String(ai.routine || "").trim();
+        var n = Array.isArray(ai.notifications)
+          ? ai.notifications
+              .map(function (x) {
+                return String(x || "").trim();
+              })
+              .filter(Boolean)
+          : [];
+        if (r.length < 80 || n.length < 4) {
+          pushFirstLine(notifications);
+          return;
+        }
+        commitPlan(r, n, "generative");
+        pushFirstLine(n);
+      })
+      .catch(function () {
+        pushFirstLine(notifications);
+      });
   }
 
   function saveActivePlan(payload) {

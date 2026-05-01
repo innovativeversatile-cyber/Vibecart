@@ -2,10 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#120a1a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="VibeCart Messages" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png" />
+    <link rel="apple-touch-icon" href="./icon-180.png" />
     <title>VibeCart Admin Messages</title>
-    <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+    <link rel="stylesheet" href="./styles.css?v=20260501msg2" />
   </head>
   <body class="admin-surface">
     <header class="topbar">
@@ -18,28 +25,37 @@
       </nav>
     </header>
     <main class="message-page section alt">
-      <h1>Message Center</h1>
-      <p class="note">Important updates, requests, and urgent notices appear here.</p>
+      <h1>Message center</h1>
+      <p class="note">
+        Cloud inbox: messages sync to the database when you are signed in. If you see “cached only”, fix API base URL
+        on the main admin login (same origin as this site is best).
+      </p>
+      <div id="msgStatus" class="admin-msg-status" role="status" aria-live="polite"></div>
       <div class="message-page-actions">
+        <button id="msgRefresh" type="button" class="btn btn-secondary">Refresh</button>
         <button id="msgTabAll" type="button" class="btn btn-secondary">All</button>
         <button id="msgTabUnread" type="button" class="btn btn-secondary">Unread</button>
         <button id="msgTabUrgent" type="button" class="btn btn-secondary">Urgent</button>
         <button id="msgTabRequest" type="button" class="btn btn-secondary">Requests</button>
       </div>
-      <div class="message-page-actions">
+      <div class="message-page-actions admin-message-compose">
+        <label class="note" for="msgType" style="width: 100%">Type</label>
         <select id="msgType">
-          <option value="request">request</option>
-          <option value="urgent">urgent</option>
-          <option value="system">system</option>
+          <option value="request">Request</option>
+          <option value="urgent">Urgent</option>
+          <option value="system">System</option>
         </select>
-        <input id="msgInput" type="text" placeholder="Add update, request, or reminder..." />
-        <button id="msgAdd" type="button" class="btn btn-primary">Add</button>
-        <button id="msgMarkRead" type="button" class="btn btn-secondary">Mark All Read</button>
-        <button id="msgClear" type="button" class="btn btn-secondary">Clear All</button>
+        <label class="note" for="msgInput" style="width: 100%">Message</label>
+        <textarea id="msgInput" rows="4" placeholder="Write an update, request, or reminder for your team…"></textarea>
+        <div class="hero-actions" style="margin-top: 0.35rem">
+          <button id="msgAdd" type="button" class="btn btn-primary">Send message</button>
+          <button id="msgMarkRead" type="button" class="btn btn-secondary">Mark all read</button>
+          <button id="msgClear" type="button" class="btn btn-secondary">Clear all…</button>
+        </div>
       </div>
       <div id="msgList" class="admin-message-list"></div>
     </main>
-    <script src="./admin-messages.js?v=20260426msg1"></script>
+    <script src="./admin-messages.js?v=20260501msg2"></script>
     <script src="./nav-autohide-global.js?v=20260429navglobal2" defer></script>
   </body>
 </html>

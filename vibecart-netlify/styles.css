@@ -2347,9 +2347,7 @@ body.vc-hardpass-immersive .hero-left-card {
 
 /* Hard-pass Wave 3: offer explain note */
 .vc-hardpass-offer-explain {
-  margin: 0.55rem 0 0;
-  font-size: 0.82rem;
-  color: rgba(217, 230, 255, 0.86);
+  display: none !important;
 }
 
 .vc-hardpass-promo-explain {
@@ -4532,6 +4530,96 @@ body.vc-vip-mode .vc-top-class-shell {
   max-height: min(70vh, 560px);
 }
 
+.install-pwa-section {
+  max-width: 720px;
+  margin: 1.25rem auto 2rem;
+}
+
+.install-ios-steps {
+  margin: 0.75rem 0 0;
+  padding-left: 1.35rem;
+  line-height: 1.55;
+  color: var(--text, #e8ecff);
+}
+
+.install-ios-steps li {
+  margin-bottom: 0.45rem;
+}
+
+.admin-msg-status {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(20, 28, 54, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.88rem;
+  min-height: 2.5rem;
+}
+
+.admin-msg-status.msg-status--error {
+  border-color: rgba(255, 92, 118, 0.55);
+  background: rgba(56, 18, 27, 0.55);
+}
+
+.admin-message-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
+.admin-message-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 18, 36, 0.9);
+}
+
+.admin-message-time {
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.message-page .admin-message-actions {
+  margin-top: 0.55rem;
+  justify-content: flex-start;
+}
+
+.message-page .admin-message-actions .btn {
+  min-height: 40px;
+  padding: 0.35rem 0.65rem;
+}
+
+.message-page .admin-message-item {
+  cursor: default;
+}
+
+.message-page .admin-message-item .admin-message-body {
+  cursor: text;
+  user-select: text;
+}
+
+.message-page textarea#msgInput {
+  width: 100%;
+  min-height: 4.5rem;
+  border-radius: 10px;
+  border: 1px solid #2a3459;
+  background: #121b34;
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
 /* Keep admin pages lightweight and stable on mobile. */
 body.admin-surface {
   background: #0d1224;
@@ -6172,7 +6260,7 @@ html.vc-vibe-neon body {
   position: fixed;
   left: 10px;
   right: 10px;
-  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 30px);
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 16px);
   z-index: 131;
   display: flex;
   gap: 0.35rem;
@@ -6193,6 +6281,11 @@ html.vc-vibe-neon body {
   padding: 0.34rem 0.58rem;
   font-size: 0.74rem;
   white-space: nowrap;
+}
+
+html.vc-arrange-on .vc-first5-bar {
+  width: max-content;
+  max-width: calc(100vw - 20px);
 }
 
 .vc-mission-hud {
@@ -6578,7 +6671,7 @@ body.vc-interaction-simple #seller-marketing {
 @media (max-width: 390px) {
   .vc-first5-bar {
     gap: 0.28rem;
-    bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 24px);
+    bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 22px);
   }
 
   .vc-first5-pill {
@@ -9075,6 +9168,14 @@ html.vc-phone:not(.vc-motion-rich) body {
   filter: none !important;
 }
 
+html.vc-wow-path-on .hero {
+  box-shadow: 0 0 0 1px rgba(12, 214, 255, 0.28), 0 24px 70px rgba(8, 18, 44, 0.42);
+}
+
+html.vc-wow-path-on .badge {
+  letter-spacing: 0.04em;
+}
+
 /* Rich: bring motion back, but keep WebView-safe compositing defaults on the hero field. */
 @media (max-width: 1024px) {
   html.vc-mobile-app.vc-motion-rich .hero,
@@ -9108,7 +9209,7 @@ html.vc-phone:not(.vc-motion-rich) body {
 .vc-motion-mode-btn {
   position: fixed;
   left: 12px;
-  top: var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px));
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 126px);
   z-index: 132;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
@@ -9121,7 +9222,7 @@ html.vc-phone:not(.vc-motion-rich) body {
 .vc-arrange-hud {
   position: fixed;
   left: 12px;
-  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 38px);
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 162px);
   z-index: 132;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 999px;
@@ -9134,7 +9235,7 @@ html.vc-phone:not(.vc-motion-rich) body {
 .vc-arrange-reset-hud {
   position: fixed;
   left: 12px;
-  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 74px);
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 198px);
   z-index: 132;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;

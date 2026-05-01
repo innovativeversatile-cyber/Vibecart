@@ -9,6 +9,54 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+/** Production hosts (or explicit localStorage vibecart-strict-live-v1=1) disable synthetic admin fallbacks. Set vibecart-strict-live-v1=0 to opt out on those hosts. */
+function isVibecartAdminStrictLiveMode() {
+  try {
+    const flag = String(window.localStorage?.getItem("vibecart-strict-live-v1") || "").trim();
+    if (flag === "0" || flag === "false") {
+      return false;
+    }
+    if (flag === "1" || flag === "true") {
+      return true;
+    }
+    const h = String(window.location.hostname || "").toLowerCase();
+    return h === "vibe-cart.com" || h === "www.vibe-cart.com";
+  } catch {
+    return false;
+  }
+}
+
+function safeResetAdminCachedReadings() {
+  try {
+    localStorage.removeItem(AFFILIATE_LINK_HEALTH_HISTORY_KEY);
+    localStorage.removeItem(AFFILIATE_ALERT_LAST_KEY);
+    localStorage.removeItem(AFFILIATE_LAST_CLICK_KEY);
+    localStorage.removeItem(HOMEPAGE_TRAFFIC_GROWTH_KEY);
+    localStorage.removeItem(AI_SUGGESTIONS_KEY);
+  } catch {
+    /* ignore */
+  }
+  affiliateRuntime.linkHealth = null;
+  affiliateRuntime.reconciliation = null;
+  affiliateRuntime.quickStats = null;
+  affiliateRuntime.ownerRevenue = null;
+}
+
+function refreshStrictLiveBanner() {
+  const el = document.getElementById("strictLiveBanner");
+  if (!el) {
+    return;
+  }
+  if (isVibecartAdminStrictLiveMode()) {
+    el.removeAttribute("hidden");
+    el.textContent =
+      "Live mode: AI Ops, coach metrics, and recommendations load only from the backend (no synthetic stand-ins). Configure OPENAI_API_KEY on Railway and FCM for phone alerts.";
+  } else {
+    el.setAttribute("hidden", "hidden");
+    el.textContent = "";
+  }
+}
+
 const STORAGE_KEY = "vibecart-site-settings";
 const AUTH_SESSION_KEY = "vibecart-owner-api-session";
 const AI_LINK_KEY = "vibecart-ai-link";
@@ -771,6 +819,7 @@ function showPanelUnlocked(message) {
   fillOwnerAuthForm();
   updateOwnerCommandDeck("Panel unlocked");
   setStatus(message);
+  refreshStrictLiveBanner();
 }
 
 function getSession() {
@@ -2132,7 +2181,12 @@ async function refreshAiOps() {
   let payload;
   try {
     payload = await authedPost("/api/ai-ops/list", {});
-  } catch {
+  } catch (err) {
+    if (isVibecartAdminStrictLiveMode()) {
+      renderAiOpsQueue([]);
+      setStatus(`Live mode: AI Ops queue unavailable (${String(err.message || err)}).`);
+      return;
+    }
     payload = getAiOpsFallback();
     setStatus("VibeAI Ops loaded in premium fallback mode.");
   }
@@ -2147,7 +2201,11 @@ async function generateAiOpsRecommendationsFromPanel() {
   let fallbackMode = false;
   try {
     payload = await authedPost("/api/ai-ops/recommendations", {});
-  } catch {
+  } catch (err) {
+    if (isVibecartAdminStrictLiveMode()) {
+      setStatus(`Live mode: generative recommendations failed (${String(err.message || err)}).`);
+      return;
+    }
     payload = getAiRecommendationsFallback();
     fallbackMode = true;
   }
@@ -2925,9 +2983,14 @@ async function refreshCoachMetrics() {
   let payload;
   try {
     payload = await authedPost("/api/coach/metrics/summary", {});
-  } catch {
-    payload = getCoachMetricsFallback();
-    setStatus("AI coach metrics loaded in smart fallback mode.");
+  } catch (err) {
+    if (isVibecartAdminStrictLiveMode()) {
+      payload = { summary: {} };
+      setStatus(`Live mode: coach metrics unavailable (${String(err.message || err)}).`);
+    } else {
+      payload = getCoachMetricsFallback();
+      setStatus("AI coach metrics loaded in smart fallback mode.");
+    }
   }
   const box = document.getElementById("coachMetricsBox");
   if (!box) {
@@ -3573,6 +3636,7 @@ function initializeOwnerSecurity() {
   fillDefaultOutreachFields();
   syncOutreachPartnerEmailFromSelect();
   setLiveMoneyDashboardState(localStorage.getItem(LIVE_MONEY_DASHBOARD_KEY) === "1");
+  refreshStrictLiveBanner();
   if (isSessionValid()) {
     showPanelUnlocked("Session restored.");
     refreshInsuranceJurisdictions().catch(() => {});
@@ -3719,6 +3783,24 @@ bindClick("runAffiliateFullAudit", () => {
 });
 bindClick("runAdminReadinessGate", () => {
   runAdminReadinessGate().catch((error) => setStatus(`Readiness gate failed: ${error.message}`));
+});
+bindClick("resetAdminCachedReadings", () => {
+  if (
+    !confirm(
+      "Clear cached affiliate link health, alert fingerprints, homepage growth snapshot, and AI suggestion cache? Your message centre history in the database is not deleted."
+    )
+  ) {
+    return;
+  }
+  safeResetAdminCachedReadings();
+  renderAffiliateLinkHealthTrend(getAffiliateLinkHealthHistory());
+  refreshStrictLiveBanner();
+  setStatus("Cached admin readings cleared. Use Refresh on each hub to pull live data.");
+});
+bindClick("clearStrictLiveOverride", () => {
+  localStorage.removeItem("vibecart-strict-live-v1");
+  refreshStrictLiveBanner();
+  setStatus("Strict-live override cleared. vibe-cart.com uses live rules; set localStorage vibecart-strict-live-v1=0 only if you intentionally need fallbacks on prod.");
 });
 bindClick("runCommissionReadiness", () => {
   updateCommissionReadinessChecklist();

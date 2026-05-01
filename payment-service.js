@@ -1,5 +1,7 @@
 "use strict";
 
+const { fulfillStripeCoachCheckoutSession } = require("./safety-wellness-service");
+
 function toNum(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -460,6 +462,10 @@ async function handleStripeChargeRefunded(pool, charge) {
 async function processStripeWebhookEvent(pool, event) {
   if (!event || !event.type) {
     return { ok: false, code: "INVALID_WEBHOOK_EVENT" };
+  }
+  if (event.type === "checkout.session.completed") {
+    const session = event.data?.object || {};
+    return fulfillStripeCoachCheckoutSession(pool, session);
   }
   if (event.type === "payment_intent.succeeded") {
     return handleStripePaymentIntentSucceeded(pool, event.data?.object || {});

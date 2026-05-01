@@ -117,6 +117,105 @@ async function generateCoachMatcherAdvice(input) {
   };
 }
 
+const COACH_WORKSPACE_VALID_PLANS = new Set(["starter", "ai-home", "plus", "pro"]);
+
+async function generateCoachWorkspacePlanLLM(input) {
+  if (!isGenerativeAiConfigured()) {
+    return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
+  }
+  const flow = String(input.flow || "coach").toLowerCase() === "insurance" ? "insurance" : "coach";
+  const rawPlans = Array.isArray(input.ownedPlans) ? input.ownedPlans : [];
+  const ownedPlans = [];
+  for (const p of rawPlans) {
+    const id = String(p || "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 24);
+    if (id && !ownedPlans.includes(id)) {
+      ownedPlans.push(id);
+    }
+    if (ownedPlans.length >= 8) {
+      break;
+    }
+  }
+  if (flow === "coach") {
+    const normalized = ownedPlans.filter((id) => COACH_WORKSPACE_VALID_PLANS.has(id));
+    if (!normalized.length) {
+      return { ok: false, code: "INVALID_INPUT", message: "ownedPlans must include a coach package id." };
+    }
+    ownedPlans.length = 0;
+    normalized.forEach((id) => ownedPlans.push(id));
+  } else if (!ownedPlans.length) {
+    return { ok: false, code: "INVALID_INPUT", message: "ownedPlans required." };
+  }
+  const profile = {
+    goal: String(input.profile?.goal || "").trim().slice(0, 280),
+    diet: String(input.profile?.diet || "").trim().slice(0, 120),
+    activity: String(input.profile?.activity || "medium").trim().slice(0, 40),
+    wake: String(input.profile?.wake || "").trim().slice(0, 120),
+    notes: String(input.profile?.notes || "").trim().slice(0, 400)
+  };
+  let capsHint = "";
+  if (flow === "insurance") {
+    capsHint =
+      "Insurance wellness workspace: preventive habits and compliance-style reminders only. " +
+      "Do not interpret coverage or give legal/medical advice.";
+  } else {
+    const hasMeals = ownedPlans.includes("plus") || ownedPlans.includes("pro");
+    const hasHome = ownedPlans.includes("ai-home");
+    capsHint =
+      `Active coach product ids: ${ownedPlans.join(", ")}. ` +
+      (hasMeals
+        ? "Plus or Pro is active: include practical meal-prep and nutrition habit lines (no prescriptions, no medical dosing). "
+        : "No Plus/Pro: keep food guidance to general habits only (no detailed meal plans). ") +
+      (hasHome ? "AI Home is active: emphasize no-equipment home sessions and daily adaptability. " : "") +
+      "Always frame the AI as an accountability and planning assistant, not a clinician.";
+  }
+  const system =
+    "You write post-checkout wellness workspace copy for VibeCart. " +
+    "Strict rules: NOT medical advice — no diagnoses, treatments, prescriptions, or claims to cure conditions. " +
+    "If user notes mention conditions, add one line urging them to follow their clinician's guidance. " +
+    `${capsHint}` +
+    " Output ONLY JSON (no markdown): " +
+    '{"routine":"multi-line text where each logical line is separated by \\\\n (between 10 and 20 lines)","notifications":["...","..."]} ' +
+    "routine: structured day plan + accountability tone. notifications: exactly 6 short strings suitable as mobile reminders (max 120 chars each).";
+  const user = JSON.stringify({ flow, ownedPlans, profile });
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    1400
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  let routine = String(parsed?.routine || "").trim();
+  if (!routine && typeof parsed?.routineLines !== "undefined") {
+    const lines = Array.isArray(parsed.routineLines) ? parsed.routineLines : [];
+    routine = lines
+      .map((x) => String(x || "").trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+  const notificationsIn = Array.isArray(parsed?.notifications) ? parsed.notifications : [];
+  const notifications = notificationsIn
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .map((x) => x.slice(0, 200))
+    .slice(0, 8);
+  if (routine.length < 80 || notifications.length < 4) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  return {
+    ok: true,
+    routine: routine.slice(0, 12000),
+    notifications,
+    model: r.model
+  };
+}
+
 async function generateSellerGrowthPlanLLM(input) {
   const niche = String(input.niche || "general goods").slice(0, 200);
   const region = String(input.region || "your core region").slice(0, 120);
@@ -293,6 +392,9 @@ async function runPublicGenerativeAgent(agent, input) {
   if (agent === "coach_matcher") {
     return generateCoachMatcherAdvice(input || {});
   }
+  if (agent === "coach_workspace_plan") {
+    return generateCoachWorkspacePlanLLM(input || {});
+  }
   if (agent === "seller_growth_plan") {
     return generateSellerGrowthPlanLLM(input || {});
   }
@@ -425,6 +527,7 @@ async function runOwnerGenerativeAgent(agent, input) {
 module.exports = {
   isGenerativeAiConfigured,
   generateCoachMatcherAdvice,
+  generateCoachWorkspacePlanLLM,
   generateSellerGrowthPlanLLM,
   generateVibecoachTipLLM,
   generateHotPicksTrendSlidesLLM,

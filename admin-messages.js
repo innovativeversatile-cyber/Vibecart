@@ -21,6 +21,8 @@
   const addBtn = document.getElementById("msgAdd");
   const markReadBtn = document.getElementById("msgMarkRead");
   const clearBtn = document.getElementById("msgClear");
+  const refreshBtn = document.getElementById("msgRefresh");
+  const statusEl = document.getElementById("msgStatus");
   const tabAll = document.getElementById("msgTabAll");
   const tabUnread = document.getElementById("msgTabUnread");
   const tabUrgent = document.getElementById("msgTabUrgent");
@@ -29,32 +31,78 @@
   let items = [];
   let usingLocalFallback = false;
 
+  function setStatus(text, isError) {
+    if (!statusEl) {
+      return;
+    }
+    statusEl.textContent = String(text || "").trim() || " ";
+    statusEl.classList.toggle("msg-status--error", Boolean(isError));
+  }
+
   function nextLocalId() {
     return `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   }
 
+  function formatRelativeTime(ms) {
+    const t = Number(ms) || 0;
+    if (!t) {
+      return "";
+    }
+    const diff = Date.now() - t;
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) {
+      return "just now";
+    }
+    const min = Math.floor(sec / 60);
+    if (min < 60) {
+      return `${min}m ago`;
+    }
+    const hr = Math.floor(min / 60);
+    if (hr < 48) {
+      return `${hr}h ago`;
+    }
+    const day = Math.floor(hr / 24);
+    if (day < 14) {
+      return `${day}d ago`;
+    }
+    try {
+      return new Date(t).toLocaleString();
+    } catch {
+      return "";
+    }
+  }
+
   function normalizeItems(rawItems) {
     const legacyReadAt = Number(localStorage.getItem(LEGACY_READ_AT_KEY) || "0");
-    return (Array.isArray(rawItems) ? rawItems : []).map((item) => {
-      const type = String(item?.type || item?.message_type || "system").toLowerCase();
+    return (Array.isArray(rawItems) ? rawItems : []).map(function (item) {
+      const typeNorm = String(item?.type || item?.message_type || "system").toLowerCase();
       const createdAtMs =
         Number(item?.createdAtMs || 0) ||
         Number(new Date(item?.createdAt || item?.created_at || 0).getTime() || 0) ||
         Date.now();
-      const readAt = item?.readAt || item?.read_at || (legacyReadAt > 0 && createdAtMs <= legacyReadAt ? new Date(legacyReadAt).toISOString() : null);
+      const readAt =
+        item?.readAt ||
+        item?.read_at ||
+        (legacyReadAt > 0 && createdAtMs <= legacyReadAt ? new Date(legacyReadAt).toISOString() : null);
       const rawId = item?.id;
       const id =
         rawId !== undefined && rawId !== null && String(rawId).trim() !== ""
           ? rawId
           : nextLocalId();
       return {
-        id,
-        type: type === "urgent" || type === "request" ? type : "system",
+        id: id,
+        type: typeNorm === "urgent" || typeNorm === "request" ? typeNorm : "system",
         text: String(item?.text || item?.message_text || ""),
         createdAt: String(item?.createdAt || item?.created_at || new Date(createdAtMs).toLocaleString()),
-        createdAtMs,
-        readAt
+        createdAtMs: createdAtMs,
+        readAt: readAt
       };
+    });
+  }
+
+  function sortItemsDesc() {
+    items.sort(function (a, b) {
+      return (Number(b.createdAtMs) || 0) - (Number(a.createdAtMs) || 0);
     });
   }
 
@@ -114,7 +162,9 @@
 
   async function postOwnerMessage(path, payload) {
     const session = getSession();
-    const response = await fetch(`${getApiBase()}${path}`, {
+    const base = getApiBase().replace(/\/+$/, "");
+    const url = `${base}${path.startsWith("/") ? path : "/" + path}`;
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -123,16 +173,21 @@
         ...(payload || {})
       })
     });
-    const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch(function () {
+      return {};
+    });
     if (!response.ok || !body.ok) {
-      throw new Error(body.code || `HTTP_${response.status}`);
+      const detail = String(body.message || body.code || `HTTP_${response.status}` || "request_failed").trim();
+      throw new Error(detail || "request_failed");
     }
     return body;
   }
 
   function patchLocalItem(id, patch) {
     items = items
-      .map((item) => (String(item.id) === String(id) ? { ...item, ...patch } : item))
+      .map(function (item) {
+        return String(item.id) === String(id) ? Object.assign({}, item, patch) : item;
+      })
       .slice(0, 120);
     saveLocalFallback(items);
     if (patch && Object.prototype.hasOwnProperty.call(patch, "readAt")) {
@@ -145,13 +200,17 @@
   }
 
   function removeLocalItem(id) {
-    items = items.filter((item) => String(item.id) !== String(id)).slice(0, 120);
+    items = items
+      .filter(function (item) {
+        return String(item.id) !== String(id);
+      })
+      .slice(0, 120);
     saveLocalFallback(items);
     render();
   }
 
   async function updateMessageCloud(id, body) {
-    await postOwnerMessage("/api/owner/messages/update", { messageId: id, ...body });
+    await postOwnerMessage("/api/owner/messages/update", Object.assign({ messageId: id }, body));
     await refreshItems();
   }
 
@@ -161,14 +220,21 @@
   }
 
   function render() {
-    const unreadCount = items.filter((item) => !item.readAt).length;
-    const urgentCount = items.filter((item) => String(item.type) === "urgent").length;
-    const requestCount = items.filter((item) => String(item.type) === "request").length;
+    sortItemsDesc();
+    const unreadCount = items.filter(function (item) {
+      return !item.readAt;
+    }).length;
+    const urgentCount = items.filter(function (item) {
+      return String(item.type) === "urgent";
+    }).length;
+    const requestCount = items.filter(function (item) {
+      return String(item.type) === "request";
+    }).length;
     tabAll.textContent = `All (${items.length})`;
     tabUnread.textContent = `Unread (${unreadCount})`;
     tabUrgent.textContent = `Urgent (${urgentCount})`;
     tabRequest.textContent = `Requests (${requestCount})`;
-    const visible = items.filter((item) => {
+    const visible = items.filter(function (item) {
       const kind = String(item.type || "system").toLowerCase();
       if (activeTab === "unread") {
         return !item.readAt;
@@ -185,38 +251,56 @@
     if (visible.length === 0) {
       const empty = document.createElement("div");
       empty.className = "admin-message-item";
-      empty.textContent = "No messages yet.";
+      empty.textContent = "No messages in this view.";
       list.appendChild(empty);
       return;
     }
-    visible.forEach((item) => {
+    visible.forEach(function (item) {
       const kind = String(item.type || "system").toLowerCase();
-      const card = document.createElement("div");
+      const card = document.createElement("article");
       card.className = `admin-message-item admin-message-${kind}`;
       if (!item.readAt) {
         card.classList.add("admin-message-item--unread");
       }
-      card.setAttribute("role", "button");
-      card.setAttribute("tabindex", "0");
-      card.title = item.readAt ? "Click to mark unread" : "Click to mark read";
-      const head = document.createElement("div");
-      head.className = "admin-message-head";
+
+      const metaRow = document.createElement("div");
+      metaRow.className = "admin-message-card__row";
+      const pill = document.createElement("span");
+      pill.className = "admin-message-type-pill";
+      pill.textContent = kind;
+      const timeEl = document.createElement("span");
+      timeEl.className = "admin-message-time";
+      timeEl.textContent = formatRelativeTime(item.createdAtMs) + " · " + String(item.createdAt || "");
+      metaRow.appendChild(pill);
+      metaRow.appendChild(timeEl);
+      card.appendChild(metaRow);
+
+      const body = document.createElement("div");
+      body.className = "admin-message-body";
+      body.textContent = String(item.text || "");
+      card.appendChild(body);
+
+      const src = document.createElement("span");
+      src.className = "note";
+      src.textContent = usingLocalFallback ? "Stored on this device only" : "Synced to server";
+      card.appendChild(src);
+
       const actions = document.createElement("div");
       actions.className = "admin-message-actions";
-      const mkBtn = (label, className, onClick) => {
+      function mkBtn(label, className, onClick) {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = className;
         btn.textContent = label;
-        btn.addEventListener("click", (event) => {
+        btn.addEventListener("click", function (event) {
           event.preventDefault();
           event.stopPropagation();
-          onClick().catch(() => {});
+          onClick().catch(function () {});
         });
         actions.appendChild(btn);
-      };
+      }
       if (item.readAt) {
-        mkBtn("Mark unread", "btn btn-secondary", async () => {
+        mkBtn("Mark unread", "btn btn-secondary", async function () {
           if (usingLocalFallback) {
             patchLocalItem(item.id, { readAt: null });
             return;
@@ -224,7 +308,7 @@
           await updateMessageCloud(item.id, { readState: "unread" });
         });
       } else {
-        mkBtn("Mark read", "btn btn-secondary", async () => {
+        mkBtn("Mark read", "btn btn-secondary", async function () {
           if (usingLocalFallback) {
             patchLocalItem(item.id, { readAt: new Date().toISOString() });
             return;
@@ -232,82 +316,66 @@
           await updateMessageCloud(item.id, { readState: "read" });
         });
       }
-      mkBtn("System", "btn btn-secondary", async () => {
+      mkBtn("System", "btn btn-secondary", async function () {
         if (usingLocalFallback) {
           patchLocalItem(item.id, { type: "system" });
           return;
         }
         await updateMessageCloud(item.id, { messageType: "system" });
       });
-      mkBtn("Urgent", "btn btn-secondary", async () => {
+      mkBtn("Urgent", "btn btn-secondary", async function () {
         if (usingLocalFallback) {
           patchLocalItem(item.id, { type: "urgent" });
           return;
         }
         await updateMessageCloud(item.id, { messageType: "urgent" });
       });
-      mkBtn("Request", "btn btn-secondary", async () => {
+      mkBtn("Request", "btn btn-secondary", async function () {
         if (usingLocalFallback) {
           patchLocalItem(item.id, { type: "request" });
           return;
         }
         await updateMessageCloud(item.id, { messageType: "request" });
       });
-      mkBtn("Delete", "btn btn-secondary", async () => {
+      mkBtn("Delete", "btn btn-secondary", async function () {
+        if (!confirm("Delete this message permanently?")) {
+          return;
+        }
         if (usingLocalFallback) {
           removeLocalItem(item.id);
           return;
         }
         await deleteMessageCloud(item.id);
       });
-      head.appendChild(actions);
-      card.appendChild(head);
-      const body = document.createElement("div");
-      body.className = "admin-message-body";
-      body.textContent = String(item.text || "");
-      card.appendChild(body);
-      const toggleReadState = async () => {
-        if (item.readAt) {
-          if (usingLocalFallback) {
-            patchLocalItem(item.id, { readAt: null });
-            return;
-          }
-          await updateMessageCloud(item.id, { readState: "unread" });
-          return;
-        }
-        if (usingLocalFallback) {
-          patchLocalItem(item.id, { readAt: new Date().toISOString() });
-          return;
-        }
-        await updateMessageCloud(item.id, { readState: "read" });
-      };
-      card.addEventListener("click", () => {
-        toggleReadState().catch(() => {});
-      });
-      card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          toggleReadState().catch(() => {});
-        }
-      });
-      const meta = document.createElement("span");
-      meta.className = "note";
-      const prefix = usingLocalFallback ? "local fallback" : "cloud";
-      meta.textContent = `${kind} • ${String(item.createdAt || "")} • ${prefix}`;
-      card.appendChild(meta);
+      card.appendChild(actions);
       list.appendChild(card);
     });
   }
 
   async function refreshItems() {
+    setStatus("Loading messages…", false);
     try {
       const payload = await postOwnerMessage("/api/owner/messages/list", { limit: 120 });
       items = normalizeItems(payload.items);
       usingLocalFallback = false;
       saveLocalFallback(items);
-    } catch {
+      sortItemsDesc();
+      setStatus(
+        items.length
+          ? `${items.length} message(s) loaded from server.`
+          : "Inbox is empty — add a message below.",
+        false
+      );
+    } catch (err) {
       items = normalizeItems(getLocalFallback());
       usingLocalFallback = true;
+      sortItemsDesc();
+      setStatus(
+        "Could not reach the server (" +
+          String(err.message || err) +
+          "). Showing cached copy only. Use the same API origin as this page (leave API base empty on admin login for Netlify), then tap Refresh.",
+        true
+      );
     }
     render();
   }
@@ -315,14 +383,16 @@
   async function addMessage() {
     const text = String(input.value || "").trim();
     if (!text) {
+      setStatus("Write something before sending.", true);
       return;
     }
     const kind = String(type.value || "request");
+    setStatus("Sending…", false);
     if (usingLocalFallback) {
       const nowMs = Date.now();
       items.unshift({
         id: nextLocalId(),
-        text,
+        text: text,
         type: kind,
         createdAt: new Date(nowMs).toLocaleString(),
         createdAtMs: nowMs,
@@ -331,72 +401,109 @@
       items = normalizeItems(items.slice(0, 120));
       saveLocalFallback(items);
       input.value = "";
+      setStatus("Saved locally (server still unreachable).", true);
       render();
       return;
     }
-    await postOwnerMessage("/api/owner/messages/create", { text, type: kind });
-    input.value = "";
-    await refreshItems();
+    try {
+      await postOwnerMessage("/api/owner/messages/create", { text: text, type: kind });
+      input.value = "";
+      await refreshItems();
+    } catch (err) {
+      setStatus("Send failed: " + String(err.message || err), true);
+    }
   }
 
   async function markAllRead() {
+    setStatus("Updating…", false);
     if (usingLocalFallback) {
-      items = items.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() }));
+      items = items.map(function (item) {
+        return Object.assign({}, item, { readAt: item.readAt || new Date().toISOString() });
+      });
       saveLocalFallback(items);
+      setStatus("Marked read locally.", false);
       render();
       return;
     }
-    await postOwnerMessage("/api/owner/messages/mark-read");
-    await refreshItems();
+    try {
+      await postOwnerMessage("/api/owner/messages/mark-read");
+      await refreshItems();
+    } catch (err) {
+      setStatus("Mark read failed: " + String(err.message || err), true);
+    }
   }
 
   async function clearAll() {
+    setStatus("Clearing…", false);
     if (usingLocalFallback) {
       items = [];
       saveLocalFallback(items);
+      setStatus("Local cache cleared.", false);
       render();
       return;
     }
-    await postOwnerMessage("/api/owner/messages/clear");
-    await refreshItems();
+    try {
+      await postOwnerMessage("/api/owner/messages/clear");
+      await refreshItems();
+      setStatus("All server messages deleted.", false);
+    } catch (err) {
+      setStatus("Clear failed: " + String(err.message || err), true);
+    }
   }
 
-  addBtn.addEventListener("click", () => {
-    addMessage().catch(() => {});
+  addBtn.addEventListener("click", function () {
+    addMessage().catch(function () {});
   });
-  input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", function () {
+      refreshItems().catch(function () {});
+    });
+  }
+  input.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
-      addMessage().catch(() => {});
+      addMessage().catch(function () {});
     }
   });
-  markReadBtn.addEventListener("click", () => {
-    markAllRead().catch(() => {});
+  markReadBtn.addEventListener("click", function () {
+    markAllRead().catch(function () {});
   });
-  clearBtn.addEventListener("click", () => {
-    clearAll().catch(() => {});
+  clearBtn.addEventListener("click", function () {
+    if (
+      !confirm(
+        "Delete every message in the owner message center? This removes them from the database and cannot be undone."
+      )
+    ) {
+      return;
+    }
+    clearAll().catch(function () {});
   });
-  const setActiveTab = (tab) => {
+  const setActiveTab = function (tab) {
     activeTab = tab;
-    [tabAll, tabUnread, tabUrgent, tabRequest].forEach((btn) => btn.classList.remove("btn-primary"));
-    [tabAll, tabUnread, tabUrgent, tabRequest].forEach((btn) => btn.classList.add("btn-secondary"));
-    const map = {
-      all: tabAll,
-      unread: tabUnread,
-      urgent: tabUrgent,
-      request: tabRequest
-    };
+    [tabAll, tabUnread, tabUrgent, tabRequest].forEach(function (btn) {
+      btn.classList.remove("btn-primary");
+      btn.classList.add("btn-secondary");
+    });
+    const map = { all: tabAll, unread: tabUnread, urgent: tabUrgent, request: tabRequest };
     if (map[tab]) {
       map[tab].classList.remove("btn-secondary");
       map[tab].classList.add("btn-primary");
     }
     render();
   };
-  tabAll.addEventListener("click", () => setActiveTab("all"));
-  tabUnread.addEventListener("click", () => setActiveTab("unread"));
-  tabUrgent.addEventListener("click", () => setActiveTab("urgent"));
-  tabRequest.addEventListener("click", () => setActiveTab("request"));
+  tabAll.addEventListener("click", function () {
+    setActiveTab("all");
+  });
+  tabUnread.addEventListener("click", function () {
+    setActiveTab("unread");
+  });
+  tabUrgent.addEventListener("click", function () {
+    setActiveTab("urgent");
+  });
+  tabRequest.addEventListener("click", function () {
+    setActiveTab("request");
+  });
 
   setActiveTab("all");
-  refreshItems().catch(() => {});
+  refreshItems().catch(function () {});
 })();
