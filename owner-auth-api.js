@@ -5135,6 +5135,32 @@ function stripeCheckoutCustomText() {
   };
 }
 
+/**
+ * Stripe success/cancel URLs must point at the static site (Netlify), not the API host (Railway).
+ * Set PUBLIC_WEB_ORIGIN or VIBECART_WEB_URL (e.g. https://vibe-cart.com) in production if proxies omit X-Forwarded-Host.
+ */
+function resolvePublicWebBaseUrl(req) {
+  const trimOrigin = (s) => String(s || "").trim().replace(/\/+$/, "");
+  const fromEnv = trimOrigin(process.env.PUBLIC_WEB_ORIGIN || process.env.VIBECART_WEB_URL || "");
+  if (fromEnv && /^https?:\/\//i.test(fromEnv)) {
+    return fromEnv;
+  }
+  const xfRaw = String(req.headers["x-forwarded-host"] || "").trim();
+  const xfHost = xfRaw.split(",")[0].trim();
+  const protoRaw = String(req.headers["x-forwarded-proto"] || "https").trim();
+  const proto = (protoRaw.split(",")[0].trim() || "https").toLowerCase();
+  const safeProto = proto === "http" ? "http" : "https";
+  const host = String(req.headers.host || "").trim();
+  if (xfHost) {
+    return `${safeProto}://${xfHost}`;
+  }
+  const hl = host.toLowerCase();
+  if (hl.includes("railway.app") || hl.includes(".rlwy.net")) {
+    return "https://vibe-cart.com";
+  }
+  return `${safeProto}://${host || "vibe-cart.com"}`;
+}
+
 function buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan) {
   const f = String(flow || "").trim().toLowerCase();
   const p = String(plan || "").trim().toLowerCase();
@@ -5265,11 +5291,14 @@ async function handlePublicCheckoutStart(req, res) {
     return sendJson(res, 400, { ok: false, code: "INVALID_CHECKOUT_AMOUNT" });
   }
   if (amountMeta.amount === 0) {
-    return sendJson(res, 200, { ok: true, free: true, redirectUrl: "/payment-confirmation.html?provider=free" });
+    const baseFree = resolvePublicWebBaseUrl(req);
+    return sendJson(res, 200, {
+      ok: true,
+      free: true,
+      redirectUrl: `${baseFree}/payment-confirmation.html?provider=free`
+    });
   }
-  const host = req.headers.host || "vibe-cart.com";
-  const proto = String(req.headers["x-forwarded-proto"] || "https");
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = resolvePublicWebBaseUrl(req);
   const returnUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
   const cancelUrl =
     flow === "top_class"
@@ -5357,10 +5386,11 @@ async function handlePublicCheckoutRedirect(req, res) {
   const money = resolveStripeCheckoutMoney(amountMeta, method);
   const paymentTypes = resolveStripePaymentTypes(method);
   if (!Number.isFinite(amountMeta.amount) || amountMeta.amount < 0) {
+    const baseFree = resolvePublicWebBaseUrl(req);
     res.statusCode = 302;
     res.setHeader(
       "Location",
-      `/payment-confirmation.html?provider=free&flow=${encodeURIComponent(flow || "service")}&plan=${encodeURIComponent(plan || "standard")}`
+      `${baseFree}/payment-confirmation.html?provider=free&flow=${encodeURIComponent(flow || "service")}&plan=${encodeURIComponent(plan || "standard")}`
     );
     res.end();
     return;
@@ -5377,9 +5407,7 @@ async function handlePublicCheckoutRedirect(req, res) {
     postalCode: customerPostalCode,
     country: customerCountry
   });
-  const host = req.headers.host || "vibe-cart.com";
-  const proto = String(req.headers["x-forwarded-proto"] || "https");
-  const baseUrl = `${proto}://${host}`;
+  const baseUrl = resolvePublicWebBaseUrl(req);
   const returnUrl = buildPostPaymentReturnUrl(baseUrl, flow, plan, method, addonPlan);
   const cancelUrl =
     flow === "top_class"
