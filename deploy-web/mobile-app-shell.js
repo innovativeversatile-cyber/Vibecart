@@ -2232,8 +2232,15 @@
     if (!isApp && !isPhone) {
       return;
     }
-    /* Health & coach lane: no floating Quick / mission / streak — keeps the page calm for forms + checkout. */
+    /* Health & coach lane: skip heavy HUD (Quick / mission / streak / deal rail) so checkout + matcher stay tappable.
+       Still mount Brandon + reveal sections so the coach lane matches the rest of the app shell. */
     if (document.body && document.body.classList.contains("health-coach-page")) {
+      if (isApp) {
+        document.body.classList.add("vc-mobile-shell");
+        ensureAiCoach();
+        initMainSectionRevealForApp();
+        ensureAppShopHubLink();
+      }
       return;
     }
     if (isApp) {
