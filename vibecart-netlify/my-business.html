@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260503hardpass1" />
+  <link rel="stylesheet" href="./styles.css?v=20260504mbflow1" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -49,16 +49,101 @@
     }
   </style>
 </head>
-<body class="shops-lane-page vc-my-business-dashboard">
+<body class="shops-lane-page vc-my-business-dashboard mb-boot-pending">
+  <div id="mbGateRoot" class="vc-mb-gate-root" role="presentation" hidden>
+    <div class="vc-mb-gate-card" role="dialog" aria-modal="true" aria-labelledby="mbGateHeading">
+      <h2 id="mbGateHeading">My Business</h2>
+      <p class="vc-mb-gate-lead" id="mbGateLead">Pick how you are showing up today — client bookings or your provider desk.</p>
+
+      <div id="mbStepPersona" class="vc-mb-gate-step">
+        <p class="note" style="margin-top:0;">Step 1 of 3</p>
+        <div class="vc-mb-choice-grid">
+          <button type="button" class="vc-mb-choice-tile" id="mbPickClient" data-mb-pick-persona="client">
+            <strong>Client</strong>
+            <span>Browse slots, send booking requests, and prepay when a provider confirms — for hair, barber, nails, makeup, or bakery orders.</span>
+          </button>
+          <button type="button" class="vc-mb-choice-tile" id="mbPickProvider" data-mb-pick-persona="provider">
+            <strong>Service provider</strong>
+            <span>Manage your service line, portfolio cards, incoming requests, calendar, and payout settings.</span>
+          </button>
+        </div>
+        <p class="vc-mb-gate-status" id="mbGateStatusPersona" aria-live="polite"></p>
+      </div>
+
+      <div id="mbStepService" class="vc-mb-gate-step" hidden>
+        <p class="note" style="margin-top:0;">Step 2 of 3 · <span id="mbPersonaEcho"></span></p>
+        <p class="vc-mb-gate-lead" style="margin-bottom:0.55rem;">Choose the service line for this dashboard session.</p>
+        <div class="vc-mb-service-grid" id="mbServiceGrid" role="group" aria-label="Service line"></div>
+        <div class="vc-mb-gate-actions">
+          <button type="button" class="btn btn-secondary" id="mbBackToPersona">Back</button>
+          <button type="button" class="btn btn-primary" id="mbContinueService" disabled>Continue</button>
+        </div>
+        <p class="vc-mb-gate-status" id="mbGateStatusService" aria-live="polite"></p>
+      </div>
+
+      <div id="mbStepPassword" class="vc-mb-gate-step" hidden>
+        <p class="note" style="margin-top:0;">Step 3 of 3 · protect this view</p>
+        <p class="vc-mb-gate-lead" id="mbPwdLead">
+          Set a password for this device. It only unlocks this My Business layout in your browser — it is not your VibeCart account password unless you later link accounts in Account.
+        </p>
+        <div class="vc-mb-field">
+          <label for="mbNewPw">Create password (min 8 characters)</label>
+          <input id="mbNewPw" type="password" autocomplete="new-password" minlength="8" />
+        </div>
+        <div class="vc-mb-field">
+          <label for="mbNewPw2">Confirm password</label>
+          <input id="mbNewPw2" type="password" autocomplete="new-password" minlength="8" />
+        </div>
+        <div class="vc-mb-gate-actions">
+          <button type="button" class="btn btn-secondary" id="mbBackToService">Back</button>
+          <button type="button" class="btn btn-primary" id="mbSavePassword">Save &amp; open dashboard</button>
+        </div>
+        <p class="vc-mb-gate-status" id="mbGateStatusPwd" aria-live="polite"></p>
+      </div>
+
+      <div id="mbStepUnlock" class="vc-mb-gate-step" hidden>
+        <p class="note" style="margin-top:0;">Welcome back</p>
+        <p class="vc-mb-gate-lead" id="mbUnlockEcho"></p>
+        <div class="vc-mb-field">
+          <label for="mbUnlockPw">Dashboard password</label>
+          <input id="mbUnlockPw" type="password" autocomplete="current-password" />
+        </div>
+        <div class="vc-mb-gate-actions">
+          <button type="button" class="btn btn-secondary" id="mbResetProfile">Change role / service</button>
+          <button type="button" class="btn btn-primary" id="mbUnlockSubmit">Enter dashboard</button>
+        </div>
+        <p class="vc-mb-gate-status" id="mbGateStatusUnlock" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
     <a class="btn btn-secondary" href="./seller-orders.html">Seller orders</a>
-    <a class="btn btn-primary" href="./service-provider-hub.html">Provider template</a>
+    <a class="btn btn-primary" id="mbTopProviderTemplate" href="./service-provider-hub.html">Provider template</a>
   </header>
 
-  <main class="section alt shops-lane-main vc-biz-shell">
-    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1">
+  <main id="mbMainDashboard" class="section alt shops-lane-main vc-biz-shell">
+    <div id="mbDisclaimerClient" class="vc-mb-disclaimer" hidden data-mb-disclaimer="client">
+      <strong>Client disclaimer.</strong> Bookings here are requests until a provider confirms availability and pricing. Prepayment routes are shown when a provider requires a deposit — always read totals before you pay. VibeCart is a marketplace layer, not the salon, bakery, or barbershop itself.
+    </div>
+    <div id="mbDisclaimerProvider" class="vc-mb-disclaimer" hidden data-mb-disclaimer="provider">
+      <strong>Service provider disclaimer.</strong> You remain responsible for licensing, hygiene, taxes, refunds, and insurance where applicable. Payout and prepayment flows depend on your connected accounts and buyer confirmations — nothing on this page is legal or tax advice.
+    </div>
+    <div class="vc-mb-dash-toolbar">
+      <span class="vc-pill" id="mbSessionPill">My Business</span>
+      <button type="button" class="btn btn-secondary" id="mbLockAgain">Lock dashboard</button>
+    </div>
+
+    <section class="vc-biz-card" data-mb-show="provider" style="margin-top:0;">
+      <h2 style="margin-top:0;">Provider session scope</h2>
+      <p class="note" id="mbProviderSessionLine">
+        KPIs, portfolio, incoming requests, and payouts below are scoped to the service line you chose at the gate. Use Provider template for prepayment links.
+      </p>
+    </section>
+
+    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="client">
       <h2 style="margin-top:0;">Beauty &amp; service booking</h2>
       <p class="note">
         Run hair, barber, nails, makeup, and <strong>baking</strong> from one dashboard. Pick a service line, show slots, then route prepayment through checkout when you are ready.
@@ -93,7 +178,18 @@
       </p>
     </section>
 
-    <section class="vc-biz-hero" style="margin-top:0.85rem;">
+    <section class="vc-biz-card" style="margin-top:0.85rem;" data-mb-show="client" id="mbClientWelcome">
+      <h2 style="margin-top:0;">Your client hub</h2>
+      <p class="note" id="mbClientWelcomeLine">
+        Use the booking tools above for your selected service line, then send a detailed request below so providers can quote you accurately.
+      </p>
+      <p class="hero-actions">
+        <a class="btn btn-secondary" href="./account-hub.html#bookings">Account · bookings</a>
+        <a class="btn btn-primary" href="./live-market-shops.html?cat=All&amp;view=global">Browse global shops</a>
+      </p>
+    </section>
+
+    <section class="vc-biz-hero" style="margin-top:0.85rem;" data-mb-show="provider">
       <h1 class="shops-lane-title">My Business overview</h1>
       <p class="note">
         Beauty and service tools are at the top of this page. Here: live counts for listings, service cards, and booking requests — refresh anytime.
@@ -105,7 +201,7 @@
       <div class="vc-biz-grid" id="bizKpis"></div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;">
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Service portfolio (baking, beauty, hair &amp; more)</h2>
       <p class="note">
         <strong>Baking</strong> is one service line here — same card flow works for cakes, hair, barber, nails, or makeup. Add your best photo, price, and requirements so clients can book with confidence.
@@ -147,18 +243,18 @@
       </div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;">
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Client booking requests</h2>
       <p class="note">Review requests, dates, style or service line, and update status quickly.</p>
       <div id="bakeryBookingList" class="vc-booking-list"></div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;">
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Calendar view (quick schedule)</h2>
       <div id="bakeryCalendarView" class="vc-booking-list"></div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;">
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="client">
       <h2 style="margin-top:0;">Request a booking (customers)</h2>
       <p class="note">Pick a published offer (often baking first), add your date, and describe what you need.</p>
       <div class="vc-biz-form">
@@ -191,7 +287,7 @@
     </section>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
-  <script src="./my-business.js?v=20260503hardpass1" defer></script>
+  <script src="./my-business.js?v=20260504mbflow1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

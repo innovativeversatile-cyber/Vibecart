@@ -6,7 +6,7 @@
     { title: "Global search", url: "./global-search.html", keywords: "search find everything" },
     { title: "Passport welcome", url: "./passport-welcome.html", keywords: "welcome citizen passport signup" },
     { title: "Lane passport", url: "./lane-passport.html", keywords: "passport register sign up create account login email password" },
-    { title: "My Business — beauty & services", url: "./my-business.html#beauty-services", keywords: "my business my hustle beauty service booking hair barber nails makeup bakery baker portfolio my-business beauty-services" },
+    { title: "My Business — beauty & services", url: "./my-business.html", keywords: "my business my hustle beauty service booking hair barber nails makeup bakery baker portfolio my-business beauty-services" },
     { title: "Service provider hub", url: "./service-provider-hub.html", keywords: "provider business booking payment deposit barber salon bakery hairdresser hair nails makeup" },
     { title: "Fashion trends lane", url: "./fashion-trends.html", keywords: "fashion trends outfits style runway clothes shoes" },
     { title: "Live market shops", url: "./live-market-shops.html", keywords: "market shops fashion electronics books gaming affiliate ireland dublin belfast northern ireland ROI" },
