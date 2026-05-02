@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260504mbflow1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk4" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -56,7 +56,7 @@
       <p class="vc-mb-gate-lead" id="mbGateLead">Pick how you are showing up today — client bookings or your provider desk.</p>
 
       <div id="mbStepPersona" class="vc-mb-gate-step">
-        <p class="note" style="margin-top:0;">Step 1 of 3</p>
+        <p class="note" style="margin-top:0;" id="mbStepPersonaLabel">Step 1 — choose how you are using My Business</p>
         <div class="vc-mb-choice-grid">
           <button type="button" class="vc-mb-choice-tile" id="mbPickClient" data-mb-pick-persona="client">
             <strong>Client</strong>
@@ -71,7 +71,7 @@
       </div>
 
       <div id="mbStepService" class="vc-mb-gate-step" hidden>
-        <p class="note" style="margin-top:0;">Step 2 of 3 · <span id="mbPersonaEcho"></span></p>
+        <p class="note" style="margin-top:0;"><span id="mbStepServiceLabel">Step 2</span> · <span id="mbPersonaEcho"></span></p>
         <p class="vc-mb-gate-lead" style="margin-bottom:0.55rem;">Choose the service line for this dashboard session.</p>
         <div class="vc-mb-service-grid" id="mbServiceGrid" role="group" aria-label="Service line"></div>
         <div class="vc-mb-gate-actions">
@@ -82,17 +82,23 @@
       </div>
 
       <div id="mbStepPassword" class="vc-mb-gate-step" hidden>
-        <p class="note" style="margin-top:0;">Step 3 of 3 · protect this view</p>
+        <p class="note" style="margin-top:0;">Step 3 · service provider · protect this view</p>
         <p class="vc-mb-gate-lead" id="mbPwdLead">
           Set a password for this device. It only unlocks this My Business layout in your browser — it is not your VibeCart account password unless you later link accounts in Account.
         </p>
-        <div class="vc-mb-field">
+        <div class="vc-mb-field vc-password-field-row">
           <label for="mbNewPw">Create password (min 8 characters)</label>
-          <input id="mbNewPw" type="password" autocomplete="new-password" minlength="8" />
+          <div class="vc-password-field">
+            <input id="mbNewPw" type="password" autocomplete="new-password" minlength="8" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="mbNewPw">Show</button>
+          </div>
         </div>
-        <div class="vc-mb-field">
+        <div class="vc-mb-field vc-password-field-row">
           <label for="mbNewPw2">Confirm password</label>
-          <input id="mbNewPw2" type="password" autocomplete="new-password" minlength="8" />
+          <div class="vc-password-field">
+            <input id="mbNewPw2" type="password" autocomplete="new-password" minlength="8" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="mbNewPw2">Show</button>
+          </div>
         </div>
         <div class="vc-mb-gate-actions">
           <button type="button" class="btn btn-secondary" id="mbBackToService">Back</button>
@@ -104,13 +110,17 @@
       <div id="mbStepUnlock" class="vc-mb-gate-step" hidden>
         <p class="note" style="margin-top:0;">Welcome back</p>
         <p class="vc-mb-gate-lead" id="mbUnlockEcho"></p>
-        <div class="vc-mb-field">
+        <div class="vc-mb-field vc-password-field-row" id="mbUnlockPwRow">
           <label for="mbUnlockPw">Dashboard password</label>
-          <input id="mbUnlockPw" type="password" autocomplete="current-password" />
+          <div class="vc-password-field">
+            <input id="mbUnlockPw" type="password" autocomplete="current-password" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="mbUnlockPw">Show</button>
+          </div>
         </div>
         <div class="vc-mb-gate-actions">
           <button type="button" class="btn btn-secondary" id="mbResetProfile">Change role / service</button>
           <button type="button" class="btn btn-primary" id="mbUnlockSubmit">Enter dashboard</button>
+          <button type="button" class="btn btn-primary" id="mbUnlockQuick" hidden>Continue to bookings</button>
         </div>
         <p class="vc-mb-gate-status" id="mbGateStatusUnlock" aria-live="polite"></p>
       </div>
@@ -143,8 +153,76 @@
       </p>
     </section>
 
-    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="client">
-      <h2 style="margin-top:0;">Beauty &amp; service booking</h2>
+    <section id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk" style="margin-top:0" tabindex="-1" data-mb-show="client">
+      <p class="note" style="margin-top:0">
+        <button type="button" class="btn btn-secondary" id="mbClientChangeService">← Change service line</button>
+      </p>
+      <h2 style="margin-top:0" id="mbSvcDeskTitle">Service booking</h2>
+      <p class="note" id="mbSvcDeskLead"></p>
+      <p class="note vc-mb-signin-hint" id="mbClientSigninHint">
+        Reservations require a signed-in VibeCart account so we can notify you, show your requests below, and unlock chat after acceptance.
+      </p>
+      <p class="vc-pill" id="mbClientStepPill" aria-live="polite">Step 1 of 3 · Your details</p>
+      <div id="mbClientStep1" class="vc-mb-client-step">
+        <p class="note">Choose a live provider offer for this service, then add how we should reach you.</p>
+        <label for="mbCliProviderSelect">Provider offer</label>
+        <select id="mbCliProviderSelect"></select>
+        <div class="vc-biz-row" style="margin-top:0.5rem">
+          <input id="mbCliCustName" type="text" placeholder="Your full name" autocomplete="name" />
+          <input id="mbCliCustPhone" type="tel" placeholder="Phone / WhatsApp" autocomplete="tel" />
+        </div>
+      </div>
+      <div id="mbClientStep2" class="vc-mb-client-step" hidden>
+        <label for="mbCliDate">Preferred date</label>
+        <input id="mbCliDate" type="date" />
+        <p class="note" style="margin-top:0.5rem">Pick a time. If your provider published slots for this date, those appear first; otherwise you see common example times until they publish.</p>
+        <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
+      </div>
+      <div id="mbClientStep3" class="vc-mb-client-step" hidden>
+        <p class="note">How would you like to pay when the booking is accepted?</p>
+        <div class="vc-mb-pay-choice">
+          <label><input type="radio" name="mbCliPay" value="pay_full" checked /> Pay in full online (Stripe when available)</label>
+          <label><input type="radio" name="mbCliPay" value="deposit" /> Pay a deposit online</label>
+          <label><input type="radio" name="mbCliPay" value="pay_at_venue" /> Pay at the appointment</label>
+        </div>
+        <label for="mbCliDetails" style="margin-top:0.65rem">What do you need? (details for your provider)</label>
+        <textarea id="mbCliDetails" rows="4" placeholder="Describe the service, timing constraints, allergies, references, etc."></textarea>
+      </div>
+      <p class="hero-actions vc-mb-client-nav">
+        <button type="button" class="btn btn-secondary" id="mbClientBack">Back</button>
+        <button type="button" class="btn btn-primary" id="mbClientNext">Continue</button>
+        <button type="button" class="btn btn-primary" id="mbClientSubmitReserve" hidden>Send reservation request</button>
+      </p>
+      <div id="mbClientWaitBanner" class="vc-mb-wait-banner" hidden role="status"></div>
+      <div id="mbClientChatPanel" class="vc-biz-card" style="margin-top:0.85rem; border:1px solid rgba(255,255,255,.12)" hidden>
+        <h3 style="margin-top:0">Messages with your provider</h3>
+        <p class="note" id="mbClientChatHint">Chat opens after your provider accepts this booking.</p>
+        <div id="mbClientChatList" class="vc-mb-chat-list"></div>
+        <div class="vc-biz-row" style="margin-top:0.5rem">
+          <input id="mbClientChatInput" type="text" placeholder="Type a message…" maxlength="2000" />
+          <button type="button" class="btn btn-primary" id="mbClientChatSend">Send</button>
+        </div>
+        <div id="mbClientPayWrap" class="vc-mb-pay-wrap" style="margin-top:0.75rem" hidden>
+          <p class="note" style="margin-top:0">Your provider accepted this booking. Pay securely when you are ready (Stripe).</p>
+          <p class="hero-actions" style="margin-top:0.35rem">
+            <button type="button" class="btn btn-secondary" id="mbClientPayDeposit">Pay deposit</button>
+            <button type="button" class="btn btn-primary" id="mbClientPayFull">Pay in full</button>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="mb-client-my-bookings" class="vc-biz-card vc-mb-client-bookings" data-mb-show="client" style="margin-top:0.85rem;">
+      <h2 style="margin-top:0;">Your requests</h2>
+      <p class="note">Reservations you sent while signed in. Push and email (when enabled) notify you when the provider responds.</p>
+      <p class="hero-actions" style="margin-top:0.35rem;">
+        <button type="button" class="btn btn-secondary" id="mbClientBookingsRefresh">Refresh list</button>
+      </p>
+      <div id="mbClientBookingsList" class="vc-mb-client-bookings-list"></div>
+    </section>
+
+    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
+      <h2 style="margin-top:0;">Beauty &amp; service booking (provider preview)</h2>
       <p class="note">
         Run hair, barber, nails, makeup, and <strong>baking</strong> from one dashboard. Pick a service line, show slots, then route prepayment through checkout when you are ready.
       </p>
@@ -178,13 +256,14 @@
       </p>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:0.85rem;" data-mb-show="client" id="mbClientWelcome">
-      <h2 style="margin-top:0;">Your client hub</h2>
+    <section class="vc-biz-card" style="margin-top:0.85rem;" data-mb-show="provider" id="mbClientWelcome">
+      <h2 style="margin-top:0;">What your clients experience</h2>
       <p class="note" id="mbClientWelcomeLine">
-        Use the booking tools above for your selected service line, then send a detailed request below so providers can quote you accurately.
+        Clients pick one service line at the gate, then only see that line’s booking desk — not your full provider tools. They
+        submit a reservation; you accept or decline from Client booking requests below.
       </p>
       <p class="hero-actions">
-        <a class="btn btn-secondary" href="./account-hub.html#bookings">Account · bookings</a>
+        <a class="btn btn-secondary" href="./account-hub.html#bookings">Account hub</a>
         <a class="btn btn-primary" href="./live-market-shops.html?cat=All&amp;view=global">Browse global shops</a>
       </p>
     </section>
@@ -235,6 +314,22 @@
       </div>
       <div id="bakeryWorkList" class="vc-work-list"></div>
       <hr style="opacity:.2;margin:1rem 0;" />
+      <h3 style="margin:.2rem 0;">Published time slots (what clients see)</h3>
+      <p class="note">Pick one of your saved work cards, a date, and comma-separated times (24h, e.g. <code>09:00, 14:30</code>). This replaces any previous slots for that day on that card.</p>
+      <div class="vc-biz-form">
+        <div class="vc-biz-row">
+          <label for="mbProvSlotService">Work card</label>
+          <select id="mbProvSlotService"></select>
+          <label for="mbProvSlotDate">Date</label>
+          <input id="mbProvSlotDate" type="date" />
+        </div>
+        <label for="mbProvSlotTimes">Times for that day</label>
+        <input id="mbProvSlotTimes" type="text" placeholder="09:00, 10:30, 14:00, 16:30" />
+        <p class="hero-actions" style="margin-top:0.5rem">
+          <button type="button" class="btn btn-primary" id="mbProvSlotSave">Save slots for this day</button>
+        </p>
+      </div>
+      <hr style="opacity:.2;margin:1rem 0;" />
       <h3 style="margin:.2rem 0;">Automatic payout setup</h3>
       <p class="note">Connect Stripe account ID (`acct_...`) so funds auto-release to seller once both buyer and seller confirm.</p>
       <div class="vc-biz-row">
@@ -245,7 +340,30 @@
 
     <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Client booking requests</h2>
-      <p class="note">Review requests, dates, style or service line, and update status quickly.</p>
+      <p class="note">Open a request below to see full details, accept or decline, and message the client after you accept — all on this page.</p>
+      <article id="mbProvFocusRoot" class="vc-mb-prov-focus" hidden data-booking-id="">
+        <div class="vc-mb-prov-focus-head">
+          <h3 id="mbProvFocusTitle" style="margin:0;">Selected request</h3>
+          <button type="button" class="btn btn-secondary" id="mbProvFocusClose">Close</button>
+        </div>
+        <p class="note" id="mbProvFocusSummary"></p>
+        <p class="vc-mb-prov-closed-banner" id="mbProvFocusClosedBanner" hidden role="status"></p>
+        <div id="mbProvFocusDetails" class="vc-mb-prov-focus-details"></div>
+        <p class="hero-actions" id="mbProvFocusActions">
+          <button type="button" class="btn btn-secondary" data-booking-status="confirmed">Accept</button>
+          <button type="button" class="btn btn-secondary" data-booking-status="declined">Decline</button>
+          <button type="button" class="btn btn-primary" data-booking-status="completed">Mark complete</button>
+        </p>
+        <div id="mbProvFocusChatWrap" class="vc-mb-prov-chat-wrap" hidden>
+          <h4 style="margin:0.65rem 0 0.25rem;">Messages</h4>
+          <p class="note" id="mbProvFocusChatNote"></p>
+          <div id="mbProvChatList" class="vc-mb-chat-list"></div>
+          <div class="vc-biz-row" style="margin-top:0.5rem;">
+            <input id="mbProvChatInput" type="text" maxlength="2000" placeholder="Reply to client…" />
+            <button type="button" class="btn btn-primary" id="mbProvChatSend">Send</button>
+          </div>
+        </div>
+      </article>
       <div id="bakeryBookingList" class="vc-booking-list"></div>
     </section>
 
@@ -254,9 +372,9 @@
       <div id="bakeryCalendarView" class="vc-booking-list"></div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="client">
-      <h2 style="margin-top:0;">Request a booking (customers)</h2>
-      <p class="note">Pick a published offer (often baking first), add your date, and describe what you need.</p>
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+      <h2 style="margin-top:0;">Test customer request form (provider)</h2>
+      <p class="note">Same API your clients use from their service-only desk. Use this to verify offers appear in search.</p>
       <div class="vc-biz-form">
         <div class="vc-biz-row">
           <input id="discoverQuery" type="search" placeholder="Search baker, style, business..." />
@@ -281,13 +399,23 @@
     </section>
 
     <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Your data (privacy)</h2>
+      <p class="note">Download a JSON summary of My Business booking data linked to your signed-in account, or log a deletion request for human review (we will confirm by email where possible).</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" id="mbPrivacyExport">Download JSON export</button>
+        <button type="button" class="btn btn-secondary" id="mbPrivacyDeleteRequest">Request account deletion</button>
+      </p>
+    </section>
+
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Secure order mediator center</h2>
       <p class="note">AI mediator keeps buyer/seller informed. Confirm your side to release escrow automatically when both sides are done.</p>
       <div id="orderMediatorList" class="vc-booking-list"></div>
     </section>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
-  <script src="./my-business.js?v=20260504mbflow1" defer></script>
+  <script src="./password-toggle.js?v=20260502pw1"></script>
+  <script src="./my-business.js?v=20260502mbdesk4" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

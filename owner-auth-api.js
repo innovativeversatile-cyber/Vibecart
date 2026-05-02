@@ -120,6 +120,9 @@ const {
   processStripeWebhookEvent,
   getPaymentReadiness
 } = require("./payment-service");
+const { isAllowedBookingStatusTransition } = require("./booking-state-machine");
+const { ensureBakeryBookingStripeColumns } = require("./bakery-booking-payments");
+const { attachBakeryBookingChatWss, broadcastBookingChatRefresh } = require("./bakery-realtime");
 
 const PORT = Number(process.env.PORT || 8081);
 const _db = resolveMysqlConfig();
@@ -1052,6 +1055,262 @@ async function ensureBakeryBookingMessagesTable() {
   bakeryBookingMessagesTableEnsured = true;
 }
 
+let bakeryScheduleSlotsTableEnsured = false;
+async function ensureBakeryScheduleSlotsTable() {
+  if (bakeryScheduleSlotsTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS bakery_schedule_slots (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      service_id BIGINT UNSIGNED NOT NULL,
+      slot_date DATE NOT NULL,
+      slot_time VARCHAR(8) NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_bakery_slot (service_id, slot_date, slot_time),
+      KEY idx_bakery_slot_svc_date (service_id, slot_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  bakeryScheduleSlotsTableEnsured = true;
+}
+
+let gdprPrivacyRequestTableEnsured = false;
+async function ensureGdprPrivacyRequestTable() {
+  if (gdprPrivacyRequestTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS gdpr_privacy_requests (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      user_id BIGINT UNSIGNED NOT NULL,
+      request_type VARCHAR(40) NOT NULL,
+      note_text VARCHAR(500) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_gdpr_user (user_id, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  gdprPrivacyRequestTableEnsured = true;
+}
+
+async function handlePublicBakeryScheduleSlotsList(req, res) {
+  let serviceId = 0;
+  let slotDate = "";
+  try {
+    const u = new URL(req.url, "http://localhost");
+    serviceId = Number(u.searchParams.get("serviceId") || 0);
+    slotDate = String(u.searchParams.get("date") || "").trim().slice(0, 10);
+  } catch {
+    serviceId = 0;
+  }
+  if (!serviceId || !slotDate) {
+    return sendJson(res, 400, { ok: false, code: "SERVICE_DATE_REQUIRED" });
+  }
+  await ensureBakeryScheduleSlotsTable();
+  const [rows] = await pool.execute(
+    `SELECT slot_time FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ? ORDER BY slot_time ASC`,
+    [serviceId, slotDate]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    slots: rows.map((r) => String(r.slot_time || "").trim()).filter(Boolean)
+  });
+}
+
+async function handlePublicBakeryScheduleSlotsUpsert(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  const body = await readJson(req);
+  const serviceId = Number(body.serviceId || 0);
+  const slotDate = String(body.slotDate || "").trim().slice(0, 10);
+  const slotTimes = Array.isArray(body.slotTimes) ? body.slotTimes : [];
+  if (!serviceId || !slotDate || !slotTimes.length) {
+    return sendJson(res, 400, { ok: false, code: "SLOT_FIELDS_REQUIRED" });
+  }
+  await ensureBakeryScheduleSlotsTable();
+  const [svc] = await pool.execute(
+    `SELECT id FROM bakery_services WHERE id = ? AND baker_user_id = ? LIMIT 1`,
+    [serviceId, Number(session.user_id)]
+  );
+  if (!svc[0]) {
+    return sendJson(res, 403, { ok: false, code: "SERVICE_FORBIDDEN" });
+  }
+  await pool.execute(`DELETE FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ?`, [serviceId, slotDate]);
+  let inserted = 0;
+  for (const t of slotTimes) {
+    const st = String(t || "").trim().slice(0, 8);
+    if (!st) continue;
+    try {
+      await pool.execute(
+        `INSERT INTO bakery_schedule_slots (service_id, slot_date, slot_time) VALUES (?, ?, ?)`,
+        [serviceId, slotDate, st]
+      );
+      inserted += 1;
+    } catch {
+      /* ignore duplicate */
+    }
+  }
+  return sendJson(res, 200, { ok: true, serviceId, slotDate, inserted });
+}
+
+async function handlePublicBakeryBookingCheckoutStart(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  if (!stripe) {
+    return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
+  }
+  const body = await readJson(req);
+  const bookingId = Number(body.bookingId || 0);
+  const payMode = String(body.payMode || "deposit").toLowerCase();
+  if (!bookingId) {
+    return sendJson(res, 400, { ok: false, code: "BOOKING_ID_REQUIRED" });
+  }
+  await ensureBakeryBookingsTable();
+  await ensureBakeryBookingStripeColumns(pool);
+  const [bRows] = await pool.execute(
+    `SELECT b.id, b.buyer_user_id, b.booking_status, b.stripe_payment_status, b.payment_preference,
+            s.base_price, s.currency, s.work_title, s.business_name
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.id = ?
+     LIMIT 1`,
+    [bookingId]
+  );
+  const b = bRows[0];
+  if (!b) {
+    return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
+  }
+  if (Number(b.buyer_user_id || 0) !== Number(session.user_id)) {
+    return sendJson(res, 403, { ok: false, code: "BOOKING_FORBIDDEN" });
+  }
+  if (String(b.booking_status || "").toLowerCase() !== "confirmed") {
+    return sendJson(res, 400, { ok: false, code: "BOOKING_NOT_CONFIRMED", message: "Pay after your provider accepts." });
+  }
+  if (String(b.stripe_payment_status || "").toLowerCase() === "paid") {
+    return sendJson(res, 400, { ok: false, code: "ALREADY_PAID" });
+  }
+  const base = Number(b.base_price || 0);
+  const fraction = payMode === "full" || String(b.payment_preference || "").toLowerCase().includes("full") ? 1 : 0.25;
+  let amount = Number((base * fraction).toFixed(2));
+  if (!Number.isFinite(amount) || amount < 1) {
+    amount = Math.max(1, Number(base) || 1);
+  }
+  const currency = String(b.currency || "USD").trim().toLowerCase().slice(0, 8) || "usd";
+  const baseUrl = resolvePublicWebBaseUrl(req).replace(/\/+$/, "");
+  const successUrl = `${baseUrl}/my-business.html?booking_paid=${bookingId}&session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${baseUrl}/my-business.html?booking_pay_cancel=${bookingId}`;
+  const label = `${String(b.business_name || "Provider")} · ${String(b.work_title || "Booking")} #${bookingId}`;
+  const checkoutSession = await stripe.checkout.sessions.create({
+    mode: "payment",
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    customer_email: String(session.email || "").trim() || undefined,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency,
+          unit_amount: Math.round(amount * 100),
+          product_data: {
+            name: label,
+            description: payMode === "full" ? "Full balance (My Business)" : "Deposit (My Business)"
+          }
+        }
+      }
+    ],
+    metadata: {
+      vibecart_flow: "bakery_booking",
+      booking_id: String(bookingId),
+      success_return_base: baseUrl,
+      pay_mode: payMode,
+      buyer_user_id: String(Number(session.user_id))
+    }
+  });
+  await pool.execute(
+    `UPDATE bakery_bookings SET stripe_checkout_session_id = ? WHERE id = ? LIMIT 1`,
+    [String(checkoutSession.id || ""), bookingId]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    url: String(checkoutSession.url || ""),
+    checkoutSessionId: String(checkoutSession.id || "")
+  });
+}
+
+async function handlePublicUserPrivacyExport(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  const uid = Number(session.user_id);
+  await ensureBakeryBookingsTable();
+  await ensureBakeryBookingMessagesTable();
+  const [asBuyer] = await pool.execute(
+    `SELECT b.id, b.service_id, b.booking_status, b.event_date, b.created_at, b.request_details
+     FROM bakery_bookings b WHERE b.buyer_user_id = ? ORDER BY b.id DESC LIMIT 100`,
+    [uid]
+  );
+  const [asBaker] = await pool.execute(
+    `SELECT b.id, b.service_id, b.booking_status, b.event_date, b.created_at, b.customer_name
+     FROM bakery_bookings b WHERE b.baker_user_id = ? ORDER BY b.id DESC LIMIT 100`,
+    [uid]
+  );
+  const bookingIds = [...new Set([...asBuyer.map((r) => r.id), ...asBaker.map((r) => r.id)])].slice(0, 50);
+  let messages = [];
+  if (bookingIds.length) {
+    const placeholders = bookingIds.map(() => "?").join(",");
+    const [mrows] = await pool.execute(
+      `SELECT booking_id, sender_user_id, body, created_at FROM bakery_booking_messages WHERE booking_id IN (${placeholders}) ORDER BY id DESC LIMIT 500`,
+      bookingIds
+    );
+    messages = mrows;
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    user: {
+      id: uid,
+      email: String(session.email || ""),
+      role: String(session.role || "")
+    },
+    bakeryBookingsAsBuyer: asBuyer,
+    bakeryBookingsAsProvider: asBaker,
+    bakeryBookingMessagesSample: messages
+  });
+}
+
+async function handlePublicUserPrivacyDeleteRequest(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  await ensureGdprPrivacyRequestTable();
+  const body = await readJson(req);
+  const note = String(body.note || body.reason || "").trim().slice(0, 500);
+  await pool.execute(`INSERT INTO gdpr_privacy_requests (user_id, request_type, note_text) VALUES (?, 'delete_account', ?)`, [
+    Number(session.user_id),
+    note || null
+  ]);
+  return sendJson(res, 200, {
+    ok: true,
+    message:
+      "Request recorded. For production deletion (right to erasure), your team should process this row in gdpr_privacy_requests and follow your DPA process."
+  });
+}
+
 async function handlePublicBakeryServiceUpsert(req, res) {
   const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
   if (!session) return;
@@ -1392,13 +1651,11 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
   }
   const fromStatus = String(before.booking_status || "pending").toLowerCase();
-  if (fromStatus === status) {
+  const transition = isAllowedBookingStatusTransition(fromStatus, status);
+  if (transition.noop) {
     return sendJson(res, 200, { ok: true, bookingId, status, noop: true });
   }
-  const transitionOk =
-    (fromStatus === "pending" && (status === "confirmed" || status === "declined")) ||
-    (fromStatus === "confirmed" && status === "completed");
-  if (!transitionOk) {
+  if (!transition.ok) {
     return sendJson(res, 400, {
       ok: false,
       code: "INVALID_STATUS_TRANSITION",
@@ -1505,9 +1762,11 @@ async function handlePublicBakeryBookingDetail(req, res) {
     return sendJson(res, 400, { ok: false, code: "BOOKING_ID_REQUIRED" });
   }
   await ensureBakeryBookingsTable();
+  await ensureBakeryBookingStripeColumns(pool);
   const [rows] = await pool.execute(
     `SELECT b.id, b.service_id, b.baker_user_id, b.buyer_user_id, b.customer_name, b.customer_phone, b.event_date, b.booking_status,
             b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.payment_preference, b.service_line,
+            b.stripe_payment_status, b.stripe_paid_amount,
             s.work_title, s.business_name
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
@@ -1541,7 +1800,9 @@ async function handlePublicBakeryBookingDetail(req, res) {
       paymentPreference: row.payment_preference == null ? null : String(row.payment_preference || ""),
       serviceLine: row.service_line == null ? null : String(row.service_line || ""),
       workTitle: String(row.work_title || ""),
-      businessName: String(row.business_name || "")
+      businessName: String(row.business_name || ""),
+      stripePaymentStatus: row.stripe_payment_status == null ? null : String(row.stripe_payment_status || ""),
+      stripePaidAmount: row.stripe_paid_amount == null ? null : Number(row.stripe_paid_amount)
     }
   });
 }
@@ -1664,6 +1925,11 @@ async function handlePublicBakeryBookingMessagesPost(req, res) {
     } catch {
       /* ignore */
     }
+  }
+  try {
+    broadcastBookingChatRefresh(bookingId);
+  } catch {
+    /* ignore */
   }
   return sendJson(res, 200, { ok: true });
 }
@@ -6523,6 +6789,21 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/messages") {
       return await handlePublicBakeryBookingMessagesPost(req, res);
     }
+    if (req.method === "GET" && req.url.startsWith("/api/public/bakery/schedule/slots")) {
+      return await handlePublicBakeryScheduleSlotsList(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/schedule/slots/upsert") {
+      return await handlePublicBakeryScheduleSlotsUpsert(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/bookings/checkout/start") {
+      return await handlePublicBakeryBookingCheckoutStart(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/user/privacy/export") {
+      return await handlePublicUserPrivacyExport(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/user/privacy/delete-request") {
+      return await handlePublicUserPrivacyDeleteRequest(req, res);
+    }
     if (req.method === "GET" && req.url.startsWith("/api/public/orders/track")) {
       return await handlePublicOrderTrack(req, res);
     }
@@ -6836,6 +7117,29 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 500, { ok: false, code: "SERVER_ERROR", message: String(error.message || error) });
   }
 });
+
+async function validateBakeryChatWsToken(token, bookingId) {
+  const sess = await requirePublicSession(token, { headers: {} }, { skipDeviceBinding: true });
+  if (!sess) {
+    return false;
+  }
+  const uid = Number(sess.user_id);
+  await ensureBakeryBookingsTable();
+  const [rows] = await pool.execute(
+    `SELECT baker_user_id, buyer_user_id, booking_status FROM bakery_bookings WHERE id = ? LIMIT 1`,
+    [bookingId]
+  );
+  const r = rows[0];
+  if (!r) {
+    return false;
+  }
+  if (String(r.booking_status || "").toLowerCase() !== "confirmed") {
+    return false;
+  }
+  return Number(r.baker_user_id) === uid || Number(r.buyer_user_id || 0) === uid;
+}
+
+attachBakeryBookingChatWss(server, { validate: validateBakeryChatWsToken });
 
 async function startOwnerAuthApiServer() {
   try {

@@ -1,6 +1,7 @@
 "use strict";
 
 const { fulfillStripeCoachCheckoutSession } = require("./safety-wellness-service");
+const { tryFulfillBakeryBookingCheckout } = require("./bakery-booking-payments");
 
 function toNum(value, fallback = 0) {
   const parsed = Number(value);
@@ -465,6 +466,10 @@ async function processStripeWebhookEvent(pool, event) {
   }
   if (event.type === "checkout.session.completed") {
     const session = event.data?.object || {};
+    const bakery = await tryFulfillBakeryBookingCheckout(pool, session);
+    if (!bakery.skipped) {
+      return bakery;
+    }
     return fulfillStripeCoachCheckoutSession(pool, session);
   }
   if (event.type === "payment_intent.succeeded") {

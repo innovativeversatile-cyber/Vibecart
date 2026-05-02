@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk3" />
+  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk4" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -175,7 +175,7 @@
       <div id="mbClientStep2" class="vc-mb-client-step" hidden>
         <label for="mbCliDate">Preferred date</label>
         <input id="mbCliDate" type="date" />
-        <p class="note" style="margin-top:0.5rem">Pick a time (example slots — your provider confirms the final time).</p>
+        <p class="note" style="margin-top:0.5rem">Pick a time. If your provider published slots for this date, those appear first; otherwise you see common example times until they publish.</p>
         <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
       </div>
       <div id="mbClientStep3" class="vc-mb-client-step" hidden>
@@ -201,6 +201,13 @@
         <div class="vc-biz-row" style="margin-top:0.5rem">
           <input id="mbClientChatInput" type="text" placeholder="Type a message…" maxlength="2000" />
           <button type="button" class="btn btn-primary" id="mbClientChatSend">Send</button>
+        </div>
+        <div id="mbClientPayWrap" class="vc-mb-pay-wrap" style="margin-top:0.75rem" hidden>
+          <p class="note" style="margin-top:0">Your provider accepted this booking. Pay securely when you are ready (Stripe).</p>
+          <p class="hero-actions" style="margin-top:0.35rem">
+            <button type="button" class="btn btn-secondary" id="mbClientPayDeposit">Pay deposit</button>
+            <button type="button" class="btn btn-primary" id="mbClientPayFull">Pay in full</button>
+          </p>
         </div>
       </div>
     </section>
@@ -307,6 +314,22 @@
       </div>
       <div id="bakeryWorkList" class="vc-work-list"></div>
       <hr style="opacity:.2;margin:1rem 0;" />
+      <h3 style="margin:.2rem 0;">Published time slots (what clients see)</h3>
+      <p class="note">Pick one of your saved work cards, a date, and comma-separated times (24h, e.g. <code>09:00, 14:30</code>). This replaces any previous slots for that day on that card.</p>
+      <div class="vc-biz-form">
+        <div class="vc-biz-row">
+          <label for="mbProvSlotService">Work card</label>
+          <select id="mbProvSlotService"></select>
+          <label for="mbProvSlotDate">Date</label>
+          <input id="mbProvSlotDate" type="date" />
+        </div>
+        <label for="mbProvSlotTimes">Times for that day</label>
+        <input id="mbProvSlotTimes" type="text" placeholder="09:00, 10:30, 14:00, 16:30" />
+        <p class="hero-actions" style="margin-top:0.5rem">
+          <button type="button" class="btn btn-primary" id="mbProvSlotSave">Save slots for this day</button>
+        </p>
+      </div>
+      <hr style="opacity:.2;margin:1rem 0;" />
       <h3 style="margin:.2rem 0;">Automatic payout setup</h3>
       <p class="note">Connect Stripe account ID (`acct_...`) so funds auto-release to seller once both buyer and seller confirm.</p>
       <div class="vc-biz-row">
@@ -375,6 +398,15 @@
       </div>
     </section>
 
+    <section class="vc-biz-card" style="margin-top:.95rem;">
+      <h2 style="margin-top:0;">Your data (privacy)</h2>
+      <p class="note">Download a JSON summary of My Business booking data linked to your signed-in account, or log a deletion request for human review (we will confirm by email where possible).</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" id="mbPrivacyExport">Download JSON export</button>
+        <button type="button" class="btn btn-secondary" id="mbPrivacyDeleteRequest">Request account deletion</button>
+      </p>
+    </section>
+
     <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Secure order mediator center</h2>
       <p class="note">AI mediator keeps buyer/seller informed. Confirm your side to release escrow automatically when both sides are done.</p>
@@ -383,7 +415,7 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
-  <script src="./my-business.js?v=20260502mbdesk3" defer></script>
+  <script src="./my-business.js?v=20260502mbdesk4" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

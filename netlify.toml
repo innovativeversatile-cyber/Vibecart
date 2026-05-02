@@ -51,3 +51,11 @@
   to = "https://vibecart-production.up.railway.app/api/:splat"
   status = 200
   force = true
+
+# My Business booking chat (Node `ws` on Railway). Browser uses same host as the site → wss://vibe-cart.com/ws/...
+# Query string (token, bookingId) is forwarded automatically with status 200 proxies.
+[[redirects]]
+  from = "/ws/*"
+  to = "https://vibecart-production.up.railway.app/ws/:splat"
+  status = 200
+  force = true
