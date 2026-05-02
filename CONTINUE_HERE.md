@@ -1,5 +1,33 @@
 # Continue later — VibeCart links & handoff
 
+## Restore point (save code)
+
+If newer commits feel wrong, jump back to the tagged baseline **before** the “UX / mobile / admin hardening” batch:
+
+| | |
+|--|--|
+| **Save code** | `VC-RESTORE-9F1B540` |
+| **Git tag** | `save/vc-9f1b540-baseline` |
+| **Commit** | `f451b540899a827f1229fa0b5262f271d30302ef` |
+
+```bash
+cd vibecart
+git fetch origin
+git checkout save/vc-9f1b540-baseline
+# detached HEAD — to branch again:
+git switch -c recovery/from-baseline
+```
+
+To move `main` back locally (destructive; only if you intend to rewrite history):
+
+```bash
+git checkout main
+git reset --hard save/vc-9f1b540-baseline
+# optional: git push --force-with-lease origin main
+```
+
+---
+
 ## Website (production target)
 
 - **Home:** [https://vibe-cart.com/](https://vibe-cart.com/)

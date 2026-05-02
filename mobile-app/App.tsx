@@ -4,7 +4,7 @@ import Constants from "expo-constants";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   AppState,
@@ -263,6 +263,8 @@ export default function App(): JSX.Element {
   const resumePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const splashStartRef = useRef(Date.now());
   const loadSuccessHapticDoneRef = useRef(false);
+  const earlyPaintRef = useRef(false);
+  const splashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const baseUrl = useMemo(() => {
     const fromConfig = Constants.expoConfig?.extra?.vibecartBaseUrl;
@@ -289,6 +291,39 @@ export default function App(): JSX.Element {
     const raw = initialUrl || baseUrl;
     return withWebCacheTag(raw, webCacheTag);
   }, [initialUrl, baseUrl, webCacheTag]);
+
+  const runSplashReveal = useCallback(() => {
+    if (splashTimerRef.current) {
+      clearTimeout(splashTimerRef.current);
+      splashTimerRef.current = null;
+    }
+    Animated.timing(splashOp, {
+      toValue: 0,
+      duration: 420,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true
+    }).start(() => {
+      setIsLoading(false);
+      if (!loadSuccessHapticDoneRef.current) {
+        loadSuccessHapticDoneRef.current = true;
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      }
+    });
+  }, [splashOp]);
+
+  const scheduleSplashReveal = useCallback(() => {
+    if (splashTimerRef.current) {
+      clearTimeout(splashTimerRef.current);
+      splashTimerRef.current = null;
+    }
+    const minSplashMs = earlyPaintRef.current ? 140 : 420;
+    const elapsed = Date.now() - splashStartRef.current;
+    const wait = Math.max(0, minSplashMs - elapsed);
+    splashTimerRef.current = setTimeout(() => {
+      splashTimerRef.current = null;
+      runSplashReveal();
+    }, wait);
+  }, [runSplashReveal]);
 
   useEffect(() => {
     AsyncStorage.getItem(DISCLAIMER_STORAGE_KEY)
@@ -329,23 +364,28 @@ export default function App(): JSX.Element {
       return;
     }
     const ac = new AbortController();
-    fetch(`${apiBaseUrl}/api/public/ai/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        agent: "vibecoach_tip",
-        input: { path: "/mobile-app-dock", mode: "mobile_app", category: "", partner: "" }
-      }),
-      signal: ac.signal
-    })
-      .then(async (r) => {
-        const data = (await r.json().catch(() => null)) as { ok?: boolean; result?: { tip?: string } } | null;
-        if (data?.ok && data.result?.tip) {
-          setCoachTipLine(String(data.result.tip));
-        }
+    const t = setTimeout(() => {
+      fetch(`${apiBaseUrl}/api/public/ai/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent: "vibecoach_tip",
+          input: { path: "/mobile-app-dock", mode: "mobile_app", category: "", partner: "" }
+        }),
+        signal: ac.signal
       })
-      .catch(() => {});
-    return () => ac.abort();
+        .then(async (r) => {
+          const data = (await r.json().catch(() => null)) as { ok?: boolean; result?: { tip?: string } } | null;
+          if (data?.ok && data.result?.tip) {
+            setCoachTipLine(String(data.result.tip));
+          }
+        })
+        .catch(() => {});
+    }, 2800);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
   }, [dockCoachVisible, apiBaseUrl]);
 
   useEffect(() => {
@@ -505,6 +545,11 @@ export default function App(): JSX.Element {
   const bottomPad = Platform.OS === "ios" ? 14 : 8;
 
   const hardReloadWebView = () => {
+    if (splashTimerRef.current) {
+      clearTimeout(splashTimerRef.current);
+      splashTimerRef.current = null;
+    }
+    earlyPaintRef.current = false;
     setErrorText("");
     setIsLoading(true);
     splashOp.setValue(1);
@@ -514,6 +559,7 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     splashStartRef.current = Date.now();
+    earlyPaintRef.current = false;
   }, [webViewKey]);
 
   return (
@@ -550,7 +596,17 @@ export default function App(): JSX.Element {
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
         injectedJavaScript={INJECT_HASH_SYNC}
         onMessage={(ev: { nativeEvent: { data: string } }) => {
-          const { dock, scene, flowHaptic } = parseVcWebViewPayload(ev.nativeEvent.data);
+          const raw = String(ev.nativeEvent.data || "");
+          try {
+            const o = JSON.parse(raw) as { vcPaintReady?: boolean };
+            if (o && o.vcPaintReady) {
+              earlyPaintRef.current = true;
+              scheduleSplashReveal();
+            }
+          } catch {
+            /* ignore */
+          }
+          const { dock, scene, flowHaptic } = parseVcWebViewPayload(raw);
           if (dock) {
             setDockActive(dock);
           }
@@ -584,25 +640,13 @@ export default function App(): JSX.Element {
               `(function(){try{window.__VC_INSTALL_ID__=${JSON.stringify(id)};}catch(e){}})();true;`
             );
           });
-          const minSplashMs = 900;
-          const elapsed = Date.now() - splashStartRef.current;
-          const wait = Math.max(0, minSplashMs - elapsed);
-          setTimeout(() => {
-            Animated.timing(splashOp, {
-              toValue: 0,
-              duration: 420,
-              easing: Easing.out(Easing.cubic),
-              useNativeDriver: true
-            }).start(() => {
-              setIsLoading(false);
-              if (!loadSuccessHapticDoneRef.current) {
-                loadSuccessHapticDoneRef.current = true;
-                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-              }
-            });
-          }, wait);
+          scheduleSplashReveal();
         }}
         onError={(event) => {
+          if (splashTimerRef.current) {
+            clearTimeout(splashTimerRef.current);
+            splashTimerRef.current = null;
+          }
           splashOp.stopAnimation();
           splashOp.setValue(0);
           setIsLoading(false);
@@ -699,14 +743,22 @@ export default function App(): JSX.Element {
       {!acceptedDisclaimer && (
         <View style={styles.acceptanceOverlay}>
           <View style={styles.acceptanceCard}>
-            <Text style={styles.acceptanceTitle}>Step into the bridge</Text>
+            <Text style={styles.acceptanceTitle}>Welcome to VibeCart</Text>
             <Text style={styles.acceptanceLead}>
-              A cross-border marketplace with lane memory, live trust signals, and generative VibeCoach guidance — built
-              to feel natural on phone, not like a resized classifieds board.
+              Secure cross-border lanes, trust tooling, and a dock tuned for phone. You are on the live marketplace —
+              not a demo sandbox.
             </Text>
             <Text style={styles.acceptanceText}>
-              I understand and accept the VibeCart risk disclaimer and legal-use policy.
+              I accept the risk note and agree to use VibeCart lawfully. Full terms and privacy live on the site.
             </Text>
+            <Pressable
+              onPress={() => {
+                const u = `${baseUrl.replace(/\/$/, "")}/privacy.html`;
+                void Linking.openURL(u);
+              }}
+            >
+              <Text style={styles.acceptancePrivacyLink}>Open privacy policy</Text>
+            </Pressable>
             <Pressable
               style={({ pressed }) => [styles.acceptanceButton, pressed && { opacity: 0.88 }]}
               onPress={() => {
@@ -1001,9 +1053,16 @@ const styles = StyleSheet.create({
   },
   acceptanceText: {
     color: "#a8b0d0",
-    marginBottom: 16,
+    marginBottom: 10,
     lineHeight: 20,
     fontSize: 13
+  },
+  acceptancePrivacyLink: {
+    color: "#e8a317",
+    fontWeight: "700",
+    fontSize: 14,
+    marginBottom: 14,
+    textDecorationLine: "underline"
   },
   acceptanceButton: {
     backgroundColor: "#e8a317",

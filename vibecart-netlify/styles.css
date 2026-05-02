@@ -5322,6 +5322,13 @@ html.vc-phone .hero {
   margin-bottom: 0.32rem;
 }
 
+/* Native app WebView: keep first fold shorter so primary CTAs land nearer the thumb zone. */
+html.vc-mobile-app .page-group .hero {
+  min-height: 0;
+  padding-top: clamp(0.85rem, 3.5vw, 1.35rem);
+  padding-bottom: clamp(0.75rem, 3vw, 1.15rem);
+}
+
 html.vc-mobile-app .vc-mobile-hero-aurora,
 html.vc-phone .vc-mobile-hero-aurora {
   pointer-events: none;

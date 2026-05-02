@@ -82,6 +82,11 @@ const affiliateRuntime = {
   ownerRevenue: null
 };
 let liveMoneyDashboardTimer = 0;
+
+/** Auto-lock owner panel after keyboard/pointer silence (defence for shared machines). */
+const ADMIN_IDLE_MS = 25 * 60 * 1000;
+let adminIdleTimer = null;
+
 const AFFILIATE_PROGRAMS = [
   { id: "awin", name: "Awin", signupUrl: "https://www.awin.com" },
   { id: "cj", name: "CJ Affiliate", signupUrl: "https://www.cj.com" },
@@ -538,6 +543,118 @@ function saveApiBase(value) {
   localStorage.setItem(API_BASE_KEY, normalizeApiBase(value));
 }
 
+function refreshAdminApiBaseChip() {
+  const chip = document.getElementById("adminApiBaseChip");
+  if (!chip) {
+    return;
+  }
+  const base = getApiBase();
+  const origin = typeof window !== "undefined" ? String(window.location.origin || "").replace(/\/+$/, "") : "";
+  const rawInput = String(document.getElementById("apiBaseUrl")?.value || "").trim();
+  const usingSameOrigin = origin && base === origin;
+  chip.textContent = usingSameOrigin
+    ? `Active API base: ${origin} (same as this page — calls use /api on this host when you leave overrides empty).`
+    : `Active API base: ${base}${rawInput ? " (from field above)" : ""}.`;
+}
+
+function clearAdminIdleTimer() {
+  if (adminIdleTimer) {
+    clearTimeout(adminIdleTimer);
+    adminIdleTimer = null;
+  }
+}
+
+function lockAdminPanelForIdle() {
+  clearAdminIdleTimer();
+  const session = getSession();
+  if (session.token) {
+    fetch(`${getApiBase()}/api/owner/auth/logout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: session.token })
+    }).catch(() => {});
+  }
+  clearSession();
+  stopLiveMoneyDashboard();
+  const login = document.getElementById("loginBox");
+  const panel = document.getElementById("panelBox");
+  if (panel) {
+    panel.classList.add("hidden");
+  }
+  if (login) {
+    login.classList.remove("hidden");
+  }
+  setStatus("Session locked after inactivity. Sign in again.");
+  renderAffiliateSessionState();
+}
+
+function scheduleAdminIdleWatch() {
+  clearAdminIdleTimer();
+  if (!isSessionValid()) {
+    return;
+  }
+  const panel = document.getElementById("panelBox");
+  if (!panel || panel.classList.contains("hidden")) {
+    return;
+  }
+  const last = Number(window.__vibecartAdminLastActivityAt || Date.now());
+  const remaining = ADMIN_IDLE_MS - (Date.now() - last);
+  if (remaining <= 0) {
+    lockAdminPanelForIdle();
+    return;
+  }
+  const wait = Math.max(2000, remaining);
+  adminIdleTimer = window.setTimeout(() => {
+    adminIdleTimer = null;
+    const again = Number(window.__vibecartAdminLastActivityAt || 0);
+    if (!isSessionValid()) {
+      return;
+    }
+    const p2 = document.getElementById("panelBox");
+    if (!p2 || p2.classList.contains("hidden")) {
+      return;
+    }
+    if (Date.now() - again >= ADMIN_IDLE_MS) {
+      lockAdminPanelForIdle();
+    } else {
+      scheduleAdminIdleWatch();
+    }
+  }, wait);
+}
+
+function touchAdminActivity() {
+  window.__vibecartAdminLastActivityAt = Date.now();
+  scheduleAdminIdleWatch();
+}
+
+function initAdminSecurityChrome() {
+  refreshAdminApiBaseChip();
+  const apiEl = document.getElementById("apiBaseUrl");
+  if (apiEl && !apiEl.dataset.vcChipBound) {
+    apiEl.dataset.vcChipBound = "1";
+    apiEl.addEventListener("input", () => refreshAdminApiBaseChip());
+    apiEl.addEventListener("change", () => {
+      saveApiBase(apiEl.value);
+      refreshAdminApiBaseChip();
+    });
+  }
+  if (!window.__vibecartAdminIdleListeners) {
+    window.__vibecartAdminIdleListeners = true;
+    ["pointerdown", "keydown", "wheel"].forEach((evName) => {
+      document.addEventListener(
+        evName,
+        () => {
+          const panel = document.getElementById("panelBox");
+          if (panel && !panel.classList.contains("hidden") && isSessionValid()) {
+            touchAdminActivity();
+          }
+        },
+        { passive: true, capture: true }
+      );
+    });
+  }
+}
+
 function setStatus(text) {
   const nodes = [document.getElementById("statusMsg"), document.getElementById("statusMsgLogin")];
   nodes.forEach((node) => {
@@ -817,10 +934,12 @@ function showPanelUnlocked(message) {
   document.getElementById("panelBox").classList.remove("hidden");
   fillForm().catch(() => {});
   fillOwnerAuthForm();
-  startAdminMessageStream();
   updateOwnerCommandDeck("Panel unlocked");
   setStatus(message);
   refreshStrictLiveBanner();
+  window.__vibecartAdminLastActivityAt = Date.now();
+  initAdminSecurityChrome();
+  scheduleAdminIdleWatch();
 }
 
 function getSession() {
@@ -3654,6 +3773,7 @@ function initializeOwnerSecurity() {
   }
   stopLiveMoneyDashboard();
   clearSession();
+  clearAdminIdleTimer();
 }
 
 function bindClick(id, handler) {
@@ -3672,54 +3792,6 @@ function bindClick(id, handler) {
 }
 
 updateMessageBadge().catch(() => {});
-let adminMessageStream = null;
-let adminMessageStreamSig = "";
-function startAdminMessageStream() {
-  try {
-    if (adminMessageStream) {
-      adminMessageStream.close();
-      adminMessageStream = null;
-    }
-    const session = getSession();
-    const token = String(session && session.token ? session.token : "").trim();
-    if (!token) {
-      return;
-    }
-    const streamUrl = `${getApiBase().replace(/\/+$/, "")}/api/owner/messages/stream?authToken=${encodeURIComponent(token)}`;
-    adminMessageStream = new EventSource(streamUrl);
-    adminMessageStream.addEventListener("message_delta", (event) => {
-      try {
-        const data = JSON.parse(event.data || "{}");
-        const sig = `${Number(data.latestId || 0)}|${Number(data.unreadCount || 0)}|${Number(data.totalCount || 0)}`;
-        if (sig !== adminMessageStreamSig) {
-          adminMessageStreamSig = sig;
-          updateMessageBadge().catch(() => {});
-        }
-      } catch {
-        // ignore malformed payloads
-      }
-    });
-  } catch {
-    // non-blocking; interval refresh still applies
-  }
-}
-startAdminMessageStream();
-window.setInterval(() => {
-  if (!document.hidden) {
-    updateMessageBadge().catch(() => {});
-  }
-}, 45000);
-window.addEventListener("storage", (event) => {
-  if (event.key === MESSAGE_CENTER_KEY || event.key === "vibecart-admin-message-sync-at") {
-    updateMessageBadge().catch(() => {});
-  }
-});
-window.addEventListener("beforeunload", () => {
-  if (adminMessageStream) {
-    adminMessageStream.close();
-    adminMessageStream = null;
-  }
-});
 
 bindClick("unlockBtn", () => {
   unlockPanel().catch((error) => {
@@ -4089,6 +4161,7 @@ if (commissionOfferFilterNode) {
 }
 
 initializeOwnerSecurity();
+initAdminSecurityChrome();
 renderAiSuggestionsFeed();
 renderAffiliatePartnerHealth();
 renderHomepageTrafficSnapshot();

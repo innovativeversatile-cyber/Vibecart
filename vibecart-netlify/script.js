@@ -2569,7 +2569,7 @@ function initVcHorizontalRails() {
       return;
     }
     const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const delayMs = root.classList.contains("vc-mobile-app") ? 3200 : 520;
+    const delayMs = root.classList.contains("vc-mobile-app") ? 1400 : 520;
     window.setTimeout(() => {
       try {
         const rails = Array.from(document.querySelectorAll(".vc-mobile-rail:not(.vc-mobile-rail--chips)"));
@@ -2684,6 +2684,33 @@ function initMobileWebLayoutGuards() {
   }
 }
 
+function vcSignalReactNativePaintReady() {
+  try {
+    const RN = typeof window !== "undefined" && window.ReactNativeWebView;
+    if (!RN || typeof RN.postMessage !== "function") {
+      return;
+    }
+    if (!document.documentElement.classList.contains("vc-mobile-app")) {
+      return;
+    }
+    if (window.__vcPaintReadySent) {
+      return;
+    }
+    window.__vcPaintReadySent = true;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        try {
+          RN.postMessage(JSON.stringify({ vcPaintReady: true }));
+        } catch {
+          /* ignore */
+        }
+      });
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 function initCinematicIntro() {
   const intro = document.getElementById("cinematicIntro");
   if (!intro) {
@@ -2708,13 +2735,25 @@ function initCinematicIntro() {
   } catch {
     /* ignore */
   }
+  const inApp = document.documentElement.classList.contains("vc-mobile-app");
+  if (inApp) {
+    intro.classList.add("cinematic-intro--soft");
+  }
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduceMotion) {
     intro.classList.add("cinematic-intro--soft");
   }
   const coarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  /* Touch / phone: longer hold + next frame so the overlay paints before the hide timer. */
-  const holdMs = reduceMotion ? 1600 : coarsePointer ? 3000 : 2200;
+  /* Native WebView: shorter hold so first paint + dock feel snappy. Desktop touch keeps a longer beat. */
+  const holdMs = inApp
+    ? reduceMotion
+      ? 520
+      : 980
+    : reduceMotion
+      ? 1600
+      : coarsePointer
+        ? 3000
+        : 2200;
   let unbindIntroVv = () => {};
   const reveal = () => {
     intro.classList.add("is-visible");
@@ -4192,7 +4231,8 @@ function initHeroParallaxDepth() {
 
 function initLuxuryMotion() {
   const params = new URLSearchParams(window.location.search || "");
-  if (params.get("instant") === "1") {
+  const inApp = document.documentElement.classList.contains("vc-mobile-app");
+  if (params.get("instant") === "1" || inApp) {
     document.body.classList.add("luxe-ready", "luxe-instant");
     document.querySelectorAll(".hero, .section").forEach((node) => node.classList.add("is-visible"));
     return;
@@ -4233,6 +4273,9 @@ function initLuxuryMotion() {
 }
 
 function initBrandSignatureMotion() {
+  if (document.documentElement.classList.contains("vc-mobile-app")) {
+    return;
+  }
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return;
   }
@@ -4373,6 +4416,7 @@ initVcScrollKinetics();
 initVcHorizontalRails();
 initVcCinematicExperience();
 initCinematicIntro();
+vcSignalReactNativePaintReady();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
 initShopFolderConstellation();

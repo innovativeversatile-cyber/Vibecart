@@ -2651,8 +2651,52 @@
     }
   }
 
+  /** Native WebView: reveal hero/sections immediately (mirrors full script.js luxe-instant path). */
+  function initVcMobileAppHomeRevealLite() {
+    try {
+      if (!document.documentElement.classList.contains("vc-mobile-app")) {
+        return;
+      }
+      document.body.classList.add("luxe-ready", "luxe-instant");
+      var nodes = document.querySelectorAll(".hero, .section");
+      for (var i = 0; i < nodes.length; i += 1) {
+        nodes[i].classList.add("is-visible");
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function vcSignalReactNativePaintReadyFromLite() {
+    try {
+      var RN = typeof window !== "undefined" && window.ReactNativeWebView;
+      if (!RN || typeof RN.postMessage !== "function") {
+        return;
+      }
+      if (!document.documentElement.classList.contains("vc-mobile-app")) {
+        return;
+      }
+      if (window.__vcPaintReadySent) {
+        return;
+      }
+      window.__vcPaintReadySent = true;
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          try {
+            RN.postMessage(JSON.stringify({ vcPaintReady: true }));
+          } catch {
+            /* ignore */
+          }
+        });
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
   function initHardPassCinematicMomentsLite() {
     if (!featureOn("hardPass_cinematicMoments_v1")) return;
+    if (document.documentElement.classList.contains("vc-mobile-app")) return;
     if (prefersReducedMotion()) return;
     if (document.body.getAttribute("data-vc-hardpass-cinematic") === "1") return;
     document.body.setAttribute("data-vc-hardpass-cinematic", "1");
@@ -3039,6 +3083,7 @@
       }
     }
     // Critical paths first, each isolated from unrelated failures.
+    safeInit("initVcMobileAppHomeRevealLite", initVcMobileAppHomeRevealLite);
     safeInit("initSmartTourLite", initSmartTourLite);
     safeInit("initExperienceModeLite", initExperienceModeLite);
     safeInit("initTopClassActivationLite", initTopClassActivationLite);
@@ -3099,6 +3144,7 @@
     safeInit("initNavAutoHideLite", initNavAutoHideLite);
     safeInit("initBackToTopLite", initBackToTopLite);
     safeInit("initDeadEndLinkGuardLite", initDeadEndLinkGuardLite);
+    vcSignalReactNativePaintReadyFromLite();
   }
 
   if (document.readyState === "loading") {
