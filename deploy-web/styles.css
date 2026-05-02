@@ -5221,7 +5221,10 @@ html.vc-phone .hero {
   border-radius: 20px;
   border: 1px solid rgba(232, 163, 23, 0.22);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-  margin-top: 0.35rem;
+  margin-top: 0.05rem;
+  margin-bottom: 0.55rem;
+  padding: 0.3rem 0.42rem 0.42rem;
+  gap: 0.55rem;
 }
 
 html.vc-mobile-app .vc-mobile-hero-aurora,
@@ -5261,8 +5264,35 @@ html.vc-phone .hero > * {
 
 html.vc-mobile-app .hero-copy h1,
 html.vc-phone .hero-copy h1 {
-  font-size: clamp(1.55rem, 6vw, 2.1rem);
+  font-size: clamp(1.22rem, 5vw, 1.72rem);
+  line-height: 1.1;
+  margin: 0.08rem 0 0.28rem;
   text-shadow: 0 0 40px rgba(232, 163, 23, 0.15);
+}
+
+html.vc-mobile-app .hero-captivate-bg,
+html.vc-phone .hero-captivate-bg {
+  width: 56%;
+  opacity: 0.9;
+}
+
+html.vc-mobile-app .hero-showpiece,
+html.vc-phone .hero-showpiece {
+  max-height: min(40vw, 190px);
+  width: auto;
+  object-fit: contain;
+}
+
+html.vc-mobile-app .hero-masterpiece,
+html.vc-phone .hero-masterpiece {
+  max-height: min(36vw, 170px);
+}
+
+html.vc-mobile-app .hero-copy #heroSubtitle,
+html.vc-phone .hero-copy #heroSubtitle {
+  font-size: clamp(0.8rem, 2.75vw, 0.94rem);
+  line-height: 1.32;
+  margin: 0 0 0.35rem;
 }
 
 html.vc-mobile-app .hero-copy,
@@ -5856,13 +5886,37 @@ html.vc-phone .brand-mark::after {
 
 .vc-mobile-ai {
   position: fixed;
-  right: 10px;
-  bottom: calc(var(--vc-mobile-tab-h) + env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 85;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 0.5rem;
+}
+
+/* Brandon under the left HUD stack (Motion → Arrange → Reset layout); bottom rail stays for Spark + first-5. */
+html.vc-mobile-app body:not(.health-coach-page) .vc-mobile-ai,
+html.vc-phone body:not(.health-coach-page) .vc-mobile-ai {
+  left: 12px;
+  right: auto;
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 234px);
+  bottom: auto;
+  align-items: flex-start;
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.vc-mobile-app body.health-coach-page .vc-mobile-ai,
+html.vc-phone body.health-coach-page .vc-mobile-ai {
+  left: auto;
+  right: 10px;
+  top: auto;
+  bottom: calc(var(--vc-mobile-tab-h) + env(safe-area-inset-bottom, 0px) + 10px);
+  align-items: flex-end;
+}
+
+html.vc-mobile-app body:not(.health-coach-page) .vc-mobile-ai__micro,
+html.vc-phone body:not(.health-coach-page) .vc-mobile-ai__micro {
+  text-align: left;
 }
 
 .vc-mobile-ai--hidden {
@@ -5929,17 +5983,10 @@ html.vc-phone .brand-mark::after {
   }
 }
 
-/* Keep VibeCoach (AI orb) away from the separate Quick actions trigger. */
+/* Bottom first-5 rail: Brandon is top-left now, so full width unless a page adds a left obstacle. */
 @supports selector(:has(*)) {
-  body:has(#vcQuickActionTrigger) .vc-mobile-ai {
-    right: auto;
-    left: 12px;
-    align-items: flex-start;
-  }
-
-  /* Reserve horizontal space for left-docked AI orb so the first CTA pill does not collide. */
-  body:has(#vcQuickActionTrigger) .vc-first5-bar {
-    left: 78px;
+  body:has(#vcQuickActionTrigger):not(.health-coach-page) .vc-first5-bar {
+    left: 10px;
   }
 
   body:has(#vcQuickActionTrigger) .vc-deal-draft-composer {
@@ -6920,8 +6967,8 @@ body.vc-interaction-simple #seller-marketing {
   }
 
   @supports selector(:has(*)) {
-    body:has(#vcQuickActionTrigger) .vc-first5-bar {
-      left: 72px;
+    body:has(#vcQuickActionTrigger):not(.health-coach-page) .vc-first5-bar {
+      left: 10px;
     }
   }
 }
