@@ -2749,6 +2749,9 @@
 
   function isLeanMobileHudTemplatePage() {
     try {
+      if (document.body && document.body.getAttribute("data-vc-lean-hud") === "1") {
+        return true;
+      }
       var p = String((typeof location !== "undefined" && location.pathname) || "").toLowerCase();
       if (p.indexOf("service-provider-hub") !== -1) return true;
       if (p.indexOf("coach-experience") !== -1) return true;

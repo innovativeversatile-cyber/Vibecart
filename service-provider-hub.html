@@ -6,9 +6,23 @@
   <title>Service Provider Hub · VibeCart</title>
   <meta name="description" content="Set up beauty and service booking offers with visual service previews, package guidance, and prepayment-ready booking routes." />
   <link rel="canonical" href="https://vibe-cart.com/service-provider-hub.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260502providerphoto1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502herofallback1" />
+  <style>
+    /* First-paint fallback if the img layer is blocked or slow — same default salon still as #spHeroMotionImg. */
+    #spHeroMotion.vc-visual-motion {
+      background-color: #1a0f24;
+      background-image: linear-gradient(
+          145deg,
+          rgba(26, 15, 36, 0.2),
+          rgba(10, 13, 24, 0.45)
+        ),
+        url("https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=80");
+      background-size: cover, cover;
+      background-position: center, center;
+    }
+  </style>
 </head>
-<body class="start-selling-page">
+<body class="start-selling-page" data-vc-lean-hud="1">
   <header class="shops-lane-topbar">
     <a href="./my-business.html" class="btn btn-secondary">Back</a>
     <h1 class="shops-lane-title" id="spHubTitle">Provider Booking Template</h1>
@@ -21,7 +35,7 @@
         <img
           id="spHeroMotionImg"
           class="vc-visual-motion__media"
-          src="https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&amp;fit=crop&amp;w=1600&amp;q=82"
+          src="https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=82"
           alt="Service booking preview"
           loading="eager"
           decoding="async"
@@ -132,11 +146,27 @@
         var entry = key ? motionStill[key] : motionFromFreeText(freeText);
         var salt = String(freeText || "") + "|" + String(serviceHint || "") + "|" + String((name && name.value) || "");
         var url = resolveMotionUrl(entry, salt);
+        var fallbackUrls = [];
+        if (url) fallbackUrls.push(url);
+        if (entry && typeof entry === "object" && entry.length) {
+          for (var fi = 0; fi < entry.length; fi++) {
+            var u = entry[fi];
+            if (u && fallbackUrls.indexOf(u) < 0) fallbackUrls.push(u);
+          }
+        } else if (typeof entry === "string" && entry && fallbackUrls.indexOf(entry) < 0) {
+          fallbackUrls.push(entry);
+        }
+        var attempt = 0;
         img.onerror = function () {
+          attempt += 1;
+          if (attempt < fallbackUrls.length) {
+            img.src = fallbackUrls[attempt];
+            return;
+          }
           img.onerror = null;
           img.src = HERO_LOCAL_FALLBACK;
         };
-        img.src = url;
+        img.src = fallbackUrls.length ? fallbackUrls[0] : HERO_LOCAL_FALLBACK;
         img.alt = (key || "Service") + " — booking preview";
         if (box) box.setAttribute("aria-label", (key || String(freeText || "Service").trim() || "Service") + " preview");
       }
@@ -235,6 +265,6 @@
       });
     })();
   </script>
-  <script src="./site-chrome.js?v=20260502providerphoto1" defer></script>
+  <script src="./site-chrome.js?v=20260502herofallback1" defer></script>
 </body>
 </html>

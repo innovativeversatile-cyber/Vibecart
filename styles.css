@@ -9212,9 +9212,13 @@ body.start-selling-page #spHeroMotion .vc-visual-motion__media {
   background: linear-gradient(to top, rgba(6, 8, 22, 0.38) 0%, transparent 48%, rgba(6, 8, 22, 0.08) 100%);
 }
 
-/* Provider booking template: subtle frame only — imagery comes from the real photo layer (#spHeroMotionImg). */
+/* Provider booking template: photo underlay matches default hair still (inline head + img both set it). */
 body.start-selling-page #spHeroMotion.vc-visual-motion {
-  background-image: linear-gradient(145deg, rgba(26, 15, 36, 0.38), rgba(10, 13, 24, 0.48));
+  background-color: #1a0f24;
+  background-image: linear-gradient(145deg, rgba(26, 15, 36, 0.22), rgba(10, 13, 24, 0.42)),
+    url("https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover, cover;
+  background-position: center, center;
 }
 
 @keyframes vcKenBurnsMotion {

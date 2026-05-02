@@ -653,7 +653,7 @@
     return;
   }
   window.__vcBrandonUniversalScheduled = "1";
-  var SHELL = "./mobile-app-shell.js?v=20260502providerhud2";
+  var SHELL = "./mobile-app-shell.js?v=20260502leanhudfix1";
   var CLIENT = "./vibecart-ai-client.js?v=20260430genai1";
   function skip() {
     if (!document.body) return true;
@@ -698,7 +698,7 @@
     return;
   }
   window.__vcVisualMotionScheduled = "1";
-  var src = "./vc-visual-motion.js?v=20260502providerphoto1";
+  var src = "./vc-visual-motion.js?v=20260502herofallback1";
   function inject() {
     if (window.__vcVisualMotionLoaded === "1") {
       return;
