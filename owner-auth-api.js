@@ -132,6 +132,11 @@ const CRON_SECRET = String(process.env.CRON_SECRET || "");
 const ANALYTICS_VISITOR_SALT = String(process.env.ANALYTICS_VISITOR_SALT || CRON_SECRET || "vibecart-analytics-salt-dev").trim();
 const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "").trim().toLowerCase();
 const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
+const _userTxEnv = String(process.env.USER_TRANSACTIONAL_EMAIL_ENABLED || "").trim().toLowerCase();
+/** Set true to allow SMTP for buyer/provider mail even when EMAIL_NOTIFICATIONS_ENABLED is false. */
+const USER_TRANSACTIONAL_EMAIL_FORCE_ON = ["true", "1", "yes", "on"].includes(_userTxEnv);
+/** Explicitly turns off buyer/provider transactional email only. */
+const USER_TRANSACTIONAL_EMAIL_FORCE_OFF = ["false", "0", "no", "off"].includes(_userTxEnv);
 const SMTP_HOST = String(process.env.SMTP_HOST || "").trim();
 const SMTP_PORT = Number(process.env.SMTP_PORT || 587);
 const SMTP_SECURE = String(process.env.SMTP_SECURE || "false").trim().toLowerCase() === "true";
@@ -248,7 +253,10 @@ let notificationTransporter = null;
 let logoSmtpTransporter = null;
 
 function getNotificationTransporter() {
-  if (!EMAIL_NOTIFICATIONS_ENABLED || !SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+    return null;
+  }
+  if (!EMAIL_NOTIFICATIONS_ENABLED && !USER_TRANSACTIONAL_EMAIL_FORCE_ON) {
     return null;
   }
   if (!notificationTransporter) {
@@ -295,8 +303,11 @@ async function sendAdminNotificationEmail(subject, lines) {
   }
 }
 
-/** Buyer/provider transactional mail when EMAIL_NOTIFICATIONS_ENABLED + SMTP are set (same transporter as admin). */
+/** Buyer/provider transactional mail when SMTP transporter exists and user mail is not explicitly disabled. */
 async function sendUserTransactionalEmail(toEmail, subject, textBody) {
+  if (USER_TRANSACTIONAL_EMAIL_FORCE_OFF) {
+    return;
+  }
   const to = String(toEmail || "").trim().toLowerCase();
   if (!isValidEmail(to)) {
     return;
@@ -321,6 +332,12 @@ async function sendUserTransactionalEmail(toEmail, subject, textBody) {
     // eslint-disable-next-line no-console
     console.error("User transactional email failed:", error.message || error);
   }
+}
+
+function queueUserTransactionalEmail(toEmail, subject, textBody) {
+  void sendUserTransactionalEmail(toEmail, subject, textBody).catch(() => {
+    /* ignore */
+  });
 }
 
 async function getUserEmailById(userId) {
@@ -987,6 +1004,34 @@ async function ensureBakeryBookingsTable() {
       /* ignore */
     }
   }
+  try {
+    await pool.execute("CREATE INDEX idx_bakery_bookings_buyer ON bakery_bookings (buyer_user_id, id)");
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (!/Duplicate key name/i.test(m) && !/already exists/i.test(m)) {
+      /* ignore */
+    }
+  }
+}
+
+let bakeryBookingEventsTableEnsured = false;
+async function ensureBakeryBookingEventsTable() {
+  if (bakeryBookingEventsTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS bakery_booking_events (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      booking_id BIGINT UNSIGNED NOT NULL,
+      actor_user_id BIGINT UNSIGNED NOT NULL,
+      from_status VARCHAR(30) NULL,
+      to_status VARCHAR(30) NOT NULL,
+      note VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_bakery_evt_booking (booking_id, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  bakeryBookingEventsTableEnsured = true;
 }
 
 let bakeryBookingMessagesTableEnsured = false;
@@ -1136,10 +1181,21 @@ async function handlePublicBakeryServiceToggle(req, res) {
 
 async function handlePublicBakeryBookingCreate(req, res) {
   const maybeToken = getBearerToken(req);
-  const session = maybeToken ? await requirePublicSession(maybeToken, req) : null;
+  if (!maybeToken) {
+    return sendJson(res, 401, {
+      ok: false,
+      code: "SIGNIN_REQUIRED",
+      message: "Sign in to send a booking request so we can link your reservation and notify you."
+    });
+  }
+  const session = await requirePublicSession(maybeToken, req);
+  if (!session || !Number(session.user_id)) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
   const body = await readJson(req);
   await ensureBakeryServicesTable();
   await ensureBakeryBookingsTable();
+  await ensureBakeryBookingEventsTable();
   const serviceId = Number(body.serviceId || 0);
   const customerName = String(body.customerName || "").trim().slice(0, 140);
   const customerPhone = String(body.customerPhone || "").trim().slice(0, 60);
@@ -1164,6 +1220,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
   if (!svc) {
     return sendJson(res, 404, { ok: false, code: "BAKERY_SERVICE_NOT_FOUND" });
   }
+  const buyerId = Number(session.user_id);
   const [inserted] = await pool.execute(
     `INSERT INTO bakery_bookings (
       service_id, baker_user_id, buyer_user_id, customer_name, customer_phone, event_date, occasion_type, style_theme, request_details, budget_amount, payment_preference, service_line, booking_status
@@ -1171,7 +1228,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
     [
       serviceId,
       Number(svc.baker_user_id),
-      session && Number(session.user_id) > 0 ? Number(session.user_id) : null,
+      buyerId,
       customerName,
       customerPhone || null,
       eventDate,
@@ -1183,23 +1240,30 @@ async function handlePublicBakeryBookingCreate(req, res) {
       serviceLine
     ]
   );
+  const bookingId = Number(inserted.insertId || 0);
+  const mbUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
   try {
     await sendPushToUser(pool, {
       userId: Number(svc.baker_user_id),
       title: "New booking request",
       message: `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}. Open My Business to accept or decline.`,
-      deepLink: "https://vibe-cart.com/my-business.html",
+      deepLink: mbUrl,
       eventType: "bakery_booking_new"
     });
   } catch {
     /* ignore push failures */
   }
-  const bookingId = Number(inserted.insertId || 0);
-  const baseUrl = resolvePublicWebBaseUrl(req);
-  const mbUrl = `${baseUrl}/my-business.html`;
+  try {
+    await pool.execute(
+      `INSERT INTO bakery_booking_events (booking_id, actor_user_id, from_status, to_status, note) VALUES (?, ?, NULL, 'pending', ?)`,
+      [bookingId, buyerId, "created"]
+    );
+  } catch {
+    /* ignore audit failures */
+  }
   const bakerEmail = await getUserEmailById(Number(svc.baker_user_id));
   if (bakerEmail) {
-    await sendUserTransactionalEmail(
+    queueUserTransactionalEmail(
       bakerEmail,
       "New booking request",
       [
@@ -1212,19 +1276,17 @@ async function handlePublicBakeryBookingCreate(req, res) {
       ].join("\n")
     );
   }
-  if (session && Number(session.user_id) > 0) {
-    const buyerEmail = await getUserEmailById(Number(session.user_id));
-    if (buyerEmail) {
-      await sendUserTransactionalEmail(
-        buyerEmail,
-        "We received your booking request",
-        [
-          `Your reservation request #${bookingId} for "${String(svc.work_title || "service")}" on ${eventDate} was sent.`,
-          "Your provider will accept or decline — we will notify you by push and email when they respond.",
-          mbUrl
-        ].join("\n")
-      );
-    }
+  const buyerEmail = await getUserEmailById(buyerId);
+  if (buyerEmail) {
+    queueUserTransactionalEmail(
+      buyerEmail,
+      "We received your booking request",
+      [
+        `Your reservation request #${bookingId} for "${String(svc.work_title || "service")}" on ${eventDate} was sent.`,
+        "Your provider will accept or decline — we will notify you by push and email when they respond.",
+        mbUrl
+      ].join("\n")
+    );
   }
   return sendJson(res, 200, { ok: true, bookingId });
 }
@@ -1309,6 +1371,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
   const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
   if (!session) return;
   await ensureBakeryBookingsTable();
+  await ensureBakeryBookingEventsTable();
   const body = await readJson(req);
   const bookingId = Number(body.bookingId || 0);
   const status = String(body.status || "").trim().toLowerCase();
@@ -1317,7 +1380,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     return sendJson(res, 400, { ok: false, code: "INVALID_BOOKING_STATUS" });
   }
   const [beforeRows] = await pool.execute(
-    `SELECT b.id, b.buyer_user_id, s.work_title
+    `SELECT b.id, b.buyer_user_id, b.booking_status, s.work_title
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
      WHERE b.id = ? AND b.baker_user_id = ?
@@ -1328,6 +1391,20 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
   if (!before) {
     return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
   }
+  const fromStatus = String(before.booking_status || "pending").toLowerCase();
+  if (fromStatus === status) {
+    return sendJson(res, 200, { ok: true, bookingId, status, noop: true });
+  }
+  const transitionOk =
+    (fromStatus === "pending" && (status === "confirmed" || status === "declined")) ||
+    (fromStatus === "confirmed" && status === "completed");
+  if (!transitionOk) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "INVALID_STATUS_TRANSITION",
+      message: `Cannot move booking from "${fromStatus}" to "${status}".`
+    });
+  }
   await pool.execute(
     `UPDATE bakery_bookings
      SET booking_status = ?
@@ -1335,6 +1412,15 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
      LIMIT 1`,
     [status, bookingId, Number(session.user_id)]
   );
+  try {
+    await pool.execute(
+      `INSERT INTO bakery_booking_events (booking_id, actor_user_id, from_status, to_status, note) VALUES (?, ?, ?, ?, NULL)`,
+      [bookingId, Number(session.user_id), fromStatus, status]
+    );
+  } catch {
+    /* ignore audit failures */
+  }
+  const mbUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
   const buyerId = Number(before.buyer_user_id || 0);
   if (buyerId && (status === "confirmed" || status === "declined")) {
     try {
@@ -1345,18 +1431,16 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
           status === "confirmed"
             ? `Your booking #${bookingId} for "${String(before.work_title || "service")}" was accepted. You can message your provider in My Business.`
             : `Your booking request #${bookingId} was declined. Pick another time or provider when you are ready.`,
-        deepLink: "https://vibe-cart.com/my-business.html",
+        deepLink: mbUrl,
         eventType: "bakery_booking_status"
       });
     } catch {
       /* ignore */
     }
     const buyerEmail = await getUserEmailById(buyerId);
-    const baseUrl = resolvePublicWebBaseUrl(req);
-    const mbUrl = `${baseUrl}/my-business.html`;
     if (buyerEmail) {
       if (status === "confirmed") {
-        await sendUserTransactionalEmail(
+        queueUserTransactionalEmail(
           buyerEmail,
           "Your booking was accepted",
           [
@@ -1366,12 +1450,36 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
           ].join("\n")
         );
       } else {
-        await sendUserTransactionalEmail(
+        queueUserTransactionalEmail(
           buyerEmail,
           "Booking update",
           [`Your booking request #${bookingId} was declined. You can send a new request when you are ready.`, mbUrl].join("\n")
         );
       }
+    }
+  }
+  if (buyerId && status === "completed") {
+    try {
+      await sendPushToUser(pool, {
+        userId: buyerId,
+        title: "Booking completed",
+        message: `Booking #${bookingId} for "${String(before.work_title || "service")}" was marked complete by your provider.`,
+        deepLink: mbUrl,
+        eventType: "bakery_booking_status"
+      });
+    } catch {
+      /* ignore */
+    }
+    const buyerEmailDone = await getUserEmailById(buyerId);
+    if (buyerEmailDone) {
+      queueUserTransactionalEmail(
+        buyerEmailDone,
+        "Booking completed",
+        [
+          `Your provider marked booking #${bookingId} for "${String(before.work_title || "service")}" as complete.`,
+          mbUrl
+        ].join("\n")
+      );
     }
   }
   return sendJson(res, 200, { ok: true, bookingId, status });
@@ -1482,14 +1590,27 @@ async function handlePublicBakeryBookingMessagesList(req, res) {
      LIMIT 200`,
     [bookingId]
   );
+  const bakerId = Number(b.baker_user_id);
   return sendJson(res, 200, {
     ok: true,
-    messages: msgs.map((m) => ({
-      id: Number(m.id),
-      senderUserId: Number(m.sender_user_id),
-      body: String(m.body || ""),
-      createdAt: m.created_at
-    }))
+    messages: msgs.map((m) => {
+      const sid = Number(m.sender_user_id);
+      let senderLabel = "Participant";
+      if (sid === uid) {
+        senderLabel = "You";
+      } else if (sid === bakerId) {
+        senderLabel = "Provider";
+      } else {
+        senderLabel = "Client";
+      }
+      return {
+        id: Number(m.id),
+        senderUserId: sid,
+        senderLabel,
+        body: String(m.body || ""),
+        createdAt: m.created_at
+      };
+    })
   });
 }
 
@@ -1537,7 +1658,7 @@ async function handlePublicBakeryBookingMessagesPost(req, res) {
         userId: other,
         title: "New booking message",
         message: `You have a new message on booking #${bookingId}.`,
-        deepLink: "https://vibe-cart.com/my-business.html",
+        deepLink: `${resolvePublicWebBaseUrl(req)}/my-business.html`,
         eventType: "bakery_booking_message"
       });
     } catch {

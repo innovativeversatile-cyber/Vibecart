@@ -48,6 +48,7 @@
 
   var providerBookingsCache = [];
   var providerFocusBookingId = 0;
+  var mbSessionUserId = 0;
 
   var draftPersona = "";
   var draftService = "";
@@ -75,6 +76,29 @@
         return json;
       });
     });
+  }
+
+  function refreshMbSessionUser() {
+    if (!getToken()) {
+      mbSessionUserId = 0;
+      return Promise.resolve(null);
+    }
+    return api("/api/public/auth/session")
+      .then(function (res) {
+        mbSessionUserId = res.user && res.user.id ? Number(res.user.id) : 0;
+        if (res.token) {
+          try {
+            localStorage.setItem(TOKEN_KEY, res.token);
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        return res;
+      })
+      .catch(function () {
+        mbSessionUserId = 0;
+        return null;
+      });
   }
 
   function escapeHtml(v) {
@@ -247,7 +271,9 @@
     if (mainEl) mainEl.removeAttribute("aria-hidden");
     applyDashboard(cfg);
     scrollToBeautyHashIfAllowed(cfg);
-    loadAll();
+    refreshMbSessionUser().then(function () {
+      loadAll();
+    });
   }
 
   function scrollToBeautyHashIfAllowed(cfg) {
@@ -505,6 +531,10 @@
   }
 
   function submitClientReservation() {
+    if (!getToken()) {
+      setStatus("Sign in with your VibeCart account (Account / passport) to send a reservation.");
+      return Promise.resolve();
+    }
     var cfg = loadMbConfig();
     var sid = Number(document.getElementById("mbCliProviderSelect") && document.getElementById("mbCliProviderSelect").value);
     var name = String(document.getElementById("mbCliCustName") && document.getElementById("mbCliCustName").value || "").trim();
@@ -513,23 +543,23 @@
     var details = String(document.getElementById("mbCliDetails") && document.getElementById("mbCliDetails").value || "").trim();
     if (!sid) {
       setStatus("Choose a provider offer.");
-      return;
+      return Promise.resolve();
     }
     if (name.length < 2) {
       setStatus("Add your name.");
-      return;
+      return Promise.resolve();
     }
     if (!date) {
       setStatus("Pick a preferred date.");
-      return;
+      return Promise.resolve();
     }
     if (!clientSelectedSlot) {
       setStatus("Pick a preferred time slot.");
-      return;
+      return Promise.resolve();
     }
     if (details.length < 8) {
       setStatus("Add a short description of what you need (8+ characters).");
-      return;
+      return Promise.resolve();
     }
     var pay = getClientPaymentPref();
     var line = cfg && cfg.service ? String(cfg.service) : "";
@@ -547,12 +577,19 @@
       serviceLine: line
     };
     setStatus("Sending reservation…");
-    return api("/api/public/bakery/bookings/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+    return refreshMbSessionUser().then(function () {
+      if (!mbSessionUserId) {
+        setStatus("Sign in with your VibeCart account to send a reservation.");
+        return;
+      }
+      return api("/api/public/bakery/bookings/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
     })
       .then(function (res) {
+        if (!res || !res.bookingId) return;
         clientActiveBookingId = Number(res.bookingId || 0);
         try {
           sessionStorage.setItem("vibecart-mb-last-booking", String(clientActiveBookingId));
@@ -581,6 +618,9 @@
     clearClientPoll();
     if (!clientActiveBookingId) return;
     clientPollTimer = window.setInterval(function () {
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
       api("/api/public/bakery/bookings/detail?bookingId=" + encodeURIComponent(String(clientActiveBookingId)))
         .then(function (res) {
           var st = String((res.booking && res.booking.bookingStatus) || "");
@@ -605,13 +645,8 @@
         if (!list || !Array.isArray(res.messages)) return;
         list.innerHTML = res.messages
           .map(function (m) {
-            return (
-              '<p class="note vc-mb-chat-line"><strong>#' +
-              Number(m.senderUserId) +
-              "</strong> · " +
-              escapeHtml(m.body) +
-              "</p>"
-            );
+            var who = escapeHtml(m.senderLabel || "Participant");
+            return '<p class="note vc-mb-chat-line"><strong>' + who + "</strong> · " + escapeHtml(m.body) + "</p>";
           })
           .join("");
       })
@@ -730,7 +765,9 @@
       document.body.classList.remove("mb-boot-pending");
       hideGate();
       applyDashboard(cfg);
-      loadAll();
+      refreshMbSessionUser().then(function () {
+        loadAll();
+      });
       requestAnimationFrame(function () { scrollToBeautyHashIfAllowed(cfg); });
       return;
     }
@@ -939,6 +976,19 @@
     if (sum) {
       sum.textContent = [b.businessName, b.workTitle, b.eventDate, st].filter(Boolean).join(" · ");
     }
+    var closedBanner = document.getElementById("mbProvFocusClosedBanner");
+    if (closedBanner) {
+      if (st === "declined") {
+        closedBanner.hidden = false;
+        closedBanner.textContent = "This request was declined — no further status changes.";
+      } else if (st === "completed") {
+        closedBanner.hidden = false;
+        closedBanner.textContent = "This booking is complete — read-only.";
+      } else {
+        closedBanner.hidden = true;
+        closedBanner.textContent = "";
+      }
+    }
     var det = document.getElementById("mbProvFocusDetails");
     if (det) {
       var parts = [];
@@ -997,13 +1047,8 @@
         if (!list || !Array.isArray(res.messages)) return;
         list.innerHTML = res.messages
           .map(function (m) {
-            return (
-              '<p class="note vc-mb-chat-line"><strong>User #' +
-              Number(m.senderUserId) +
-              "</strong> · " +
-              escapeHtml(m.body) +
-              "</p>"
-            );
+            var who = escapeHtml(m.senderLabel || "Participant");
+            return '<p class="note vc-mb-chat-line"><strong>' + who + "</strong> · " + escapeHtml(m.body) + "</p>";
           })
           .join("");
       })
@@ -1296,7 +1341,7 @@
   function loadAll() {
     var cfg = loadMbConfig();
     if (!cfg || !isSessionUnlocked(cfg.persona, cfg.service)) {
-      return;
+      return Promise.resolve();
     }
     if (cfg.persona === "client") {
       setStatus("");
@@ -1431,6 +1476,9 @@
           if (providerFocusBookingId && bookingId === providerFocusBookingId) {
             loadProviderFocus(providerFocusBookingId);
           }
+        })
+        .catch(function (err) {
+          setStatus(err.message || "Status update failed");
         });
       return;
     }

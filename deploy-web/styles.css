@@ -6652,6 +6652,20 @@ body.vc-my-business-dashboard #mb-client-service-desk {
   gap: 0.35rem;
 }
 
+.vc-mb-signin-hint {
+  border-left: 3px solid rgba(129, 187, 255, 0.55);
+  padding-left: 0.65rem;
+  margin-top: 0.45rem;
+}
+
+.vc-mb-prov-closed-banner {
+  margin: 0.45rem 0 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.9rem;
+}
+
 .vc-mobile-streak-chip.is-pop {
   transform: scale(1.05);
 }

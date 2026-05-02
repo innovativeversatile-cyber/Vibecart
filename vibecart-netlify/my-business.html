@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk2" />
+  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk3" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -159,6 +159,9 @@
       </p>
       <h2 style="margin-top:0" id="mbSvcDeskTitle">Service booking</h2>
       <p class="note" id="mbSvcDeskLead"></p>
+      <p class="note vc-mb-signin-hint" id="mbClientSigninHint">
+        Reservations require a signed-in VibeCart account so we can notify you, show your requests below, and unlock chat after acceptance.
+      </p>
       <p class="vc-pill" id="mbClientStepPill" aria-live="polite">Step 1 of 3 · Your details</p>
       <div id="mbClientStep1" class="vc-mb-client-step">
         <p class="note">Choose a live provider offer for this service, then add how we should reach you.</p>
@@ -321,6 +324,7 @@
           <button type="button" class="btn btn-secondary" id="mbProvFocusClose">Close</button>
         </div>
         <p class="note" id="mbProvFocusSummary"></p>
+        <p class="vc-mb-prov-closed-banner" id="mbProvFocusClosedBanner" hidden role="status"></p>
         <div id="mbProvFocusDetails" class="vc-mb-prov-focus-details"></div>
         <p class="hero-actions" id="mbProvFocusActions">
           <button type="button" class="btn btn-secondary" data-booking-status="confirmed">Accept</button>
@@ -379,7 +383,7 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
-  <script src="./my-business.js?v=20260502mbdesk2" defer></script>
+  <script src="./my-business.js?v=20260502mbdesk3" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>
