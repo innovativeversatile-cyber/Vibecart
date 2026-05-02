@@ -13,6 +13,20 @@
     }
   }
 
+  function applyPhoneDocumentClasses() {
+    try {
+      var root = document.documentElement;
+      if (detectPhoneLikeContext()) {
+        root.classList.add("vc-phone");
+        if (!root.classList.contains("vc-mobile-app")) {
+          root.classList.add("vc-mobile-app");
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   function isDocumentHidden() {
     try {
       return typeof document !== "undefined" && document.hidden === true;
@@ -134,6 +148,7 @@
   }
 
   function ensureAiCoach() {
+    applyPhoneDocumentClasses();
     if (document.getElementById(AI_ID)) {
       return;
     }
@@ -2732,19 +2747,48 @@
     });
   }
 
+  function runMobileHudPack() {
+    var onboardingBtn = document.getElementById("openOnboarding");
+    if (onboardingBtn && onboardingBtn.getAttribute("data-vc-shell-nav") !== "1") {
+      onboardingBtn.setAttribute("data-vc-shell-nav", "1");
+      onboardingBtn.textContent = "Health coach";
+      onboardingBtn.setAttribute("data-i18n", "nav.wellbeing");
+      onboardingBtn.addEventListener("click", function (ev) {
+        ev.preventDefault();
+        window.location.assign("./wellbeing.html");
+      });
+    }
+    enhanceHero();
+    document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+    initMobileFocusMode();
+    initThumbFlowBoost();
+    initTrustSnapshotCard();
+    initDailyWelcomeSheet();
+    initFirstFiveWowExperience();
+    initDailyStreakChip();
+    initQuickActionSheet();
+    initStoryRail();
+    initSwipeSaveDeals();
+    initSocialPulseTicker();
+    initInboxPulse();
+    initVibeThemeSwitch();
+    initFirstFiveSecondsBar();
+    initMissionHud();
+    initMotionModeToggle();
+    initSmartPrefetch();
+    initDealDraftComposer();
+    initFloatingActionHub();
+    initFloatingControlLayout();
+  }
+
   function boot() {
+    applyPhoneDocumentClasses();
     try {
       ensureAiCoach();
     } catch {
       /* ignore */
     }
     const root = document.documentElement;
-    if (detectPhoneLikeContext()) {
-      root.classList.add("vc-phone");
-      if (!root.classList.contains("vc-mobile-app")) {
-        root.classList.add("vc-mobile-app");
-      }
-    }
     const isApp = root.classList.contains("vc-mobile-app");
     const isPhone = root.classList.contains("vc-phone");
     if (!isApp && !isPhone) {
@@ -2783,42 +2827,70 @@
       );
     }
     if (isApp || isPhone) {
-      var onboardingBtn = document.getElementById("openOnboarding");
-      if (onboardingBtn) {
-        onboardingBtn.textContent = "Health coach";
-        onboardingBtn.setAttribute("data-i18n", "nav.wellbeing");
-        onboardingBtn.addEventListener("click", function (ev) {
-          ev.preventDefault();
-          window.location.assign("./wellbeing.html");
-        });
-      }
-      enhanceHero();
-      document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
-      initMobileFocusMode();
-      initThumbFlowBoost();
-      initTrustSnapshotCard();
-      initDailyWelcomeSheet();
-      initFirstFiveWowExperience();
-      initDailyStreakChip();
-      initQuickActionSheet();
-      initStoryRail();
-      initSwipeSaveDeals();
-      initSocialPulseTicker();
-      initInboxPulse();
-      initVibeThemeSwitch();
-      initFirstFiveSecondsBar();
-      initMissionHud();
-      initMotionModeToggle();
-      initSmartPrefetch();
-      initDealDraftComposer();
-      initFloatingActionHub();
-      initFloatingControlLayout();
+      runMobileHudPack();
     }
   }
 
+  window.addEventListener(
+    "pageshow",
+    function (ev) {
+      if (!ev || !ev.persisted) {
+        return;
+      }
+      try {
+        applyPhoneDocumentClasses();
+        try {
+          ensureAiCoach();
+        } catch {
+          /* ignore */
+        }
+        var root = document.documentElement;
+        if (!root.classList.contains("vc-mobile-app") && !root.classList.contains("vc-phone")) {
+          return;
+        }
+        if (document.body && document.body.classList.contains("health-coach-page")) {
+          if (root.classList.contains("vc-mobile-app")) {
+            document.body.classList.add("vc-mobile-shell");
+            initMainSectionRevealForApp();
+            ensureAppShopHubLink();
+          }
+          return;
+        }
+        if (root.classList.contains("vc-mobile-app")) {
+          document.body.classList.add("vc-mobile-shell");
+          initMainSectionRevealForApp();
+          ensureAppShopHubLink();
+        }
+        runMobileHudPack();
+      } catch {
+        /* ignore */
+      }
+    },
+    { passive: true }
+  );
+
   window.vibeCartBootBrandonUniversal = function () {
     try {
+      applyPhoneDocumentClasses();
       ensureAiCoach();
+      var root = document.documentElement;
+      if (!(root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone"))) {
+        return;
+      }
+      if (document.body && document.body.classList.contains("health-coach-page")) {
+        if (root.classList.contains("vc-mobile-app")) {
+          document.body.classList.add("vc-mobile-shell");
+          initMainSectionRevealForApp();
+          ensureAppShopHubLink();
+        }
+        return;
+      }
+      if (root.classList.contains("vc-mobile-app")) {
+        document.body.classList.add("vc-mobile-shell");
+        initMainSectionRevealForApp();
+        ensureAppShopHubLink();
+      }
+      runMobileHudPack();
     } catch {
       /* ignore */
     }

@@ -653,7 +653,7 @@
     return;
   }
   window.__vcBrandonUniversalScheduled = "1";
-  var SHELL = "./mobile-app-shell.js?v=20260509brandonpos1";
+  var SHELL = "./mobile-app-shell.js?v=20260502hudpersist1";
   var CLIENT = "./vibecart-ai-client.js?v=20260430genai1";
   function skip() {
     if (!document.body) return true;
@@ -685,6 +685,31 @@
         loadScript(SHELL, bootBrandon);
       });
     }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
+})();
+
+(function scheduleVcVisualMotion() {
+  if (typeof window === "undefined" || window.__vcVisualMotionScheduled === "1") {
+    return;
+  }
+  window.__vcVisualMotionScheduled = "1";
+  var src = "./vc-visual-motion.js?v=20260502motion1";
+  function inject() {
+    if (window.__vcVisualMotionLoaded === "1") {
+      return;
+    }
+    var s = document.createElement("script");
+    s.src = src;
+    s.defer = true;
+    s.onload = function () {
+      window.__vcVisualMotionLoaded = "1";
+    };
+    (document.head || document.documentElement).appendChild(s);
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", inject, { once: true });

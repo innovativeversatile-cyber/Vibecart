@@ -6,7 +6,7 @@
   <title>Coach package experience · VibeCart</title>
   <meta name="description" content="Preview each VibeCart coach package with visuals, feature depth, and direct plan-specific checkout routing." />
   <link rel="canonical" href="https://vibe-cart.com/coach-experience.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502motion2" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
@@ -42,11 +42,11 @@
         <p class="note" id="coachTrackingLine">Progress updates are reflected inside your plan workspace.</p>
       </article>
     </div>
-    <div class="vc-visual-hero">
-      <img src="./icon.svg" alt="coach icon" width="72" height="72" />
-      <video controls muted loop playsinline preload="metadata" poster="./icon-maskable.svg">
-        <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4" />
-      </video>
+    <div class="vc-visual-hero" id="coachVisualHero">
+      <img class="vc-visual-hero__mark" src="./icon.svg" alt="" width="64" height="64" decoding="async" />
+      <div class="vc-visual-motion" id="coachHeroMotion" role="img" aria-label="Coach program preview">
+        <img id="coachHeroMotionImg" class="vc-visual-motion__media" src="" alt="Coach and training preview" loading="eager" decoding="async" />
+      </div>
     </div>
     <section style="margin-top:1rem">
       <h2>Included in this package</h2>
@@ -68,7 +68,9 @@
           features: ["Weekly AI check-in", "Basic routine guidance", "Core reminders"],
           routine: "3-4 structured sessions per week with gentle progression.",
           nutrition: "Simple habits and hydration guidance.",
-          tracking: "Weekly milestones and consistency score."
+          tracking: "Weekly milestones and consistency score.",
+          motion:
+            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1600&q=82"
         },
         "ai-home": {
           title: "AI Home Workout preview",
@@ -76,7 +78,9 @@
           features: ["Daily home workouts", "Adaptive intensity", "Daily nudges"],
           routine: "Daily guided blocks designed for minimal equipment.",
           nutrition: "Light fueling notes matched to session intensity.",
-          tracking: "Daily streak and completion snapshots."
+          tracking: "Daily streak and completion snapshots.",
+          motion:
+            "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1600&q=82"
         },
         "plus": {
           title: "Coach Plus preview",
@@ -84,7 +88,9 @@
           features: ["Daily routines", "Wearable summary sync", "Faster plan updates"],
           routine: "Personalized split with rest-day balancing.",
           nutrition: "Expanded meal templates by goal type.",
-          tracking: "Weekly trend summary with corrective actions."
+          tracking: "Weekly trend summary with corrective actions.",
+          motion:
+            "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=82"
         },
         "pro": {
           title: "Coach Pro preview",
@@ -92,10 +98,17 @@
           features: ["Advanced analytics", "Deep reports", "Partner reward referrals"],
           routine: "High-detail programming with load progression guidance.",
           nutrition: "Macro-aware meal strategy with periodic recalibration.",
-          tracking: "Comprehensive dashboard and risk flags."
+          tracking: "Comprehensive dashboard and risk flags.",
+          motion:
+            "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?auto=format&fit=crop&w=1600&q=82"
         }
       };
       var cfg = map[plan] || map.starter;
+      var coachImg = document.getElementById("coachHeroMotionImg");
+      if (coachImg && cfg.motion) {
+        coachImg.src = cfg.motion;
+        coachImg.alt = cfg.title + " — training visual";
+      }
       document.getElementById("coachExpTitle").textContent = cfg.title;
       document.getElementById("coachExpIntro").textContent = cfg.intro;
       document.getElementById("coachRoutineLine").textContent = cfg.routine;
@@ -125,6 +138,6 @@
       botBtn.addEventListener("click", gateCheckout);
     })();
   </script>
-  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+  <script src="./site-chrome.js?v=20260502motion1" defer></script>
 </body>
 </html>
