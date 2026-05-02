@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk2" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -202,6 +202,15 @@
       </div>
     </section>
 
+    <section id="mb-client-my-bookings" class="vc-biz-card vc-mb-client-bookings" data-mb-show="client" style="margin-top:0.85rem;">
+      <h2 style="margin-top:0;">Your requests</h2>
+      <p class="note">Reservations you sent while signed in. Push and email (when enabled) notify you when the provider responds.</p>
+      <p class="hero-actions" style="margin-top:0.35rem;">
+        <button type="button" class="btn btn-secondary" id="mbClientBookingsRefresh">Refresh list</button>
+      </p>
+      <div id="mbClientBookingsList" class="vc-mb-client-bookings-list"></div>
+    </section>
+
     <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
       <h2 style="margin-top:0;">Beauty &amp; service booking (provider preview)</h2>
       <p class="note">
@@ -305,7 +314,29 @@
 
     <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Client booking requests</h2>
-      <p class="note">Review requests, dates, style or service line, and update status quickly.</p>
+      <p class="note">Open a request below to see full details, accept or decline, and message the client after you accept — all on this page.</p>
+      <article id="mbProvFocusRoot" class="vc-mb-prov-focus" hidden data-booking-id="">
+        <div class="vc-mb-prov-focus-head">
+          <h3 id="mbProvFocusTitle" style="margin:0;">Selected request</h3>
+          <button type="button" class="btn btn-secondary" id="mbProvFocusClose">Close</button>
+        </div>
+        <p class="note" id="mbProvFocusSummary"></p>
+        <div id="mbProvFocusDetails" class="vc-mb-prov-focus-details"></div>
+        <p class="hero-actions" id="mbProvFocusActions">
+          <button type="button" class="btn btn-secondary" data-booking-status="confirmed">Accept</button>
+          <button type="button" class="btn btn-secondary" data-booking-status="declined">Decline</button>
+          <button type="button" class="btn btn-primary" data-booking-status="completed">Mark complete</button>
+        </p>
+        <div id="mbProvFocusChatWrap" class="vc-mb-prov-chat-wrap" hidden>
+          <h4 style="margin:0.65rem 0 0.25rem;">Messages</h4>
+          <p class="note" id="mbProvFocusChatNote"></p>
+          <div id="mbProvChatList" class="vc-mb-chat-list"></div>
+          <div class="vc-biz-row" style="margin-top:0.5rem;">
+            <input id="mbProvChatInput" type="text" maxlength="2000" placeholder="Reply to client…" />
+            <button type="button" class="btn btn-primary" id="mbProvChatSend">Send</button>
+          </div>
+        </div>
+      </article>
       <div id="bakeryBookingList" class="vc-booking-list"></div>
     </section>
 
@@ -348,7 +379,7 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
-  <script src="./my-business.js?v=20260502mbdesk1" defer></script>
+  <script src="./my-business.js?v=20260502mbdesk2" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

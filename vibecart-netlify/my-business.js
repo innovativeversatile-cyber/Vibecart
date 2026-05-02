@@ -46,6 +46,9 @@
   var clientPollTimer = null;
   var clientActiveBookingId = 0;
 
+  var providerBookingsCache = [];
+  var providerFocusBookingId = 0;
+
   var draftPersona = "";
   var draftService = "";
   var gateBusy = false;
@@ -321,7 +324,66 @@
       .catch(function () {})
       .then(function () {
         tryResumeLastClientBooking();
+        return api("/api/public/bakery/bookings/as-buyer").catch(function () {
+          return { bookings: [] };
+        });
+      })
+      .then(function (res) {
+        renderClientMyBookings((res && res.bookings) || []);
       });
+  }
+
+  function renderClientMyBookings(bookings) {
+    var root = document.getElementById("mbClientBookingsList");
+    if (!root) return;
+    if (!Array.isArray(bookings) || !bookings.length) {
+      root.innerHTML = '<p class="note">No signed-in requests yet. Send one from the booking desk above.</p>';
+      return;
+    }
+    root.innerHTML = bookings
+      .map(function (b) {
+        var st = escapeHtml(b.bookingStatus || "pending");
+        var line = b.serviceLine ? escapeHtml(String(b.serviceLine)) + " · " : "";
+        return (
+          '<article class="vc-booking-item vc-mb-client-booking-row">' +
+          "<h3>" +
+          line +
+          "#" +
+          Number(b.id) +
+          " · " +
+          escapeHtml(b.workTitle || "Service") +
+          '</h3><p class="note">' +
+          escapeHtml(b.businessName || "") +
+          " · " +
+          escapeHtml(String(b.eventDate || "")) +
+          " · " +
+          st +
+          "</p>" +
+          '<p class="hero-actions">' +
+          '<button type="button" class="btn btn-secondary" data-mb-resume-client-booking="' +
+          Number(b.id) +
+          '">Open in desk &amp; messages</button>' +
+          "</p>" +
+          "</article>"
+        );
+      })
+      .join("");
+  }
+
+  function loadClientDashboard() {
+    var cfg = loadMbConfig();
+    if (!cfg || cfg.persona !== "client" || !isSessionUnlocked(cfg.persona, cfg.service)) {
+      return Promise.resolve();
+    }
+    return Promise.all([
+      loadDiscoverForClientLine(cfg.service),
+      api("/api/public/bakery/bookings/as-buyer").catch(function () {
+        return { bookings: [] };
+      })
+    ]).then(function (results) {
+      renderClientMyBookings(results[1].bookings || []);
+      setStatus("Updated · " + cfg.service);
+    });
   }
 
   function tryResumeLastClientBooking() {
@@ -505,6 +567,7 @@
         }
         setStatus("Reservation sent.");
         startClientBookingPoll();
+        loadClientDashboard().catch(function () {});
         window.setTimeout(function () {
           returnToServicePicker();
         }, 4200);
@@ -840,6 +903,153 @@
       });
 
     wireClientDesk();
+    wireProviderFocusPanel();
+  }
+
+  function loadProviderFocus(bookingId) {
+    providerFocusBookingId = Number(bookingId || 0);
+    var root = document.getElementById("mbProvFocusRoot");
+    if (!root || !providerFocusBookingId) return;
+    root.removeAttribute("hidden");
+    root.setAttribute("data-booking-id", String(providerFocusBookingId));
+    api("/api/public/bakery/bookings/detail?bookingId=" + encodeURIComponent(String(providerFocusBookingId)))
+      .then(function (res) {
+        fillProviderFocusFromBooking(res.booking || {});
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not load booking");
+        closeProviderBookingFocus();
+      });
+  }
+
+  function closeProviderBookingFocus() {
+    providerFocusBookingId = 0;
+    var el = document.getElementById("mbProvFocusRoot");
+    if (el) {
+      el.setAttribute("hidden", "hidden");
+      el.setAttribute("data-booking-id", "");
+    }
+  }
+
+  function fillProviderFocusFromBooking(b) {
+    var st = String(b.bookingStatus || "").toLowerCase();
+    var title = document.getElementById("mbProvFocusTitle");
+    if (title) title.textContent = "#" + Number(b.id || 0) + " · " + (b.customerName || "Customer");
+    var sum = document.getElementById("mbProvFocusSummary");
+    if (sum) {
+      sum.textContent = [b.businessName, b.workTitle, b.eventDate, st].filter(Boolean).join(" · ");
+    }
+    var det = document.getElementById("mbProvFocusDetails");
+    if (det) {
+      var parts = [];
+      if (b.customerPhone) {
+        parts.push("<p><strong>Phone</strong> · " + escapeHtml(String(b.customerPhone)) + "</p>");
+      }
+      if (b.serviceLine) {
+        parts.push("<p><strong>Service line</strong> · " + escapeHtml(String(b.serviceLine)) + "</p>");
+      }
+      if (b.paymentPreference) {
+        parts.push("<p><strong>Payment preference</strong> · " + escapeHtml(String(b.paymentPreference)) + "</p>");
+      }
+      if (b.occasionType) {
+        parts.push("<p><strong>Scheduling / pay notes</strong> · " + escapeHtml(String(b.occasionType)) + "</p>");
+      }
+      if (b.styleTheme) {
+        parts.push("<p><strong>Style / theme</strong> · " + escapeHtml(String(b.styleTheme)) + "</p>");
+      }
+      parts.push("<p><strong>Request</strong></p><p class=\"note\">" + escapeHtml(String(b.requestDetails || "")) + "</p>");
+      det.innerHTML = parts.join("");
+    }
+    var actions = document.getElementById("mbProvFocusActions");
+    if (actions) {
+      actions.querySelectorAll("[data-booking-status]").forEach(function (btn) {
+        var action = String(btn.getAttribute("data-booking-status") || "");
+        var show = false;
+        if (st === "pending") {
+          show = action === "confirmed" || action === "declined";
+        } else if (st === "confirmed") {
+          show = action === "completed";
+        }
+        btn.hidden = !show;
+      });
+    }
+    var chatWrap = document.getElementById("mbProvFocusChatWrap");
+    var chatNote = document.getElementById("mbProvFocusChatNote");
+    if (chatWrap) {
+      chatWrap.hidden = st !== "confirmed";
+      if (chatNote) {
+        chatNote.textContent =
+          st === "confirmed"
+            ? "Private thread with your client on this booking."
+            : "Messages unlock after you accept the booking.";
+      }
+      if (st === "confirmed") {
+        loadProvFocusMessages();
+      }
+    }
+  }
+
+  function loadProvFocusMessages() {
+    if (!providerFocusBookingId) return;
+    api("/api/public/bakery/bookings/messages?bookingId=" + encodeURIComponent(String(providerFocusBookingId)))
+      .then(function (res) {
+        var list = document.getElementById("mbProvChatList");
+        if (!list || !Array.isArray(res.messages)) return;
+        list.innerHTML = res.messages
+          .map(function (m) {
+            return (
+              '<p class="note vc-mb-chat-line"><strong>User #' +
+              Number(m.senderUserId) +
+              "</strong> · " +
+              escapeHtml(m.body) +
+              "</p>"
+            );
+          })
+          .join("");
+      })
+      .catch(function () {});
+  }
+
+  function sendProvFocusMessage() {
+    var inp = document.getElementById("mbProvChatInput");
+    var txt = inp ? String(inp.value || "").trim() : "";
+    if (!txt || !providerFocusBookingId) return;
+    api("/api/public/bakery/bookings/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId: providerFocusBookingId, message: txt })
+    })
+      .then(function () {
+        if (inp) inp.value = "";
+        loadProvFocusMessages();
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not send message");
+      });
+  }
+
+  function wireProviderFocusPanel() {
+    var closeBtn = document.getElementById("mbProvFocusClose");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        closeProviderBookingFocus();
+      });
+    }
+    var sendBtn = document.getElementById("mbProvChatSend");
+    if (sendBtn) {
+      sendBtn.addEventListener("click", function () {
+        sendProvFocusMessage();
+      });
+    }
+    var chatInp = document.getElementById("mbProvChatInput");
+    if (chatInp) {
+      chatInp.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          sendProvFocusMessage();
+        }
+      });
+    }
   }
 
   function wireClientDesk() {
@@ -981,26 +1191,48 @@
   function renderBookings(bookings) {
     var root = document.getElementById("bakeryBookingList");
     if (!root) return;
-    if (!Array.isArray(bookings) || !bookings.length) {
+    providerBookingsCache = Array.isArray(bookings) ? bookings : [];
+    if (!providerBookingsCache.length) {
       root.innerHTML = '<p class="note">No bakery booking requests yet.</p>';
       return;
     }
-    root.innerHTML = bookings.map(function (b) {
+    root.innerHTML = providerBookingsCache.map(function (b) {
       var phoneDigits = String(b.customerPhone || "").replace(/[^\d+]/g, "");
-      var waUrl = phoneDigits ? ("https://wa.me/" + encodeURIComponent(phoneDigits.replace(/^\+/, "")) + "?text=" + encodeURIComponent("Hi " + (b.customerName || "") + ", about your VibeCart bakery booking #" + Number(b.id || 0))) : "";
-      return '<article class="vc-booking-item" data-booking-id="' + Number(b.id) + '">' +
-        "<h3>" + escapeHtml(b.customerName) + " · " + escapeHtml(b.workTitle) + "</h3>" +
-        '<p class="note">Date: ' + escapeHtml(String(b.eventDate || "")) + " · Occasion: " + escapeHtml(b.occasionType || "General") + "</p>" +
-        '<p class="note">Style/theme: ' + escapeHtml(b.styleTheme || "Not specified") + "</p>" +
-        '<p class="note">Request: ' + escapeHtml(b.requestDetails || "") + "</p>" +
-        '<p class="note">Budget: ' + (b.budgetAmount == null ? "Not set" : Number(b.budgetAmount).toFixed(2)) + "</p>" +
-        '<p class="hero-actions">' +
-        (waUrl ? ('<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(waUrl) + '">WhatsApp customer</a>') : "") +
-        '<button class="btn btn-secondary" data-booking-status="confirmed">Confirm</button>' +
-        '<button class="btn btn-secondary" data-booking-status="declined">Decline</button>' +
-        '<button class="btn btn-primary" data-booking-status="completed">Complete</button>' +
+      var waUrl = phoneDigits
+        ? "https://wa.me/" +
+          encodeURIComponent(phoneDigits.replace(/^\+/, "")) +
+          "?text=" +
+          encodeURIComponent("Hi " + (b.customerName || "") + ", about your VibeCart booking #" + Number(b.id || 0))
+        : "";
+      var st = escapeHtml(b.bookingStatus || "pending");
+      return (
+        '<article class="vc-booking-item vc-mb-booking-row" data-booking-id="' +
+        Number(b.id) +
+        '">' +
+        "<h3>" +
+        escapeHtml(b.customerName) +
+        " · " +
+        escapeHtml(b.workTitle) +
+        ' <span class="vc-pill">' +
+        st +
+        "</span></h3>" +
+        '<p class="note">' +
+        escapeHtml(String(b.eventDate || "")) +
+        " · " +
+        escapeHtml(b.businessName || "") +
         "</p>" +
-      "</article>";
+        '<p class="hero-actions">' +
+        (waUrl
+          ? '<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="' +
+            escapeHtml(waUrl) +
+            '">WhatsApp</a>'
+          : "") +
+        '<button type="button" class="btn btn-primary" data-mb-focus-booking="' +
+        Number(b.id) +
+        '">Open &amp; act</button>' +
+        "</p>" +
+        "</article>"
+      );
     }).join("");
   }
 
@@ -1068,13 +1300,9 @@
     }
     if (cfg.persona === "client") {
       setStatus("");
-      return loadDiscoverForClientLine(cfg.service)
-        .then(function () {
-          setStatus("Offers updated for " + cfg.service);
-        })
-        .catch(function (err) {
-          setStatus("Could not refresh offers: " + err.message);
-        });
+      return loadClientDashboard().catch(function (err) {
+        setStatus("Could not refresh: " + err.message);
+      });
     }
     setStatus("Loading My Business…");
     return Promise.all([
@@ -1089,6 +1317,9 @@
       renderBookings(results[2].bookings || []);
       renderCalendar(results[2].bookings || []);
       renderMediatorOrders(results[3].orders || []);
+      if (providerFocusBookingId) {
+        loadProviderFocus(providerFocusBookingId);
+      }
       setStatus("Dashboard updated");
     }).catch(function (err) {
       setStatus("Could not load dashboard: " + err.message);
@@ -1159,16 +1390,48 @@
       }).then(loadAll);
       return;
     }
+    var focusOpen = e.target.closest && e.target.closest("[data-mb-focus-booking]");
+    if (focusOpen) {
+      var fid = Number(focusOpen.getAttribute("data-mb-focus-booking") || 0);
+      if (fid) {
+        loadProviderFocus(fid);
+      }
+      return;
+    }
+    var resumeClient = e.target.closest && e.target.closest("[data-mb-resume-client-booking]");
+    if (resumeClient) {
+      var rid = Number(resumeClient.getAttribute("data-mb-resume-client-booking") || 0);
+      if (rid) {
+        try {
+          sessionStorage.setItem("vibecart-mb-last-booking", String(rid));
+        } catch (_) {
+          /* ignore */
+        }
+        clientActiveBookingId = rid;
+        tryResumeLastClientBooking();
+        var desk = document.getElementById("mb-client-service-desk");
+        if (desk) {
+          desk.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }
+      return;
+    }
     var statusBtn = e.target.closest && e.target.closest("[data-booking-status]");
     if (statusBtn) {
       var bookingCard = statusBtn.closest("[data-booking-id]");
-      var bookingId = Number(bookingCard && bookingCard.dataset.bookingId || 0);
+      var bookingId = Number((bookingCard && bookingCard.dataset && bookingCard.dataset.bookingId) || 0);
       var status = String(statusBtn.getAttribute("data-booking-status") || "");
       api("/api/public/bakery/bookings/status/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bookingId: bookingId, status: status })
-      }).then(loadAll);
+      })
+        .then(loadAll)
+        .then(function () {
+          if (providerFocusBookingId && bookingId === providerFocusBookingId) {
+            loadProviderFocus(providerFocusBookingId);
+          }
+        });
       return;
     }
     var orderConfirmBtn = e.target.closest && e.target.closest("[data-order-confirm]");
@@ -1205,6 +1468,8 @@
     var btnBooking = document.getElementById("bookingSubmitBtn");
     var btnPayout = document.getElementById("savePayoutAccountBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", loadAll);
+    var btnClientBookings = document.getElementById("mbClientBookingsRefresh");
+    if (btnClientBookings) btnClientBookings.addEventListener("click", loadClientDashboard);
     if (btnSaveBakery) btnSaveBakery.addEventListener("click", saveBakeryService);
     if (btnDiscover) btnDiscover.addEventListener("click", function () {
       var q = document.getElementById("discoverQuery").value;

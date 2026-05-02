@@ -295,6 +295,44 @@ async function sendAdminNotificationEmail(subject, lines) {
   }
 }
 
+/** Buyer/provider transactional mail when EMAIL_NOTIFICATIONS_ENABLED + SMTP are set (same transporter as admin). */
+async function sendUserTransactionalEmail(toEmail, subject, textBody) {
+  const to = String(toEmail || "").trim().toLowerCase();
+  if (!isValidEmail(to)) {
+    return;
+  }
+  const transporter = getNotificationTransporter();
+  if (!transporter) {
+    return;
+  }
+  const safeSubject = String(subject || "VibeCart update").slice(0, 200);
+  const text = String(textBody || "").trim().slice(0, 8000);
+  if (!text) {
+    return;
+  }
+  try {
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to,
+      subject: `[VibeCart] ${safeSubject}`,
+      text
+    });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("User transactional email failed:", error.message || error);
+  }
+}
+
+async function getUserEmailById(userId) {
+  const uid = Number(userId || 0);
+  if (!uid) {
+    return "";
+  }
+  const [rows] = await pool.execute(`SELECT email FROM users WHERE id = ? LIMIT 1`, [uid]);
+  const row = rows[0];
+  return row && row.email ? String(row.email || "").trim() : "";
+}
+
 function applyCorsHeaders(req, res) {
   if (!req || !res) {
     return;
@@ -1156,7 +1194,39 @@ async function handlePublicBakeryBookingCreate(req, res) {
   } catch {
     /* ignore push failures */
   }
-  return sendJson(res, 200, { ok: true, bookingId: Number(inserted.insertId || 0) });
+  const bookingId = Number(inserted.insertId || 0);
+  const baseUrl = resolvePublicWebBaseUrl(req);
+  const mbUrl = `${baseUrl}/my-business.html`;
+  const bakerEmail = await getUserEmailById(Number(svc.baker_user_id));
+  if (bakerEmail) {
+    await sendUserTransactionalEmail(
+      bakerEmail,
+      "New booking request",
+      [
+        `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}.`,
+        `Booking #${bookingId}.`,
+        "Open My Business (provider) to accept or decline.",
+        mbUrl,
+        "",
+        `Details: ${requestDetails.slice(0, 1200)}`
+      ].join("\n")
+    );
+  }
+  if (session && Number(session.user_id) > 0) {
+    const buyerEmail = await getUserEmailById(Number(session.user_id));
+    if (buyerEmail) {
+      await sendUserTransactionalEmail(
+        buyerEmail,
+        "We received your booking request",
+        [
+          `Your reservation request #${bookingId} for "${String(svc.work_title || "service")}" on ${eventDate} was sent.`,
+          "Your provider will accept or decline — we will notify you by push and email when they respond.",
+          mbUrl
+        ].join("\n")
+      );
+    }
+  }
+  return sendJson(res, 200, { ok: true, bookingId });
 }
 
 async function handlePublicBakeryBookingsMine(req, res) {
@@ -1188,6 +1258,48 @@ async function handlePublicBakeryBookingsMine(req, res) {
       requestDetails: String(row.request_details || ""),
       budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
       bookingStatus: String(row.booking_status || "pending"),
+      createdAt: row.created_at
+    }))
+  });
+}
+
+async function handlePublicBakeryBookingsAsBuyer(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  await ensureBakeryBookingsTable();
+  const [rows] = await pool.execute(
+    `SELECT b.id, b.service_id, b.customer_name, b.customer_phone, b.event_date, b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.booking_status, b.created_at, b.service_line, b.payment_preference,
+            s.work_title, s.business_name
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.buyer_user_id = ?
+     ORDER BY b.id DESC
+     LIMIT 40`,
+    [Number(session.user_id)]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    bookings: rows.map((row) => ({
+      id: Number(row.id),
+      serviceId: Number(row.service_id),
+      businessName: String(row.business_name || ""),
+      workTitle: String(row.work_title || ""),
+      customerName: String(row.customer_name || ""),
+      customerPhone: String(row.customer_phone || ""),
+      eventDate: row.event_date,
+      occasionType: String(row.occasion_type || ""),
+      styleTheme: String(row.style_theme || ""),
+      requestDetails: String(row.request_details || ""),
+      budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
+      bookingStatus: String(row.booking_status || "pending"),
+      serviceLine: row.service_line == null ? null : String(row.service_line || ""),
+      paymentPreference: row.payment_preference == null ? null : String(row.payment_preference || ""),
       createdAt: row.created_at
     }))
   });
@@ -1239,6 +1351,28 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     } catch {
       /* ignore */
     }
+    const buyerEmail = await getUserEmailById(buyerId);
+    const baseUrl = resolvePublicWebBaseUrl(req);
+    const mbUrl = `${baseUrl}/my-business.html`;
+    if (buyerEmail) {
+      if (status === "confirmed") {
+        await sendUserTransactionalEmail(
+          buyerEmail,
+          "Your booking was accepted",
+          [
+            `Good news — booking #${bookingId} for "${String(before.work_title || "service")}" was accepted.`,
+            "You can message your provider in My Business after you open your client session.",
+            mbUrl
+          ].join("\n")
+        );
+      } else {
+        await sendUserTransactionalEmail(
+          buyerEmail,
+          "Booking update",
+          [`Your booking request #${bookingId} was declined. You can send a new request when you are ready.`, mbUrl].join("\n")
+        );
+      }
+    }
   }
   return sendJson(res, 200, { ok: true, bookingId, status });
 }
@@ -1264,7 +1398,8 @@ async function handlePublicBakeryBookingDetail(req, res) {
   }
   await ensureBakeryBookingsTable();
   const [rows] = await pool.execute(
-    `SELECT b.id, b.service_id, b.baker_user_id, b.buyer_user_id, b.customer_name, b.event_date, b.booking_status,
+    `SELECT b.id, b.service_id, b.baker_user_id, b.buyer_user_id, b.customer_name, b.customer_phone, b.event_date, b.booking_status,
+            b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.payment_preference, b.service_line,
             s.work_title, s.business_name
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
@@ -1288,8 +1423,15 @@ async function handlePublicBakeryBookingDetail(req, res) {
       bakerUserId: Number(row.baker_user_id),
       buyerUserId: row.buyer_user_id == null ? null : Number(row.buyer_user_id),
       customerName: String(row.customer_name || ""),
+      customerPhone: row.customer_phone == null ? "" : String(row.customer_phone || ""),
       eventDate: row.event_date,
       bookingStatus: String(row.booking_status || "pending"),
+      occasionType: String(row.occasion_type || ""),
+      styleTheme: String(row.style_theme || ""),
+      requestDetails: String(row.request_details || ""),
+      budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
+      paymentPreference: row.payment_preference == null ? null : String(row.payment_preference || ""),
+      serviceLine: row.service_line == null ? null : String(row.service_line || ""),
       workTitle: String(row.work_title || ""),
       businessName: String(row.business_name || "")
     }
@@ -6244,6 +6386,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && pathname === "/api/public/bakery/bookings/mine") {
       return await handlePublicBakeryBookingsMine(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/bakery/bookings/as-buyer") {
+      return await handlePublicBakeryBookingsAsBuyer(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/status/update") {
       return await handlePublicBakeryBookingStatusUpdate(req, res);

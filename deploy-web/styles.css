@@ -6618,6 +6618,40 @@ body.vc-my-business-dashboard #mb-client-service-desk {
   margin: 0;
 }
 
+.vc-mb-client-bookings-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+
+.vc-mb-prov-focus {
+  margin-bottom: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(129, 187, 255, 0.35);
+  background: rgba(8, 12, 24, 0.55);
+}
+
+.vc-mb-prov-focus-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.vc-mb-prov-focus-details p {
+  margin: 0.35rem 0;
+}
+
+.vc-mb-booking-row h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .vc-mobile-streak-chip.is-pop {
   transform: scale(1.05);
 }
