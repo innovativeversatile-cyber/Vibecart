@@ -246,4 +246,22 @@
     <changefreq>monthly</changefreq>
     <priority>0.64</priority>
   </url>
+  <url>
+    <loc>https://vibe-cart.com/share-tech.html</loc>
+    <lastmod>2026-05-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/share-luxury.html</loc>
+    <lastmod>2026-05-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/share-street.html</loc>
+    <lastmod>2026-05-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.55</priority>
+  </url>
 </urlset>
