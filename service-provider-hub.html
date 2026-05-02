@@ -6,9 +6,9 @@
   <title>Service Provider Hub · VibeCart</title>
   <meta name="description" content="Set up beauty and service booking offers with visual service previews, package guidance, and prepayment-ready booking routes." />
   <link rel="canonical" href="https://vibe-cart.com/service-provider-hub.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260502herofallback1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502bundlehero1" />
   <style>
-    /* First-paint fallback if the img layer is blocked or slow — same default salon still as #spHeroMotionImg. */
+    /* Same-origin bundled still — works when in-app WebViews block images.unsplash.com. */
     #spHeroMotion.vc-visual-motion {
       background-color: #1a0f24;
       background-image: linear-gradient(
@@ -16,7 +16,7 @@
           rgba(26, 15, 36, 0.2),
           rgba(10, 13, 24, 0.45)
         ),
-        url("https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=80");
+        url("./media/provider-hero-default.jpg");
       background-size: cover, cover;
       background-position: center, center;
     }
@@ -35,7 +35,7 @@
         <img
           id="spHeroMotionImg"
           class="vc-visual-motion__media"
-          src="https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=82"
+          src="./media/provider-hero-default.jpg"
           alt="Service booking preview"
           loading="eager"
           decoding="async"
@@ -88,7 +88,8 @@
       var params = new URLSearchParams(window.location.search || "");
       var serviceHint = String(params.get("service") || "").trim();
       var slotHint = String(params.get("slot") || "").trim();
-      var HERO_LOCAL_FALLBACK = "./icon-maskable.svg";
+      var HERO_SAME_ORIGIN_STILL = "./media/provider-hero-default.jpg";
+      var HERO_ICON_FALLBACK = "./icon-maskable.svg";
       var motionStill = {
         "Hair Styling": [
           "https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=82",
@@ -125,10 +126,10 @@
         return Math.abs(h);
       }
       function resolveMotionUrl(entry, salt) {
-        if (!entry) return HERO_LOCAL_FALLBACK;
+        if (!entry) return HERO_SAME_ORIGIN_STILL;
         if (typeof entry === "string") return entry;
         if (entry.length) return entry[hashMotionSalt(salt) % entry.length];
-        return HERO_LOCAL_FALLBACK;
+        return HERO_SAME_ORIGIN_STILL;
       }
       function motionFromFreeText(t) {
         var s = String(t || "").toLowerCase();
@@ -146,27 +147,29 @@
         var entry = key ? motionStill[key] : motionFromFreeText(freeText);
         var salt = String(freeText || "") + "|" + String(serviceHint || "") + "|" + String((name && name.value) || "");
         var url = resolveMotionUrl(entry, salt);
-        var fallbackUrls = [];
-        if (url) fallbackUrls.push(url);
+        var remoteUrls = [];
+        if (url && String(url).indexOf("http") === 0) remoteUrls.push(url);
         if (entry && typeof entry === "object" && entry.length) {
           for (var fi = 0; fi < entry.length; fi++) {
             var u = entry[fi];
-            if (u && fallbackUrls.indexOf(u) < 0) fallbackUrls.push(u);
+            if (u && String(u).indexOf("http") === 0 && remoteUrls.indexOf(u) < 0) remoteUrls.push(u);
           }
-        } else if (typeof entry === "string" && entry && fallbackUrls.indexOf(entry) < 0) {
-          fallbackUrls.push(entry);
+        } else if (typeof entry === "string" && entry.indexOf("http") === 0 && remoteUrls.indexOf(entry) < 0) {
+          remoteUrls.push(entry);
         }
+        var pool = remoteUrls.slice();
+        pool.push(HERO_SAME_ORIGIN_STILL);
         var attempt = 0;
         img.onerror = function () {
           attempt += 1;
-          if (attempt < fallbackUrls.length) {
-            img.src = fallbackUrls[attempt];
+          if (attempt < pool.length) {
+            img.src = pool[attempt];
             return;
           }
           img.onerror = null;
-          img.src = HERO_LOCAL_FALLBACK;
+          img.src = HERO_ICON_FALLBACK;
         };
-        img.src = fallbackUrls.length ? fallbackUrls[0] : HERO_LOCAL_FALLBACK;
+        img.src = pool.length ? pool[0] : HERO_SAME_ORIGIN_STILL;
         img.alt = (key || "Service") + " — booking preview";
         if (box) box.setAttribute("aria-label", (key || String(freeText || "Service").trim() || "Service") + " preview");
       }
@@ -265,6 +268,47 @@
       });
     })();
   </script>
-  <script src="./site-chrome.js?v=20260502herofallback1" defer></script>
+  <script src="./site-chrome.js?v=20260502bundlehero1" defer></script>
+  <script>
+    (function () {
+      if (!document.body || document.body.getAttribute("data-vc-lean-hud") !== "1") return;
+      var IDS = [
+        "vcMotionModeBtn",
+        "vcArrangeHud",
+        "vcArrangeResetHud",
+        "vcActionHub",
+        "vcQuickActionTrigger",
+        "vcVibeModeBtn",
+        "vcStoryRail",
+        "vcSocialPulse",
+        "vcMissionHud",
+        "vcDealDraftComposer",
+        "vcMobileStreakChip",
+        "vcMobileInboxPulse",
+        "vcFirst5Bar"
+      ];
+      function stripLeanIntruders() {
+        IDS.forEach(function (id) {
+          var n = document.getElementById(id);
+          if (n && n.parentNode) n.parentNode.removeChild(n);
+        });
+        var sh = document.getElementById("vcQuickActionSheet");
+        if (sh && sh.parentNode) sh.parentNode.removeChild(sh);
+      }
+      stripLeanIntruders();
+      window.addEventListener("load", stripLeanIntruders, { once: true });
+      [50, 400, 1200, 2800].forEach(function (ms) {
+        window.setTimeout(stripLeanIntruders, ms);
+      });
+      if (document.body && typeof MutationObserver !== "undefined") {
+        try {
+          var mo = new MutationObserver(stripLeanIntruders);
+          mo.observe(document.body, { childList: true, subtree: false });
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
