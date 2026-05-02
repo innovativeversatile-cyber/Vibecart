@@ -5409,7 +5409,8 @@ async function handlePublicCheckoutRecover(req, res) {
   } catch {
     sessionId = "";
   }
-  if (!/^cs_[a-zA-Z0-9]+$/.test(sessionId)) {
+  // Stripe Checkout session ids are cs_test_… / cs_live_… (underscores after the mode prefix).
+  if (!/^cs_[a-zA-Z0-9_]+$/.test(sessionId)) {
     return sendJson(res, 400, {
       ok: false,
       code: "INVALID_SESSION_ID",

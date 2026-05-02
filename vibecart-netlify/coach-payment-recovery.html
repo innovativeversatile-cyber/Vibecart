@@ -4,7 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Restore coach access · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260502recover1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502recover2" />
+  <style>
+    #recoverStatus:not(:empty) {
+      color: var(--fg, #1a1a1a);
+      margin-top: 0.75rem;
+      font-weight: 500;
+    }
+  </style>
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
@@ -25,7 +32,7 @@
     <p class="hero-actions" style="margin-top: 1rem">
       <button class="btn btn-primary" id="recoverBtn" type="button">Verify and open my plan</button>
     </p>
-    <p class="note" id="recoverStatus" aria-live="polite"></p>
+    <p class="recover-status" id="recoverStatus" aria-live="polite"></p>
     <p class="note" style="margin-top: 1rem">
       You must be <strong>signed in</strong> with the same VibeCart account (and email) you used at checkout. If you cannot find
       the session ID, check the email receipt from Stripe or your card statement’s reference line.
@@ -55,7 +62,7 @@
           }
           return;
         }
-        if (!/^cs_[a-zA-Z0-9]+$/.test(sid)) {
+        if (!/^cs_[a-zA-Z0-9_]+$/.test(sid)) {
           if (status) {
             status.textContent =
               "Enter the Checkout session ID from Stripe (starts with cs_). If you only have an email, open the receipt link inside that email.";
@@ -101,6 +108,9 @@
               (x.body && (x.body.message || x.body.code)) ||
               (x.status === 401 ? "Session expired or device check failed — sign out and sign in again, then retry." : "") ||
               (x.ok ? "Unexpected response." : "Could not verify this session.");
+            if (!String(msg || "").trim()) {
+              msg = "Could not verify (HTTP " + x.status + "). Try again or contact support with this code.";
+            }
             if (status) status.textContent = String(msg);
           })
           .catch(function (err) {
