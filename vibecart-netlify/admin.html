@@ -31,9 +31,18 @@
           <label>Backend API Base URL</label>
           <input id="apiBaseUrl" type="url" placeholder="https://api.yourdomain.com" />
           <input id="ownerUsername" type="email" placeholder="Enter owner username (email)" />
-          <input id="ownerCode" type="password" placeholder="Enter owner passcode" />
-          <input id="ownerPhrase" type="password" placeholder="Enter owner security phrase" />
-          <input id="ownerMfaCode" type="password" placeholder="Enter MFA/backup code (if required)" />
+          <div class="vc-password-field" style="grid-column: 1 / -1">
+            <input id="ownerCode" type="password" placeholder="Enter owner passcode" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="ownerCode">Show</button>
+          </div>
+          <div class="vc-password-field" style="grid-column: 1 / -1">
+            <input id="ownerPhrase" type="password" placeholder="Enter owner security phrase" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="ownerPhrase">Show</button>
+          </div>
+          <div class="vc-password-field" style="grid-column: 1 / -1">
+            <input id="ownerMfaCode" type="password" placeholder="Enter MFA/backup code (if required)" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="ownerMfaCode">Show</button>
+          </div>
           <button id="unlockBtn" type="button" class="btn btn-primary">Unlock Panel</button>
         </div>
         <p class="note">
@@ -193,10 +202,16 @@
           <input id="newOwnerEmail" type="email" placeholder="Enter new owner email" />
 
           <label>New Owner Password</label>
-          <input id="newOwnerPasscode" type="password" placeholder="Enter new owner password (min 10 chars)" />
+          <div class="vc-password-field">
+            <input id="newOwnerPasscode" type="password" placeholder="Enter new owner password (min 10 chars)" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="newOwnerPasscode">Show</button>
+          </div>
 
           <label>New Security Phrase</label>
-          <input id="newOwnerPhrase" type="password" placeholder="Enter new security phrase (min 10 chars)" />
+          <div class="vc-password-field">
+            <input id="newOwnerPhrase" type="password" placeholder="Enter new security phrase (min 10 chars)" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="newOwnerPhrase">Show</button>
+          </div>
         </div>
         <div class="hero-actions">
           <button id="updateOwnerAuth" type="button" class="btn btn-secondary">Update Email and Password</button>
@@ -787,6 +802,7 @@
       </section>
     </main>
 
+    <script src="./password-toggle.js?v=20260502pw1"></script>
     <script src="./admin.js?v=20260423readinesslegalfix2"></script>
     <script src="./nav-autohide-global.js?v=20260429navglobal2" defer></script>
   </body>

@@ -3422,6 +3422,55 @@ function refreshAccountPassportLabels() {
   if (countryNote) {
     countryNote.textContent = authT("accountPassport.countryAuto");
   }
+  syncSignupPasswordBlock();
+}
+
+function syncSignupPasswordBlock() {
+  const roleInput = document.getElementById("vcAuthRole");
+  const block = document.getElementById("vcAuthPasswordBlock");
+  const pw = document.getElementById("vcAuthPassword");
+  const seller = String(roleInput?.value || "buyer") === "seller";
+  if (block) {
+    block.classList.toggle("hidden", !seller);
+  }
+  if (pw) {
+    pw.required = seller;
+    if (!seller) {
+      pw.value = "";
+    }
+  }
+}
+
+async function tryConsumeMagicLoginFromUrl() {
+  try {
+    const u = new URL(window.location.href);
+    const raw = String(u.searchParams.get("magic_login") || "").trim();
+    if (!/^[a-f0-9]{64}$/i.test(raw)) {
+      return null;
+    }
+    const headers = { Accept: "application/json" };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.getSecret === "function") {
+      const sec = window.VibeCartSessionDevice.getSecret();
+      if (sec) {
+        headers["X-VibeCart-Device-Binding"] = sec;
+      }
+    }
+    const r = await fetch(`/api/public/auth/magic-link/consume?token=${encodeURIComponent(raw)}`, {
+      method: "GET",
+      credentials: "same-origin",
+      headers
+    });
+    const body = await r.json().catch(() => ({}));
+    if (r.ok && body.ok && body.token && body.user) {
+      persistPublicAuth(body.token, body.user);
+      u.searchParams.delete("magic_login");
+      window.history.replaceState({}, "", u.pathname + (u.search ? u.search : "") + u.hash);
+      return { ok: true, user: body.user };
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 function initPublicAccountAuth() {
@@ -3449,6 +3498,15 @@ function initPublicAccountAuth() {
   if (!panelCreate || !panelLogin) {
     return;
   }
+
+  void tryConsumeMagicLoginFromUrl().then((magic) => {
+    if (magic && magic.ok && magic.user) {
+      paintAuthLoggedIn(magic.user);
+      setAuthStatus(authT("accountPassport.magicSignedIn"));
+      return;
+    }
+    refreshPublicSessionOnLoad().catch(() => {});
+  });
 
   function showCreate() {
     panelCreate.classList.remove("hidden");
@@ -3510,6 +3568,49 @@ function initPublicAccountAuth() {
     refreshAccountPassportLabels();
   });
 
+  const buyerRoleEl = document.getElementById("vcAuthRoleBuyer");
+  const sellerRoleEl = document.getElementById("vcAuthRoleSeller");
+  buyerRoleEl?.addEventListener("click", () => {
+    if (roleInput) {
+      roleInput.value = "buyer";
+    }
+    refreshAccountPassportLabels();
+  });
+  sellerRoleEl?.addEventListener("click", () => {
+    if (roleInput) {
+      roleInput.value = "seller";
+    }
+    refreshAccountPassportLabels();
+  });
+
+  const magicBtn = document.getElementById("vcAuthMagicLinkBtn");
+  magicBtn?.addEventListener("click", async () => {
+    setAuthStatus("");
+    const email = String(document.getElementById("vcAuthLoginEmail")?.value || "").trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAuthStatus(authT("accountPassport.errInvalidEmail"));
+      return;
+    }
+    magicBtn.disabled = true;
+    try {
+      const r = await fetch("/api/public/auth/magic-link/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, ...vcDeviceRegisterExtras() })
+      });
+      const body = await r.json().catch(() => ({}));
+      if (r.ok && body.ok) {
+        setAuthStatus(String(body.message || authT("accountPassport.magicLinkSent")));
+        return;
+      }
+      setAuthStatus(String(body.message || authT("accountPassport.magicLinkFail")));
+    } catch {
+      setAuthStatus(authT("accountPassport.magicLinkFail"));
+    } finally {
+      magicBtn.disabled = false;
+    }
+  });
+
   if (country && typeof getBuyerCountryCode === "function") {
     const code = getBuyerCountryCode();
     if ([...country.options].some((o) => o.value === code)) {
@@ -3520,7 +3621,7 @@ function initPublicAccountAuth() {
     roleInput.value = "buyer";
   }
   if (journeyInput && !journeyInput.value) {
-    journeyInput.value = "passport";
+    journeyInput.value = "account";
   }
   refreshAccountPassportLabels();
   refreshJourneyUi();
@@ -3552,10 +3653,23 @@ function initPublicAccountAuth() {
     const email = String(document.getElementById("vcAuthEmail")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("vcAuthPassword")?.value || "");
     const role = String(roleInput?.value || "buyer");
-    const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
+    const journey = journeyInput
+      ? String(journeyInput.value || "account").toLowerCase() === "account"
+        ? "account"
+        : "passport"
+      : "account";
     const countryCode = String(country?.value || "ZA").toUpperCase();
-    if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
+    const seller = role === "seller";
+    if (fullName.length < 2 || !email || countryCode.length !== 2) {
       setAuthStatus(authT("accountPassport.errMissingFields"));
+      return;
+    }
+    if (seller && password.length < 8) {
+      setAuthStatus(authT("accountPassport.errMissingFields"));
+      return;
+    }
+    if (!seller && password.length > 0 && password.length < 8) {
+      setAuthStatus(authT("accountPassport.pwShort"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -3683,7 +3797,6 @@ function initPublicAccountAuth() {
     });
   }
 
-  refreshPublicSessionOnLoad().catch(() => {});
 }
 
 async function ensureQuickBuyerToken() {

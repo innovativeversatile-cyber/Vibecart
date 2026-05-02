@@ -237,6 +237,10 @@ const SESSION_TOKEN_ROTATE_MS = Math.max(
   Number(process.env.SESSION_TOKEN_ROTATE_MS || 12 * 60 * 60 * 1000)
 );
 let publicSessionDeviceColumnsEnsured = false;
+let publicMagicLoginTableEnsured = false;
+const magicLinkEmailHits = new Map();
+const MAGIC_LINK_WINDOW_MS = 15 * 60 * 1000;
+const MAGIC_LINK_MAX_PER_WINDOW = 5;
 const logoEmailIpHits = new Map();
 const LOGO_EMAIL_WINDOW_MS = 60 * 60 * 1000;
 const LOGO_EMAIL_MAX_PER_HOUR = 10;
@@ -419,6 +423,43 @@ function isLoginLimited(ip, email) {
 
 function clearLoginLimit(ip, email) {
   loginHits.delete(loginRateKey(ip, email));
+}
+
+function magicLinkEmailKey(ip, email) {
+  return `${String(ip || "").trim()}|${String(email || "").trim().toLowerCase()}`;
+}
+
+function isMagicLinkEmailLimited(ip, email) {
+  const now = Date.now();
+  const key = magicLinkEmailKey(ip, email);
+  const item = magicLinkEmailHits.get(key) || { count: 0, start: now };
+  if (now - item.start > MAGIC_LINK_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  magicLinkEmailHits.set(key, item);
+  return item.count > MAGIC_LINK_MAX_PER_WINDOW;
+}
+
+async function ensurePublicMagicLoginTokensTable() {
+  if (publicMagicLoginTableEnsured) {
+    return;
+  }
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS public_magic_login_tokens (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT UNSIGNED NOT NULL,
+      token_hash CHAR(64) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      consumed_at DATETIME NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_public_magic_token (token_hash),
+      KEY idx_public_magic_exp (expires_at),
+      KEY idx_public_magic_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  publicMagicLoginTableEnsured = true;
 }
 
 function isValidEmail(email) {
@@ -1362,8 +1403,22 @@ async function handlePublicAuthRegister(req, res) {
   const fullName = String(body.fullName || "").trim();
   const countryCode = String(body.countryCode || "").trim().toUpperCase();
 
-  if (!isValidEmail(email) || password.length < 8 || fullName.length < 2 || countryCode.length !== 2) {
+  if (!isValidEmail(email) || fullName.length < 2 || countryCode.length !== 2) {
     return sendJson(res, 400, { ok: false, code: "INVALID_SIGNUP_INPUT" });
+  }
+  if (role === "seller" && password.length < 8) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "INVALID_SIGNUP_INPUT",
+      message: "Service providers must create a password (8+ characters)."
+    });
+  }
+  if (role === "buyer" && password.length > 0 && password.length < 8) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "INVALID_SIGNUP_INPUT",
+      message: "Password must be at least 8 characters, or leave it blank for email sign-in later."
+    });
   }
 
   const [existingRows] = await pool.execute(
@@ -1374,8 +1429,13 @@ async function handlePublicAuthRegister(req, res) {
     return sendJson(res, 409, { ok: false, code: "EMAIL_ALREADY_EXISTS" });
   }
 
+  let effectivePassword = password;
+  if (role === "buyer" && (!password || password.length < 8)) {
+    effectivePassword = `${crypto.randomBytes(28).toString("base64url")}Aa1!`;
+  }
+
   const saltHex = crypto.randomBytes(16).toString("hex");
-  const passwordHash = `${saltHex}:${hashPublicPassword(password, saltHex)}`;
+  const passwordHash = `${saltHex}:${hashPublicPassword(effectivePassword, saltHex)}`;
   const [insertUser] = await pool.execute(
     `INSERT INTO users (email, password_hash, full_name, role, country_code, is_verified)
      VALUES (?, ?, ?, ?, ?, 0)`,
@@ -1467,6 +1527,143 @@ async function handlePublicAuthLogin(req, res) {
       role: String(user.role),
       countryCode: String(user.country_code),
       isVerified: Boolean(user.is_verified)
+    }
+  });
+}
+
+/**
+ * Buyer-only passwordless return: sends a one-time link when SMTP is configured.
+ * Always responds generically on success-shaped paths to reduce email enumeration.
+ */
+async function handlePublicAuthMagicLinkRequest(req, res) {
+  const ip = getIp(req);
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const email = String(body.email || "").trim().toLowerCase();
+  if (!isValidEmail(email)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_EMAIL" });
+  }
+  if (isMagicLinkEmailLimited(ip, email)) {
+    return sendJson(res, 429, { ok: false, code: "MAGIC_LINK_RATE_LIMITED" });
+  }
+  const transporter = getLogoSmtpTransporter();
+  if (!transporter) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "SMTP_NOT_CONFIGURED",
+      message: "Email sign-in is not available on this server yet. Service providers can sign in with a password."
+    });
+  }
+  try {
+    await ensurePublicMagicLoginTokensTable();
+  } catch (e) {
+    return sendJson(res, 500, { ok: false, code: "MAGIC_LINK_DB_ERROR" });
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT id, role FROM users WHERE email = ? LIMIT 1`,
+    [email]
+  );
+  const userRow = rows[0];
+  const okBuyer = userRow && String(userRow.role || "").toLowerCase() === "buyer";
+  if (okBuyer) {
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = sha256(rawToken);
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    await pool.execute(`DELETE FROM public_magic_login_tokens WHERE user_id = ? AND consumed_at IS NULL`, [
+      Number(userRow.id)
+    ]);
+    await pool.execute(
+      `INSERT INTO public_magic_login_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
+      [Number(userRow.id), tokenHash, expiresAt]
+    );
+    const baseUrl = resolvePublicWebBaseUrl(req);
+    const link = `${baseUrl}/lane-passport.html?magic_login=${encodeURIComponent(rawToken)}`;
+    try {
+      await transporter.sendMail({
+        from: SMTP_FROM,
+        to: email,
+        subject: "Your VibeCart sign-in link",
+        text:
+          "Use this one-time link to sign in to VibeCart (valid about 30 minutes). If you did not request this, ignore this email.\n\n" +
+          link +
+          "\n\n" +
+          `Request IP: ${ip}\n`
+      });
+    } catch (error) {
+      return sendJson(res, 502, {
+        ok: false,
+        code: "EMAIL_SEND_FAILED",
+        message: String(error.message || error).slice(0, 200)
+      });
+    }
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    sent: true,
+    message: "If that email is a shopper account, we sent a sign-in link. Check your inbox and spam folder."
+  });
+}
+
+async function handlePublicAuthMagicLinkConsume(req, res) {
+  let rawToken = "";
+  try {
+    const urlObj = new URL(req.url, "http://localhost");
+    rawToken = String(urlObj.searchParams.get("token") || "").trim();
+  } catch {
+    rawToken = "";
+  }
+  if (!/^[a-f0-9]{64}$/i.test(rawToken)) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_MAGIC_TOKEN" });
+  }
+  try {
+    await ensurePublicMagicLoginTokensTable();
+  } catch {
+    return sendJson(res, 500, { ok: false, code: "MAGIC_LINK_DB_ERROR" });
+  }
+  const tokenHash = sha256(rawToken);
+  const [tokRows] = await pool.execute(
+    `SELECT t.id AS tid, t.user_id, t.expires_at, t.consumed_at, u.email, u.full_name, u.role, u.country_code, u.is_verified
+     FROM public_magic_login_tokens t
+     INNER JOIN users u ON u.id = t.user_id
+     WHERE t.token_hash = ?
+     LIMIT 1`,
+    [tokenHash]
+  );
+  const row = tokRows[0];
+  if (!row || String(row.role || "").toLowerCase() !== "buyer") {
+    return sendJson(res, 400, { ok: false, code: "MAGIC_TOKEN_INVALID" });
+  }
+  if (row.consumed_at) {
+    return sendJson(res, 400, { ok: false, code: "MAGIC_TOKEN_USED" });
+  }
+  const exp = new Date(row.expires_at).getTime();
+  if (!Number.isFinite(exp) || exp < Date.now()) {
+    return sendJson(res, 400, { ok: false, code: "MAGIC_TOKEN_EXPIRED" });
+  }
+  await pool.execute(`UPDATE public_magic_login_tokens SET consumed_at = NOW() WHERE id = ?`, [Number(row.tid)]);
+  const deviceBinding = String(getDeviceBindingFromRequest(req) || "").trim();
+  const session = await createPublicSession(
+    Number(row.user_id),
+    getIp(req),
+    String(req.headers["user-agent"] || ""),
+    deviceBinding
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    token: session.token,
+    expiresAt: session.expiresAt,
+    user: {
+      id: Number(row.user_id),
+      email: String(row.email),
+      fullName: String(row.full_name),
+      role: String(row.role),
+      countryCode: String(row.country_code),
+      isVerified: Boolean(row.is_verified)
     }
   });
 }
@@ -5691,6 +5888,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/auth/login") {
       return await handlePublicAuthLogin(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/auth/magic-link/request") {
+      return await handlePublicAuthMagicLinkRequest(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/auth/magic-link/consume") {
+      return await handlePublicAuthMagicLinkConsume(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/auth/logout") {
       return await handlePublicAuthLogout(req, res);

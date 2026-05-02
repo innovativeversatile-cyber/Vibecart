@@ -56,7 +56,7 @@
       <p class="vc-mb-gate-lead" id="mbGateLead">Pick how you are showing up today — client bookings or your provider desk.</p>
 
       <div id="mbStepPersona" class="vc-mb-gate-step">
-        <p class="note" style="margin-top:0;">Step 1 of 3</p>
+        <p class="note" style="margin-top:0;" id="mbStepPersonaLabel">Step 1 — choose how you are using My Business</p>
         <div class="vc-mb-choice-grid">
           <button type="button" class="vc-mb-choice-tile" id="mbPickClient" data-mb-pick-persona="client">
             <strong>Client</strong>
@@ -71,7 +71,7 @@
       </div>
 
       <div id="mbStepService" class="vc-mb-gate-step" hidden>
-        <p class="note" style="margin-top:0;">Step 2 of 3 · <span id="mbPersonaEcho"></span></p>
+        <p class="note" style="margin-top:0;"><span id="mbStepServiceLabel">Step 2</span> · <span id="mbPersonaEcho"></span></p>
         <p class="vc-mb-gate-lead" style="margin-bottom:0.55rem;">Choose the service line for this dashboard session.</p>
         <div class="vc-mb-service-grid" id="mbServiceGrid" role="group" aria-label="Service line"></div>
         <div class="vc-mb-gate-actions">
@@ -82,17 +82,23 @@
       </div>
 
       <div id="mbStepPassword" class="vc-mb-gate-step" hidden>
-        <p class="note" style="margin-top:0;">Step 3 of 3 · protect this view</p>
+        <p class="note" style="margin-top:0;">Step 3 · service provider · protect this view</p>
         <p class="vc-mb-gate-lead" id="mbPwdLead">
           Set a password for this device. It only unlocks this My Business layout in your browser — it is not your VibeCart account password unless you later link accounts in Account.
         </p>
-        <div class="vc-mb-field">
+        <div class="vc-mb-field vc-password-field-row">
           <label for="mbNewPw">Create password (min 8 characters)</label>
-          <input id="mbNewPw" type="password" autocomplete="new-password" minlength="8" />
+          <div class="vc-password-field">
+            <input id="mbNewPw" type="password" autocomplete="new-password" minlength="8" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="mbNewPw">Show</button>
+          </div>
         </div>
-        <div class="vc-mb-field">
+        <div class="vc-mb-field vc-password-field-row">
           <label for="mbNewPw2">Confirm password</label>
-          <input id="mbNewPw2" type="password" autocomplete="new-password" minlength="8" />
+          <div class="vc-password-field">
+            <input id="mbNewPw2" type="password" autocomplete="new-password" minlength="8" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="mbNewPw2">Show</button>
+          </div>
         </div>
         <div class="vc-mb-gate-actions">
           <button type="button" class="btn btn-secondary" id="mbBackToService">Back</button>
@@ -104,13 +110,17 @@
       <div id="mbStepUnlock" class="vc-mb-gate-step" hidden>
         <p class="note" style="margin-top:0;">Welcome back</p>
         <p class="vc-mb-gate-lead" id="mbUnlockEcho"></p>
-        <div class="vc-mb-field">
+        <div class="vc-mb-field vc-password-field-row" id="mbUnlockPwRow">
           <label for="mbUnlockPw">Dashboard password</label>
-          <input id="mbUnlockPw" type="password" autocomplete="current-password" />
+          <div class="vc-password-field">
+            <input id="mbUnlockPw" type="password" autocomplete="current-password" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="mbUnlockPw">Show</button>
+          </div>
         </div>
         <div class="vc-mb-gate-actions">
           <button type="button" class="btn btn-secondary" id="mbResetProfile">Change role / service</button>
           <button type="button" class="btn btn-primary" id="mbUnlockSubmit">Enter dashboard</button>
+          <button type="button" class="btn btn-primary" id="mbUnlockQuick" hidden>Continue to bookings</button>
         </div>
         <p class="vc-mb-gate-status" id="mbGateStatusUnlock" aria-live="polite"></p>
       </div>
@@ -287,7 +297,8 @@
     </section>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
-  <script src="./my-business.js?v=20260504mbflow1" defer></script>
+  <script src="./password-toggle.js?v=20260502pw1"></script>
+  <script src="./my-business.js?v=20260502mbgate1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

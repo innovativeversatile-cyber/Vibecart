@@ -6479,6 +6479,29 @@ body.mb-boot-pending {
   cursor: not-allowed;
 }
 
+/* Password field + visibility toggle (account, admin, My Business) */
+.vc-password-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+.vc-password-field input[type="password"],
+.vc-password-field input[type="text"] {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.vc-password-field .vc-password-toggle {
+  flex: 0 0 auto;
+  align-self: stretch;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.vc-passport-fields .vc-password-field {
+  grid-column: 1 / -1;
+}
+
 .vc-mb-field {
   display: grid;
   gap: 0.35rem;

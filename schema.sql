@@ -1291,3 +1291,17 @@ SELECT id, 'Back to Campus Tech Week', 'Special pricing on student devices and a
 FROM shops
 ORDER BY id
 LIMIT 1;
+
+-- Buyer email sign-in (one-time magic links; see owner-auth-api magic-link handlers)
+CREATE TABLE IF NOT EXISTS public_magic_login_tokens (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  consumed_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_public_magic_token (token_hash),
+  KEY idx_public_magic_exp (expires_at),
+  KEY idx_public_magic_user (user_id),
+  CONSTRAINT fk_public_magic_user FOREIGN KEY (user_id) REFERENCES users(id)
+);

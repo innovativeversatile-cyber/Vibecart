@@ -20,7 +20,10 @@
       <section id="gateCard" class="card">
         <h2>Admin Device Gate</h2>
         <p class="small">Set a local admin device PIN for quick access on this phone only.</p>
-        <input id="devicePin" type="password" placeholder="Enter admin device PIN (min 6 chars)" />
+        <div class="vc-password-field">
+          <input id="devicePin" type="password" placeholder="Enter admin device PIN (min 6 chars)" />
+          <button type="button" class="btn vc-password-toggle" data-vc-pw-toggle-for="devicePin">Show</button>
+        </div>
         <button id="openPanelInApp" class="btn">Open Admin Panel</button>
       </section>
 
@@ -30,6 +33,7 @@
       </section>
     </main>
 
+    <script src="./password-toggle.js?v=20260502pw1"></script>
     <script src="./admin-app.js?v=20260420csp1"></script>
   </body>
 </html>

@@ -353,6 +353,68 @@
         return;
       }
 
+      function syncSignupPasswordBlockSafe() {
+        var block = document.getElementById("vcAuthPasswordBlock");
+        var pw = document.getElementById("vcAuthPassword");
+        var seller = String((roleInput && roleInput.value) || "buyer") === "seller";
+        if (block) {
+          block.classList.toggle("hidden", !seller);
+        }
+        if (pw) {
+          pw.required = seller;
+          if (!seller) {
+            pw.value = "";
+          }
+        }
+      }
+
+      function tryConsumeMagicLoginFromUrlSafe() {
+        return Promise.resolve()
+          .then(function () {
+            var u = new URL(window.location.href);
+            var raw = String(u.searchParams.get("magic_login") || "").trim();
+            if (!/^[a-f0-9]{64}$/i.test(raw)) {
+              return null;
+            }
+            var headers = { Accept: "application/json" };
+            if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.getSecret === "function") {
+              var sec = window.VibeCartSessionDevice.getSecret();
+              if (sec) {
+                headers["X-VibeCart-Device-Binding"] = sec;
+              }
+            }
+            return fetch("/api/public/auth/magic-link/consume?token=" + encodeURIComponent(raw), {
+              method: "GET",
+              credentials: "same-origin",
+              headers: headers
+            }).then(function (r) {
+              return r.json().catch(function () {
+                return {};
+              }).then(function (body) {
+                if (r.ok && body.ok && body.token && body.user) {
+                  persistAuth(body.token, body.user);
+                  u.searchParams.delete("magic_login");
+                  window.history.replaceState({}, "", u.pathname + (u.search ? u.search : "") + u.hash);
+                  return { ok: true, user: body.user };
+                }
+                return null;
+              });
+            });
+          })
+          .catch(function () {
+            return null;
+          });
+      }
+
+      void tryConsumeMagicLoginFromUrlSafe().then(function (magic) {
+        if (magic && magic.ok && magic.user) {
+          paintLoggedIn(magic.user);
+          setAuthStatus("Signed in from your email link.");
+          return;
+        }
+        refreshPublicSessionOnLoad().catch(function () {});
+      });
+
       function showCreate() {
         panelCreate.classList.remove("hidden");
         panelLogin.classList.add("hidden");
@@ -379,6 +441,7 @@
         if (sellerNote) {
           sellerNote.classList.toggle("hidden", !seller);
         }
+        syncSignupPasswordBlockSafe();
       }
 
       function refreshJourneyUi() {
@@ -428,6 +491,43 @@
           refreshRoleUi();
         });
       }
+
+      var magicBtn = document.getElementById("vcAuthMagicLinkBtn");
+      if (magicBtn) {
+        magicBtn.addEventListener("click", function () {
+          setAuthStatus("");
+          var em = String((loginEmail && loginEmail.value) || "")
+            .trim()
+            .toLowerCase();
+          if (!em || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+            setAuthStatus("That email does not look valid — check for typos.");
+            return;
+          }
+          magicBtn.disabled = true;
+          fetch("/api/public/auth/magic-link/request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(Object.assign({ email: em }, vcDeviceRegisterExtras()))
+          })
+            .then(function (r) {
+              return r.json().catch(function () {
+                return {};
+              }).then(function (body) {
+                if (r.ok && body.ok) {
+                  setAuthStatus(String(body.message || "Check your inbox for a sign-in link."));
+                } else {
+                  setAuthStatus(String(body.message || "Could not send a link. Try again later."));
+                }
+              });
+            })
+            .catch(function () {
+              setAuthStatus("Could not send a link. Try again later.");
+            })
+            .finally(function () {
+              magicBtn.disabled = false;
+            });
+        });
+      }
       if (journeyPassportBtn) {
         journeyPassportBtn.addEventListener("click", function () {
           if (journeyInput) {
@@ -448,10 +548,11 @@
         roleInput.value = "buyer";
       }
       if (journeyInput && !journeyInput.value) {
-        journeyInput.value = "passport";
+        journeyInput.value = "account";
       }
       refreshRoleUi();
       refreshJourneyUi();
+      syncSignupPasswordBlockSafe();
 
       function setAuthStatus(message) {
         if (!statusEl) return;
@@ -598,10 +699,23 @@
         var email = String((createEmail && createEmail.value) || "").trim().toLowerCase();
         var password = String((createPassword && createPassword.value) || "");
         var role = String((roleInput && roleInput.value) || "buyer");
-        var journey = String((journeyInput && journeyInput.value) || "passport").toLowerCase() === "account" ? "account" : "passport";
+        var journey = journeyInput
+          ? String(journeyInput.value || "account").toLowerCase() === "account"
+            ? "account"
+            : "passport"
+          : "account";
         var countryCode = String((createCountry && createCountry.value) || "ZA").toUpperCase();
-        if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
+        var seller = role === "seller";
+        if (fullName.length < 2 || !email || countryCode.length !== 2) {
           setAuthStatus("Please complete all fields correctly.");
+          return;
+        }
+        if (seller && password.length < 8) {
+          setAuthStatus("Service providers need a password (8+ characters).");
+          return;
+        }
+        if (!seller && password.length > 0 && password.length < 8) {
+          setAuthStatus("Password must be at least 8 characters, or leave it blank for shoppers.");
           return;
         }
         setAuthStatus("Creating account...");
@@ -750,9 +864,6 @@
       } catch (e) {
         /* ignore */
       }
-      refreshPublicSessionOnLoad().catch(function () {
-        paintLoggedOut();
-      });
     }
 
     function initSafeHeroRouting() {

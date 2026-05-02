@@ -52,7 +52,11 @@
       if (!raw) return null;
       var o = JSON.parse(raw);
       if (!o || typeof o !== "object") return null;
-      if (!o.persona || !o.service || !o.pwdHash || !o.salt) return null;
+      if (!o.persona || !o.service) return null;
+      if (o.persona === "client" && o.pwdHash === "__none__") {
+        return o;
+      }
+      if (!o.pwdHash || !o.salt) return null;
       return o;
     } catch (_) {
       return null;
@@ -273,6 +277,10 @@
     if (echo) {
       echo.textContent = draftPersona === "provider" ? "Service provider" : "Client";
     }
+    var svcLab = document.getElementById("mbStepServiceLabel");
+    if (svcLab) {
+      svcLab.textContent = draftPersona === "provider" ? "Step 2 of 3" : "Step 2 of 2";
+    }
     buildServiceGrid();
     setGateStatus("mbGateStatusService", "", false);
   }
@@ -293,16 +301,24 @@
     var s = document.getElementById("mbStepUnlock");
     if (s) s.hidden = false;
     var echo = document.getElementById("mbUnlockEcho");
+    var clientNoPwd = cfg && cfg.persona === "client" && cfg.pwdHash === "__none__";
     if (echo) {
-      echo.textContent =
-        "Enter the password for your " +
-        (cfg.persona === "provider" ? "provider" : "client") +
-        " dashboard · " +
-        cfg.service +
-        ".";
+      echo.textContent = clientNoPwd
+        ? "Continue to your client booking tools for " + cfg.service + "."
+        : "Enter the password for your " +
+            (cfg.persona === "provider" ? "provider" : "client") +
+            " dashboard · " +
+            cfg.service +
+            ".";
     }
     var inp = document.getElementById("mbUnlockPw");
     if (inp) inp.value = "";
+    var pwRow = document.getElementById("mbUnlockPwRow");
+    var quick = document.getElementById("mbUnlockQuick");
+    var unlockSubmit = document.getElementById("mbUnlockSubmit");
+    if (pwRow) pwRow.hidden = !!clientNoPwd;
+    if (quick) quick.hidden = !clientNoPwd;
+    if (unlockSubmit) unlockSubmit.hidden = !!clientNoPwd;
     setGateStatus("mbGateStatusUnlock", "", false);
   }
 
@@ -353,6 +369,13 @@
           setGateStatus("mbGateStatusService", "Pick a service line to continue.", false);
           return;
         }
+        if (draftPersona === "client") {
+          var cfgClient = { persona: "client", service: draftService, pwdHash: "__none__", salt: "" };
+          saveMbConfig(cfgClient);
+          setSessionUnlocked(cfgClient.persona, cfgClient.service);
+          revealMainAndLoad(cfgClient);
+          return;
+        }
         showPasswordStep();
       });
     document.getElementById("mbBackToService") &&
@@ -390,12 +413,26 @@
         });
       });
 
+    document.getElementById("mbUnlockQuick") &&
+      document.getElementById("mbUnlockQuick").addEventListener("click", function () {
+        var cfg = loadMbConfig();
+        if (!cfg || cfg.persona !== "client" || cfg.pwdHash !== "__none__") return;
+        setSessionUnlocked(cfg.persona, cfg.service);
+        setGateStatus("mbGateStatusUnlock", "Opening…", true);
+        revealMainAndLoad(cfg);
+      });
+
     document.getElementById("mbUnlockSubmit") &&
       document.getElementById("mbUnlockSubmit").addEventListener("click", function () {
         if (gateBusy) return;
         var cfg = loadMbConfig();
         if (!cfg) {
           showPersonaStep();
+          return;
+        }
+        if (cfg.persona === "client" && cfg.pwdHash === "__none__") {
+          setSessionUnlocked(cfg.persona, cfg.service);
+          revealMainAndLoad(cfg);
           return;
         }
         var inp = document.getElementById("mbUnlockPw");
