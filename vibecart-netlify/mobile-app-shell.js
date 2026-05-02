@@ -700,6 +700,29 @@
       return scored;
     }
 
+    /** Apparel / style — drives Fashion category live grid (not beauty-only or "scents" from search copy). */
+    function brandonFashionLiveGridIntent(ask) {
+      var a = String(ask || "").toLowerCase();
+      return (
+        /\b(?:fashion|outfits?|wardrobe|streetwear|runway|lookbook|apparel|garments?|clothes|clothing|footwear|sneakers?|jewelry|jewellery)\b/.test(
+          a
+        ) || /\bstyles?\b/.test(a)
+      );
+    }
+
+    /** Beauty, fragrance, booking-style language without apparel keywords above. */
+    function brandonBeautyScentsServiceIntent(ask) {
+      var a = String(ask || "").toLowerCase();
+      if (brandonFashionLiveGridIntent(a)) return false;
+      return /\b(?:beauty|cosmetics?|makeup|perfume|fragrances?|scents?|aroma|salon|skincare|manicure|facial|spa)\b/.test(
+        a
+      );
+    }
+
+    function brandonFashionOrBeautyTipIntent(ask) {
+      return brandonFashionLiveGridIntent(ask) || brandonBeautyScentsServiceIntent(ask);
+    }
+
     function generateBrandonResponse(text) {
       var ask = String(text || "").trim().toLowerCase();
       if (!ask) {
@@ -815,7 +838,18 @@
           actions: [{ label: "Open admin app", href: "./admin-app.html" }]
         };
       }
-      if (/fashion|style|clothes|scents|beauty/.test(ask)) {
+      if (brandonBeautyScentsServiceIntent(ask)) {
+        return {
+          reply:
+            "Beauty and scent lanes split between curated shop cards and human pros. Use scents shops for retailer picks, then service hub or My Business if you are booking a provider.",
+          actions: [
+            { label: "Scents & beauty shops", href: "./shops-scents.html" },
+            { label: "Service providers", href: "./service-provider-hub.html" },
+            { label: "My Business (bookings)", href: "./my-business.html" }
+          ]
+        };
+      }
+      if (brandonFashionLiveGridIntent(ask)) {
         return {
           reply:
             "Great choice. Start with Hot picks, then compare two listings using delivery speed and seller trust.",
@@ -922,6 +956,47 @@
       return out;
     }
 
+    var BRANDON_FASHION_GRID_HREF_RE = /cat\s*=\s*fashion|lane\s*=\s*fashion/i;
+
+    function finalizeBrandonLlmActionsForQuestion(question, rawActions) {
+      var q = String(question || "").trim();
+      var list = sanitizeBrandonLlmActions(rawActions);
+      function dedupe(rows) {
+        var seen = {};
+        return rows.filter(function (row) {
+          var h = String(row.href || "");
+          if (seen[h]) return false;
+          seen[h] = true;
+          return true;
+        });
+      }
+      list = dedupe(list);
+      if (!brandonFashionLiveGridIntent(q)) {
+        list = list.filter(function (row) {
+          return !BRANDON_FASHION_GRID_HREF_RE.test(String(row.href || ""));
+        });
+      }
+      if (!brandonFashionLiveGridIntent(q) && list.length === 1) {
+        var only = String(list[0].href || "")
+          .trim()
+          .toLowerCase();
+        if (only === "./hot-picks.html" || only.indexOf("./hot-picks.html?") === 0) {
+          list = list.concat([
+            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global" },
+            { label: "Global search", href: "./global-search.html" }
+          ]);
+          list = dedupe(list);
+        }
+      }
+      if (!list.length) {
+        return [
+          { label: "Browse categories", href: "./browse-categories.html" },
+          { label: "Global search", href: "./global-search.html" }
+        ];
+      }
+      return list.slice(0, 4);
+    }
+
     function tryBrandonLlmThenRules(text) {
       if (typeof window.vibecartAiGenerate === "function") {
         return window
@@ -950,7 +1025,7 @@
             if (res && String(res.reply || "").trim()) {
               return {
                 reply: String(res.reply || "").trim().slice(0, 1200),
-                actions: sanitizeBrandonLlmActions(res.actions)
+                actions: finalizeBrandonLlmActionsForQuestion(text, res.actions)
               };
             }
             return generateBrandonResponse(text);
@@ -1051,9 +1126,9 @@
         var profile = loadAiProfile();
         profile.visits = Math.max(1, Number(profile.visits || 0));
         var low = label.toLowerCase();
-        if (/fashion|hot|style/.test(low)) profile.topIntent = "fashion";
+        if (brandonFashionOrBeautyTipIntent(low)) profile.topIntent = "fashion";
         else if (/sell|hustle|business/.test(low)) profile.topIntent = "seller";
-        else if (/deal|shop|market/.test(low)) profile.topIntent = "shopping";
+        else if (/\bhot\s*picks\b|deal|shop|market/.test(low)) profile.topIntent = "shopping";
         else if (/\b(orders?|tracking|delivery)\b/.test(low)) profile.topIntent = "orders";
         saveAiProfile(profile);
         setMicro(label + " tapped. I am with you.");
@@ -1244,7 +1319,7 @@
         var profile = loadAiProfile();
         profile.notes = (profile.notes || []).concat([textForLog]).slice(-20);
         profile.visits = Number(profile.visits || 0) + 1;
-        if (/fashion|beauty|style|scents/.test(textForLog.toLowerCase())) profile.topIntent = "fashion";
+        if (brandonFashionOrBeautyTipIntent(textForLog)) profile.topIntent = "fashion";
         if (/sell|seller|business|mybusiness/.test(textForLog.toLowerCase())) profile.topIntent = "seller";
         if (/\b(orders?|tracking|delivery)\b/.test(textForLog.toLowerCase())) profile.topIntent = "orders";
         saveAiProfile(profile);
