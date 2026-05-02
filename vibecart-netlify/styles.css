@@ -6026,6 +6026,26 @@ html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Provider booking template: pin Brandon top-right so the greeting chip never sits on the service photo. */
+html.vc-mobile-app body.start-selling-page:not(.health-coach-page) .vc-mobile-ai,
+html.vc-phone body.start-selling-page:not(.health-coach-page) .vc-mobile-ai,
+html.vc-brandon-universal body.start-selling-page:not(.health-coach-page) .vc-mobile-ai {
+  left: auto;
+  right: 12px;
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 6px);
+  bottom: auto;
+  align-items: flex-end;
+  max-height: none;
+  overflow-y: visible;
+}
+
+html.vc-mobile-app body.start-selling-page:not(.health-coach-page) .vc-mobile-ai__micro,
+html.vc-phone body.start-selling-page:not(.health-coach-page) .vc-mobile-ai__micro,
+html.vc-brandon-universal body.start-selling-page:not(.health-coach-page) .vc-mobile-ai__micro {
+  text-align: right;
+  max-width: min(72vw, 268px);
+}
+
 html.vc-mobile-app body.health-coach-page .vc-mobile-ai,
 html.vc-phone body.health-coach-page .vc-mobile-ai,
 html.vc-brandon-universal body.health-coach-page .vc-mobile-ai {
@@ -9176,6 +9196,13 @@ body.vc-luxe-surprise::after {
   }
 }
 
+/* Provider template preview: real photo only — no Ken Burns “screensaver” on the booking hero. */
+body.start-selling-page #spHeroMotion .vc-visual-motion__media {
+  animation: none !important;
+  transform: none !important;
+  will-change: auto;
+}
+
 .vc-visual-motion::after {
   content: "";
   pointer-events: none;
@@ -9185,14 +9212,9 @@ body.vc-luxe-surprise::after {
   background: linear-gradient(to top, rgba(6, 8, 22, 0.38) 0%, transparent 48%, rgba(6, 8, 22, 0.08) 100%);
 }
 
-/* Provider booking template: layered same-origin art under the photo so strict WebViews never show an empty panel. */
+/* Provider booking template: subtle frame only — imagery comes from the real photo layer (#spHeroMotionImg). */
 body.start-selling-page #spHeroMotion.vc-visual-motion {
-  background-image:
-    linear-gradient(145deg, rgba(26, 15, 36, 0.42), rgba(10, 13, 24, 0.52)),
-    url("./hero-masterpiece-afro-euro-asia.svg");
-  background-size: cover, cover;
-  background-position: center, center;
-  background-repeat: no-repeat;
+  background-image: linear-gradient(145deg, rgba(26, 15, 36, 0.38), rgba(10, 13, 24, 0.48));
 }
 
 @keyframes vcKenBurnsMotion {

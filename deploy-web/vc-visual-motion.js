@@ -175,6 +175,7 @@
     var s = String(src || "").trim();
     if (!s) return true;
     if (/icon\.svg|icon-maskable/i.test(s)) return true;
+    if (/hero-masterpiece|afro-euro-asia/i.test(s)) return true;
     return false;
   }
 
