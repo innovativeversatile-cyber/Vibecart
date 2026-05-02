@@ -273,7 +273,7 @@
       if (!actionsEl) return;
       var mode = detectMode();
       var card = PLAYBOOKS[mode] || PLAYBOOKS.default;
-      actionsEl.innerHTML =
+        actionsEl.innerHTML =
         '<a class="btn btn-secondary" href="' + card.ctaHref + '">' + card.ctaLabel + "</a>";
       var cta = actionsEl.querySelector("a");
       if (cta) {
@@ -931,7 +931,7 @@
         var actions = [{ label: top.label, href: top.href }];
         if (ranked[1]) actions.push({ label: ranked[1].row.label, href: ranked[1].row.href });
         if (ranked[2]) actions.push({ label: ranked[2].row.label, href: ranked[2].row.href });
-        return {
+      return {
           reply: "Closest page match: " + (top.blurb || top.label) + ". Open it below — ask again with another keyword to narrow further.",
           actions: actions.slice(0, 4)
         };
@@ -1342,7 +1342,7 @@
         /* ignore */
       }
 
-      if (reply) {
+        if (reply) {
         reply.textContent = "Thinking…";
         reply.hidden = false;
       }
@@ -1352,19 +1352,19 @@
       tryBrandonLlmThenRules(textForLog)
         .then(function (result) {
           if (reply) {
-            reply.textContent = result.reply;
-            renderActionSuggestions(result.actions);
-            reply.hidden = false;
-          }
+          reply.textContent = result.reply;
+          renderActionSuggestions(result.actions);
+          reply.hidden = false;
+        }
           if (ta) {
-            ta.value = "";
+        ta.value = "";
           }
-          if (saved) {
-            saved.hidden = false;
+        if (saved) {
+          saved.hidden = false;
             window.setTimeout(function () {
-              saved.hidden = true;
-            }, 2400);
-          }
+            saved.hidden = true;
+          }, 2400);
+        }
         })
         .catch(function () {
           if (reply) {
@@ -2747,6 +2747,44 @@
     });
   }
 
+  function mountHeavyMobileStickers() {
+    try {
+      var p = String((typeof location !== "undefined" && location.pathname) || "").toLowerCase();
+      if (p.indexOf("service-provider-hub") !== -1) return false;
+      if (p.indexOf("coach-experience") !== -1) return false;
+      if (p.indexOf("checkout-details") !== -1) return false;
+      if (document.body && document.body.classList.contains("start-selling-page")) {
+        return false;
+      }
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+
+  function teardownEphemeralStickerHud() {
+    [
+      "vcStoryRail",
+      "vcSocialPulse",
+      "vcMissionHud",
+      "vcDealDraftComposer",
+      "vcMobileStreakChip",
+      "vcMobileInboxPulse",
+      "vcFirst5Bar",
+      "vcIntentBlast",
+      "vcFirst5Reveal"
+    ].forEach(function (id) {
+      try {
+        var n = document.getElementById(id);
+        if (n && n.parentNode) {
+          n.parentNode.removeChild(n);
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
   function runMobileHudPack() {
     var onboardingBtn = document.getElementById("openOnboarding");
     if (onboardingBtn && onboardingBtn.getAttribute("data-vc-shell-nav") !== "1") {
@@ -2763,23 +2801,41 @@
     initMobileFocusMode();
     initThumbFlowBoost();
     initTrustSnapshotCard();
-    initDailyWelcomeSheet();
-    initFirstFiveWowExperience();
-    initDailyStreakChip();
+    var heavy = mountHeavyMobileStickers();
+    if (heavy) {
+      initDailyWelcomeSheet();
+      initFirstFiveWowExperience();
+      initDailyStreakChip();
+      initStoryRail();
+      initSwipeSaveDeals();
+      initSocialPulseTicker();
+      initInboxPulse();
+      initMissionHud();
+      initDealDraftComposer();
+    }
     initQuickActionSheet();
-    initStoryRail();
-    initSwipeSaveDeals();
-    initSocialPulseTicker();
-    initInboxPulse();
     initVibeThemeSwitch();
     initFirstFiveSecondsBar();
-    initMissionHud();
     initMotionModeToggle();
     initSmartPrefetch();
-    initDealDraftComposer();
     initFloatingActionHub();
     initFloatingControlLayout();
   }
+
+  window.addEventListener(
+    "pagehide",
+    function (ev) {
+      if (ev && ev.persisted) {
+        return;
+      }
+      try {
+        teardownEphemeralStickerHud();
+      } catch {
+        /* ignore */
+      }
+    },
+    { passive: true }
+  );
 
   function boot() {
     applyPhoneDocumentClasses();

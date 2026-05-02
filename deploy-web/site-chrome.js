@@ -653,7 +653,7 @@
     return;
   }
   window.__vcBrandonUniversalScheduled = "1";
-  var SHELL = "./mobile-app-shell.js?v=20260502hudpersist1";
+  var SHELL = "./mobile-app-shell.js?v=20260502stickerslite1";
   var CLIENT = "./vibecart-ai-client.js?v=20260430genai1";
   function skip() {
     if (!document.body) return true;
