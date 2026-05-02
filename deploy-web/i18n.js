@@ -57,12 +57,13 @@
       "hero.chipHintCheckout": "Showing buyer safeguards & checkout flow — scroll the page for live listings next.",
       "hero.chipHintSellers": "Regional shop lanes — each folder opens verified seller routes you can browse.",
       "hero.chipHintDelivery": "Tracking & delivery updates — simulate steps to see how buyers stay informed.",
-      "edge.badge": "Beyond basic classifieds",
-      "edge.title": "Why people leave OLX-style chaos for a bridge marketplace",
+      "edge.badge": "Beyond classic marketplace flows",
+      "edge.title": "A bridge marketplace built for trust, speed, and clarity",
       "edge.lead":
-        "Classified boards excel at volume; they rarely choreograph trust, lanes, and cross-border rhythm in one flow. VibeCart counters each friction with a deliberate stack you feel from the first scroll.",
+        "VibeCart combines trust, lane guidance, and cross-border flow in one seamless journey from the first scroll.",
       "edge.r1h": "Scattered chats & ghosting",
-      "edge.r1pain": "Typical marketplaces trap you in endless DMs with no single source of truth.",
+      "edge.r1pain":
+        "Long threads and mixed channels make it hard to see which message is the real record for your order.",
       "edge.r1body":
         "Order-centric messaging, tracking surfaces, and lane-aware prompts so the conversation stays tied to delivery reality.",
       "edge.r1cta": "See tracking flow",
@@ -77,7 +78,7 @@
         "Verified seller posture, insurance & wellbeing lanes, chat safety logging, and AI-assisted checks—layered, not cosmetic.",
       "edge.r3cta": "Security overview",
       "edge.r4h": "Flat, forgettable mobile UX",
-      "edge.r4pain": "Most apps feel like shrunken websites with the same grid fatigue.",
+      "edge.r4pain": "Dense grids and identical cards make it easy to lose the story of what you are buying.",
       "edge.r4body":
         "Dock + scroll intelligence, VibeCoach tips, haptic-ready journeys, and a cinematic hero that responds to how you move through lanes.",
       "edge.r4cta": "Health coach lane",

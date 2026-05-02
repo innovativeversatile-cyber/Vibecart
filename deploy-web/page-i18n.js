@@ -34,7 +34,7 @@
       "live.edge.badge": "Live grid · bridge-lane mentality",
       "live.edge.title": "This page is not random listing soup",
       "live.edge.lead":
-        "You opened the global live shop grid on purpose — region tabs, category lanes, and a risk gate keep browse closer to a choreographed marketplace than a chaotic board.",
+        "You opened the global live shop grid on purpose — region tabs, category lanes, and a risk gate keep browse structured so intent stays clear as you move.",
       "live.edge.c1h": "Region + category first",
       "live.edge.c1p": "Pick corridor intent before you drown in anonymous links.",
       "live.edge.c1cta": "Open trade bridge",
@@ -43,7 +43,7 @@
       "live.edge.c2cta": "Security overview",
       "live.edge.c3h": "Named shops + search",
       "live.edge.c3p": "Retailers you recognize, reset control, and less mystery-seller roulette.",
-      "live.edge.c3cta": "Full comparison on home",
+      "live.edge.c3cta": "See how the home page tells the story",
       "hot.edge.badge": "Picks lane",
       "hot.edge.title": "Curated velocity beats endless scroll",
       "hot.edge.lead":
@@ -64,7 +64,7 @@
       "account.edge.badge": "Hub lane",
       "account.edge.title": "Identity, safety, and follow-through in one spine",
       "account.edge.lead":
-        "Generic marketplaces scatter profile, chat, and orders. This hub keeps passport, coverage, tracking, and wellbeing adjacent so nothing important hides in a thread.",
+        "Profile, coverage, tracking, and wellbeing stay adjacent here so the important threads do not get lost.",
       "account.edge.c1h": "Lane passport",
       "account.edge.c1p": "Sign-in and roles route through one passport surface.",
       "account.edge.c1cta": "Open passport",
@@ -72,7 +72,7 @@
       "account.edge.c2p": "Shipment tools and partner coverage sit beside the account — not buried in forums.",
       "account.edge.c2cta": "Orders & tracking",
       "account.edge.c3h": "Wellbeing lane",
-      "account.edge.c3p": "Optional coach and goals — uncommon on classified-style apps.",
+      "account.edge.c3p": "Optional coach and goals sit beside the rest of your account tools.",
       "account.edge.c3cta": "Health coach",
       "seller.title": "Seller Boost",
       "seller.intro": "Growth tools stay in one clean workspace.",

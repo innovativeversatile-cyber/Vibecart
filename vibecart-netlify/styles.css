@@ -5221,15 +5221,14 @@ html.vc-phone .hero {
   border-radius: 20px;
   border: 1px solid rgba(232, 163, 23, 0.22);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-  margin-top: -0.65rem;
-  margin-bottom: 0.5rem;
-  padding: 0.28rem 0.4rem 0.4rem;
-  gap: 0.52rem;
+  margin-top: -0.58rem;
+  margin-bottom: 0.4rem;
 }
 
 html.vc-mobile-app .topbar-lang,
 html.vc-phone .topbar-lang {
-  margin-top: -8px;
+  margin-top: -0.45rem;
+  margin-bottom: -0.06rem;
   gap: 0.2rem;
   font-size: 0.66rem;
 }
@@ -5279,35 +5278,8 @@ html.vc-phone .hero > * {
 
 html.vc-mobile-app .hero-copy h1,
 html.vc-phone .hero-copy h1 {
-  font-size: clamp(1.22rem, 5vw, 1.72rem);
-  line-height: 1.1;
-  margin: 0.08rem 0 0.28rem;
+  font-size: clamp(1.55rem, 6vw, 2.1rem);
   text-shadow: 0 0 40px rgba(232, 163, 23, 0.15);
-}
-
-html.vc-mobile-app .hero-captivate-bg,
-html.vc-phone .hero-captivate-bg {
-  width: 56%;
-  opacity: 0.9;
-}
-
-html.vc-mobile-app .hero-showpiece,
-html.vc-phone .hero-showpiece {
-  max-height: min(40vw, 190px);
-  width: auto;
-  object-fit: contain;
-}
-
-html.vc-mobile-app .hero-masterpiece,
-html.vc-phone .hero-masterpiece {
-  max-height: min(36vw, 170px);
-}
-
-html.vc-mobile-app .hero-copy #heroSubtitle,
-html.vc-phone .hero-copy #heroSubtitle {
-  font-size: clamp(0.8rem, 2.75vw, 0.94rem);
-  line-height: 1.32;
-  margin: 0 0 0.35rem;
 }
 
 html.vc-mobile-app .hero-copy,
@@ -5874,6 +5846,19 @@ html.vc-mobile-app .topbar,
 html.vc-phone .topbar {
   border-radius: 0 0 16px 16px;
   z-index: 30;
+  padding-top: 0.38rem;
+  padding-bottom: 0.44rem;
+  gap: 0.32rem;
+}
+
+html.vc-mobile-app .topbar-rest,
+html.vc-phone .topbar-rest {
+  margin-top: -0.1rem;
+}
+
+html.vc-mobile-app main > .page-group:first-child,
+html.vc-phone main > .page-group:first-child {
+  margin-top: -0.28rem;
 }
 
 html.vc-phone {
