@@ -664,6 +664,7 @@
   }
   function inject() {
     if (document.getElementById("vc-mobile-ai")) return;
+    if (document.querySelector('script[src*="mobile-app-shell"]')) return;
     if (skip()) return;
     function loadScript(src, onload) {
       var s = document.createElement("script");
