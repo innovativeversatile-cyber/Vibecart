@@ -144,7 +144,7 @@
         <p id="vc-mobile-ai-tip" class="vc-mobile-ai__tip"></p>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
         <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Ask Brandon or tell a preference</label>
-        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Example: I prefer fashion deals under 50 EUR"></textarea>
+        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Ireland shops, track my order, seller boost, affiliate, privacy, live market"></textarea>
         <button type="button" class="btn btn-primary vc-mobile-ai__save">Ask Brandon</button>
         <p id="vc-mobile-ai-reply" class="note vc-mobile-ai__saved" hidden></p>
         <p id="vc-mobile-ai-saved" class="note vc-mobile-ai__saved" hidden>Saved locally — thank you.</p>
@@ -347,7 +347,7 @@
         return;
       }
       actionsEl.innerHTML = "";
-      list.slice(0, 3).forEach(function (item) {
+      list.slice(0, 4).forEach(function (item) {
         var href = String(item.href || "").trim();
         if (href) {
           var a = document.createElement("a");
@@ -481,12 +481,359 @@
       };
     }
 
+    var BRANDON_PAGE_RANK = [
+      {
+        keys: "affiliate partner referral commission dashboard clicks tracked",
+        href: "./affiliate-dashboard.html",
+        label: "Affiliate dashboard",
+        blurb: "See tracked click-outs and affiliate activity."
+      },
+      {
+        keys: "insurance shipment protect coverage claim",
+        href: "./insurance.html",
+        label: "Insurance lane",
+        blurb: "Protection and shipping-risk context."
+      },
+      {
+        keys: "reward points loyalty perks hub",
+        href: "./rewards-hub.html",
+        label: "Rewards hub",
+        blurb: "Rewards and loyalty-style benefits."
+      },
+      {
+        keys: "passport lane identity corridor welcome",
+        href: "./lane-passport.html",
+        label: "Lane passport",
+        blurb: "Lane identity and corridor onboarding."
+      },
+      {
+        keys: "bridge cross border trade corridor africa europe asia dubai",
+        href: "./bridge-hub.html",
+        label: "Trade bridge",
+        blurb: "Cross-border trade routes and bridge tools."
+      },
+      {
+        keys: "regional folder europe asia africa global scents shops lane",
+        href: "./regional-shops.html",
+        label: "Regional shops",
+        blurb: "Pick a regional shop folder before the live grid."
+      },
+      {
+        keys: "europe eu euro poland germany france",
+        href: "./shops-europe.html",
+        label: "Europe shops",
+        blurb: "Europe-focused retailer lanes."
+      },
+      {
+        keys: "mama africa nigeria kenya ghana zimbabwe cairo morocco",
+        href: "./shops-mama-africa.html",
+        label: "Mama Africa shops",
+        blurb: "Africa regional shop picks."
+      },
+      {
+        keys: "asia shopee lazada singapore japan korea",
+        href: "./shops-asia.html",
+        label: "Asia shops",
+        blurb: "Asia regional shop lanes."
+      },
+      {
+        keys: "scent perfume fragrance beauty aroma",
+        href: "./shops-scents.html",
+        label: "Scents shops",
+        blurb: "Fragrance and beauty-forward retailers."
+      },
+      {
+        keys: "world shop experience tour global",
+        href: "./world-shop-experience.html",
+        label: "World shop tour",
+        blurb: "Guided world marketplace experience."
+      },
+      {
+        keys: "popular trending viral market lane",
+        href: "./popular-market.html",
+        label: "Popular market",
+        blurb: "Trending category shortcuts."
+      },
+      {
+        keys: "service provider freelancer gig expert hub",
+        href: "./service-provider-hub.html",
+        label: "Service provider hub",
+        blurb: "Providers, gigs, and professional services."
+      },
+      {
+        keys: "audience fit persona icp targeting",
+        href: "./audience-fit.html",
+        label: "Audience fit",
+        blurb: "Audience and positioning fit tools."
+      },
+      {
+        keys: "plan workspace strategy roadmap sprint",
+        href: "./plan-workspace.html",
+        label: "Plan workspace",
+        blurb: "Planning and execution workspace."
+      },
+      {
+        keys: "legal settings compliance policy lawyer",
+        href: "./legal-settings.html",
+        label: "Legal settings",
+        blurb: "Legal and compliance preferences."
+      },
+      {
+        keys: "policy refund acceptable use rules",
+        href: "./policy.html",
+        label: "Policy",
+        blurb: "Platform policy."
+      },
+      {
+        keys: "terms conditions agreement tos",
+        href: "./terms.html",
+        label: "Terms",
+        blurb: "Terms of use."
+      },
+      {
+        keys: "privacy gdpr cookie data protection",
+        href: "./privacy.html",
+        label: "Privacy",
+        blurb: "Privacy and data handling."
+      },
+      {
+        keys: "seller orders fulfillment dispatch",
+        href: "./seller-orders.html",
+        label: "Seller orders",
+        blurb: "Seller-side order management."
+      },
+      {
+        keys: "my listings inventory sku catalog",
+        href: "./my-listings.html",
+        label: "My listings",
+        blurb: "Edit and preview your listings."
+      },
+      {
+        keys: "buyer orders purchase history receipts",
+        href: "./buyer-orders.html",
+        label: "Buyer orders",
+        blurb: "Buyer purchase history."
+      },
+      {
+        keys: "top checkout premium lane",
+        href: "./top-class-checkout.html",
+        label: "Top-class checkout",
+        blurb: "Premium checkout lane."
+      },
+      {
+        keys: "payment confirmation receipt paid success",
+        href: "./payment-confirmation.html",
+        label: "Payment confirmation",
+        blurb: "After-pay confirmation and next steps."
+      },
+      {
+        keys: "coach payment recovery dispute chargeback",
+        href: "./coach-payment-recovery.html",
+        label: "Coach payment recovery",
+        blurb: "Coach billing and recovery flows."
+      },
+      {
+        keys: "fashion trend runway lookbook seasonal",
+        href: "./fashion-trends.html",
+        label: "Fashion trends",
+        blurb: "Fashion discovery rail."
+      },
+      {
+        keys: "browse categories directory departments",
+        href: "./browse-categories.html",
+        label: "Browse categories",
+        blurb: "All category entry points."
+      },
+      {
+        keys: "global search find lookup discover query",
+        href: "./global-search.html",
+        label: "Global search",
+        blurb: "Search across lanes and pages."
+      },
+      {
+        keys: "live market folder lanes popular",
+        href: "./live-market.html",
+        label: "Live market folders",
+        blurb: "Choose popular vs full live market."
+      },
+      {
+        keys: "admin owner portal operator dashboard backoffice",
+        href: "./admin.html",
+        label: "Owner admin",
+        blurb: "Operator tools (sign-in required)."
+      },
+      {
+        keys: "admin messages inbox moderation",
+        href: "./admin-messages.html",
+        label: "Admin messages",
+        blurb: "Operator message review."
+      },
+      {
+        keys: "account hub profile sign login signup register wallet",
+        href: "./account-hub.html",
+        label: "Account hub",
+        blurb: "Sign-in, profile, and account tools."
+      },
+      {
+        keys: "passport welcome onboarding first steps",
+        href: "./passport-welcome.html",
+        label: "Passport welcome",
+        blurb: "Welcome flow for new passports."
+      },
+      {
+        keys: "account welcome new buyer seller",
+        href: "./account-welcome.html",
+        label: "Account welcome",
+        blurb: "Account onboarding copy."
+      },
+      {
+        keys: "lane welcome corridor intro",
+        href: "./lane-welcome.html",
+        label: "Lane welcome",
+        blurb: "Lane-specific welcome."
+      },
+      {
+        keys: "my business bookings bakery chat workspace",
+        href: "./my-business.html",
+        label: "My business",
+        blurb: "Seller business desk and bookings."
+      },
+      {
+        keys: "seller live preview storefront",
+        href: "./seller-live-preview.html",
+        label: "Seller live preview",
+        blurb: "Preview how listings render."
+      },
+      {
+        keys: "owner access kuda portal finance",
+        href: "./owner-access-kuda-portal.html",
+        label: "Owner finance portal",
+        blurb: "Owner finance / access portal."
+      }
+    ];
+
+    function matchRankedBrandonPages(ask) {
+      var scored = [];
+      BRANDON_PAGE_RANK.forEach(function (row) {
+        var parts = String(row.keys || "")
+          .toLowerCase()
+          .split(/\s+/);
+        var score = 0;
+        parts.forEach(function (p) {
+          if (p.length < 3) return;
+          if (ask.indexOf(p) >= 0) score += 1;
+        });
+        if (score > 0) scored.push({ score: score, row: row });
+      });
+      scored.sort(function (a, b) {
+        return b.score - a.score;
+      });
+      return scored;
+    }
+
     function generateBrandonResponse(text) {
       var ask = String(text || "").trim().toLowerCase();
       if (!ask) {
         return {
-          reply: "Tell me what you want to do, and I will point you exactly where to tap next.",
-          actions: [{ label: "Open Global Search", href: "./global-search.html" }]
+          reply: "Ask using a short phrase (place, goal, or page name). I will open the closest VibeCart page.",
+          actions: [
+            { label: "Browse all categories", href: "./browse-categories.html" },
+            { label: "Global search", href: "./global-search.html" },
+            { label: "Account hub", href: "./account-hub.html" }
+          ]
+        };
+      }
+      if (/\b(hello|hi|hey|who are you|brandon|introduce)\b/.test(ask)) {
+        return {
+          reply:
+            "I am Brandon — a fast on-device guide. I cannot browse the web for you, but I can route you to the right VibeCart page. Name a goal (buy, sell, track, legal, region).",
+          actions: [
+            { label: "Browse categories", href: "./browse-categories.html" },
+            { label: "Regional shops", href: "./regional-shops.html" },
+            { label: "Account hub", href: "./account-hub.html" }
+          ]
+        };
+      }
+      if (
+        /\b(mental|wellbeing|wellness|stress|anxiety|sleep|therapy|mindfulness|burnout)\b/.test(ask) ||
+        /\bhealth coach\b/.test(ask)
+      ) {
+        return {
+          reply: "Health coach lane: use wellbeing tools for guided support, then return to shopping when you are ready.",
+          actions: [
+            { label: "Wellbeing coach", href: "./wellbeing.html" },
+            { label: "Hot picks (light browse)", href: "./hot-picks.html" }
+          ]
+        };
+      }
+      if (/\b(coach|coaching|mentor|session|program)\b/.test(ask) && !/\b(health|mental|wellbeing|wellness)\b/.test(ask)) {
+        return {
+          reply: "Coach experience lane: book structured sessions and review coach-specific flows.",
+          actions: [
+            { label: "Coach experience", href: "./coach-experience.html" },
+            { label: "Plan workspace", href: "./plan-workspace.html" }
+          ]
+        };
+      }
+      if (/\b(ireland|irish|dublin|cork|belfast|ni\b|northern ireland)\b/.test(ask)) {
+        return {
+          reply: "Ireland lane: open the IE live grid (region locked) or the Ireland regional card.",
+          actions: [
+            { label: "Ireland live shops", href: "./live-market-shops.html?cat=All&region=ie" },
+            { label: "Regional shops (IE card)", href: "./regional-shops.html" }
+          ]
+        };
+      }
+      if (/\b(electronics|laptop|phone|gadget|tech)\b/.test(ask) && !/\b(fashion|clothes)\b/.test(ask)) {
+        return {
+          reply: "Electronics lane: verify seller trust, then open external checkout only on the real retailer domain.",
+          actions: [
+            { label: "Electronics live grid", href: "./live-market-shops.html?cat=Electronics&view=global" },
+            { label: "Security overview", href: "./security-overview.html" }
+          ]
+        };
+      }
+      if (/\b(books|textbook|study|reading)\b/.test(ask)) {
+        return {
+          reply: "Books lane: compare delivery to your country before you commit.",
+          actions: [
+            { label: "Books live grid", href: "./live-market-shops.html?cat=Books&view=global" },
+            { label: "Browse categories", href: "./browse-categories.html" }
+          ]
+        };
+      }
+      if (/\b(gaming|console|steam|playstation|xbox)\b/.test(ask)) {
+        return {
+          reply: "Gaming lane: watch for region-locked keys and official store fronts.",
+          actions: [
+            { label: "Gaming live grid", href: "./live-market-shops.html?cat=Gaming&view=global" },
+            { label: "Hot picks", href: "./hot-picks.html" }
+          ]
+        };
+      }
+      if (/\b(buy|purchase|shopping|browse deals|add to cart)\b/.test(ask)) {
+        return {
+          reply: "Buyer lane: shortlist in Hot picks, then verify checkout safety on Security overview.",
+          actions: [
+            { label: "Buy journey", href: "./buy-journey.html" },
+            { label: "Hot picks", href: "./hot-picks.html" },
+            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global" }
+          ]
+        };
+      }
+      if (/\b(live market|marketplace|all shops|shop grid|external shops)\b/.test(ask)) {
+        return {
+          reply: "Live market: pick a category tab (All shops shows every category), acknowledge the disclaimer, then tap a trusted retailer card.",
+          actions: [
+            { label: "Live market shops", href: "./live-market-shops.html?cat=All&view=global" },
+            { label: "Live market folders", href: "./live-market.html" }
+          ]
+        };
+      }
+      if (/\b(admin app|seller dashboard|store dashboard)\b/.test(ask)) {
+        return {
+          reply: "Advanced seller/admin tools live in the admin app (separate layout).",
+          actions: [{ label: "Open admin app", href: "./admin-app.html" }]
         };
       }
       if (/fashion|style|clothes|scents|beauty/.test(ask)) {
@@ -495,21 +842,22 @@
             "Great choice. Start with Hot picks, then compare two listings using delivery speed and seller trust.",
           actions: [
             { label: "Hot picks", href: "./hot-picks.html" },
-            { label: "Live market", href: "./live-market-shops.html?cat=Fashion&view=global" }
+            { label: "Fashion live grid", href: "./live-market-shops.html?cat=Fashion&view=global" }
           ]
         };
       }
-      if (/sell|seller|business|mybusiness|income|hustle/.test(ask)) {
+      if (/sell|seller|business|mybusiness|income|hustle|listing/.test(ask)) {
         return {
           reply:
             "Seller lane activated. Start your sell journey, then I recommend boost tools and a focused niche listing.",
           actions: [
             { label: "Start selling", href: "./sell-journey.html" },
-            { label: "Seller boost", href: "./seller-boost.html" }
+            { label: "Seller boost", href: "./seller-boost.html" },
+            { label: "My business desk", href: "./my-business.html" }
           ]
         };
       }
-      if (/track|order|delivery|shipping/.test(ask)) {
+      if (/\b(orders?|tracking|delivery|shipping|parcel|courier|rma|dispatch)\b/.test(ask)) {
         return {
           reply:
             "Open tracking first, confirm route plus status, then message seller with order ID and expected date.",
@@ -519,7 +867,7 @@
           ]
         };
       }
-      if (/payment|pay|card|checkout|safe/.test(ask)) {
+      if (/payment|pay|card|checkout|safe|escrow|refund/.test(ask)) {
         return {
           reply:
             "Use trusted checkout paths only. Verify totals, route, and final domain before payment is confirmed.",
@@ -529,21 +877,45 @@
           ]
         };
       }
+      if (/scam|fraud|phish|fake seller|trust safety/.test(ask)) {
+        return {
+          reply: "Trust and safety: read the security overview, then prefer tracked checkout and verified seller signals.",
+          actions: [
+            { label: "Security overview", href: "./security-overview.html" },
+            { label: "Policy", href: "./policy.html" }
+          ]
+        };
+      }
       if (/tip|tips|hint|hints|advise|advice|help me choose/.test(ask)) {
         var profile = loadAiProfile();
         return {
           reply: tipFromBank(String(profile.topIntent || "general"), profile, Number(window.scrollY || 0)),
           actions: [
             { label: "Hot picks", href: "./hot-picks.html" },
-            { label: "Health coach", href: "./wellbeing.html" }
+            { label: "Wellbeing", href: "./wellbeing.html" },
+            { label: "Browse categories", href: "./browse-categories.html" }
           ]
         };
       }
+      var ranked = matchRankedBrandonPages(ask);
+      if (ranked.length && ranked[0].score >= 1) {
+        var top = ranked[0].row;
+        var actions = [{ label: top.label, href: top.href }];
+        if (ranked[1]) actions.push({ label: ranked[1].row.label, href: ranked[1].row.href });
+        if (ranked[2]) actions.push({ label: ranked[2].row.label, href: ranked[2].row.href });
+        return {
+          reply: "Closest page match: " + (top.blurb || top.label) + ". Open it below — ask again with another keyword to narrow further.",
+          actions: actions.slice(0, 4)
+        };
+      }
       return {
-        reply: "Understood. Start from global search, then I will adapt once you choose a lane.",
+        reply:
+          "No strong keyword match yet. Use the hubs below to find any function, then ask me with words you see on that page (for example affiliate, insurance, passport).",
         actions: [
+          { label: "Browse all categories", href: "./browse-categories.html" },
+          { label: "Regional + live market", href: "./regional-shops.html" },
           { label: "Global search", href: "./global-search.html" },
-          { label: "Global market", href: "./live-market-shops.html?cat=All&view=global" }
+          { label: "Account hub", href: "./account-hub.html" }
         ]
       };
     }
@@ -640,7 +1012,7 @@
         if (/fashion|hot|style/.test(low)) profile.topIntent = "fashion";
         else if (/sell|hustle|business/.test(low)) profile.topIntent = "seller";
         else if (/deal|shop|market/.test(low)) profile.topIntent = "shopping";
-        else if (/track|order/.test(low)) profile.topIntent = "orders";
+        else if (/\b(orders?|tracking|delivery)\b/.test(low)) profile.topIntent = "orders";
         saveAiProfile(profile);
         setMicro(label + " tapped. I am with you.");
       },
@@ -833,7 +1205,7 @@
         profile.visits = Number(profile.visits || 0) + 1;
         if (/fashion|beauty|style|scents/.test(text.toLowerCase())) profile.topIntent = "fashion";
         if (/sell|seller|business|mybusiness/.test(text.toLowerCase())) profile.topIntent = "seller";
-        if (/track|order|delivery/.test(text.toLowerCase())) profile.topIntent = "orders";
+        if (/\b(orders?|tracking|delivery)\b/.test(text.toLowerCase())) profile.topIntent = "orders";
         saveAiProfile(profile);
         if (reply) {
           var result = generateBrandonResponse(text);

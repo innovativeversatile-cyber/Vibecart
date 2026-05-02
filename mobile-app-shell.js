@@ -70,7 +70,7 @@
 
   const PLAYBOOKS = {
     default: {
-      title: "Lane-first shopping — not a shrunken classifieds grid",
+      title: "Lane-first shopping designed for clarity",
       steps: [
         "Start from a regional lane or global market so routes, trust, and delivery story stay visible.",
         "Compare three fits, then open checkout only when tracking + seller posture look coherent.",
@@ -90,11 +90,11 @@
       ctaHref: "./bridge-hub.html"
     },
     shop: {
-      title: "Shop with corridor clarity (vs random listing dumps)",
+      title: "Shop with corridor clarity and confidence",
       steps: [
         "Filter by need and budget first — VibeCart rewards decisive lane picks over endless scroll fatigue.",
         "Prefer verified seller routes and compare three options before you commit; that is how trust compounds.",
-        "After purchase, live tracking and order-tied messaging beat OLX-style chat sprawl."
+        "After purchase, live tracking and order-tied messaging keep every step clear."
       ],
       ctaLabel: "Open hot picks",
       ctaHref: "./hot-picks.html"
@@ -111,6 +111,18 @@
     }
   };
 
+  function getUserDisplayName() {
+    try {
+      var raw = localStorage.getItem("vibecart-public-auth-user");
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && parsed.fullName) return String(parsed.fullName).trim();
+      if (parsed && parsed.email) return String(parsed.email).split("@")[0];
+    } catch {
+      /* ignore */
+    }
+    return "friend";
+  }
+
   function ensureAiCoach() {
     if (document.getElementById(AI_ID)) {
       return;
@@ -119,33 +131,78 @@
     wrap.id = AI_ID;
     wrap.className = "vc-mobile-ai";
     wrap.innerHTML = `
-      <button type="button" class="vc-mobile-ai__orb" aria-expanded="false" aria-controls="vc-mobile-ai-panel" title="VibeCoach tips">
+      <button type="button" class="vc-mobile-ai__orb" aria-expanded="false" aria-controls="vc-mobile-ai-panel" title="Brandon AI guide">
         <span class="vc-mobile-ai__pulse"></span>
-        <span class="vc-mobile-ai__label">AI</span>
+        <span class="vc-mobile-ai__label">B</span>
       </button>
+      <p id="vc-mobile-ai-micro" class="vc-mobile-ai__micro">Tap me for your next best move.</p>
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
-          <strong>VibeCoach</strong>
-          <span class="vc-mobile-ai__sub">VibeAI guidance · no auto-buy</span>
+          <strong>Brandon</strong>
+          <span class="vc-mobile-ai__sub">Your intelligent guide · private by design</span>
         </div>
         <p id="vc-mobile-ai-tip" class="vc-mobile-ai__tip"></p>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
-        <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">What should we improve next?</label>
-        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="One sentence is enough…"></textarea>
-        <button type="button" class="btn btn-primary vc-mobile-ai__save">Save to device</button>
+        <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Ask Brandon or tell a preference</label>
+        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Ireland shops, track my order, seller boost, affiliate, privacy, live market"></textarea>
+        <button type="button" class="btn btn-primary vc-mobile-ai__save">Ask Brandon</button>
+        <p id="vc-mobile-ai-reply" class="note vc-mobile-ai__saved" hidden></p>
         <p id="vc-mobile-ai-saved" class="note vc-mobile-ai__saved" hidden>Saved locally — thank you.</p>
       </div>
     `;
     document.body.appendChild(wrap);
 
     const orb = wrap.querySelector(".vc-mobile-ai__orb");
+    const micro = wrap.querySelector("#vc-mobile-ai-micro");
     const panel = wrap.querySelector(".vc-mobile-ai__panel");
     const tipEl = wrap.querySelector("#vc-mobile-ai-tip");
     const ta = wrap.querySelector("#vc-mobile-ai-feedback");
     const saveBtn = wrap.querySelector(".vc-mobile-ai__save");
+    const reply = wrap.querySelector("#vc-mobile-ai-reply");
     const saved = wrap.querySelector("#vc-mobile-ai-saved");
+    function aiProfileKey() {
+      var who = "guest";
+      try {
+        var raw = localStorage.getItem("vibecart-public-auth-user");
+        var parsed = raw ? JSON.parse(raw) : null;
+        who = parsed && (parsed.id || parsed.email) ? String(parsed.id || parsed.email) : "guest";
+      } catch {
+        who = "guest";
+      }
+      return "vibecart-brandon-profile-" + who;
+    }
+
+    function loadAiProfile() {
+      try {
+        var parsed = JSON.parse(localStorage.getItem(aiProfileKey()) || "{}");
+        if (!parsed || typeof parsed !== "object") return { visits: 0, topIntent: "global", notes: [] };
+        parsed.visits = Number(parsed.visits || 0);
+        parsed.topIntent = String(parsed.topIntent || "global");
+        parsed.notes = Array.isArray(parsed.notes) ? parsed.notes.slice(-20) : [];
+        return parsed;
+      } catch {
+        return { visits: 0, topIntent: "global", notes: [] };
+      }
+    }
+
+    function saveAiProfile(next) {
+      try {
+        localStorage.setItem(aiProfileKey(), JSON.stringify(next || {}));
+      } catch {
+        /* ignore */
+      }
+    }
+
     const actionsEl = wrap.querySelector("#vc-mobile-ai-actions");
     let startY = 0;
+    var introKey = "vibecart-brandon-introduced-v1";
+    var lastMicroPromptAt = 0;
+    var microCycle = 0;
+    var microHidden = false;
+    var lastScrollY = 0;
+    var lastContextLine = "";
+    var forceMicroVisibleUntil = 0;
+    var lastAdviceKey = "";
 
     function readLocal(key) {
       try {
@@ -248,6 +305,828 @@
     renderAiCard();
     startVisibilityAwareInterval(renderAiCard, 12000);
 
+    function setMicro(text) {
+      if (!micro) return;
+      var next = String(text || "").slice(0, 120);
+      if (next === lastContextLine) return;
+      lastContextLine = next;
+      micro.textContent = next;
+      lastMicroPromptAt = Date.now();
+    }
+
+    function refreshMicroVisibility() {
+      if (!micro) return;
+      var y = 0;
+      try {
+        y = Number(window.scrollY || window.pageYOffset || 0);
+      } catch {
+        y = 0;
+      }
+      if (Date.now() < forceMicroVisibleUntil) {
+        microHidden = false;
+        micro.style.display = "block";
+        return;
+      }
+      // Hysteresis avoids flicker around threshold while user scrolls slowly.
+      if (microHidden && y > 300) {
+        microHidden = false;
+        micro.style.display = "block";
+        return;
+      }
+      if (!microHidden && y < 220) {
+        microHidden = true;
+        micro.style.display = "none";
+      }
+    }
+
+    function renderActionSuggestions(items) {
+      if (!actionsEl) return;
+      var list = Array.isArray(items) ? items : [];
+      if (!list.length) {
+        renderAiCard();
+        return;
+      }
+      actionsEl.innerHTML = "";
+      list.slice(0, 4).forEach(function (item) {
+        var href = String(item.href || "").trim();
+        if (href) {
+          var a = document.createElement("a");
+          a.className = "btn btn-secondary";
+          a.href = href;
+          a.textContent = String(item.label || "Open");
+          actionsEl.appendChild(a);
+          return;
+        }
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn btn-secondary";
+        btn.textContent = String(item.label || "Open");
+        btn.addEventListener("click", function () {
+          if (item.selector) {
+            var target = document.querySelector(String(item.selector));
+            if (target && target.scrollIntoView) {
+              target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }
+        });
+        actionsEl.appendChild(btn);
+      });
+    }
+
+    function tipFromBank(topic, profile, y) {
+      var banks = {
+        general: [
+          "Tip: compare seller rating and delivery window before checkout.",
+          "Hint: verify final destination domain before any payment.",
+          "Pro move: shortlist two options, then decide by delivery certainty."
+        ],
+        fashion: [
+          "Style tip: check material details before focusing on price.",
+          "Hint: filter by budget first to avoid over-scrolling.",
+          "Pro move: confirm size/return policy in one seller message."
+        ],
+        seller: [
+          "Seller tip: start with one niche lane and optimize conversions there.",
+          "Hint: clear product titles improve trust and discovery.",
+          "Pro move: include 3 concrete benefits in your first listing line."
+        ],
+        orders: [
+          "Tracking tip: confirm courier handoff and latest ETA checkpoint.",
+          "Hint: keep order ID + seller thread together in one message.",
+          "Pro move: ask for timeline and fallback delivery plan."
+        ],
+        payment: [
+          "Payment tip: confirm totals, route, and trusted checkout domain.",
+          "Hint: avoid unknown redirects for payment requests.",
+          "Pro move: screenshot checkout summary before paying."
+        ],
+        chat: [
+          "Chat tip: ask price, ETA, and return terms in one message.",
+          "Hint: short, specific questions get faster replies.",
+          "Pro move: ask for two alternatives if stock is low."
+        ]
+      };
+      var list = banks[topic] || banks.general;
+      var intent = String((profile && profile.topIntent) || "global");
+      var seed = Math.max(0, Math.floor(Number(y || 0) / 140)) + intent.length + microCycle;
+      return list[seed % list.length];
+    }
+
+    function resolveAdvice(profile, y) {
+      var communication = document.getElementById("communication");
+      if (communication) {
+        var rect = communication.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.65 && rect.bottom > 20) {
+          return {
+            key: "chat",
+            line:
+              (microCycle % 2 === 0
+                ? "You are near chat. Ask route ETA and payment protection first."
+                : "Tell me your goal and I can draft a seller message.") +
+              " " +
+              tipFromBank("chat", profile, y)
+          };
+        }
+      }
+      var checkout = document.querySelector(
+        "#checkout, [id*='checkout'], [class*='checkout'], [id*='payment'], [class*='payment']"
+      );
+      if (checkout) {
+        var cr = checkout.getBoundingClientRect();
+        if (cr.top < window.innerHeight * 0.7 && cr.bottom > 20) {
+          return {
+            key: "payment",
+            line:
+              (microCycle % 2 === 0
+                ? "Payment zone detected. Verify totals and trusted destination."
+                : "Need safety support? Ask me for a pre-pay checklist.") +
+              " " +
+              tipFromBank("payment", profile, y)
+          };
+        }
+      }
+      if (y < 140) {
+        return {
+          key: "start",
+          line:
+            "Tell me buy, sell, track, or health and I will map your next tap. " +
+            tipFromBank("general", profile, y)
+        };
+      }
+      if (y < 420) {
+        return {
+          key: "discovery",
+          line:
+            (microCycle % 2 === 0
+              ? "Share budget plus category and I will route you fast."
+              : "Ask for suggestions and I will return direct action buttons.") +
+            " " +
+            tipFromBank(String(profile.topIntent || "general"), profile, y)
+        };
+      }
+      if (y > 1200) {
+        return {
+          key: "deep",
+          line:
+            (microCycle % 2 === 0
+              ? "You are deep in browse mode. I can jump you to orders, deals, or health coach."
+              : "Tell me exactly what you need and I will point the quickest path.") +
+            " " +
+            tipFromBank("general", profile, y)
+        };
+      }
+      return {
+        key: "mid",
+        line: "I am adapting to your flow. " + tipFromBank(String(profile.topIntent || "general"), profile, y)
+      };
+    }
+
+    var BRANDON_PAGE_RANK = [
+      {
+        keys: "affiliate partner referral commission dashboard clicks tracked",
+        href: "./affiliate-dashboard.html",
+        label: "Affiliate dashboard",
+        blurb: "See tracked click-outs and affiliate activity."
+      },
+      {
+        keys: "insurance shipment protect coverage claim",
+        href: "./insurance.html",
+        label: "Insurance lane",
+        blurb: "Protection and shipping-risk context."
+      },
+      {
+        keys: "reward points loyalty perks hub",
+        href: "./rewards-hub.html",
+        label: "Rewards hub",
+        blurb: "Rewards and loyalty-style benefits."
+      },
+      {
+        keys: "passport lane identity corridor welcome",
+        href: "./lane-passport.html",
+        label: "Lane passport",
+        blurb: "Lane identity and corridor onboarding."
+      },
+      {
+        keys: "bridge cross border trade corridor africa europe asia dubai",
+        href: "./bridge-hub.html",
+        label: "Trade bridge",
+        blurb: "Cross-border trade routes and bridge tools."
+      },
+      {
+        keys: "regional folder europe asia africa global scents shops lane",
+        href: "./regional-shops.html",
+        label: "Regional shops",
+        blurb: "Pick a regional shop folder before the live grid."
+      },
+      {
+        keys: "europe eu euro poland germany france",
+        href: "./shops-europe.html",
+        label: "Europe shops",
+        blurb: "Europe-focused retailer lanes."
+      },
+      {
+        keys: "mama africa nigeria kenya ghana zimbabwe cairo morocco",
+        href: "./shops-mama-africa.html",
+        label: "Mama Africa shops",
+        blurb: "Africa regional shop picks."
+      },
+      {
+        keys: "asia shopee lazada singapore japan korea",
+        href: "./shops-asia.html",
+        label: "Asia shops",
+        blurb: "Asia regional shop lanes."
+      },
+      {
+        keys: "scent perfume fragrance beauty aroma",
+        href: "./shops-scents.html",
+        label: "Scents shops",
+        blurb: "Fragrance and beauty-forward retailers."
+      },
+      {
+        keys: "world shop experience tour global",
+        href: "./world-shop-experience.html",
+        label: "World shop tour",
+        blurb: "Guided world marketplace experience."
+      },
+      {
+        keys: "popular trending viral market lane",
+        href: "./popular-market.html",
+        label: "Popular market",
+        blurb: "Trending category shortcuts."
+      },
+      {
+        keys: "service provider freelancer gig expert hub",
+        href: "./service-provider-hub.html",
+        label: "Service provider hub",
+        blurb: "Providers, gigs, and professional services."
+      },
+      {
+        keys: "audience fit persona icp targeting",
+        href: "./audience-fit.html",
+        label: "Audience fit",
+        blurb: "Audience and positioning fit tools."
+      },
+      {
+        keys: "plan workspace strategy roadmap sprint",
+        href: "./plan-workspace.html",
+        label: "Plan workspace",
+        blurb: "Planning and execution workspace."
+      },
+      {
+        keys: "legal settings compliance policy lawyer",
+        href: "./legal-settings.html",
+        label: "Legal settings",
+        blurb: "Legal and compliance preferences."
+      },
+      {
+        keys: "policy refund acceptable use rules",
+        href: "./policy.html",
+        label: "Policy",
+        blurb: "Platform policy."
+      },
+      {
+        keys: "terms conditions agreement tos",
+        href: "./terms.html",
+        label: "Terms",
+        blurb: "Terms of use."
+      },
+      {
+        keys: "privacy gdpr cookie data protection",
+        href: "./privacy.html",
+        label: "Privacy",
+        blurb: "Privacy and data handling."
+      },
+      {
+        keys: "seller orders fulfillment dispatch",
+        href: "./seller-orders.html",
+        label: "Seller orders",
+        blurb: "Seller-side order management."
+      },
+      {
+        keys: "my listings inventory sku catalog",
+        href: "./my-listings.html",
+        label: "My listings",
+        blurb: "Edit and preview your listings."
+      },
+      {
+        keys: "buyer orders purchase history receipts",
+        href: "./buyer-orders.html",
+        label: "Buyer orders",
+        blurb: "Buyer purchase history."
+      },
+      {
+        keys: "top checkout premium lane",
+        href: "./top-class-checkout.html",
+        label: "Top-class checkout",
+        blurb: "Premium checkout lane."
+      },
+      {
+        keys: "payment confirmation receipt paid success",
+        href: "./payment-confirmation.html",
+        label: "Payment confirmation",
+        blurb: "After-pay confirmation and next steps."
+      },
+      {
+        keys: "coach payment recovery dispute chargeback",
+        href: "./coach-payment-recovery.html",
+        label: "Coach payment recovery",
+        blurb: "Coach billing and recovery flows."
+      },
+      {
+        keys: "fashion trend runway lookbook seasonal",
+        href: "./fashion-trends.html",
+        label: "Fashion trends",
+        blurb: "Fashion discovery rail."
+      },
+      {
+        keys: "browse categories directory departments",
+        href: "./browse-categories.html",
+        label: "Browse categories",
+        blurb: "All category entry points."
+      },
+      {
+        keys: "global search find lookup discover query",
+        href: "./global-search.html",
+        label: "Global search",
+        blurb: "Search across lanes and pages."
+      },
+      {
+        keys: "live market folder lanes popular",
+        href: "./live-market.html",
+        label: "Live market folders",
+        blurb: "Choose popular vs full live market."
+      },
+      {
+        keys: "admin owner portal operator dashboard backoffice",
+        href: "./admin.html",
+        label: "Owner admin",
+        blurb: "Operator tools (sign-in required)."
+      },
+      {
+        keys: "admin messages inbox moderation",
+        href: "./admin-messages.html",
+        label: "Admin messages",
+        blurb: "Operator message review."
+      },
+      {
+        keys: "account hub profile sign login signup register wallet",
+        href: "./account-hub.html",
+        label: "Account hub",
+        blurb: "Sign-in, profile, and account tools."
+      },
+      {
+        keys: "passport welcome onboarding first steps",
+        href: "./passport-welcome.html",
+        label: "Passport welcome",
+        blurb: "Welcome flow for new passports."
+      },
+      {
+        keys: "account welcome new buyer seller",
+        href: "./account-welcome.html",
+        label: "Account welcome",
+        blurb: "Account onboarding copy."
+      },
+      {
+        keys: "lane welcome corridor intro",
+        href: "./lane-welcome.html",
+        label: "Lane welcome",
+        blurb: "Lane-specific welcome."
+      },
+      {
+        keys: "my business bookings bakery chat workspace",
+        href: "./my-business.html",
+        label: "My business",
+        blurb: "Seller business desk and bookings."
+      },
+      {
+        keys: "seller live preview storefront",
+        href: "./seller-live-preview.html",
+        label: "Seller live preview",
+        blurb: "Preview how listings render."
+      },
+      {
+        keys: "owner access kuda portal finance",
+        href: "./owner-access-kuda-portal.html",
+        label: "Owner finance portal",
+        blurb: "Owner finance / access portal."
+      }
+    ];
+
+    function matchRankedBrandonPages(ask) {
+      var scored = [];
+      BRANDON_PAGE_RANK.forEach(function (row) {
+        var parts = String(row.keys || "")
+          .toLowerCase()
+          .split(/\s+/);
+        var score = 0;
+        parts.forEach(function (p) {
+          if (p.length < 3) return;
+          if (ask.indexOf(p) >= 0) score += 1;
+        });
+        if (score > 0) scored.push({ score: score, row: row });
+      });
+      scored.sort(function (a, b) {
+        return b.score - a.score;
+      });
+      return scored;
+    }
+
+    function generateBrandonResponse(text) {
+      var ask = String(text || "").trim().toLowerCase();
+      if (!ask) {
+        return {
+          reply: "Ask using a short phrase (place, goal, or page name). I will open the closest VibeCart page.",
+          actions: [
+            { label: "Browse all categories", href: "./browse-categories.html" },
+            { label: "Global search", href: "./global-search.html" },
+            { label: "Account hub", href: "./account-hub.html" }
+          ]
+        };
+      }
+      if (/\b(hello|hi|hey|who are you|brandon|introduce)\b/.test(ask)) {
+        return {
+          reply:
+            "I am Brandon — a fast on-device guide. I cannot browse the web for you, but I can route you to the right VibeCart page. Name a goal (buy, sell, track, legal, region).",
+          actions: [
+            { label: "Browse categories", href: "./browse-categories.html" },
+            { label: "Regional shops", href: "./regional-shops.html" },
+            { label: "Account hub", href: "./account-hub.html" }
+          ]
+        };
+      }
+      if (
+        /\b(mental|wellbeing|wellness|stress|anxiety|sleep|therapy|mindfulness|burnout)\b/.test(ask) ||
+        /\bhealth coach\b/.test(ask)
+      ) {
+        return {
+          reply: "Health coach lane: use wellbeing tools for guided support, then return to shopping when you are ready.",
+          actions: [
+            { label: "Wellbeing coach", href: "./wellbeing.html" },
+            { label: "Hot picks (light browse)", href: "./hot-picks.html" }
+          ]
+        };
+      }
+      if (/\b(coach|coaching|mentor|session|program)\b/.test(ask) && !/\b(health|mental|wellbeing|wellness)\b/.test(ask)) {
+        return {
+          reply: "Coach experience lane: book structured sessions and review coach-specific flows.",
+          actions: [
+            { label: "Coach experience", href: "./coach-experience.html" },
+            { label: "Plan workspace", href: "./plan-workspace.html" }
+          ]
+        };
+      }
+      if (/\b(ireland|irish|dublin|cork|belfast|ni\b|northern ireland)\b/.test(ask)) {
+        return {
+          reply: "Ireland lane: open the IE live grid (region locked) or the Ireland regional card.",
+          actions: [
+            { label: "Ireland live shops", href: "./live-market-shops.html?cat=All&region=ie" },
+            { label: "Regional shops (IE card)", href: "./regional-shops.html" }
+          ]
+        };
+      }
+      if (/\b(electronics|laptop|phone|gadget|tech)\b/.test(ask) && !/\b(fashion|clothes)\b/.test(ask)) {
+        return {
+          reply: "Electronics lane: verify seller trust, then open external checkout only on the real retailer domain.",
+          actions: [
+            { label: "Electronics live grid", href: "./live-market-shops.html?cat=Electronics&view=global" },
+            { label: "Security overview", href: "./security-overview.html" }
+          ]
+        };
+      }
+      if (/\b(books|textbook|study|reading)\b/.test(ask)) {
+        return {
+          reply: "Books lane: compare delivery to your country before you commit.",
+          actions: [
+            { label: "Books live grid", href: "./live-market-shops.html?cat=Books&view=global" },
+            { label: "Browse categories", href: "./browse-categories.html" }
+          ]
+        };
+      }
+      if (/\b(gaming|console|steam|playstation|xbox)\b/.test(ask)) {
+        return {
+          reply: "Gaming lane: watch for region-locked keys and official store fronts.",
+          actions: [
+            { label: "Gaming live grid", href: "./live-market-shops.html?cat=Gaming&view=global" },
+            { label: "Hot picks", href: "./hot-picks.html" }
+          ]
+        };
+      }
+      if (/\b(buy|purchase|shopping|browse deals|add to cart)\b/.test(ask)) {
+        return {
+          reply: "Buyer lane: shortlist in Hot picks, then verify checkout safety on Security overview.",
+          actions: [
+            { label: "Buy journey", href: "./buy-journey.html" },
+            { label: "Hot picks", href: "./hot-picks.html" },
+            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global" }
+          ]
+        };
+      }
+      if (/\b(live market|marketplace|all shops|shop grid|external shops)\b/.test(ask)) {
+        return {
+          reply: "Live market: pick a category tab (All shops shows every category), acknowledge the disclaimer, then tap a trusted retailer card.",
+          actions: [
+            { label: "Live market shops", href: "./live-market-shops.html?cat=All&view=global" },
+            { label: "Live market folders", href: "./live-market.html" }
+          ]
+        };
+      }
+      if (/\b(admin app|seller dashboard|store dashboard)\b/.test(ask)) {
+        return {
+          reply: "Advanced seller/admin tools live in the admin app (separate layout).",
+          actions: [{ label: "Open admin app", href: "./admin-app.html" }]
+        };
+      }
+      if (/fashion|style|clothes|scents|beauty/.test(ask)) {
+        return {
+          reply:
+            "Great choice. Start with Hot picks, then compare two listings using delivery speed and seller trust.",
+          actions: [
+            { label: "Hot picks", href: "./hot-picks.html" },
+            { label: "Fashion live grid", href: "./live-market-shops.html?cat=Fashion&view=global" }
+          ]
+        };
+      }
+      if (/sell|seller|business|mybusiness|income|hustle|listing/.test(ask)) {
+        return {
+          reply:
+            "Seller lane activated. Start your sell journey, then I recommend boost tools and a focused niche listing.",
+          actions: [
+            { label: "Start selling", href: "./sell-journey.html" },
+            { label: "Seller boost", href: "./seller-boost.html" },
+            { label: "My business desk", href: "./my-business.html" }
+          ]
+        };
+      }
+      if (/\b(orders?|tracking|delivery|shipping|parcel|courier|rma|dispatch)\b/.test(ask)) {
+        return {
+          reply:
+            "Open tracking first, confirm route plus status, then message seller with order ID and expected date.",
+          actions: [
+            { label: "Track orders", href: "./orders-tracking.html" },
+            { label: "Open communication", selector: "#communication" }
+          ]
+        };
+      }
+      if (/payment|pay|card|checkout|safe|escrow|refund/.test(ask)) {
+        return {
+          reply:
+            "Use trusted checkout paths only. Verify totals, route, and final domain before payment is confirmed.",
+          actions: [
+            { label: "Checkout details", href: "./checkout-details.html" },
+            { label: "Security overview", href: "./security-overview.html" }
+          ]
+        };
+      }
+      if (/scam|fraud|phish|fake seller|trust safety/.test(ask)) {
+        return {
+          reply: "Trust and safety: read the security overview, then prefer tracked checkout and verified seller signals.",
+          actions: [
+            { label: "Security overview", href: "./security-overview.html" },
+            { label: "Policy", href: "./policy.html" }
+          ]
+        };
+      }
+      if (/tip|tips|hint|hints|advise|advice|help me choose/.test(ask)) {
+        var profile = loadAiProfile();
+        return {
+          reply: tipFromBank(String(profile.topIntent || "general"), profile, Number(window.scrollY || 0)),
+          actions: [
+            { label: "Hot picks", href: "./hot-picks.html" },
+            { label: "Wellbeing", href: "./wellbeing.html" },
+            { label: "Browse categories", href: "./browse-categories.html" }
+          ]
+        };
+      }
+      var ranked = matchRankedBrandonPages(ask);
+      if (ranked.length && ranked[0].score >= 1) {
+        var top = ranked[0].row;
+        var actions = [{ label: top.label, href: top.href }];
+        if (ranked[1]) actions.push({ label: ranked[1].row.label, href: ranked[1].row.href });
+        if (ranked[2]) actions.push({ label: ranked[2].row.label, href: ranked[2].row.href });
+        return {
+          reply: "Closest page match: " + (top.blurb || top.label) + ". Open it below — ask again with another keyword to narrow further.",
+          actions: actions.slice(0, 4)
+        };
+      }
+      return {
+        reply:
+          "No strong keyword match yet. Use the hubs below to find any function, then ask me with words you see on that page (for example affiliate, insurance, passport).",
+        actions: [
+          { label: "Browse all categories", href: "./browse-categories.html" },
+          { label: "Regional + live market", href: "./regional-shops.html" },
+          { label: "Global search", href: "./global-search.html" },
+          { label: "Account hub", href: "./account-hub.html" }
+        ]
+      };
+    }
+
+    function detectInteractiveContext() {
+      var profile = loadAiProfile();
+      var y = 0;
+      try {
+        y = Number(window.scrollY || window.pageYOffset || 0);
+      } catch {
+        y = 0;
+      }
+      var advice = resolveAdvice(profile, y);
+      if (advice.key === lastAdviceKey) {
+        microCycle += 1;
+        advice = resolveAdvice(profile, y);
+      }
+      lastAdviceKey = advice.key;
+      return advice.line;
+    }
+
+    function isSensitiveElement(el) {
+      if (!el || !el.closest) return false;
+      var field = el.closest("input,textarea,select");
+      if (!field) return false;
+      var type = String(field.getAttribute("type") || "").toLowerCase();
+      var name = String(field.getAttribute("name") || "").toLowerCase();
+      var id = String(field.getAttribute("id") || "").toLowerCase();
+      var autocomplete = String(field.getAttribute("autocomplete") || "").toLowerCase();
+      var holder = String(field.getAttribute("placeholder") || "").toLowerCase();
+      var joined = `${name} ${id} ${autocomplete} ${holder}`;
+      if (type === "password" || type === "email" || type === "tel" || type === "number") return true;
+      if (/card|cvv|cvc|expiry|exp|payment|pay|billing|address|phone|email|secret|pin/.test(joined)) return true;
+      var form = field.closest("form");
+      if (form) {
+        var formText = String(form.id || "") + " " + String(form.className || "");
+        if (/payment|checkout|auth|owner|billing|profile|account/i.test(formText)) return true;
+      }
+      return false;
+    }
+
+    function setSensitiveMode(on) {
+      wrap.classList.toggle("vc-mobile-ai--hidden", !!on);
+      if (on) {
+        panel?.setAttribute("hidden", "hidden");
+        orb?.setAttribute("aria-expanded", "false");
+      }
+    }
+
+    setMicro(detectInteractiveContext());
+    refreshMicroVisibility();
+    var scrollLock = false;
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (scrollLock) return;
+        scrollLock = true;
+        window.setTimeout(function () {
+          var y = 0;
+          try {
+            y = Number(window.scrollY || window.pageYOffset || 0);
+          } catch {
+            y = 0;
+          }
+          var delta = Math.abs(y - lastScrollY);
+          lastScrollY = y;
+          if (delta < 80) {
+            refreshMicroVisibility();
+            scrollLock = false;
+            return;
+          }
+          microCycle += 1;
+          setMicro(detectInteractiveContext());
+          refreshMicroVisibility();
+          scrollLock = false;
+        }, 160);
+      },
+      { passive: true }
+    );
+    var lastMicroSetAt = 0;
+    document.addEventListener(
+      "click",
+      function (ev) {
+        var hit = ev.target && ev.target.closest ? ev.target.closest("a,button") : null;
+        if (!hit) return;
+        var now = Date.now();
+        if (now - lastMicroSetAt < 900) return;
+        lastMicroSetAt = now;
+        var label = String(hit.textContent || "").trim().slice(0, 32);
+        if (!label) return;
+        var profile = loadAiProfile();
+        profile.visits = Math.max(1, Number(profile.visits || 0));
+        var low = label.toLowerCase();
+        if (/fashion|hot|style/.test(low)) profile.topIntent = "fashion";
+        else if (/sell|hustle|business/.test(low)) profile.topIntent = "seller";
+        else if (/deal|shop|market/.test(low)) profile.topIntent = "shopping";
+        else if (/\b(orders?|tracking|delivery)\b/.test(low)) profile.topIntent = "orders";
+        saveAiProfile(profile);
+        setMicro(label + " tapped. I am with you.");
+      },
+      true
+    );
+
+    startVisibilityAwareInterval(function () {
+      if (Date.now() < forceMicroVisibleUntil) {
+        refreshMicroVisibility();
+        return;
+      }
+      if (panel && !panel.hasAttribute("hidden")) {
+        return;
+      }
+      if (Date.now() - lastMicroPromptAt < 7000) {
+        return;
+      }
+      microCycle += 1;
+      var contextual = detectInteractiveContext();
+      setMicro(contextual + " Need help? Tap Brandon.");
+      refreshMicroVisibility();
+    }, 9000);
+    document.addEventListener(
+      "focusin",
+      function (ev) {
+        if (isSensitiveElement(ev.target)) {
+          setSensitiveMode(true);
+        }
+      },
+      true
+    );
+    document.addEventListener(
+      "focusout",
+      function () {
+        window.setTimeout(function () {
+          var active = document.activeElement;
+          if (!isSensitiveElement(active)) {
+            setSensitiveMode(false);
+            setMicro(detectInteractiveContext());
+          }
+        }, 120);
+      },
+      true
+    );
+
+    (function introOnce() {
+      try {
+        var returningName = getUserDisplayName();
+        var seenBefore = localStorage.getItem("vibecart-mobile-first-seen-v1");
+        function firstPromptStillActive() {
+          try {
+            if (sessionStorage.getItem("vibecart-first-prompt-active-v1") === "1") return true;
+            if (sessionStorage.getItem("vibecart-mobile-wow-first5-v1") !== "1") return true;
+          } catch {
+            /* ignore */
+          }
+          if (document.getElementById("vcIntentBlast") || document.getElementById("vcFirst5Reveal")) return true;
+          return false;
+        }
+        if (localStorage.getItem(introKey) === "1") {
+          var delayWelcome = firstPromptStillActive();
+          if (delayWelcome) {
+            setMicro("Brandon is ready. Choose your lane first, then I will guide your next move.");
+            var onFirstPromptDone = function () {
+              var nameAfterPrompt = getUserDisplayName();
+              window.setTimeout(function () {
+                setMicro(
+                  "Welcome back " + nameAfterPrompt + ". Brandon is ready to help. What are we looking for today?"
+                );
+                forceMicroVisibleUntil = Date.now() + 12000;
+                refreshMicroVisibility();
+              }, 180);
+            };
+            window.addEventListener("vibecart-first-prompt-complete", onFirstPromptDone, { once: true });
+            return;
+          }
+          setMicro("Welcome back " + returningName + ". Brandon is ready to help. What are we looking for today?");
+          forceMicroVisibleUntil = Date.now() + 12000;
+          refreshMicroVisibility();
+          return;
+        }
+        localStorage.setItem(introKey, "1");
+        if (seenBefore) {
+          var delayWelcomeForReturning = firstPromptStillActive();
+          if (delayWelcomeForReturning) {
+            setMicro("Brandon is ready. Choose your lane first, then I will guide your next move.");
+            var onFirstPromptDoneReturning = function () {
+              var nameAfterPromptReturning = getUserDisplayName();
+              window.setTimeout(function () {
+                setMicro(
+                  "Welcome back " +
+                    nameAfterPromptReturning +
+                    ". Brandon is ready to help. What are we looking for today?"
+                );
+                forceMicroVisibleUntil = Date.now() + 12000;
+                refreshMicroVisibility();
+              }, 180);
+            };
+            window.addEventListener("vibecart-first-prompt-complete", onFirstPromptDoneReturning, { once: true });
+            return;
+          }
+          setMicro("Welcome back " + returningName + ". Brandon is ready to help. What can I guide now?");
+          forceMicroVisibleUntil = Date.now() + 12000;
+          refreshMicroVisibility();
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      setMicro("I am Brandon, your guide. I will learn your style and help you move faster.");
+      forceMicroVisibleUntil = Date.now() + 9000;
+      refreshMicroVisibility();
+    })();
+
     orb?.addEventListener("click", () => {
       const open = panel?.hasAttribute("hidden");
       if (open) {
@@ -321,6 +1200,19 @@
         const prev = JSON.parse(localStorage.getItem(key) || "[]");
         prev.push({ t: Date.now(), text });
         localStorage.setItem(key, JSON.stringify(prev.slice(-40)));
+        var profile = loadAiProfile();
+        profile.notes = (profile.notes || []).concat([text]).slice(-20);
+        profile.visits = Number(profile.visits || 0) + 1;
+        if (/fashion|beauty|style|scents/.test(text.toLowerCase())) profile.topIntent = "fashion";
+        if (/sell|seller|business|mybusiness/.test(text.toLowerCase())) profile.topIntent = "seller";
+        if (/\b(orders?|tracking|delivery)\b/.test(text.toLowerCase())) profile.topIntent = "orders";
+        saveAiProfile(profile);
+        if (reply) {
+          var result = generateBrandonResponse(text);
+          reply.textContent = result.reply;
+          renderActionSuggestions(result.actions);
+          reply.hidden = false;
+        }
         ta.value = "";
         if (saved) {
           saved.hidden = false;
@@ -371,19 +1263,7 @@
    * `main section.vc-revealed` for in-app scroll reveals. Mirror initVcMobileAppFx.
    */
   function ensureAppShopHubLink() {
-    if (!document.documentElement.classList.contains("vc-mobile-app")) {
-      return;
-    }
-    if (document.getElementById("vcAppShopHub")) {
-      return;
-    }
-    const a = document.createElement("a");
-    a.id = "vcAppShopHub";
-    a.className = "vc-app-shop-hub";
-    a.href = "./world-shop-experience.html";
-    a.setAttribute("aria-label", "Open shop lanes and trusted retailer links");
-    a.textContent = "Shop lanes";
-    document.body.appendChild(a);
+    // Sticker removed by product request.
   }
 
   function initMainSectionRevealForApp() {
@@ -534,29 +1414,324 @@
     }
   }
 
-  function initDailyWelcomeSheet() {
-    var key = "vibecart-mobile-welcome-date-v1";
-    var today = new Date().toISOString().slice(0, 10);
+  function initFirstFiveWowExperience() {
+    var isMobileShell =
+      document.documentElement.classList.contains("vc-mobile-app") ||
+      document.documentElement.classList.contains("vc-phone");
+    if (!isMobileShell) return;
+    var heroCopy = document.querySelector(".hero-copy");
+    if (!heroCopy) return;
+    var heroTitle = document.getElementById("heroTitle");
+    var heroSubtitle = document.getElementById("heroSubtitle");
+    var heroPrimary = document.getElementById("heroShopNowBtn");
+    var onboardingBtn = document.getElementById("openOnboarding");
+
+    function applyIntent(intent) {
+      var t = String(intent || "buy").toLowerCase();
+      var map = {
+        buy: {
+          title: "Deals, bakers, barbers, and beauty — trusted checkout in seconds.",
+          sub: "Buyer mode on. Brandon will prioritize quick deals, safe payments, and fast routes.",
+          cta: "Show me best deal now"
+        },
+        sell: {
+          title: "Launch your selling lane and grow faster.",
+          sub: "Seller mode on. Brandon will guide listings, conversion tips, and growth tools.",
+          cta: "Start selling now"
+        },
+        fast: {
+          title: "Speed lane unlocked for instant wins.",
+          sub: "Fast mode on. Brandon will push shortest paths to hot picks, tracking, and checkout.",
+          cta: "Launch speed lane"
+        }
+      };
+      var picked = map[t] || map.buy;
+      if (heroTitle) heroTitle.textContent = picked.title;
+      if (heroSubtitle) heroSubtitle.textContent = picked.sub;
+      if (heroPrimary) heroPrimary.textContent = picked.cta;
+      try {
+        localStorage.setItem("vibecart-mobile-wow-intent-v1", t);
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function inferDefaultIntentFallback() {
+      return "buy";
+    }
+
+    async function fetchFirst5BackendState() {
+      var base = readApiBase();
+      if (!base) return null;
+      try {
+        var tz = "";
+        var locale = "";
+        try {
+          tz = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+          locale = String(navigator.language || "");
+        } catch {
+          tz = "";
+          locale = "";
+        }
+        var cc = "";
+        try {
+          var rawUser = localStorage.getItem("vibecart-public-auth-user");
+          var user = rawUser ? JSON.parse(rawUser) : null;
+          cc = user && user.countryCode ? String(user.countryCode) : "";
+        } catch {
+          cc = "";
+        }
+        var qs =
+          "?locale=" +
+          encodeURIComponent(locale) +
+          "&timezone=" +
+          encodeURIComponent(tz) +
+          "&countryCode=" +
+          encodeURIComponent(cc);
+        var response = await fetch(base + "/api/public/mobile/first5/state" + qs, { method: "GET" });
+        var body = await response.json().catch(function () {
+          return {};
+        });
+        if (!response.ok || !body || !body.ok || !body.first5) return null;
+        return body.first5;
+      } catch {
+        return null;
+      }
+    }
+
+    var storedIntent = "";
     try {
-      if (localStorage.getItem(key) === today) return;
+      storedIntent = String(localStorage.getItem("vibecart-mobile-wow-intent-v1") || "").trim().toLowerCase();
+    } catch {
+      storedIntent = "";
+    }
+    applyIntent(storedIntent || inferDefaultIntentFallback());
+
+    if (!document.getElementById("vcFirst5Proof")) {
+      var proof = document.createElement("div");
+      proof.id = "vcFirst5Proof";
+      proof.className = "vc-first5-proof";
+      proof.textContent = "Live now: 42 shoppers active · 9 deals closing · 3 sellers verified";
+      heroCopy.insertBefore(proof, heroCopy.firstChild);
+    }
+
+    if (!document.getElementById("vcFirst5AiLine")) {
+      var aiLine = document.createElement("p");
+      aiLine.id = "vcFirst5AiLine";
+      aiLine.className = "vc-first5-ai-line";
+      aiLine.textContent = "Brandon insight: I can map your fastest safe route in one tap.";
+      heroCopy.insertBefore(aiLine, heroCopy.firstChild);
+    }
+
+    if (!document.getElementById("vcFirst5Urgency")) {
+      var urgency = document.createElement("p");
+      urgency.id = "vcFirst5Urgency";
+      urgency.className = "vc-first5-urgency";
+      var endAt = Date.now() + 15 * 60 * 1000;
+      function paintUrgency() {
+        var left = Math.max(0, endAt - Date.now());
+        var mm = String(Math.floor(left / 60000)).padStart(2, "0");
+        var ss = String(Math.floor((left % 60000) / 1000)).padStart(2, "0");
+        urgency.textContent = "Flash lane offer ends in " + mm + ":" + ss;
+      }
+      paintUrgency();
+      startVisibilityAwareInterval(paintUrgency, 1000);
+      var badge = document.getElementById("heroBadge");
+      if (badge && badge.parentNode) {
+        badge.parentNode.insertBefore(urgency, badge.nextSibling);
+      } else {
+        heroCopy.insertBefore(urgency, heroCopy.firstChild);
+      }
+    }
+
+    fetchFirst5BackendState().then(function (state) {
+      if (!state || typeof state !== "object") return;
+      var fallbackIntent = inferDefaultIntentFallback();
+      if (!storedIntent) {
+        applyIntent(String(state.intentDefault || fallbackIntent).toLowerCase());
+      }
+      var aiLineEl = document.getElementById("vcFirst5AiLine");
+      if (aiLineEl && state.brandon && state.brandon.insight) {
+        aiLineEl.textContent = "Brandon insight: " + String(state.brandon.insight).slice(0, 140);
+      }
+      var proofEl = document.getElementById("vcFirst5Proof");
+      if (proofEl && state.proof) {
+        var active = Number(state.proof.activeShoppers || 0);
+        var closing = Number(state.proof.closingDeals || 0);
+        var verified = Number(state.proof.verifiedSellers || 0);
+        proofEl.textContent =
+          "Live now: " + active + " shoppers active · " + closing + " deals closing · " + verified + " sellers verified";
+      }
+      if (state.flash && state.flash.endsAt) {
+        var parsed = Date.parse(String(state.flash.endsAt));
+        if (Number.isFinite(parsed) && parsed > 0) {
+          endAt = parsed;
+        }
+      }
+    });
+
+    if (!document.getElementById("vcStarterPackCard")) {
+      var starter = document.createElement("div");
+      starter.id = "vcStarterPackCard";
+      starter.className = "vc-starter-pack";
+      starter.innerHTML =
+        "<strong>Your 30-second starter pack</strong>" +
+        "<p>1) Choose lane  2) Verify trust  3) Move fast with Brandon</p>" +
+        "<div class='hero-actions'>" +
+        "<a class='btn btn-primary' href='./hot-picks.html'>Start now</a>" +
+        "<a class='btn btn-secondary' href='./security-overview.html'>Safety first</a>" +
+        "</div>";
+      var actions = heroCopy.querySelector(".hero-actions");
+      if (actions && actions.parentNode === heroCopy) {
+        heroCopy.insertBefore(starter, actions);
+      } else {
+        heroCopy.appendChild(starter);
+      }
+    }
+
+    function showIntentBlast() {
+      if (document.getElementById("vcIntentBlast")) return;
+      try {
+        sessionStorage.setItem("vibecart-first-prompt-active-v1", "1");
+      } catch {
+        /* ignore */
+      }
+      var reveal = document.createElement("div");
+      reveal.id = "vcFirst5Reveal";
+      reveal.className = "vc-first5-reveal";
+      reveal.innerHTML = "<div class='vc-first5-reveal__mark'>V</div><p>Entering your wow lane...</p>";
+      document.body.appendChild(reveal);
+
+      window.setTimeout(function () {
+        if (reveal && reveal.parentNode) reveal.parentNode.removeChild(reveal);
+        if (document.getElementById("vcIntentBlast")) return;
+        var splash = document.createElement("div");
+        splash.id = "vcIntentBlast";
+        splash.className = "vc-intent-blast";
+        splash.innerHTML =
+          "<div class='vc-intent-blast__card'>" +
+          "<p class='badge'>Welcome to your wow lane</p>" +
+          "<h3>Choose your power start</h3>" +
+          "<p class='note'>One tap and Brandon aligns your route instantly.</p>" +
+          "<div class='vc-intent-blast__grid'>" +
+          "<button type='button' class='vc-intent-blast__btn' data-intent='buy'>I want to Buy</button>" +
+          "<button type='button' class='vc-intent-blast__btn' data-intent='sell'>I want to Sell</button>" +
+          "<button type='button' class='vc-intent-blast__btn' data-intent='fast'>Fast Deals</button>" +
+          "</div>" +
+          "<button type='button' class='btn btn-secondary vc-intent-blast__skip' id='vcIntentBlastSkip'>Skip</button>" +
+          "</div>";
+        document.body.appendChild(splash);
+
+        function closeSplash(reason, intent) {
+          if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+          try {
+            sessionStorage.setItem("vibecart-first-prompt-active-v1", "0");
+          } catch {
+            /* ignore */
+          }
+          try {
+            window.dispatchEvent(
+              new CustomEvent("vibecart-first-prompt-complete", {
+                detail: { reason: String(reason || "close"), intent: String(intent || "") }
+              })
+            );
+          } catch {
+            /* ignore */
+          }
+        }
+        splash.addEventListener("click", function (ev) {
+          var btn = ev.target && ev.target.closest ? ev.target.closest("[data-intent]") : null;
+          if (!btn) return;
+          var intent = String(btn.getAttribute("data-intent") || "buy");
+          applyIntent(intent);
+          if (onboardingBtn) onboardingBtn.textContent = "Health coach";
+          try {
+            if (navigator && navigator.vibrate) navigator.vibrate([10, 24, 10]);
+          } catch {
+            /* ignore */
+          }
+          closeSplash("intent", intent);
+        });
+        document.getElementById("vcIntentBlastSkip")?.addEventListener("click", function () {
+          closeSplash("skip", "");
+        });
+      }, 720);
+    }
+
+    var seenThisSession = false;
+    try {
+      seenThisSession = sessionStorage.getItem("vibecart-mobile-wow-first5-v1") === "1";
+    } catch {
+      seenThisSession = false;
+    }
+    if (seenThisSession) return;
+    try {
+      sessionStorage.setItem("vibecart-mobile-wow-first5-v1", "1");
     } catch {
       /* ignore */
     }
+    var welcomeSheet = document.getElementById("vcMobileWelcomeSheet");
+    if (welcomeSheet) {
+      var onWelcomeDone = function () {
+        window.removeEventListener("vibecart-mobile-welcome-closed", onWelcomeDone);
+        showIntentBlast();
+      };
+      window.addEventListener("vibecart-mobile-welcome-closed", onWelcomeDone);
+      return;
+    }
+    showIntentBlast();
+  }
+
+  function initDailyWelcomeSheet() {
+    var firstSeenKey = "vibecart-mobile-first-seen-v1";
+    var lastSeenKey = "vibecart-mobile-last-seen-v1";
+    var introSessionKey = "vibecart-mobile-intro-session-v1";
     if (document.getElementById("vcMobileWelcomeSheet")) return;
+    try {
+      if (sessionStorage.getItem(introSessionKey) === "1") return;
+    } catch {
+      /* ignore */
+    }
+    var now = Date.now();
+    var firstSeen = 0;
+    var returning = false;
+    try {
+      firstSeen = Number(localStorage.getItem(firstSeenKey) || "0");
+      if (!firstSeen) {
+        localStorage.setItem(firstSeenKey, String(now));
+        firstSeen = now;
+      }
+      var lastSeen = Number(localStorage.getItem(lastSeenKey) || "0");
+      returning = lastSeen > 0;
+      localStorage.setItem(lastSeenKey, String(now));
+    } catch {
+      returning = false;
+    }
+    if (returning) {
+      return;
+    }
+    try {
+      sessionStorage.setItem(introSessionKey, "1");
+    } catch {
+      /* ignore */
+    }
+
+    var badge = "Welcome to VibeCart";
+    var title = "A warm royal bridge is opening just for you";
+    var note =
+      "You are entering a secure, captivating market story across Africa, Europe, and Asia. Tap to browse and unlock what others are only hearing about.";
     var sheet = document.createElement("div");
     sheet.id = "vcMobileWelcomeSheet";
     sheet.className = "vc-mobile-welcome-sheet";
     sheet.setAttribute("role", "dialog");
     sheet.setAttribute("aria-modal", "true");
     sheet.innerHTML =
-      "<div class='vc-mobile-welcome-card'>" +
-      "<p class='badge'>Welcome back</p>" +
-      "<h3>Your next best move is ready</h3>" +
-      "<p class='note'>Choose one quick route and get value in under 30 seconds.</p>" +
+      "<div class='vc-mobile-welcome-card vc-mobile-intro-card'>" +
+      "<p class='badge'>" + badge + "</p>" +
+      "<h3>" + title + "</h3>" +
+      "<p class='note'>" + note + "</p>" +
       "<div class='hero-actions'>" +
-      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Best deals now</a>" +
-      "<a class='btn btn-secondary' href='./sell-journey.html'>Start selling</a>" +
-      "<button type='button' class='btn btn-secondary' id='vcMobileWelcomeClose'>Continue browsing</button>" +
+      "<button type='button' class='btn btn-primary vc-intro-browse-pulse' id='vcMobileWelcomeClose'>Tap to browse</button>" +
       "</div>" +
       "</div>";
     document.body.appendChild(sheet);
@@ -564,7 +1739,7 @@
     function dismiss() {
       if (sheet && sheet.parentNode) sheet.parentNode.removeChild(sheet);
       try {
-        localStorage.setItem(key, today);
+        window.dispatchEvent(new CustomEvent("vibecart-mobile-welcome-closed", { detail: { returning: returning } }));
       } catch {
         /* ignore */
       }
@@ -976,6 +2151,41 @@
     startVisibilityAwareInterval(paint, 3400);
   }
 
+  function initInboxPulse() {
+    if (document.getElementById("vcMobileInboxPulse")) return;
+    var key = "vibecart-public-inbox-unread-v1";
+    var pill = document.createElement("button");
+    pill.type = "button";
+    pill.id = "vcMobileInboxPulse";
+    pill.className = "vc-mobile-streak-chip";
+    function paint() {
+      var unread = 0;
+      try {
+        unread = Math.max(0, Number(localStorage.getItem(key) || "0"));
+      } catch {
+        unread = 0;
+      }
+      if (unread <= 0) {
+        pill.style.display = "none";
+        return;
+      }
+      pill.style.display = "";
+      pill.textContent = "Inbox " + unread;
+    }
+    pill.addEventListener("click", function () {
+      try {
+        localStorage.setItem(key, "0");
+      } catch {
+        /* ignore */
+      }
+      paint();
+      window.location.assign("./index.html#communication");
+    });
+    window.addEventListener("storage", paint);
+    paint();
+    document.body.appendChild(pill);
+  }
+
   function initVibeThemeSwitch() {
     var key = "vibecart-mobile-vibe-theme-v1";
     var nav = document.getElementById("mobileQuickNav");
@@ -1074,6 +2284,75 @@
     });
     paint();
     document.body.appendChild(hud);
+  }
+
+  function initFloatingActionHub() {
+    if (document.getElementById("vcActionHub")) return;
+    var first5 = document.getElementById("vcFirst5Bar");
+    var quick = document.getElementById("vcQuickActionTrigger");
+    var mission = document.getElementById("vcMissionHud");
+    var deal = document.getElementById("vcDealDraftComposer");
+    if (first5) first5.style.display = "none";
+    if (quick) quick.style.display = "none";
+    if (mission) mission.style.display = "none";
+    if (deal) deal.style.display = "none";
+
+    var wrap = document.createElement("div");
+    wrap.id = "vcActionHub";
+    wrap.className = "vc-action-hub";
+    wrap.innerHTML =
+      "<button type='button' class='vc-action-hub__fab' id='vcActionHubFab' aria-expanded='false' aria-label='Open quick action hub'>Spark</button>" +
+      "<div class='vc-action-hub__panel' id='vcActionHubPanel' hidden>" +
+      "<a class='vc-action-hub__item' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
+      "<a class='vc-action-hub__item' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='vc-action-hub__item' href='./sell-journey.html'>Start hustle</a>" +
+      "<button type='button' class='vc-action-hub__item' id='vcActionHubQuick'>Quick panel</button>" +
+      "<button type='button' class='vc-action-hub__item' id='vcActionHubDeal'>Deal note</button>" +
+      "<button type='button' class='vc-action-hub__item' id='vcActionHubMission'>Mission</button>" +
+      "</div>";
+    document.body.appendChild(wrap);
+    var fab = document.getElementById("vcActionHubFab");
+    var panel = document.getElementById("vcActionHubPanel");
+    function toggle(forceOpen) {
+      var open = typeof forceOpen === "boolean" ? forceOpen : panel.hasAttribute("hidden");
+      if (open) {
+        panel.removeAttribute("hidden");
+        wrap.classList.add("is-open");
+        fab.setAttribute("aria-expanded", "true");
+      } else {
+        panel.setAttribute("hidden", "hidden");
+        wrap.classList.remove("is-open");
+        fab.setAttribute("aria-expanded", "false");
+      }
+    }
+    fab.addEventListener("click", function () {
+      toggle();
+    });
+    document.getElementById("vcActionHubQuick")?.addEventListener("click", function () {
+      if (quick) quick.click();
+    });
+    document.getElementById("vcActionHubDeal")?.addEventListener("click", function () {
+      var dealFab = deal ? deal.querySelector(".vc-deal-draft-fab") : null;
+      if (dealFab) {
+        deal.style.display = "";
+        dealFab.click();
+      }
+    });
+    document.getElementById("vcActionHubMission")?.addEventListener("click", function () {
+      if (mission) {
+        mission.style.display = "";
+        mission.click();
+      }
+    });
+    document.addEventListener(
+      "click",
+      function (ev) {
+        if (!wrap.classList.contains("is-open")) return;
+        var within = ev.target && ev.target.closest ? ev.target.closest("#vcActionHub") : null;
+        if (!within) toggle(false);
+      },
+      true
+    );
   }
 
   function initMotionModeToggle() {
@@ -1325,8 +2604,15 @@
     if (!isApp && !isPhone) {
       return;
     }
-    /* Health & coach lane: no floating Quick / mission / streak — keeps the page calm for forms + checkout. */
+    /* Health & coach lane: skip heavy HUD (Quick / mission / streak / deal rail) so checkout + matcher stay tappable.
+       Still mount Brandon + reveal sections so the coach lane matches the rest of the app shell. */
     if (document.body && document.body.classList.contains("health-coach-page")) {
+      if (isApp) {
+        document.body.classList.add("vc-mobile-shell");
+        ensureAiCoach();
+        initMainSectionRevealForApp();
+        ensureAppShopHubLink();
+      }
       return;
     }
     if (isApp) {
@@ -1353,23 +2639,35 @@
       );
     }
     if (isApp || isPhone) {
+      var onboardingBtn = document.getElementById("openOnboarding");
+      if (onboardingBtn) {
+        onboardingBtn.textContent = "Health coach";
+        onboardingBtn.setAttribute("data-i18n", "nav.wellbeing");
+        onboardingBtn.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          window.location.assign("./wellbeing.html");
+        });
+      }
       enhanceHero();
       document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
       initMobileFocusMode();
       initThumbFlowBoost();
       initTrustSnapshotCard();
       initDailyWelcomeSheet();
+      initFirstFiveWowExperience();
       initDailyStreakChip();
       initQuickActionSheet();
       initStoryRail();
       initSwipeSaveDeals();
       initSocialPulseTicker();
+      initInboxPulse();
       initVibeThemeSwitch();
       initFirstFiveSecondsBar();
       initMissionHud();
       initMotionModeToggle();
       initSmartPrefetch();
       initDealDraftComposer();
+      initFloatingActionHub();
       initFloatingControlLayout();
     }
   }
