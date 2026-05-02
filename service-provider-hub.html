@@ -6,9 +6,9 @@
   <title>Service Provider Hub · VibeCart</title>
   <meta name="description" content="Set up beauty and service booking offers with visual service previews, package guidance, and prepayment-ready booking routes." />
   <link rel="canonical" href="https://vibe-cart.com/service-provider-hub.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260502bundlehero1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502bundlehero2" />
   <style>
-    /* Same-origin bundled still — works when in-app WebViews block images.unsplash.com. */
+    /* Same-origin bundled stills (see ./media/provider-*-1.jpg). */
     #spHeroMotion.vc-visual-motion {
       background-color: #1a0f24;
       background-image: linear-gradient(
@@ -16,7 +16,7 @@
           rgba(26, 15, 36, 0.2),
           rgba(10, 13, 24, 0.45)
         ),
-        url("./media/provider-hero-default.jpg");
+        url("./media/provider-hair-1.jpg");
       background-size: cover, cover;
       background-position: center, center;
     }
@@ -35,7 +35,7 @@
         <img
           id="spHeroMotionImg"
           class="vc-visual-motion__media"
-          src="./media/provider-hero-default.jpg"
+          src="./media/provider-hair-1.jpg"
           alt="Service booking preview"
           loading="eager"
           decoding="async"
@@ -88,34 +88,15 @@
       var params = new URLSearchParams(window.location.search || "");
       var serviceHint = String(params.get("service") || "").trim();
       var slotHint = String(params.get("slot") || "").trim();
-      var HERO_SAME_ORIGIN_STILL = "./media/provider-hero-default.jpg";
+      var HERO_SAME_ORIGIN_STILL = "./media/provider-hair-1.jpg";
       var HERO_ICON_FALLBACK = "./icon-maskable.svg";
+      /* Two bundled JPEGs per lane (replace files in ./media/ with your own photography). */
       var motionStill = {
-        "Hair Styling": [
-          "https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1573496359142-b80d948464d4?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1503951914875-89f26e475d27?auto=format&fit=crop&w=1600&q=82"
-        ],
-        Nails: [
-          "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1610992652870-b7dcdc4c77cb?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1519014816548-bf5898892bb9?auto=format&fit=crop&w=1600&q=82"
-        ],
-        Makeup: [
-          "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1487412720507-eb43ef43ca66?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1596462508899-7b3ebc3df4f0?auto=format&fit=crop&w=1600&q=82"
-        ],
-        Barber: [
-          "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1621605815976-792b3f1c7c36?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1503951914875-89f26e475d27?auto=format&fit=crop&w=1600&q=82"
-        ],
-        "Bakery / custom cakes": [
-          "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1464346575507-95eca0c2d585?auto=format&fit=crop&w=1600&q=82",
-          "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=1600&q=82"
-        ]
+        "Hair Styling": ["./media/provider-hair-1.jpg", "./media/provider-hair-2.jpg"],
+        Nails: ["./media/provider-nails-1.jpg", "./media/provider-nails-2.jpg"],
+        Makeup: ["./media/provider-makeup-1.jpg", "./media/provider-makeup-2.jpg"],
+        Barber: ["./media/provider-barber-1.jpg", "./media/provider-barber-2.jpg"],
+        "Bakery / custom cakes": ["./media/provider-bakery-1.jpg", "./media/provider-bakery-2.jpg"]
       };
       function hashMotionSalt(s) {
         var str = String(s || "");
@@ -146,19 +127,19 @@
         var key = themeKey && motionStill[themeKey] ? themeKey : "";
         var entry = key ? motionStill[key] : motionFromFreeText(freeText);
         var salt = String(freeText || "") + "|" + String(serviceHint || "") + "|" + String((name && name.value) || "");
-        var url = resolveMotionUrl(entry, salt);
-        var remoteUrls = [];
-        if (url && String(url).indexOf("http") === 0) remoteUrls.push(url);
-        if (entry && typeof entry === "object" && entry.length) {
-          for (var fi = 0; fi < entry.length; fi++) {
-            var u = entry[fi];
-            if (u && String(u).indexOf("http") === 0 && remoteUrls.indexOf(u) < 0) remoteUrls.push(u);
-          }
-        } else if (typeof entry === "string" && entry.indexOf("http") === 0 && remoteUrls.indexOf(entry) < 0) {
-          remoteUrls.push(entry);
+        var chosen = resolveMotionUrl(entry, salt);
+        var list =
+          entry && typeof entry === "object" && entry.length
+            ? entry.slice()
+            : typeof entry === "string"
+              ? [entry]
+              : [HERO_SAME_ORIGIN_STILL];
+        var start = Math.max(0, list.indexOf(chosen));
+        var pool = [];
+        for (var j = 0; j < list.length; j++) {
+          pool.push(list[(start + j) % list.length]);
         }
-        var pool = remoteUrls.slice();
-        pool.push(HERO_SAME_ORIGIN_STILL);
+        if (!pool.length) pool = [HERO_SAME_ORIGIN_STILL];
         var attempt = 0;
         img.onerror = function () {
           attempt += 1;
@@ -169,7 +150,11 @@
           img.onerror = null;
           img.src = HERO_ICON_FALLBACK;
         };
-        img.src = pool.length ? pool[0] : HERO_SAME_ORIGIN_STILL;
+        img.src = pool[0];
+        if (box) {
+          box.style.backgroundImage =
+            "linear-gradient(145deg, rgba(26, 15, 36, 0.22), rgba(10, 13, 24, 0.42)), url(\"" + pool[0] + "\")";
+        }
         img.alt = (key || "Service") + " — booking preview";
         if (box) box.setAttribute("aria-label", (key || String(freeText || "Service").trim() || "Service") + " preview");
       }
@@ -268,7 +253,7 @@
       });
     })();
   </script>
-  <script src="./site-chrome.js?v=20260502bundlehero1" defer></script>
+  <script src="./site-chrome.js?v=20260502bundlehero2" defer></script>
   <script>
     (function () {
       if (!document.body || document.body.getAttribute("data-vc-lean-hud") !== "1") return;
