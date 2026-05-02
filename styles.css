@@ -5322,6 +5322,13 @@ html.vc-phone .hero {
   margin-bottom: 0.32rem;
 }
 
+/* Native app WebView: keep first fold shorter so primary CTAs land nearer the thumb zone. */
+html.vc-mobile-app .page-group .hero {
+  min-height: 0;
+  padding-top: clamp(0.85rem, 3.5vw, 1.35rem);
+  padding-bottom: clamp(0.75rem, 3vw, 1.15rem);
+}
+
 html.vc-mobile-app .vc-mobile-hero-aurora,
 html.vc-phone .vc-mobile-hero-aurora {
   pointer-events: none;
@@ -6000,7 +6007,8 @@ html.vc-phone .brand-mark::after {
 
 /* Brandon under the left HUD stack (Motion → Arrange → Reset layout); bottom rail stays for Spark + first-5. */
 html.vc-mobile-app body:not(.health-coach-page) .vc-mobile-ai,
-html.vc-phone body:not(.health-coach-page) .vc-mobile-ai {
+html.vc-phone body:not(.health-coach-page) .vc-mobile-ai,
+html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai {
   left: 12px;
   right: auto;
   top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 234px);
@@ -6011,8 +6019,18 @@ html.vc-phone body:not(.health-coach-page) .vc-mobile-ai {
   -webkit-overflow-scrolling: touch;
 }
 
+html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai {
+  left: auto;
+  right: 12px;
+  top: auto;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  align-items: flex-end;
+  max-height: min(70vh, 520px);
+}
+
 html.vc-mobile-app body.health-coach-page .vc-mobile-ai,
-html.vc-phone body.health-coach-page .vc-mobile-ai {
+html.vc-phone body.health-coach-page .vc-mobile-ai,
+html.vc-brandon-universal body.health-coach-page .vc-mobile-ai {
   left: auto;
   right: 10px;
   top: auto;
@@ -6021,8 +6039,17 @@ html.vc-phone body.health-coach-page .vc-mobile-ai {
 }
 
 html.vc-mobile-app body:not(.health-coach-page) .vc-mobile-ai__micro,
-html.vc-phone body:not(.health-coach-page) .vc-mobile-ai__micro {
+html.vc-phone body:not(.health-coach-page) .vc-mobile-ai__micro,
+html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai__micro {
   text-align: left;
+}
+
+html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai__micro {
+  text-align: right;
+}
+
+.vc-mobile-ai__orb:active {
+  transform: scale(0.9);
 }
 
 .vc-mobile-ai--hidden {
@@ -6479,6 +6506,29 @@ body.mb-boot-pending {
   cursor: not-allowed;
 }
 
+/* Password field + visibility toggle (account, admin, My Business) */
+.vc-password-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+.vc-password-field input[type="password"],
+.vc-password-field input[type="text"] {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.vc-password-field .vc-password-toggle {
+  flex: 0 0 auto;
+  align-self: stretch;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.vc-passport-fields .vc-password-field {
+  grid-column: 1 / -1;
+}
+
 .vc-mb-field {
   display: grid;
   gap: 0.35rem;
@@ -6538,8 +6588,109 @@ body.mb-mode-provider [data-mb-show="client"] {
   display: none !important;
 }
 
-body.vc-my-business-dashboard #beauty-services {
+body.vc-my-business-dashboard #beauty-services,
+body.vc-my-business-dashboard #mb-client-service-desk {
   scroll-margin-top: 5.5rem;
+}
+
+.vc-mb-client-desk .vc-mb-client-step:not([hidden]) {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.vc-mb-slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.vc-mb-slot-grid .vc-mb-slot-btn.is-selected {
+  outline: 2px solid rgba(129, 187, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.vc-mb-pay-choice {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.vc-mb-pay-choice label {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+}
+
+.vc-mb-wait-banner {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(129, 187, 255, 0.35);
+  background: rgba(129, 187, 255, 0.12);
+  font-size: 0.95rem;
+}
+
+.vc-mb-chat-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.vc-mb-chat-line {
+  margin: 0;
+}
+
+.vc-mb-client-bookings-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+
+.vc-mb-prov-focus {
+  margin-bottom: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(129, 187, 255, 0.35);
+  background: rgba(8, 12, 24, 0.55);
+}
+
+.vc-mb-prov-focus-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.vc-mb-prov-focus-details p {
+  margin: 0.35rem 0;
+}
+
+.vc-mb-booking-row h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vc-mb-signin-hint {
+  border-left: 3px solid rgba(129, 187, 255, 0.55);
+  padding-left: 0.65rem;
+  margin-top: 0.45rem;
+}
+
+.vc-mb-prov-closed-banner {
+  margin: 0.45rem 0 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.9rem;
 }
 
 .vc-mobile-streak-chip.is-pop {

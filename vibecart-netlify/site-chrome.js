@@ -6,108 +6,6 @@
   var LUXE_VISIT_KEY = "vibecart-luxe-visited-v1";
   var LUXE_SCENE_KEY = "vibecart-luxe-scene-v1";
   var LUXE_MOTION_KEY = "vibecart-luxe-motion-v1";
-  var MOBILE_LOCK_KEY = "vibecart-mobile-lock-active-v1";
-
-  function detectPhoneLikeContext() {
-    try {
-      var ua = String((navigator && navigator.userAgent) || "").toLowerCase();
-      var touch = typeof window !== "undefined" && "ontouchstart" in window;
-      var width = Number((window && window.innerWidth) || 0);
-      return /iphone|android|mobile|ipad|ipod/.test(ua) || (touch && width > 0 && width <= 1024);
-    } catch {
-      return false;
-    }
-  }
-
-  function initMobileSecurityHardening() {
-    try {
-      if (window.top && window.top !== window.self) {
-        window.top.location = window.location.href;
-      }
-    } catch {
-      /* cross-origin frame access blocked: keep running safely */
-    }
-    try {
-      var proto = String(window.location.protocol || "").toLowerCase();
-      var host = String(window.location.hostname || "").toLowerCase();
-      var isLocal = host === "localhost" || host === "127.0.0.1";
-      if (proto === "http:" && !isLocal) {
-        window.location.replace("https://" + window.location.host + window.location.pathname + window.location.search + window.location.hash);
-        return;
-      }
-    } catch {
-      /* ignore */
-    }
-    if (!detectPhoneLikeContext()) {
-      return;
-    }
-    var lockTimeoutMs = 5 * 60 * 1000;
-    var timer = 0;
-    var overlay = null;
-    function ensureOverlay() {
-      if (overlay) return overlay;
-      overlay = document.createElement("div");
-      overlay.style.cssText =
-        "position:fixed;inset:0;z-index:99999;background:rgba(8,10,20,.92);display:none;align-items:center;justify-content:center;padding:1rem;";
-      overlay.innerHTML =
-        '<div style="max-width:420px;width:100%;border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:1rem;background:#121420;color:#fff;text-align:center;">' +
-        "<h3 style='margin-top:0'>Session locked</h3>" +
-        "<p style='opacity:.9'>Security lock activated for your phone session. Tap unlock to continue.</p>" +
-        '<button id="vcMobileUnlockBtn" class="btn btn-primary" type="button">Unlock session</button>' +
-        "</div>";
-      document.body.appendChild(overlay);
-      var unlockBtn = overlay.querySelector("#vcMobileUnlockBtn");
-      if (unlockBtn) {
-        unlockBtn.addEventListener("click", function () {
-          overlay.style.display = "none";
-          try {
-            sessionStorage.removeItem(MOBILE_LOCK_KEY);
-          } catch {
-            /* ignore */
-          }
-          restartTimer();
-        });
-      }
-      return overlay;
-    }
-    function lockNow() {
-      ensureOverlay().style.display = "flex";
-      try {
-        sessionStorage.setItem(MOBILE_LOCK_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-      try {
-        sessionStorage.removeItem("vibecart-quick-buy-token");
-      } catch {
-        /* ignore */
-      }
-    }
-    function restartTimer() {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(lockNow, lockTimeoutMs);
-    }
-    ["pointerdown", "keydown", "touchstart", "scroll"].forEach(function (evt) {
-      document.addEventListener(evt, restartTimer, { passive: true });
-    });
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) {
-        lockNow();
-      } else {
-        try {
-          if (sessionStorage.getItem(MOBILE_LOCK_KEY) === "1") {
-            ensureOverlay().style.display = "flex";
-          }
-        } catch {
-          /* ignore */
-        }
-        restartTimer();
-      }
-    });
-    restartTimer();
-  }
-
-  initMobileSecurityHardening();
   if (document.getElementById("vcSiteChromeBar")) {
     return;
   }
@@ -285,6 +183,117 @@
     );
   }
 
+  function initTopbarAutoHide() {
+    if (!header) return;
+    if (header.getAttribute("data-vc-nav-autohide-bound") === "1") return;
+    header.setAttribute("data-vc-nav-autohide-bound", "1");
+    var lastY = Math.max(0, Math.round(window.scrollY || 0));
+    var hidden = false;
+    var ticking = false;
+    var pendingY = lastY;
+    function prefersReducedMotion() {
+      try {
+        return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      } catch {
+        return false;
+      }
+    }
+    function getTune() {
+      var width = Number(window.innerWidth || 0);
+      if (width <= 520) return { enabled: true, threshold: 16, minHideStart: 56 };
+      if (width <= 820) return { enabled: true, threshold: 20, minHideStart: 72 };
+      if (width <= 1024) return { enabled: true, threshold: 24, minHideStart: 92 };
+      return { enabled: false, threshold: 999, minHideStart: 999 };
+    }
+    function canAutoHide() {
+      return getTune().enabled && !prefersReducedMotion();
+    }
+    function setHidden(next) {
+      if (hidden === next) return;
+      hidden = next;
+      header.classList.toggle("vc-nav-hidden", hidden);
+      header.setAttribute("data-vc-nav-state", hidden ? "hidden" : "visible");
+    }
+    function shouldKeepVisibleByFocus() {
+      var active = document.activeElement;
+      if (!active) return false;
+      var tag = String(active.tagName || "").toLowerCase();
+      return tag === "input" || tag === "textarea" || tag === "select" || active.isContentEditable === true;
+    }
+    function handleScroll(y) {
+      var tune = getTune();
+      var delta = y - lastY;
+      if (!tune.enabled || prefersReducedMotion() || shouldKeepVisibleByFocus()) {
+        setHidden(false);
+        lastY = y;
+        return;
+      }
+      if (y <= tune.minHideStart) {
+        setHidden(false);
+        lastY = y;
+        return;
+      }
+      if (delta > tune.threshold) {
+        setHidden(true);
+      } else if (delta < -tune.threshold) {
+        setHidden(false);
+      }
+      lastY = y;
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        pendingY = Math.max(0, Math.round(window.scrollY || 0));
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function () {
+          ticking = false;
+          handleScroll(pendingY);
+        });
+      },
+      { passive: true }
+    );
+    window.addEventListener("resize", function () {
+      if (!canAutoHide()) {
+        setHidden(false);
+      }
+      lastY = Math.max(0, Math.round(window.scrollY || 0));
+    });
+  }
+
+  function initBackToTop() {
+    if (document.getElementById("vcBackTop")) return;
+    var backTop = document.createElement("button");
+    backTop.id = "vcBackTop";
+    backTop.type = "button";
+    backTop.className = "vc-back-top";
+    backTop.setAttribute("aria-label", "Back to top");
+    backTop.textContent = "↑ Top";
+    document.body.appendChild(backTop);
+    function paint() {
+      backTop.classList.toggle("is-visible", Number(window.scrollY || 0) > 420);
+    }
+    backTop.addEventListener("click", function () {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+    window.addEventListener("scroll", paint, { passive: true });
+    paint();
+  }
+
+  function initDeadEndLinkGuard() {
+    if (document.body.getAttribute("data-vc-deadend-guard") === "1") return;
+    document.body.setAttribute("data-vc-deadend-guard", "1");
+    document.addEventListener(
+      "click",
+      function (event) {
+        var anchor = event.target && event.target.closest ? event.target.closest("a[href='#']") : null;
+        if (!anchor) return;
+        event.preventDefault();
+      },
+      true
+    );
+  }
+
   function applyLuxeClasses(on) {
     document.body.classList.toggle("vc-luxe-on", !!on);
     document.body.classList.toggle("vc-luxe-off", !on);
@@ -317,6 +326,11 @@
 
   function initRevealEffects() {
     if (!("IntersectionObserver" in window)) {
+      return;
+    }
+    /* Coach / wellbeing: bottom sections often never satisfy the IO rootMargin; they stay at
+       opacity ~0 from .vc-luxe-reveal and taps never reach "Generate recommendation". */
+    if (document.body && document.body.classList.contains("health-coach-page")) {
       return;
     }
     var nodes = Array.prototype.slice.call(
@@ -620,12 +634,62 @@
 
   bootLuxeMode();
   initLaneScrollRestore();
+  initTopbarAutoHide();
+  initBackToTop();
+  initDeadEndLinkGuard();
   var sceneDirector = initSceneDirector();
   initRevealEffects();
   initPointerAmbience();
   initMagneticDepth();
-  initLuxeScore();
-  initExperienceConsole(sceneDirector);
+  var coachLane = document.body && document.body.classList.contains("health-coach-page");
+  if (!coachLane) {
+    initLuxeScore();
+    initExperienceConsole(sceneDirector);
+  }
+})();
+
+(function scheduleBrandonUniversal() {
+  if (typeof window === "undefined" || window.__vcBrandonUniversalScheduled === "1") {
+    return;
+  }
+  window.__vcBrandonUniversalScheduled = "1";
+  var SHELL = "./mobile-app-shell.js?v=20260509brandonuni1";
+  var CLIENT = "./vibecart-ai-client.js?v=20260430genai1";
+  function skip() {
+    if (!document.body) return true;
+    if (document.body.classList.contains("vc-no-brandon")) return true;
+    var p = String((typeof location !== "undefined" && location.pathname) || "").toLowerCase();
+    if (p.indexOf("admin-app") >= 0) return true;
+    return false;
+  }
+  function inject() {
+    if (document.getElementById("vc-mobile-ai")) return;
+    if (skip()) return;
+    function loadScript(src, onload) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.defer = true;
+      if (onload) s.onload = onload;
+      (document.body || document.head).appendChild(s);
+    }
+    function bootBrandon() {
+      if (typeof window.vibeCartBootBrandonUniversal === "function") {
+        window.vibeCartBootBrandonUniversal();
+      }
+    }
+    if (typeof window.vibecartAiGenerate === "function") {
+      loadScript(SHELL, bootBrandon);
+    } else {
+      loadScript(CLIENT, function () {
+        loadScript(SHELL, bootBrandon);
+      });
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
 })();
 
 (function scheduleVcAnalyticsVisit() {

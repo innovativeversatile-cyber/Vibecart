@@ -4345,7 +4345,8 @@ async function handlePublicAiGenerate(req, res) {
     "seller_growth_plan",
     "vibecoach_tip",
     "hot_picks_trends",
-    "brandon_guide"
+    "brandon_guide",
+    "mb_studio_suite"
   ]);
   if (!allowed.has(agent)) {
     return sendJson(res, 400, { ok: false, code: "INVALID_AGENT" });
@@ -4369,12 +4370,12 @@ async function handlePublicAiGenerate(req, res) {
       });
     }
   }
-  if (agent === "brandon_guide") {
+  if (agent === "brandon_guide" || agent === "mb_studio_suite") {
     if (isBrandonGuideAiRateLimited(ip)) {
       return sendJson(res, 429, {
         ok: false,
         code: "RATE_LIMITED",
-        message: "Brandon AI is temporarily limited for this network. Try again in a little while — quick answers still work offline."
+        message: "Brandon / studio AI is temporarily limited for this network. Try again shortly — offline tools still work."
       });
     }
   }

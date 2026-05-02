@@ -36,8 +36,9 @@
       lead: "Makeup-only desk. Share occasion, look references, and timing."
     },
     "Other service": {
-      title: "Service booking",
-      lead: "Request a reservation for the service line you chose at the gate."
+      title: "Custom service line · client reservation",
+      lead:
+        "You picked a custom line. Use the provider AI studio (desktop below) to shape your desk, then publish offers so clients can book the exact niche you serve."
     }
   };
 
@@ -244,9 +245,21 @@
 
     applyServiceSelects(service);
 
+    var beautySec = document.getElementById("beauty-services");
+    var studioSec = document.getElementById("mb-service-studio");
+    var isOtherProvider = persona === "provider" && service === "Other service";
+    if (beautySec) {
+      beautySec.hidden = !!isOtherProvider;
+    }
+    if (studioSec) {
+      studioSec.hidden = !isOtherProvider;
+    }
+
     var beautyH = document.querySelector("#beauty-services h2");
     if (beautyH && persona === "provider") {
-      beautyH.textContent = "Beauty & service booking (provider preview)";
+      beautyH.textContent = isOtherProvider
+        ? "Beauty & service tools (hidden while studio is active)"
+        : "Beauty & service booking (provider preview)";
     }
 
     var provLine = document.getElementById("mbProviderSessionLine");
@@ -311,6 +324,29 @@
 
   function scrollToBeautyHashIfAllowed(cfg) {
     var raw = String(location.hash || "").replace(/\/$/, "");
+    if (raw === "#mb-service-studio") {
+      var st = document.getElementById("mb-service-studio");
+      if (st && cfg && cfg.persona === "provider" && cfg.service === "Other service") {
+        requestAnimationFrame(function () {
+          st.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+      return;
+    }
+    if (cfg && cfg.persona === "provider" && cfg.service === "Other service") {
+      var studio = document.getElementById("mb-service-studio");
+      if (studio && (raw === "#beauty-services" || raw === "")) {
+        requestAnimationFrame(function () {
+          studio.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        try {
+          history.replaceState({}, "", location.pathname + location.search + "#mb-service-studio");
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      return;
+    }
     if (raw !== "#beauty-services" && raw !== "#mb-client-service-desk") return;
     if (cfg && cfg.persona !== "client") return;
     var el =
@@ -1935,6 +1971,92 @@
           .catch(function (err) {
             setStatus(err.message || "Request failed");
           });
+      });
+    }
+
+    var studioBtn = document.getElementById("mbStudioGenerate");
+    if (studioBtn) {
+      studioBtn.addEventListener("click", function () {
+        var trade = document.getElementById("mbStudioTrade");
+        var niche = document.getElementById("mbStudioNiche");
+        var aud = document.getElementById("mbStudioAudience");
+        var pain = document.getElementById("mbStudioPain");
+        var ops = document.getElementById("mbStudioOps");
+        var tone = document.getElementById("mbStudioTone");
+        var out = document.getElementById("mbStudioOutput");
+        if (!trade || !niche || !out) return;
+        var payload = {
+          tradeName: String(trade.value || "").trim(),
+          niche: String(niche.value || "").trim(),
+          audience: aud ? String(aud.value || "").trim() : "",
+          painPoints: pain ? String(pain.value || "").trim() : "",
+          dailyOps: ops ? String(ops.value || "").trim() : "",
+          tone: tone ? String(tone.value || "").trim() : "premium-calm"
+        };
+        if (payload.tradeName.length < 2 || payload.niche.length < 4) {
+          setStatus("Add a trade name and a short niche so the studio can design your suite.");
+          return;
+        }
+        out.innerHTML = '<p class="note">Generating a bespoke dashboard suite…</p>';
+        studioBtn.disabled = true;
+        function renderStudio(res) {
+          var html = "";
+          html += "<h3 style=\"margin:0 0 .35rem 0\">" + escapeHtml(res.suiteName || "Your suite") + "</h3>";
+          html += "<p class=\"note\">" + escapeHtml(res.tagline || "") + "</p>";
+          if (res.clientPromise) {
+            html += "<p class=\"note\"><strong>Client promise:</strong> " + escapeHtml(res.clientPromise) + "</p>";
+          }
+          if (res.toneNotes) {
+            html += "<p class=\"note\"><strong>Copy tone:</strong> " + escapeHtml(res.toneNotes) + "</p>";
+          }
+          html += "<div class=\"vc-biz-grid\" style=\"margin-top:.65rem\">";
+          (res.modules || []).forEach(function (m) {
+            html += '<article class="vc-biz-card"><h4 style="margin:0">' + escapeHtml(m.title || "Module") + "</h4>";
+            html += "<p class=\"note\">" + escapeHtml(m.purpose || "") + "</p>";
+            if (m.kpis && m.kpis.length) {
+              html += "<p class=\"note\"><strong>KPIs:</strong> " + escapeHtml(m.kpis.join(" · ")) + "</p>";
+            }
+            if (m.widgets && m.widgets.length) {
+              html += "<p class=\"note\"><strong>Widgets:</strong> " + escapeHtml(m.widgets.join(" · ")) + "</p>";
+            }
+            html += "</article>";
+          });
+          html += "</div>";
+          if (res.onboardingChecklist && res.onboardingChecklist.length) {
+            html += "<h4 style=\"margin:.85rem 0 .25rem\">Launch checklist</h4><ul>";
+            res.onboardingChecklist.forEach(function (line) {
+              html += "<li>" + escapeHtml(line) + "</li>";
+            });
+            html += "</ul>";
+          }
+          out.innerHTML = html;
+          try {
+            localStorage.setItem(
+              "vibecart-mb-studio-last-v1",
+              JSON.stringify({ savedAt: Date.now(), suiteName: res.suiteName, modules: res.modules })
+            );
+          } catch (_) {
+            /* ignore */
+          }
+        }
+        if (typeof window.vibecartAiGenerate === "function") {
+          window
+            .vibecartAiGenerate("mb_studio_suite", payload)
+            .then(renderStudio)
+            .catch(function (err) {
+              out.innerHTML =
+                '<p class="note">Studio AI unavailable (' +
+                escapeHtml(err.message || "error") +
+                "). Configure OPENAI on the API host, then retry.</p>";
+            })
+            .finally(function () {
+              studioBtn.disabled = false;
+            });
+        } else {
+          out.innerHTML =
+            '<p class="note">AI client not loaded. Ensure <code>vibecart-ai-client.js</code> is on this page, then refresh.</p>';
+          studioBtn.disabled = false;
+        }
       });
     }
   });

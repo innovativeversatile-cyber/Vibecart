@@ -123,9 +123,27 @@
     return "friend";
   }
 
+  function hardPressVibrate() {
+    try {
+      if (navigator && navigator.vibrate) {
+        navigator.vibrate([26, 48, 22, 52, 30]);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   function ensureAiCoach() {
     if (document.getElementById(AI_ID)) {
       return;
+    }
+    try {
+      var rootMount = document.documentElement;
+      if (!rootMount.classList.contains("vc-mobile-app") && !rootMount.classList.contains("vc-phone")) {
+        rootMount.classList.add("vc-brandon-universal");
+      }
+    } catch {
+      /* ignore */
     }
     const wrap = document.createElement("div");
     wrap.id = AI_ID;
@@ -139,9 +157,8 @@
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
           <strong>Brandon</strong>
-          <span class="vc-mobile-ai__sub">Full answers via server AI when configured · rule fallback offline</span>
+          <span class="vc-mobile-ai__sub">Server AI + local fallback · no wall of text</span>
         </div>
-        <p id="vc-mobile-ai-tip" class="vc-mobile-ai__tip"></p>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
         <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Ask Brandon or tell a preference</label>
         <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Ireland shops, track my order, seller boost, affiliate, privacy, live market"></textarea>
@@ -155,7 +172,6 @@
     const orb = wrap.querySelector(".vc-mobile-ai__orb");
     const micro = wrap.querySelector("#vc-mobile-ai-micro");
     const panel = wrap.querySelector(".vc-mobile-ai__panel");
-    const tipEl = wrap.querySelector("#vc-mobile-ai-tip");
     const ta = wrap.querySelector("#vc-mobile-ai-feedback");
     const saveBtn = wrap.querySelector(".vc-mobile-ai__save");
     const reply = wrap.querySelector("#vc-mobile-ai-reply");
@@ -238,72 +254,21 @@
       return "Africa <-> Europe, Dubai, Asia";
     }
 
-    var lastVibecoachLlm = 0;
-    function renderAiCard() {
+    function refreshBrandonQuickActions() {
+      if (!actionsEl) return;
       var mode = detectMode();
       var card = PLAYBOOKS[mode] || PLAYBOOKS.default;
-      var category = readLocal("vibecart-home-lite-category");
-      var partner = readLocal("vibecart-home-lite-preferred-partner");
-      var line = card.title + ". " + card.steps.join(" ") + " Route lens: " + routeLensLabel() + ".";
-      if (category) {
-        line += " Current category memory: " + category + ".";
-      }
-      if (partner) {
-        line += " Preferred partner memory: " + partner + ".";
-      }
-      if (tipEl) {
-        tipEl.textContent = line;
-      }
-      var nowTip = Date.now();
-      if (
-        typeof window !== "undefined" &&
-        typeof window.vibecartAiGenerate === "function" &&
-        tipEl &&
-        nowTip - lastVibecoachLlm > 120000
-      ) {
-        lastVibecoachLlm = nowTip;
-        var pathTip = "";
-        try {
-          pathTip = String(window.location.pathname || "");
-        } catch {
-          pathTip = "";
-        }
-        window
-          .vibecartAiGenerate("vibecoach_tip", {
-            path: pathTip,
-            mode: mode,
-            category: category,
-            partner: partner
-          })
-          .then(function (res) {
-            if (res && res.tip && tipEl) {
-              tipEl.textContent = res.tip;
-            }
-          })
-          .catch(function () {
-            /* keep playbook line */
-          });
-      }
-      if (actionsEl) {
-        actionsEl.innerHTML =
-          '<a class="btn btn-secondary" href="' +
-          card.ctaHref +
-          '">' +
-          card.ctaLabel +
-          "</a>";
-        const cta = actionsEl.querySelector("a");
-        cta?.addEventListener("click", () => {
-          try {
-            if (navigator && navigator.vibrate) navigator.vibrate([10, 30, 12]);
-          } catch {
-            /* ignore */
-          }
+      actionsEl.innerHTML =
+        '<a class="btn btn-secondary" href="' + card.ctaHref + '">' + card.ctaLabel + "</a>";
+      var cta = actionsEl.querySelector("a");
+      if (cta) {
+        cta.addEventListener("click", function () {
+          hardPressVibrate();
         });
       }
     }
 
-    renderAiCard();
-    startVisibilityAwareInterval(renderAiCard, 12000);
+    refreshBrandonQuickActions();
 
     function setMicro(text) {
       if (!micro) return;
@@ -343,7 +308,7 @@
       if (!actionsEl) return;
       var list = Array.isArray(items) ? items : [];
       if (!list.length) {
-        renderAiCard();
+        refreshBrandonQuickActions();
         return;
       }
       actionsEl.innerHTML = "";
@@ -354,6 +319,9 @@
           a.className = "btn btn-secondary";
           a.href = href;
           a.textContent = String(item.label || "Open");
+          a.addEventListener("click", function () {
+            hardPressVibrate();
+          });
           actionsEl.appendChild(a);
           return;
         }
@@ -362,6 +330,7 @@
         btn.className = "btn btn-secondary";
         btn.textContent = String(item.label || "Open");
         btn.addEventListener("click", function () {
+          hardPressVibrate();
           if (item.selector) {
             var target = document.querySelector(String(item.selector));
             if (target && target.scrollIntoView) {
@@ -754,6 +723,16 @@
           ]
         };
       }
+      if (/my business|service studio|custom service desk|salon dashboard|provider suite|mb studio/.test(ask)) {
+        return {
+          reply:
+            "My Business has a dedicated generative studio for custom trades: choose Other service at the gate, then open the studio block. It runs the mb_studio_suite AI on the server while I stay lightweight in-browser.",
+          actions: [
+            { label: "Open AI studio", href: "./my-business.html#mb-service-studio" },
+            { label: "My Business hub", href: "./my-business.html" }
+          ]
+        };
+      }
       if (
         /\b(mental|wellbeing|wellness|stress|anxiety|sleep|therapy|mindfulness|burnout)\b/.test(ask) ||
         /\bhealth coach\b/.test(ask)
@@ -921,7 +900,7 @@
     }
 
     function sanitizeBrandonLlmActions(raw) {
-      var hrefOk = /^\.\/[a-z0-9._-]+\.html(\?[a-z0-9._=&%-]*)?$/i;
+      var hrefOk = /^\.\/[a-z0-9._-]+\.html(\?[a-z0-9._=&%-]*)?(#[-a-z0-9._]*)?$/i;
       if (!Array.isArray(raw)) {
         return [];
       }
@@ -956,7 +935,15 @@
                 return "";
               }
             })(),
-            locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12)
+            locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12),
+            recentQuestions: (function () {
+              try {
+                var p = loadAiProfile();
+                return Array.isArray(p.notes) ? p.notes.slice(-5) : [];
+              } catch {
+                return [];
+              }
+            })()
           })
           .then(function (res) {
             if (res && String(res.reply || "").trim()) {
@@ -1186,12 +1173,8 @@
       if (open) {
         panel.removeAttribute("hidden");
         orb.setAttribute("aria-expanded", "true");
-        renderAiCard();
-        try {
-          if (navigator && navigator.vibrate) navigator.vibrate(16);
-        } catch {
-          /* ignore */
-        }
+        refreshBrandonQuickActions();
+        hardPressVibrate();
       } else {
         panel?.setAttribute("hidden", "hidden");
         orb.setAttribute("aria-expanded", "false");
@@ -1216,7 +1199,8 @@
         if (startY - endY > 18 && panel?.hasAttribute("hidden")) {
           panel.removeAttribute("hidden");
           orb.setAttribute("aria-expanded", "true");
-          renderAiCard();
+          refreshBrandonQuickActions();
+          hardPressVibrate();
         }
       },
       { passive: true }
@@ -1249,6 +1233,7 @@
       if (!text) {
         return;
       }
+      hardPressVibrate();
       var textForLog = text;
       try {
         var key = "vibecart-mobile-ai-feedback-log";
@@ -2672,6 +2657,11 @@
   }
 
   function boot() {
+    try {
+      ensureAiCoach();
+    } catch {
+      /* ignore */
+    }
     const root = document.documentElement;
     if (detectPhoneLikeContext()) {
       root.classList.add("vc-phone");
@@ -2689,7 +2679,6 @@
     if (document.body && document.body.classList.contains("health-coach-page")) {
       if (isApp) {
         document.body.classList.add("vc-mobile-shell");
-        ensureAiCoach();
         initMainSectionRevealForApp();
         ensureAppShopHubLink();
       }
@@ -2697,7 +2686,6 @@
     }
     if (isApp) {
       document.body.classList.add("vc-mobile-shell");
-      ensureAiCoach();
       initMainSectionRevealForApp();
       ensureAppShopHubLink();
       window.addEventListener(
@@ -2751,6 +2739,14 @@
       initFloatingControlLayout();
     }
   }
+
+  window.vibeCartBootBrandonUniversal = function () {
+    try {
+      ensureAiCoach();
+    } catch {
+      /* ignore */
+    }
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);

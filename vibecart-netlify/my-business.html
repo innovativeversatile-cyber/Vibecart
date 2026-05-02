@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk4" />
+  <link rel="stylesheet" href="./styles.css?v=20260509mbstudio1" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -153,6 +153,43 @@
       </p>
     </section>
 
+    <section id="mb-service-studio" class="vc-biz-card vc-mb-service-studio" hidden data-mb-show="provider" tabindex="-1" style="margin-top:0.85rem;border:1px solid rgba(129,187,255,0.35);">
+      <h2 style="margin-top:0;">AI studio · bespoke provider dashboard</h2>
+      <p class="note">
+        This lane opens when you choose <strong>Other service</strong> at the gate — a clean surface away from the default beauty preview block.
+        Answer the prompts, then generate: the <strong>mb_studio_suite</strong> model designs modules, KPIs, widgets, and a launch checklist unique to your trade.
+        Brandon (orb) knows about this studio and will route other users here instead of repeating generic paragraphs.
+      </p>
+      <div class="vc-biz-form">
+        <div class="vc-biz-row">
+          <label for="mbStudioTrade">Trade / studio name</label>
+          <input id="mbStudioTrade" type="text" maxlength="120" placeholder="e.g. Ink &amp; Steel Tattoo" />
+        </div>
+        <label for="mbStudioNiche">What do you actually do? (one tight niche)</label>
+        <textarea id="mbStudioNiche" rows="2" maxlength="400" placeholder="e.g. walk-in tattoos + flash days, private piercings, merch drops…"></textarea>
+        <div class="vc-biz-row">
+          <label for="mbStudioAudience">Primary client</label>
+          <input id="mbStudioAudience" type="text" maxlength="160" placeholder="e.g. first-time clients, bridal parties, corporate wellness…" />
+          <label for="mbStudioTone">Voice</label>
+          <select id="mbStudioTone">
+            <option value="premium-calm">Premium calm</option>
+            <option value="street-bold">Street bold</option>
+            <option value="clinical-clear">Clinical clear</option>
+            <option value="playful-boutique">Playful boutique</option>
+          </select>
+        </div>
+        <label for="mbStudioPain">Top friction today</label>
+        <textarea id="mbStudioPain" rows="2" maxlength="500" placeholder="No-shows, deposits, colour consults, last-minute changes…"></textarea>
+        <label for="mbStudioOps">Daily operations you want on the dashboard</label>
+        <textarea id="mbStudioOps" rows="3" maxlength="500" placeholder="Deposits, calendars, retail upsell, staff shifts, compliance logs…"></textarea>
+        <p class="hero-actions" style="margin-top:0.35rem;">
+          <button type="button" class="btn btn-primary" id="mbStudioGenerate">Generate suite with AI</button>
+          <a class="btn btn-secondary" href="./wellbeing.html">Wellbeing coach lane</a>
+        </p>
+      </div>
+      <div id="mbStudioOutput" class="vc-mb-studio-output" style="margin-top:0.75rem;"></div>
+    </section>
+
     <section id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk" style="margin-top:0" tabindex="-1" data-mb-show="client">
       <p class="note" style="margin-top:0">
         <button type="button" class="btn btn-secondary" id="mbClientChangeService">← Change service line</button>
@@ -244,6 +281,7 @@
           <option value="Bakery / custom cakes">Bakery / custom cakes</option>
           <option value="Nails">Nails</option>
           <option value="Makeup">Makeup</option>
+          <option value="Other service">Other / custom line</option>
         </select>
         <label for="beautyBookingDate">Preferred date</label>
         <input id="beautyBookingDate" type="date" />
@@ -415,7 +453,8 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
-  <script src="./my-business.js?v=20260502mbdesk4" defer></script>
-  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+  <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
+  <script src="./my-business.js?v=20260509studio1" defer></script>
+  <script src="./site-chrome.js?v=20260509chromebrandon1" defer></script>
 </body>
 </html>

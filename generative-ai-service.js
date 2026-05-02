@@ -39,15 +39,20 @@ function extractJsonArray(text) {
   }
 }
 
-async function openaiChat(messages, maxTokens) {
+async function openaiChat(messages, maxTokens, options) {
   if (!OPENAI_API_KEY) {
     return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
   }
+  const opts = options && typeof options === "object" ? options : {};
+  const temperature =
+    typeof opts.temperature === "number" && opts.temperature >= 0 && opts.temperature <= 2
+      ? opts.temperature
+      : 0.35;
   const body = {
     model: OPENAI_MODEL,
     messages,
     max_tokens: Math.min(Number(maxTokens) || 900, 2000),
-    temperature: 0.35
+    temperature
   };
   let res;
   try {
@@ -407,7 +412,8 @@ const BRANDON_SITE_MAP =
     "./buy-journey.html — buyer flow",
     "./sell-journey.html — start selling",
     "./seller-boost.html — seller growth tools",
-    "./my-business.html — seller business desk / bookings",
+    "./my-business.html — seller business desk / bookings (provider: pick Other service for AI studio)",
+    "./my-business.html#mb-service-studio — AI studio wizard (custom service dashboard suite)",
     "./orders-tracking.html — order tracking",
     "./checkout-details.html — checkout safety notes",
     "./payment-confirmation.html — after payment",
@@ -449,7 +455,7 @@ const BRANDON_SITE_MAP =
   ].join("\n");
 
 function sanitizeBrandonGuideActions(raw) {
-  const hrefOk = /^\.\/[a-z0-9._-]+\.html(\?[a-z0-9._=&%-]*)?$/i;
+  const hrefOk = /^\.\/[a-z0-9._-]+\.html(\?[a-z0-9._=&%-]*)?(#[-a-z0-9._]*)?$/i;
   if (!Array.isArray(raw)) {
     return [];
   }
@@ -467,6 +473,62 @@ function sanitizeBrandonGuideActions(raw) {
   return out;
 }
 
+async function generateMbStudioSuiteLLM(input) {
+  if (!isGenerativeAiConfigured()) {
+    return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
+  }
+  const tradeName = String(input.tradeName || "").trim().slice(0, 120);
+  const niche = String(input.niche || "").trim().slice(0, 220);
+  const audience = String(input.audience || "").trim().slice(0, 160);
+  const painPoints = String(input.painPoints || "").trim().slice(0, 500);
+  const dailyOps = String(input.dailyOps || "").trim().slice(0, 500);
+  const tone = String(input.tone || "premium-calm").trim().slice(0, 40);
+  if (!tradeName || niche.length < 4) {
+    return { ok: false, code: "INVALID_INPUT" };
+  }
+  const system =
+    "You are VibeCart's My Business Studio AI — you design a UNIQUE provider dashboard suite for one service business (beauty, wellness, trades, creative, or hybrid). " +
+    "Output ONLY JSON (no markdown). Schema: " +
+    '{"suiteName":"short branded title","tagline":"one line","toneNotes":"how UI copy should feel","modules":[{"id":"snake_case","title":"","purpose":"","kpis":["metric"],"widgets":["what shows on card"]}],"onboardingChecklist":[""],"clientPromise":"one sentence"} . ' +
+    "Provide 5–8 modules tailored to the answers (not a generic salon clone unless inputs say salon). Include at least: intake, scheduling, payments/deposits, portfolio/showcase, client messaging, analytics, compliance reminders where relevant.";
+  const user = JSON.stringify({ tradeName, niche, audience, painPoints, dailyOps, tone });
+  const r = await openaiChat(
+    [{ role: "system", content: system }, { role: "user", content: user }],
+    1400,
+    { temperature: 0.78 }
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  if (!parsed || !String(parsed.suiteName || "").trim()) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  const modules = Array.isArray(parsed.modules) ? parsed.modules.slice(0, 12) : [];
+  return {
+    ok: true,
+    suiteName: String(parsed.suiteName || "").trim().slice(0, 120),
+    tagline: String(parsed.tagline || "").trim().slice(0, 220),
+    toneNotes: String(parsed.toneNotes || "").trim().slice(0, 400),
+    modules: modules.map((m) => ({
+      id: String(m.id || "module")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_")
+        .slice(0, 48),
+      title: String(m.title || "Module").trim().slice(0, 80),
+      purpose: String(m.purpose || "").trim().slice(0, 320),
+      kpis: Array.isArray(m.kpis) ? m.kpis.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 4) : [],
+      widgets: Array.isArray(m.widgets) ? m.widgets.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 5) : []
+    })),
+    onboardingChecklist: Array.isArray(parsed.onboardingChecklist)
+      ? parsed.onboardingChecklist.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 14)
+      : [],
+    clientPromise: String(parsed.clientPromise || "").trim().slice(0, 280),
+    model: r.model
+  };
+}
+
 async function generateBrandonGuideLLM(input) {
   if (!isGenerativeAiConfigured()) {
     return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
@@ -478,10 +540,16 @@ async function generateBrandonGuideLLM(input) {
   if (question.length < 2) {
     return { ok: false, code: "INVALID_INPUT" };
   }
+  const recent = Array.isArray(input.recentQuestions)
+    ? input.recentQuestions.map((x) => String(x || "").trim().slice(0, 200)).filter(Boolean).slice(-5)
+    : [];
   const system =
     "You are Brandon, VibeCart's in-app guide for the static marketplace site (buy/sell cross-border, live shop grids, coach lanes). " +
     "You do NOT browse the live web. Answer in clear English for the user's question. " +
     "Be practical: 1 short paragraph in `reply` (max 720 characters), no markdown, no emojis. " +
+    "Vary wording; do not repeat identical sentences if similar questions appear in recentQuestions. " +
+    "For beauty/service PROVIDERS building a custom desk: the My Business page has a separate generative AI studio (wizard) after they choose **Other service** at the gate — open ./my-business.html#mb-service-studio . " +
+    "Brandon routes there; the heavy dashboard design is produced by server agent `mb_studio_suite`, not by you inventing modules. " +
     "Do not give medical diagnosis or legal advice as authority—point to policy/privacy/security pages when needed. " +
     "Never invent external URLs. For navigation, output 0–4 buttons in JSON `actions` with `label` and `href`. " +
     "Each `href` MUST be copied exactly from the allowed list below (including optional ?query). " +
@@ -492,6 +560,7 @@ async function generateBrandonGuideLLM(input) {
     currentPageUrl: pageUrl,
     currentPath: path,
     locale,
+    recentQuestions: recent,
     siteMap: BRANDON_SITE_MAP
   });
   const r = await openaiChat(
@@ -499,7 +568,8 @@ async function generateBrandonGuideLLM(input) {
       { role: "system", content: system },
       { role: "user", content: user }
     ],
-    900
+    900,
+    { temperature: 0.82 }
   );
   if (!r.ok) {
     return r;
@@ -531,6 +601,9 @@ async function runPublicGenerativeAgent(agent, input) {
   }
   if (agent === "brandon_guide") {
     return generateBrandonGuideLLM(input || {});
+  }
+  if (agent === "mb_studio_suite") {
+    return generateMbStudioSuiteLLM(input || {});
   }
   return { ok: false, code: "INVALID_AGENT" };
 }
@@ -660,6 +733,7 @@ module.exports = {
   generateVibecoachTipLLM,
   generateHotPicksTrendSlidesLLM,
   generateBrandonGuideLLM,
+  generateMbStudioSuiteLLM,
   generateAiOpsRecommendationsLLM,
   runPublicGenerativeAgent,
   runOwnerGenerativeAgent
