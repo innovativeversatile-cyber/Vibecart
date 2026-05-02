@@ -935,6 +935,38 @@ async function ensureBakeryBookingsTable() {
       INDEX idx_bakery_bookings_service (service_id, id)
     )`
   );
+  try {
+    await pool.execute("ALTER TABLE bakery_bookings ADD COLUMN payment_preference VARCHAR(32) NULL");
+  } catch (e) {
+    if (!String(e.message || e).includes("Duplicate column name")) {
+      /* ignore */
+    }
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_bookings ADD COLUMN service_line VARCHAR(120) NULL");
+  } catch (e) {
+    if (!String(e.message || e).includes("Duplicate column name")) {
+      /* ignore */
+    }
+  }
+}
+
+let bakeryBookingMessagesTableEnsured = false;
+async function ensureBakeryBookingMessagesTable() {
+  if (bakeryBookingMessagesTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS bakery_booking_messages (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      booking_id BIGINT UNSIGNED NOT NULL,
+      sender_user_id BIGINT UNSIGNED NOT NULL,
+      body VARCHAR(2000) NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_bakery_msg_booking (booking_id, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  bakeryBookingMessagesTableEnsured = true;
 }
 
 async function handlePublicBakeryServiceUpsert(req, res) {
@@ -1006,6 +1038,7 @@ async function handlePublicBakeryServicesDiscover(req, res) {
   await ensureBakeryServicesTable();
   const urlObj = new URL(req.url, "http://localhost");
   const q = String(urlObj.searchParams.get("q") || "").trim().toLowerCase();
+  const line = String(urlObj.searchParams.get("line") || "").trim().toLowerCase();
   const [rows] = await pool.execute(
     `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url,
             u.full_name
@@ -1016,8 +1049,14 @@ async function handlePublicBakeryServicesDiscover(req, res) {
      LIMIT 150`
   );
   const filtered = rows.filter((row) => {
-    if (!q) return true;
     const text = `${row.business_name || ""} ${row.work_title || ""} ${row.style_theme || ""} ${row.full_name || ""}`.toLowerCase();
+    if (line) {
+      const words = line.split(/[^a-z0-9]+/).filter(Boolean);
+      if (words.length && !words.every((w) => text.includes(w))) {
+        return false;
+      }
+    }
+    if (!q) return true;
     return text.includes(q);
   });
   return sendJson(res, 200, {
@@ -1071,6 +1110,8 @@ async function handlePublicBakeryBookingCreate(req, res) {
   const styleTheme = String(body.styleTheme || "").trim().slice(0, 180);
   const requestDetails = String(body.requestDetails || "").trim().slice(0, 4000);
   const budgetAmount = Number.isFinite(Number(body.budgetAmount)) ? Number(Number(body.budgetAmount).toFixed(2)) : null;
+  const paymentPreference = String(body.paymentPreference || "").trim().slice(0, 32) || null;
+  const serviceLine = String(body.serviceLine || "").trim().slice(0, 120) || null;
   if (!serviceId || !customerName || !eventDate || !requestDetails) {
     return sendJson(res, 400, { ok: false, code: "BOOKING_FIELDS_REQUIRED" });
   }
@@ -1087,8 +1128,8 @@ async function handlePublicBakeryBookingCreate(req, res) {
   }
   const [inserted] = await pool.execute(
     `INSERT INTO bakery_bookings (
-      service_id, baker_user_id, buyer_user_id, customer_name, customer_phone, event_date, occasion_type, style_theme, request_details, budget_amount, booking_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      service_id, baker_user_id, buyer_user_id, customer_name, customer_phone, event_date, occasion_type, style_theme, request_details, budget_amount, payment_preference, service_line, booking_status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
     [
       serviceId,
       Number(svc.baker_user_id),
@@ -1099,18 +1140,18 @@ async function handlePublicBakeryBookingCreate(req, res) {
       occasionType || null,
       styleTheme || null,
       requestDetails,
-      budgetAmount
+      budgetAmount,
+      paymentPreference,
+      serviceLine
     ]
   );
   try {
-    await sendPushToUser(Number(svc.baker_user_id), {
-      title: "New bakery booking request",
-      body: `${customerName} requested "${String(svc.work_title || "your bakery service")}" for ${eventDate}.`,
-      data: {
-        type: "bakery_booking",
-        bookingId: Number(inserted.insertId || 0),
-        serviceId
-      }
+    await sendPushToUser(pool, {
+      userId: Number(svc.baker_user_id),
+      title: "New booking request",
+      message: `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}. Open My Business to accept or decline.`,
+      deepLink: "https://vibe-cart.com/my-business.html",
+      eventType: "bakery_booking_new"
     });
   } catch {
     /* ignore push failures */
@@ -1163,6 +1204,18 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
   if (!bookingId || !allowed.has(status)) {
     return sendJson(res, 400, { ok: false, code: "INVALID_BOOKING_STATUS" });
   }
+  const [beforeRows] = await pool.execute(
+    `SELECT b.id, b.buyer_user_id, s.work_title
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.id = ? AND b.baker_user_id = ?
+     LIMIT 1`,
+    [bookingId, Number(session.user_id)]
+  );
+  const before = beforeRows[0];
+  if (!before) {
+    return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
+  }
   await pool.execute(
     `UPDATE bakery_bookings
      SET booking_status = ?
@@ -1170,7 +1223,186 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
      LIMIT 1`,
     [status, bookingId, Number(session.user_id)]
   );
+  const buyerId = Number(before.buyer_user_id || 0);
+  if (buyerId && (status === "confirmed" || status === "declined")) {
+    try {
+      await sendPushToUser(pool, {
+        userId: buyerId,
+        title: status === "confirmed" ? "Booking confirmed" : "Booking update",
+        message:
+          status === "confirmed"
+            ? `Your booking #${bookingId} for "${String(before.work_title || "service")}" was accepted. You can message your provider in My Business.`
+            : `Your booking request #${bookingId} was declined. Pick another time or provider when you are ready.`,
+        deepLink: "https://vibe-cart.com/my-business.html",
+        eventType: "bakery_booking_status"
+      });
+    } catch {
+      /* ignore */
+    }
+  }
   return sendJson(res, 200, { ok: true, bookingId, status });
+}
+
+async function handlePublicBakeryBookingDetail(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  let bookingId = 0;
+  try {
+    const urlObj = new URL(req.url, "http://localhost");
+    bookingId = Number(urlObj.searchParams.get("bookingId") || 0);
+  } catch {
+    bookingId = 0;
+  }
+  if (!bookingId) {
+    return sendJson(res, 400, { ok: false, code: "BOOKING_ID_REQUIRED" });
+  }
+  await ensureBakeryBookingsTable();
+  const [rows] = await pool.execute(
+    `SELECT b.id, b.service_id, b.baker_user_id, b.buyer_user_id, b.customer_name, b.event_date, b.booking_status,
+            s.work_title, s.business_name
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.id = ?
+     LIMIT 1`,
+    [bookingId]
+  );
+  const row = rows[0];
+  if (!row) {
+    return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
+  }
+  const uid = Number(session.user_id);
+  if (Number(row.baker_user_id) !== uid && Number(row.buyer_user_id || 0) !== uid) {
+    return sendJson(res, 403, { ok: false, code: "BOOKING_FORBIDDEN" });
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    booking: {
+      id: Number(row.id),
+      serviceId: Number(row.service_id),
+      bakerUserId: Number(row.baker_user_id),
+      buyerUserId: row.buyer_user_id == null ? null : Number(row.buyer_user_id),
+      customerName: String(row.customer_name || ""),
+      eventDate: row.event_date,
+      bookingStatus: String(row.booking_status || "pending"),
+      workTitle: String(row.work_title || ""),
+      businessName: String(row.business_name || "")
+    }
+  });
+}
+
+async function handlePublicBakeryBookingMessagesList(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  let bookingId = 0;
+  try {
+    const urlObj = new URL(req.url, "http://localhost");
+    bookingId = Number(urlObj.searchParams.get("bookingId") || 0);
+  } catch {
+    bookingId = 0;
+  }
+  if (!bookingId) {
+    return sendJson(res, 400, { ok: false, code: "BOOKING_ID_REQUIRED" });
+  }
+  await ensureBakeryBookingsTable();
+  await ensureBakeryBookingMessagesTable();
+  const [bRows] = await pool.execute(
+    `SELECT id, baker_user_id, buyer_user_id, booking_status FROM bakery_bookings WHERE id = ? LIMIT 1`,
+    [bookingId]
+  );
+  const b = bRows[0];
+  if (!b) {
+    return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
+  }
+  const uid = Number(session.user_id);
+  if (Number(b.baker_user_id) !== uid && Number(b.buyer_user_id || 0) !== uid) {
+    return sendJson(res, 403, { ok: false, code: "BOOKING_FORBIDDEN" });
+  }
+  if (String(b.booking_status || "").toLowerCase() !== "confirmed") {
+    return sendJson(res, 400, { ok: false, code: "CHAT_NOT_AVAILABLE", message: "Chat opens after the provider accepts." });
+  }
+  const [msgs] = await pool.execute(
+    `SELECT id, sender_user_id, body, created_at
+     FROM bakery_booking_messages
+     WHERE booking_id = ?
+     ORDER BY id ASC
+     LIMIT 200`,
+    [bookingId]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    messages: msgs.map((m) => ({
+      id: Number(m.id),
+      senderUserId: Number(m.sender_user_id),
+      body: String(m.body || ""),
+      createdAt: m.created_at
+    }))
+  });
+}
+
+async function handlePublicBakeryBookingMessagesPost(req, res) {
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  const body = await readJson(req);
+  const bookingId = Number(body.bookingId || 0);
+  const text = String(body.message || body.body || "").trim().slice(0, 2000);
+  if (!bookingId || text.length < 1) {
+    return sendJson(res, 400, { ok: false, code: "MESSAGE_FIELDS_REQUIRED" });
+  }
+  await ensureBakeryBookingsTable();
+  await ensureBakeryBookingMessagesTable();
+  const [bRows] = await pool.execute(
+    `SELECT id, baker_user_id, buyer_user_id, booking_status FROM bakery_bookings WHERE id = ? LIMIT 1`,
+    [bookingId]
+  );
+  const b = bRows[0];
+  if (!b) {
+    return sendJson(res, 404, { ok: false, code: "BOOKING_NOT_FOUND" });
+  }
+  const uid = Number(session.user_id);
+  if (Number(b.baker_user_id) !== uid && Number(b.buyer_user_id || 0) !== uid) {
+    return sendJson(res, 403, { ok: false, code: "BOOKING_FORBIDDEN" });
+  }
+  if (String(b.booking_status || "").toLowerCase() !== "confirmed") {
+    return sendJson(res, 400, { ok: false, code: "CHAT_NOT_AVAILABLE" });
+  }
+  await pool.execute(
+    `INSERT INTO bakery_booking_messages (booking_id, sender_user_id, body) VALUES (?, ?, ?)`,
+    [bookingId, uid, text]
+  );
+  const other =
+    Number(b.baker_user_id) === uid ? Number(b.buyer_user_id || 0) : Number(b.baker_user_id);
+  if (other) {
+    try {
+      await sendPushToUser(pool, {
+        userId: other,
+        title: "New booking message",
+        message: `You have a new message on booking #${bookingId}.`,
+        deepLink: "https://vibe-cart.com/my-business.html",
+        eventType: "bakery_booking_message"
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+  return sendJson(res, 200, { ok: true });
 }
 
 async function ensureOrderSettlementTable() {
@@ -6015,6 +6247,15 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/status/update") {
       return await handlePublicBakeryBookingStatusUpdate(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/bakery/bookings/detail")) {
+      return await handlePublicBakeryBookingDetail(req, res);
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/public/bakery/bookings/messages")) {
+      return await handlePublicBakeryBookingMessagesList(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/bookings/messages") {
+      return await handlePublicBakeryBookingMessagesPost(req, res);
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/orders/track")) {
       return await handlePublicOrderTrack(req, res);

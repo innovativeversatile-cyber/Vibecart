@@ -6561,8 +6561,61 @@ body.mb-mode-provider [data-mb-show="client"] {
   display: none !important;
 }
 
-body.vc-my-business-dashboard #beauty-services {
+body.vc-my-business-dashboard #beauty-services,
+body.vc-my-business-dashboard #mb-client-service-desk {
   scroll-margin-top: 5.5rem;
+}
+
+.vc-mb-client-desk .vc-mb-client-step:not([hidden]) {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}
+
+.vc-mb-slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.vc-mb-slot-grid .vc-mb-slot-btn.is-selected {
+  outline: 2px solid rgba(129, 187, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.vc-mb-pay-choice {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.vc-mb-pay-choice label {
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+}
+
+.vc-mb-wait-banner {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(129, 187, 255, 0.35);
+  background: rgba(129, 187, 255, 0.12);
+  font-size: 0.95rem;
+}
+
+.vc-mb-chat-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.vc-mb-chat-line {
+  margin: 0;
 }
 
 .vc-mobile-streak-chip.is-pop {

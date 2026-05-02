@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Beauty &amp; services · My Business · VibeCart</title>
   <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
-  <link rel="stylesheet" href="./styles.css?v=20260504mbflow1" />
+  <link rel="stylesheet" href="./styles.css?v=20260502mbdesk1" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -153,8 +153,57 @@
       </p>
     </section>
 
-    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="client">
-      <h2 style="margin-top:0;">Beauty &amp; service booking</h2>
+    <section id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk" style="margin-top:0" tabindex="-1" data-mb-show="client">
+      <p class="note" style="margin-top:0">
+        <button type="button" class="btn btn-secondary" id="mbClientChangeService">← Change service line</button>
+      </p>
+      <h2 style="margin-top:0" id="mbSvcDeskTitle">Service booking</h2>
+      <p class="note" id="mbSvcDeskLead"></p>
+      <p class="vc-pill" id="mbClientStepPill" aria-live="polite">Step 1 of 3 · Your details</p>
+      <div id="mbClientStep1" class="vc-mb-client-step">
+        <p class="note">Choose a live provider offer for this service, then add how we should reach you.</p>
+        <label for="mbCliProviderSelect">Provider offer</label>
+        <select id="mbCliProviderSelect"></select>
+        <div class="vc-biz-row" style="margin-top:0.5rem">
+          <input id="mbCliCustName" type="text" placeholder="Your full name" autocomplete="name" />
+          <input id="mbCliCustPhone" type="tel" placeholder="Phone / WhatsApp" autocomplete="tel" />
+        </div>
+      </div>
+      <div id="mbClientStep2" class="vc-mb-client-step" hidden>
+        <label for="mbCliDate">Preferred date</label>
+        <input id="mbCliDate" type="date" />
+        <p class="note" style="margin-top:0.5rem">Pick a time (example slots — your provider confirms the final time).</p>
+        <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
+      </div>
+      <div id="mbClientStep3" class="vc-mb-client-step" hidden>
+        <p class="note">How would you like to pay when the booking is accepted?</p>
+        <div class="vc-mb-pay-choice">
+          <label><input type="radio" name="mbCliPay" value="pay_full" checked /> Pay in full online (Stripe when available)</label>
+          <label><input type="radio" name="mbCliPay" value="deposit" /> Pay a deposit online</label>
+          <label><input type="radio" name="mbCliPay" value="pay_at_venue" /> Pay at the appointment</label>
+        </div>
+        <label for="mbCliDetails" style="margin-top:0.65rem">What do you need? (details for your provider)</label>
+        <textarea id="mbCliDetails" rows="4" placeholder="Describe the service, timing constraints, allergies, references, etc."></textarea>
+      </div>
+      <p class="hero-actions vc-mb-client-nav">
+        <button type="button" class="btn btn-secondary" id="mbClientBack">Back</button>
+        <button type="button" class="btn btn-primary" id="mbClientNext">Continue</button>
+        <button type="button" class="btn btn-primary" id="mbClientSubmitReserve" hidden>Send reservation request</button>
+      </p>
+      <div id="mbClientWaitBanner" class="vc-mb-wait-banner" hidden role="status"></div>
+      <div id="mbClientChatPanel" class="vc-biz-card" style="margin-top:0.85rem; border:1px solid rgba(255,255,255,.12)" hidden>
+        <h3 style="margin-top:0">Messages with your provider</h3>
+        <p class="note" id="mbClientChatHint">Chat opens after your provider accepts this booking.</p>
+        <div id="mbClientChatList" class="vc-mb-chat-list"></div>
+        <div class="vc-biz-row" style="margin-top:0.5rem">
+          <input id="mbClientChatInput" type="text" placeholder="Type a message…" maxlength="2000" />
+          <button type="button" class="btn btn-primary" id="mbClientChatSend">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
+      <h2 style="margin-top:0;">Beauty &amp; service booking (provider preview)</h2>
       <p class="note">
         Run hair, barber, nails, makeup, and <strong>baking</strong> from one dashboard. Pick a service line, show slots, then route prepayment through checkout when you are ready.
       </p>
@@ -188,13 +237,14 @@
       </p>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:0.85rem;" data-mb-show="client" id="mbClientWelcome">
-      <h2 style="margin-top:0;">Your client hub</h2>
+    <section class="vc-biz-card" style="margin-top:0.85rem;" data-mb-show="provider" id="mbClientWelcome">
+      <h2 style="margin-top:0;">What your clients experience</h2>
       <p class="note" id="mbClientWelcomeLine">
-        Use the booking tools above for your selected service line, then send a detailed request below so providers can quote you accurately.
+        Clients pick one service line at the gate, then only see that line’s booking desk — not your full provider tools. They
+        submit a reservation; you accept or decline from Client booking requests below.
       </p>
       <p class="hero-actions">
-        <a class="btn btn-secondary" href="./account-hub.html#bookings">Account · bookings</a>
+        <a class="btn btn-secondary" href="./account-hub.html#bookings">Account hub</a>
         <a class="btn btn-primary" href="./live-market-shops.html?cat=All&amp;view=global">Browse global shops</a>
       </p>
     </section>
@@ -264,9 +314,9 @@
       <div id="bakeryCalendarView" class="vc-booking-list"></div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="client">
-      <h2 style="margin-top:0;">Request a booking (customers)</h2>
-      <p class="note">Pick a published offer (often baking first), add your date, and describe what you need.</p>
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+      <h2 style="margin-top:0;">Test customer request form (provider)</h2>
+      <p class="note">Same API your clients use from their service-only desk. Use this to verify offers appear in search.</p>
       <div class="vc-biz-form">
         <div class="vc-biz-row">
           <input id="discoverQuery" type="search" placeholder="Search baker, style, business..." />
@@ -290,7 +340,7 @@
       </div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;">
+    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Secure order mediator center</h2>
       <p class="note">AI mediator keeps buyer/seller informed. Confirm your side to release escrow automatically when both sides are done.</p>
       <div id="orderMediatorList" class="vc-booking-list"></div>
@@ -298,7 +348,7 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
-  <script src="./my-business.js?v=20260502mbgate1" defer></script>
+  <script src="./my-business.js?v=20260502mbdesk1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

@@ -14,6 +14,38 @@
     { value: "Other service", label: "Other service" }
   ];
 
+  var SERVICE_DESK_META = {
+    "Hair Styling": {
+      title: "Hair styling · client reservation",
+      lead: "You are booking only hair services. Pick a provider offer, then your date and payment preference. Your stylist is notified to accept or decline."
+    },
+    Barber: {
+      title: "Barber · client reservation",
+      lead: "Barber-only desk. Your request goes to the provider you select — no other service lines on this screen."
+    },
+    "Bakery / custom cakes": {
+      title: "Bakery & custom cakes · client reservation",
+      lead: "Cake and bakery requests only. Describe servings, flavours, and date — your baker confirms before payment where required."
+    },
+    Nails: {
+      title: "Nails · client reservation",
+      lead: "Nails-only booking flow. Choose an offer, then propose your slot."
+    },
+    Makeup: {
+      title: "Makeup · client reservation",
+      lead: "Makeup-only desk. Share occasion, look references, and timing."
+    },
+    "Other service": {
+      title: "Service booking",
+      lead: "Request a reservation for the service line you chose at the gate."
+    }
+  };
+
+  var clientWizardStep = 0;
+  var clientSelectedSlot = "";
+  var clientPollTimer = null;
+  var clientActiveBookingId = 0;
+
   var draftPersona = "";
   var draftService = "";
   var gateBusy = false;
@@ -169,15 +201,7 @@
     var pill = document.getElementById("mbSessionPill");
     if (pill) {
       pill.textContent =
-        (persona === "provider" ? "Provider desk" : "Client hub") + " · " + service;
-    }
-
-    var welcome = document.getElementById("mbClientWelcomeLine");
-    if (welcome && persona === "client") {
-      welcome.textContent =
-        "Your session is scoped to " +
-        service +
-        ". Book slots above, then send a detailed request so providers can quote accurately.";
+        (persona === "provider" ? "Provider desk" : "Client booking") + " · " + service;
     }
 
     var tpl = document.getElementById("mbTopProviderTemplate");
@@ -191,11 +215,8 @@
     applyServiceSelects(service);
 
     var beautyH = document.querySelector("#beauty-services h2");
-    if (beautyH && persona === "client") {
-      beautyH.textContent = "Beauty & service booking · " + service;
-    }
     if (beautyH && persona === "provider") {
-      beautyH.textContent = "Beauty & service booking";
+      beautyH.textContent = "Beauty & service booking (provider preview)";
     }
 
     var provLine = document.getElementById("mbProviderSessionLine");
@@ -207,6 +228,13 @@
     }
 
     document.title = (persona === "provider" ? "Provider" : "Client") + " · " + service + " · My Business · VibeCart";
+
+    if (persona === "client") {
+      initClientServiceDesk(service);
+    } else {
+      clearClientPoll();
+      clientActiveBookingId = 0;
+    }
   }
 
   function revealMainAndLoad(cfg) {
@@ -221,9 +249,12 @@
 
   function scrollToBeautyHashIfAllowed(cfg) {
     var raw = String(location.hash || "").replace(/\/$/, "");
-    if (raw !== "#beauty-services") return;
+    if (raw !== "#beauty-services" && raw !== "#mb-client-service-desk") return;
     if (cfg && cfg.persona !== "client") return;
-    var el = document.getElementById("beauty-services");
+    var el =
+      raw === "#mb-client-service-desk"
+        ? document.getElementById("mb-client-service-desk")
+        : document.getElementById("beauty-services");
     if (!el) return;
     requestAnimationFrame(function () {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -233,6 +264,313 @@
         /* ignore */
       }
     });
+  }
+
+  function clearClientPoll() {
+    if (clientPollTimer) {
+      clearInterval(clientPollTimer);
+      clientPollTimer = null;
+    }
+  }
+
+  function returnToServicePicker() {
+    clearClientPoll();
+    clientWizardStep = 0;
+    clientSelectedSlot = "";
+    clientActiveBookingId = 0;
+    clearMbConfig();
+    clearSessionUnlock();
+    draftPersona = "client";
+    draftService = "";
+    document.body.classList.add("mb-boot-pending");
+    var main = document.getElementById("mbMainDashboard");
+    if (main) main.setAttribute("aria-hidden", "true");
+    showGate();
+    showServiceStep();
+  }
+
+  function initClientServiceDesk(service) {
+    var meta = SERVICE_DESK_META[service] || SERVICE_DESK_META["Other service"];
+    var t = document.getElementById("mbSvcDeskTitle");
+    var l = document.getElementById("mbSvcDeskLead");
+    if (t) t.textContent = meta.title;
+    if (l) l.textContent = meta.lead;
+    clientWizardStep = 0;
+    clientSelectedSlot = "";
+    clientActiveBookingId = 0;
+    clearClientPoll();
+    var wait = document.getElementById("mbClientWaitBanner");
+    if (wait) {
+      wait.hidden = true;
+      wait.textContent = "";
+    }
+    var chat = document.getElementById("mbClientChatPanel");
+    if (chat) chat.hidden = true;
+    var hint = document.getElementById("mbClientChatHint");
+    if (hint) {
+      hint.textContent = "Chat opens after your provider accepts this booking.";
+    }
+    var slots = document.getElementById("mbCliSlots");
+    if (slots) slots.innerHTML = "";
+    var d = document.getElementById("mbCliDate");
+    if (d) d.value = "";
+    var det = document.getElementById("mbCliDetails");
+    if (det) det.value = "";
+    renderClientWizardStep();
+    loadDiscoverForClientLine(service)
+      .catch(function () {})
+      .then(function () {
+        tryResumeLastClientBooking();
+      });
+  }
+
+  function tryResumeLastClientBooking() {
+    try {
+      var lb = Number(sessionStorage.getItem("vibecart-mb-last-booking") || 0);
+      if (!lb) return;
+      clientActiveBookingId = lb;
+      api("/api/public/bakery/bookings/detail?bookingId=" + encodeURIComponent(String(lb)))
+        .then(function (res) {
+          var st = String((res.booking && res.booking.bookingStatus) || "").toLowerCase();
+          if (st === "confirmed") {
+            var panel = document.getElementById("mbClientChatPanel");
+            if (panel) panel.hidden = false;
+            var hint = document.getElementById("mbClientChatHint");
+            if (hint) hint.textContent = "Messages on your accepted booking are private to you and your provider.";
+            loadClientChatMessages();
+            clearClientPoll();
+          } else if (st === "declined" || st === "cancelled") {
+            sessionStorage.removeItem("vibecart-mb-last-booking");
+            clientActiveBookingId = 0;
+            setStatus("Your previous request was " + st + ". You can send a new reservation below.");
+          } else {
+            var wait = document.getElementById("mbClientWaitBanner");
+            if (wait) {
+              wait.hidden = false;
+              wait.textContent =
+                "Booking #" +
+                lb +
+                " is waiting for your provider to accept. We will notify you when they respond — you can still send another request below.";
+            }
+            startClientBookingPoll();
+          }
+        })
+        .catch(function () {
+          sessionStorage.removeItem("vibecart-mb-last-booking");
+          clientActiveBookingId = 0;
+        });
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function loadDiscoverForClientLine(serviceLine) {
+    var line = String(serviceLine || "").trim();
+    return api("/api/public/bakery/services/discover?line=" + encodeURIComponent(line)).then(function (res) {
+      var list = Array.isArray(res.services) ? res.services : [];
+      var pick = document.getElementById("mbCliProviderSelect");
+      if (pick) {
+        pick.innerHTML =
+          '<option value="">' +
+          (list.length ? "Choose a live offer" : "No live offers yet — ask a provider to publish") +
+          "</option>" +
+          list
+            .map(function (s) {
+              return (
+                '<option value="' +
+                Number(s.id) +
+                '">' +
+                escapeHtml(s.businessName + " · " + s.workTitle + " · " + Number(s.basePrice || 0).toFixed(2) + " " + (s.currency || "USD")) +
+                "</option>"
+              );
+            })
+            .join("");
+      }
+      return list;
+    });
+  }
+
+  function renderClientWizardStep() {
+    var s1 = document.getElementById("mbClientStep1");
+    var s2 = document.getElementById("mbClientStep2");
+    var s3 = document.getElementById("mbClientStep3");
+    var pill = document.getElementById("mbClientStepPill");
+    var back = document.getElementById("mbClientBack");
+    var next = document.getElementById("mbClientNext");
+    var sub = document.getElementById("mbClientSubmitReserve");
+    if (s1) s1.hidden = clientWizardStep !== 0;
+    if (s2) s2.hidden = clientWizardStep !== 1;
+    if (s3) s3.hidden = clientWizardStep !== 2;
+    var labels = ["Step 1 of 3 · Your details", "Step 2 of 3 · Date & time", "Step 3 of 3 · Pay preference & request"];
+    if (pill) pill.textContent = labels[clientWizardStep] || labels[0];
+    if (back) back.disabled = false;
+    if (next) {
+      next.hidden = clientWizardStep >= 2;
+      next.textContent = clientWizardStep >= 2 ? "Continue" : "Continue";
+    }
+    if (sub) sub.hidden = clientWizardStep < 2;
+    if (clientWizardStep === 1) {
+      buildClientSlotButtons();
+    }
+  }
+
+  function buildClientSlotButtons() {
+    var root = document.getElementById("mbCliSlots");
+    if (!root) return;
+    var times = ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"];
+    root.innerHTML = times
+      .map(function (t) {
+        return '<button type="button" class="btn btn-secondary vc-mb-slot-btn" data-mb-slot="' + t + '">' + t + "</button>";
+      })
+      .join("");
+    root.querySelectorAll("[data-mb-slot]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        root.querySelectorAll(".vc-mb-slot-btn").forEach(function (b) {
+          b.classList.remove("is-selected");
+        });
+        btn.classList.add("is-selected");
+        clientSelectedSlot = String(btn.getAttribute("data-mb-slot") || "");
+      });
+      if (clientSelectedSlot && String(btn.getAttribute("data-mb-slot") || "") === clientSelectedSlot) {
+        btn.classList.add("is-selected");
+      }
+    });
+  }
+
+  function getClientPaymentPref() {
+    var r = document.querySelector('input[name="mbCliPay"]:checked');
+    return r ? String(r.value || "pay_full") : "pay_full";
+  }
+
+  function submitClientReservation() {
+    var cfg = loadMbConfig();
+    var sid = Number(document.getElementById("mbCliProviderSelect") && document.getElementById("mbCliProviderSelect").value);
+    var name = String(document.getElementById("mbCliCustName") && document.getElementById("mbCliCustName").value || "").trim();
+    var phone = String(document.getElementById("mbCliCustPhone") && document.getElementById("mbCliCustPhone").value || "").trim();
+    var date = String(document.getElementById("mbCliDate") && document.getElementById("mbCliDate").value || "").trim();
+    var details = String(document.getElementById("mbCliDetails") && document.getElementById("mbCliDetails").value || "").trim();
+    if (!sid) {
+      setStatus("Choose a provider offer.");
+      return;
+    }
+    if (name.length < 2) {
+      setStatus("Add your name.");
+      return;
+    }
+    if (!date) {
+      setStatus("Pick a preferred date.");
+      return;
+    }
+    if (!clientSelectedSlot) {
+      setStatus("Pick a preferred time slot.");
+      return;
+    }
+    if (details.length < 8) {
+      setStatus("Add a short description of what you need (8+ characters).");
+      return;
+    }
+    var pay = getClientPaymentPref();
+    var line = cfg && cfg.service ? String(cfg.service) : "";
+    var occasion = "Payment: " + pay + " · Time preference: " + clientSelectedSlot;
+    var body = {
+      serviceId: sid,
+      customerName: name,
+      customerPhone: phone,
+      eventDate: date,
+      occasionType: occasion,
+      styleTheme: line,
+      budgetAmount: 0,
+      requestDetails: details,
+      paymentPreference: pay,
+      serviceLine: line
+    };
+    setStatus("Sending reservation…");
+    return api("/api/public/bakery/bookings/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    })
+      .then(function (res) {
+        clientActiveBookingId = Number(res.bookingId || 0);
+        try {
+          sessionStorage.setItem("vibecart-mb-last-booking", String(clientActiveBookingId));
+        } catch (_) {
+          /* ignore */
+        }
+        var wait = document.getElementById("mbClientWaitBanner");
+        if (wait) {
+          wait.hidden = false;
+          wait.textContent =
+            "Request sent. Waiting for your provider to accept — we will notify you here and by push when they respond. You can change service line in a moment.";
+        }
+        setStatus("Reservation sent.");
+        startClientBookingPoll();
+        window.setTimeout(function () {
+          returnToServicePicker();
+        }, 4200);
+      })
+      .catch(function (err) {
+        setStatus("Could not send: " + err.message);
+      });
+  }
+
+  function startClientBookingPoll() {
+    clearClientPoll();
+    if (!clientActiveBookingId) return;
+    clientPollTimer = window.setInterval(function () {
+      api("/api/public/bakery/bookings/detail?bookingId=" + encodeURIComponent(String(clientActiveBookingId)))
+        .then(function (res) {
+          var st = String((res.booking && res.booking.bookingStatus) || "");
+          var hint = document.getElementById("mbClientChatHint");
+          var panel = document.getElementById("mbClientChatPanel");
+          if (st === "confirmed" && panel) {
+            panel.hidden = false;
+            if (hint) hint.textContent = "Your provider accepted — messages below are private to this booking.";
+            loadClientChatMessages();
+            clearClientPoll();
+          }
+        })
+        .catch(function () {});
+    }, 12000);
+  }
+
+  function loadClientChatMessages() {
+    if (!clientActiveBookingId) return;
+    api("/api/public/bakery/bookings/messages?bookingId=" + encodeURIComponent(String(clientActiveBookingId)))
+      .then(function (res) {
+        var list = document.getElementById("mbClientChatList");
+        if (!list || !Array.isArray(res.messages)) return;
+        list.innerHTML = res.messages
+          .map(function (m) {
+            return (
+              '<p class="note vc-mb-chat-line"><strong>#' +
+              Number(m.senderUserId) +
+              "</strong> · " +
+              escapeHtml(m.body) +
+              "</p>"
+            );
+          })
+          .join("");
+      })
+      .catch(function () {});
+  }
+
+  function sendClientChatMessage() {
+    var inp = document.getElementById("mbClientChatInput");
+    var txt = inp ? String(inp.value || "").trim() : "";
+    if (!txt || !clientActiveBookingId) return;
+    api("/api/public/bakery/bookings/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId: clientActiveBookingId, message: txt })
+    })
+      .then(function () {
+        if (inp) inp.value = "";
+        loadClientChatMessages();
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not send message");
+      });
   }
 
   function buildServiceGrid() {
@@ -500,6 +838,91 @@
         showGate();
         showUnlockStep(cfg);
       });
+
+    wireClientDesk();
+  }
+
+  function wireClientDesk() {
+    var chg = document.getElementById("mbClientChangeService");
+    if (chg) {
+      chg.addEventListener("click", function () {
+        returnToServicePicker();
+      });
+    }
+    var back = document.getElementById("mbClientBack");
+    if (back) {
+      back.addEventListener("click", function () {
+        if (clientWizardStep > 0) {
+          clientWizardStep -= 1;
+          renderClientWizardStep();
+          setStatus("");
+        } else {
+          returnToServicePicker();
+        }
+      });
+    }
+    var next = document.getElementById("mbClientNext");
+    if (next) {
+      next.addEventListener("click", function () {
+        if (clientWizardStep === 0) {
+          var sid = Number(
+            (document.getElementById("mbCliProviderSelect") && document.getElementById("mbCliProviderSelect").value) || 0
+          );
+          var name = String(
+            (document.getElementById("mbCliCustName") && document.getElementById("mbCliCustName").value) || ""
+          ).trim();
+          if (!sid) {
+            setStatus("Choose a provider offer.");
+            return;
+          }
+          if (name.length < 2) {
+            setStatus("Add your name.");
+            return;
+          }
+          clientWizardStep = 1;
+          renderClientWizardStep();
+          setStatus("");
+          return;
+        }
+        if (clientWizardStep === 1) {
+          var date = String(
+            (document.getElementById("mbCliDate") && document.getElementById("mbCliDate").value) || ""
+          ).trim();
+          if (!date) {
+            setStatus("Pick a preferred date.");
+            return;
+          }
+          if (!clientSelectedSlot) {
+            setStatus("Pick a preferred time slot.");
+            return;
+          }
+          clientWizardStep = 2;
+          renderClientWizardStep();
+          setStatus("");
+        }
+      });
+    }
+    var sub = document.getElementById("mbClientSubmitReserve");
+    if (sub) {
+      sub.addEventListener("click", function () {
+        submitClientReservation();
+      });
+    }
+    var send = document.getElementById("mbClientChatSend");
+    if (send) {
+      send.addEventListener("click", function () {
+        sendClientChatMessage();
+      });
+    }
+    var chatInput = document.getElementById("mbClientChatInput");
+    if (chatInput) {
+      chatInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          sendClientChatMessage();
+        }
+      });
+    }
   }
 
   function renderKpis(listings, services, bookings) {
@@ -642,6 +1065,16 @@
     var cfg = loadMbConfig();
     if (!cfg || !isSessionUnlocked(cfg.persona, cfg.service)) {
       return;
+    }
+    if (cfg.persona === "client") {
+      setStatus("");
+      return loadDiscoverForClientLine(cfg.service)
+        .then(function () {
+          setStatus("Offers updated for " + cfg.service);
+        })
+        .catch(function (err) {
+          setStatus("Could not refresh offers: " + err.message);
+        });
     }
     setStatus("Loading My Business…");
     return Promise.all([
