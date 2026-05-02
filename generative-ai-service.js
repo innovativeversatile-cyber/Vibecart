@@ -388,6 +388,131 @@ async function generateHotPicksTrendSlidesLLM(input) {
   };
 }
 
+const BRANDON_SITE_MAP =
+  "Allowed action hrefs (use exactly; relative ./ paths only):\n" +
+  [
+    "./index.html — home, hero, marketplace sections",
+    "./browse-categories.html — all category entry points",
+    "./regional-shops.html — regional shop folders",
+    "./live-market.html — live market lane chooser",
+    "./live-market-shops.html?cat=All&view=global — all shops grid",
+    "./live-market-shops.html?cat=Fashion&view=global — fashion grid",
+    "./live-market-shops.html?cat=Electronics&view=global — electronics",
+    "./live-market-shops.html?cat=Books&view=global — books",
+    "./live-market-shops.html?cat=Gaming&view=global — gaming",
+    "./live-market-shops.html?cat=All&region=ie — Ireland region grid",
+    "./bridge-hub.html — cross-border trade bridge",
+    "./global-search.html — search across site",
+    "./hot-picks.html — curated deals lane",
+    "./buy-journey.html — buyer flow",
+    "./sell-journey.html — start selling",
+    "./seller-boost.html — seller growth tools",
+    "./my-business.html — seller business desk / bookings",
+    "./orders-tracking.html — order tracking",
+    "./checkout-details.html — checkout safety notes",
+    "./payment-confirmation.html — after payment",
+    "./top-class-checkout.html — premium checkout lane",
+    "./security-overview.html — trust & safety",
+    "./policy.html — platform policy",
+    "./terms.html — terms of use",
+    "./privacy.html — privacy",
+    "./legal-settings.html — legal preferences",
+    "./account-hub.html — sign-in / account",
+    "./account-welcome.html — account onboarding",
+    "./passport-welcome.html — passport onboarding",
+    "./lane-passport.html — lane passport",
+    "./lane-welcome.html — lane welcome",
+    "./wellbeing.html — wellbeing / health coach tools",
+    "./coach-experience.html — coach sessions / programs",
+    "./coach-payment-recovery.html — coach billing recovery",
+    "./plan-workspace.html — planning workspace",
+    "./world-shop-experience.html — world shop tour",
+    "./popular-market.html — popular market shortcuts",
+    "./service-provider-hub.html — service providers",
+    "./audience-fit.html — audience / ICP fit",
+    "./affiliate-dashboard.html — affiliate tracking",
+    "./rewards-hub.html — rewards",
+    "./insurance.html — insurance lane",
+    "./shops-europe.html — Europe shops",
+    "./shops-mama-africa.html — Africa shops",
+    "./shops-asia.html — Asia shops",
+    "./shops-scents.html — scents / beauty",
+    "./shops-global.html — global mainstream shops",
+    "./fashion-trends.html — fashion trends rail",
+    "./seller-orders.html — seller orders",
+    "./buyer-orders.html — buyer orders",
+    "./my-listings.html — my listings",
+    "./seller-live-preview.html — listing preview",
+    "./admin.html — owner admin (sign-in)",
+    "./admin-app.html — admin app shell",
+    "./admin-messages.html — admin messages"
+  ].join("\n");
+
+function sanitizeBrandonGuideActions(raw) {
+  const hrefOk = /^\.\/[a-z0-9._-]+\.html(\?[a-z0-9._=&%-]*)?$/i;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const out = [];
+  for (const row of raw) {
+    if (!row || typeof row !== "object") continue;
+    let href = String(row.href || "").trim().replace(/\s+/g, "");
+    const label = String(row.label || "Open").trim().slice(0, 48);
+    if (!hrefOk.test(href)) continue;
+    if (/^(javascript|data):/i.test(href)) continue;
+    if (href.length > 220) continue;
+    out.push({ label: label || "Open", href });
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+async function generateBrandonGuideLLM(input) {
+  if (!isGenerativeAiConfigured()) {
+    return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
+  }
+  const question = String(input.question || "").trim().slice(0, 400);
+  const pageUrl = String(input.pageUrl || "").trim().slice(0, 500);
+  const path = String(input.path || "").trim().slice(0, 200);
+  const locale = String(input.locale || "en").trim().slice(0, 12);
+  if (question.length < 2) {
+    return { ok: false, code: "INVALID_INPUT" };
+  }
+  const system =
+    "You are Brandon, VibeCart's in-app guide for the static marketplace site (buy/sell cross-border, live shop grids, coach lanes). " +
+    "You do NOT browse the live web. Answer in clear English for the user's question. " +
+    "Be practical: 1 short paragraph in `reply` (max 720 characters), no markdown, no emojis. " +
+    "Do not give medical diagnosis or legal advice as authority—point to policy/privacy/security pages when needed. " +
+    "Never invent external URLs. For navigation, output 0–4 buttons in JSON `actions` with `label` and `href`. " +
+    "Each `href` MUST be copied exactly from the allowed list below (including optional ?query). " +
+    "If the user is vague, suggest browse-categories + global-search. " +
+    "Output ONLY compact JSON (no markdown): {\"reply\":\"...\",\"actions\":[{\"label\":\"...\",\"href\":\"./page.html\"}]}";
+  const user = JSON.stringify({
+    question,
+    currentPageUrl: pageUrl,
+    currentPath: path,
+    locale,
+    siteMap: BRANDON_SITE_MAP
+  });
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    900
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  const reply = String(parsed?.reply || "").trim() || String(r.text || "").trim().slice(0, 800);
+  const actions = sanitizeBrandonGuideActions(parsed?.actions);
+  if (!reply) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  return { ok: true, reply: reply.slice(0, 900), actions };
+}
+
 async function runPublicGenerativeAgent(agent, input) {
   if (agent === "coach_matcher") {
     return generateCoachMatcherAdvice(input || {});
@@ -403,6 +528,9 @@ async function runPublicGenerativeAgent(agent, input) {
   }
   if (agent === "hot_picks_trends") {
     return generateHotPicksTrendSlidesLLM(input || {});
+  }
+  if (agent === "brandon_guide") {
+    return generateBrandonGuideLLM(input || {});
   }
   return { ok: false, code: "INVALID_AGENT" };
 }
@@ -531,6 +659,7 @@ module.exports = {
   generateSellerGrowthPlanLLM,
   generateVibecoachTipLLM,
   generateHotPicksTrendSlidesLLM,
+  generateBrandonGuideLLM,
   generateAiOpsRecommendationsLLM,
   runPublicGenerativeAgent,
   runOwnerGenerativeAgent

@@ -139,7 +139,7 @@
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
           <strong>Brandon</strong>
-          <span class="vc-mobile-ai__sub">Your intelligent guide · private by design</span>
+          <span class="vc-mobile-ai__sub">Full answers via server AI when configured · rule fallback offline</span>
         </div>
         <p id="vc-mobile-ai-tip" class="vc-mobile-ai__tip"></p>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
@@ -920,6 +920,60 @@
       };
     }
 
+    function sanitizeBrandonLlmActions(raw) {
+      var hrefOk = /^\.\/[a-z0-9._-]+\.html(\?[a-z0-9._=&%-]*)?$/i;
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      var out = [];
+      for (var i = 0; i < raw.length && out.length < 4; i++) {
+        var a = raw[i];
+        if (!a || typeof a !== "object") continue;
+        var href = String(a.href || "")
+          .trim()
+          .replace(/\s+/g, "");
+        var label = String(a.label || "Open")
+          .trim()
+          .slice(0, 48);
+        if (!hrefOk.test(href)) continue;
+        if (/^(javascript|data):/i.test(href)) continue;
+        if (href.length > 220) continue;
+        out.push({ label: label || "Open", href: href });
+      }
+      return out;
+    }
+
+    function tryBrandonLlmThenRules(text) {
+      if (typeof window.vibecartAiGenerate === "function") {
+        return window
+          .vibecartAiGenerate("brandon_guide", {
+            question: String(text || "").trim().slice(0, 400),
+            pageUrl: typeof location !== "undefined" ? String(location.href || "").slice(0, 500) : "",
+            path: (function () {
+              try {
+                return String(window.location.pathname || "").slice(0, 200);
+              } catch {
+                return "";
+              }
+            })(),
+            locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12)
+          })
+          .then(function (res) {
+            if (res && String(res.reply || "").trim()) {
+              return {
+                reply: String(res.reply || "").trim().slice(0, 1200),
+                actions: sanitizeBrandonLlmActions(res.actions)
+              };
+            }
+            return generateBrandonResponse(text);
+          })
+          .catch(function () {
+            return generateBrandonResponse(text);
+          });
+      }
+      return Promise.resolve(generateBrandonResponse(text));
+    }
+
     function detectInteractiveContext() {
       var profile = loadAiProfile();
       var y = 0;
@@ -1190,59 +1244,85 @@
       { passive: true }
     );
 
-    saveBtn?.addEventListener("click", () => {
-      const text = (ta && ta.value) ? String(ta.value).trim() : "";
+    saveBtn?.addEventListener("click", function () {
+      var text = ta && ta.value ? String(ta.value).trim() : "";
       if (!text) {
         return;
       }
+      var textForLog = text;
       try {
-        const key = "vibecart-mobile-ai-feedback-log";
-        const prev = JSON.parse(localStorage.getItem(key) || "[]");
-        prev.push({ t: Date.now(), text });
+        var key = "vibecart-mobile-ai-feedback-log";
+        var prev = JSON.parse(localStorage.getItem(key) || "[]");
+        prev.push({ t: Date.now(), text: textForLog });
         localStorage.setItem(key, JSON.stringify(prev.slice(-40)));
         var profile = loadAiProfile();
-        profile.notes = (profile.notes || []).concat([text]).slice(-20);
+        profile.notes = (profile.notes || []).concat([textForLog]).slice(-20);
         profile.visits = Number(profile.visits || 0) + 1;
-        if (/fashion|beauty|style|scents/.test(text.toLowerCase())) profile.topIntent = "fashion";
-        if (/sell|seller|business|mybusiness/.test(text.toLowerCase())) profile.topIntent = "seller";
-        if (/\b(orders?|tracking|delivery)\b/.test(text.toLowerCase())) profile.topIntent = "orders";
+        if (/fashion|beauty|style|scents/.test(textForLog.toLowerCase())) profile.topIntent = "fashion";
+        if (/sell|seller|business|mybusiness/.test(textForLog.toLowerCase())) profile.topIntent = "seller";
+        if (/\b(orders?|tracking|delivery)\b/.test(textForLog.toLowerCase())) profile.topIntent = "orders";
         saveAiProfile(profile);
-        if (reply) {
-          var result = generateBrandonResponse(text);
-          reply.textContent = result.reply;
-          renderActionSuggestions(result.actions);
-          reply.hidden = false;
-        }
-        ta.value = "";
-        if (saved) {
-          saved.hidden = false;
-          setTimeout(() => {
-            saved.hidden = true;
-          }, 2400);
-        }
       } catch {
         /* ignore */
       }
 
-      const base = readApiBase();
-      if (base && text.length >= 4) {
-        const wid =
+      if (reply) {
+        reply.textContent = "Thinking…";
+        reply.hidden = false;
+      }
+      if (saveBtn) {
+        saveBtn.disabled = true;
+      }
+      tryBrandonLlmThenRules(textForLog)
+        .then(function (result) {
+          if (reply) {
+            reply.textContent = result.reply;
+            renderActionSuggestions(result.actions);
+            reply.hidden = false;
+          }
+          if (ta) {
+            ta.value = "";
+          }
+          if (saved) {
+            saved.hidden = false;
+            window.setTimeout(function () {
+              saved.hidden = true;
+            }, 2400);
+          }
+        })
+        .catch(function () {
+          if (reply) {
+            var fb = generateBrandonResponse(textForLog);
+            reply.textContent = fb.reply;
+            renderActionSuggestions(fb.actions);
+            reply.hidden = false;
+          }
+        })
+        .finally(function () {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+          }
+        });
+
+      var base = readApiBase();
+      if (base && textForLog.length >= 4) {
+        var wid =
           typeof window !== "undefined" && window.__VC_INSTALL_ID__
             ? String(window.__VC_INSTALL_ID__).trim().slice(0, 64)
             : "";
-        const payload = {
-          text,
+        var payload = {
+          text: textForLog,
           locale: (document.documentElement.lang || navigator.language || "").slice(0, 20),
           pageUrl: typeof location !== "undefined" ? String(location.href).slice(0, 512) : ""
         };
         if (wid.length >= 4) {
           payload.installId = wid;
         }
-        fetch(`${base}/api/public/mobile/feedback`, {
+        fetch(base + "/api/public/mobile/feedback", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
-        }).catch(() => {});
+        }).catch(function () {});
       }
     });
   }
