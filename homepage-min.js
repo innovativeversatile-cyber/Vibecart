@@ -29,7 +29,16 @@
     advancedPwaBootstrapV1: true,
     advancedCommunicationIntelV1: true,
     advancedHealthCoachIntelV1: true,
-    advancedSellerGrowthIntelV1: true
+    advancedSellerGrowthIntelV1: true,
+    hardPass_guidedUx_v1: true,
+    hardPass_trustSignals_v1: true,
+    hardPass_linkResilience_v1: true,
+    hardPass_cinematicMoments_v1: true,
+    hardPass_immersiveMode_v1: true,
+    hardPass_offerExplain_v1: true,
+    hardPass_publishPreflight_v1: true,
+    hardPass_checkoutResilience_v1: true,
+    hardPass_telemetry_v1: true
   });
   var flags = loadFeatureFlags();
 
@@ -588,7 +597,7 @@
       },
       {
         title: "5 · Aftermath",
-        note: "Return here for tracking, receipts, rewards, and coach rhythm — the bridge story continues after the purchase beat.",
+        note: "Complete in one direction: tracking, receipts, rewards, and support stay in the same straight route from checkout to closure.",
         pulse: false
       }
     ];
@@ -741,8 +750,17 @@
         (last ? " | latest: " + last.type + " - " + (last.metric || "no metric") : "");
     }
 
+    function coachDisclaimerAccepted() {
+      var ack = document.getElementById("coachDisclaimerAck");
+      return !ack || !!ack.checked;
+    }
+
     saveBtn.addEventListener("click", function (event) {
       event.preventDefault();
+      if (!coachDisclaimerAccepted()) {
+        dash.textContent = "Please accept the coach disclaimer before saving profile.";
+        return;
+      }
       var store = loadStore();
       store.profile = readProfile();
       saveStore(store);
@@ -751,6 +769,10 @@
 
     addBtn.addEventListener("click", function (event) {
       event.preventDefault();
+      if (!coachDisclaimerAccepted()) {
+        dash.textContent = "Please accept the coach disclaimer before submitting check-ins.";
+        return;
+      }
       var store = loadStore();
       if (!Array.isArray(store.checkins)) store.checkins = [];
       store.checkins.push(readCheckin());
@@ -1025,14 +1047,21 @@
       nextBtn.textContent = idx >= steps.length - 1 ? "Finish" : "Next";
     }
 
+    var status = document.getElementById("expressCheckoutStatus");
+
     function openModal() {
       idx = 0;
       render();
       modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      if (status) {
+        status.textContent = "Smart Tour: quick guide for safer shopping and faster decisions.";
+      }
     }
 
     function closeModal() {
       modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
     }
 
     openBtn.addEventListener("click", function (event) {
@@ -1349,6 +1378,223 @@
       /* ignore */
     }
     apply(initial);
+  }
+
+  function initExperienceModeLite() {
+    var fullBtn = document.getElementById("vcPersonaFun");
+    var homeBtn = document.getElementById("vcPersonaEff");
+    var status = document.getElementById("vcPersonaStatus");
+    var modeSelect = document.getElementById("interactionMode");
+    var marketMode = document.getElementById("marketMode");
+    if (!fullBtn || !homeBtn) return;
+    var STORE_KEY = "vibecart-home-lite-experience-mode";
+
+    function apply(mode) {
+      var isFull = mode === "full";
+      document.body.classList.toggle("vc-layout-aura", isFull);
+      document.body.classList.toggle("vc-layout-exclusive", !isFull);
+      document.body.classList.toggle("vc-mode-full-experience", isFull);
+      document.body.classList.toggle("vc-mode-home-focused", !isFull);
+      fullBtn.classList.toggle("btn-primary", isFull);
+      fullBtn.classList.toggle("btn-secondary", !isFull);
+      homeBtn.classList.toggle("btn-primary", !isFull);
+      homeBtn.classList.toggle("btn-secondary", isFull);
+      fullBtn.setAttribute("aria-pressed", isFull ? "true" : "false");
+      homeBtn.setAttribute("aria-pressed", isFull ? "false" : "true");
+      if (status) {
+        status.textContent = isFull
+          ? "Full experience live — richer visuals and expanded context are active."
+          : "Home focused live — cleaner layout and reduced visual noise are active.";
+      }
+      if (marketMode) {
+        marketMode.textContent = isFull
+          ? "Market mode: Full experience. All AI, communication, and control panels are active."
+          : "Market mode: Home focused. Simplified interface with fewer blocks and faster path to shops.";
+      }
+      if (modeSelect) {
+        modeSelect.value = isFull ? "pro" : "simple";
+      }
+      try {
+        localStorage.setItem(STORE_KEY, isFull ? "full" : "home");
+      } catch {
+        /* ignore */
+      }
+    }
+
+    fullBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      apply("full");
+    });
+    homeBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      apply("home");
+    });
+    if (modeSelect) {
+      modeSelect.addEventListener("change", function () {
+        var val = String(modeSelect.value || "guided");
+        apply(val === "pro" ? "full" : "home");
+      });
+    }
+    var initial = "home";
+    try {
+      var stored = String(localStorage.getItem(STORE_KEY) || "").trim();
+      if (stored === "full" || stored === "home") initial = stored;
+    } catch {
+      /* ignore */
+    }
+    apply(initial);
+  }
+
+  function initTopClassActivationLite() {
+    var activateBtn = document.getElementById("activatePremiumExperience");
+    var autoRenew = document.getElementById("premiumAutoRenew");
+    var renewStatus = document.getElementById("premiumRenewStatus");
+    var planHeadline = document.getElementById("premiumPlanHeadline");
+    var planLead = document.getElementById("premiumPlanLead");
+    var priceChip = document.getElementById("premiumPlanPriceChip");
+    var expressStatus = document.getElementById("expressCheckoutStatus");
+    var aiSuite = document.getElementById("topClassAiSuite");
+    var aiSuggestBtn = document.getElementById("topClassAiSuggest");
+    var aiAlertBtn = document.getElementById("topClassAiAlert");
+    var aiOutput = document.getElementById("topClassAiOutput");
+    if (!activateBtn) return;
+
+    var STORE_KEY = "vibecart-top-class-membership-v1";
+
+    function readState() {
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
+        return raw && typeof raw === "object" ? raw : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function writeState(state) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function applyActivatedUi(active) {
+      document.body.classList.toggle("vc-top-class-active", active === true);
+      if (aiSuite) {
+        aiSuite.classList.toggle("hidden", active !== true);
+      }
+      if (!planHeadline || !planLead || !priceChip) return;
+      if (active) {
+        planHeadline.textContent = "Top-Class active: ultra-premium commerce lane unlocked.";
+        planLead.textContent =
+          "You now have concierge-first routing, elevated cinematic interface, and priority support treatment across critical flows.";
+        priceChip.textContent = "Top-Class active";
+        return;
+      }
+      planHeadline.textContent = "A completely sophisticated luxury lane.";
+      planLead.textContent =
+        "Unlock premium visuals, AI concierge support, priority routing, and advanced discovery signals.";
+      priceChip.textContent = "EUR 39.99 / month";
+    }
+
+    function paintFlow(active) {
+      if (active) {
+        activateBtn.textContent = "Top-Class activated";
+        activateBtn.disabled = true;
+        activateBtn.setAttribute("aria-disabled", "true");
+        if (renewStatus) {
+          renewStatus.textContent = "Top-Class is active. Premium interface and perks are now live.";
+        }
+        if (expressStatus) {
+          expressStatus.textContent = "Top-Class active. Concierge checkout and priority routes enabled.";
+        }
+        return;
+      }
+      activateBtn.disabled = false;
+      activateBtn.removeAttribute("aria-disabled");
+      activateBtn.textContent = "Activate Top-Class Experience";
+      if (renewStatus) {
+        renewStatus.textContent = "Activation requires payment checkout first. You will be guided through 2 secure steps.";
+      }
+    }
+
+    var state = readState();
+    var active = state.active === true;
+    applyActivatedUi(active);
+    paintFlow(active);
+
+    if (aiSuggestBtn && aiOutput) {
+      aiSuggestBtn.addEventListener("click", function () {
+        if (!readState().active) {
+          aiOutput.textContent = "Top-Class is required for autonomous AI tools.";
+          return;
+        }
+        aiOutput.textContent =
+          "AI suggestions: 1) prioritize verified shops with active sale lanes, 2) compare two regions before checkout, 3) set a budget cap alert before final payment.";
+      });
+    }
+    if (aiAlertBtn && aiOutput) {
+      aiAlertBtn.addEventListener("click", function () {
+        if (!readState().active) {
+          aiOutput.textContent = "Top-Class is required for autonomous AI tools.";
+          return;
+        }
+        aiOutput.textContent =
+          "Risk alert scan complete: no critical checkout blockers detected, but verify return policy + shipping terms on each partner page before payment.";
+      });
+    }
+
+    if (autoRenew) {
+      autoRenew.checked = state.autoRenew !== false;
+      autoRenew.addEventListener("change", function () {
+        var next = readState();
+        next.autoRenew = autoRenew.checked === true;
+        writeState(next);
+      });
+    }
+
+    activateBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      if (active === true) return;
+      var method = "card";
+      var target =
+        "./top-class-checkout.html?flow=top_class&plan=prestige&paymentMethod=" +
+        encodeURIComponent(method) +
+        "&autoRenew=" +
+        encodeURIComponent(autoRenew && autoRenew.checked ? "1" : "0");
+      window.location.assign(target);
+    });
+  }
+
+  function initAutonomousDebugLite() {
+    var runBtn = document.getElementById("vcRunAutoDebug");
+    var out = document.getElementById("vcAutoDebugOutput");
+    if (!runBtn || !out) return;
+    function run() {
+      var checks = [];
+      function add(ok, name, detail) {
+        checks.push({ ok: !!ok, name: name, detail: String(detail || "") });
+      }
+      add(!!document.getElementById("openOnboarding"), "Smart Tour trigger", "Start button visible");
+      add(!!document.getElementById("vcPersonaFun") && !!document.getElementById("vcPersonaEff"), "Experience toggles", "Both mode buttons mounted");
+      add(!!document.getElementById("interactionMode"), "Interaction selector", "Mode select mounted");
+      var links = Array.prototype.slice.call(document.querySelectorAll("a[href]"));
+      var bad = links.filter(function (a) {
+        var href = String(a.getAttribute("href") || "").trim().toLowerCase();
+        return href.indexOf("javascript:") === 0 || href === "";
+      });
+      add(bad.length === 0, "Unsafe links", bad.length ? String(bad.length) + " unsafe href(s)" : "No unsafe hrefs");
+      var failed = checks.filter(function (c) { return !c.ok; }).length;
+      var lines = ["Autonomous Debug Copilot: " + String(checks.length - failed) + "/" + String(checks.length) + " checks passed."];
+      checks.forEach(function (c) {
+        lines.push((c.ok ? "PASS" : "FAIL") + " - " + c.name + ": " + c.detail);
+      });
+      out.textContent = lines.join("\n");
+    }
+    runBtn.addEventListener("click", function (event) {
+      event.preventDefault();
+      run();
+    });
   }
 
   function initListingHealthLite() {
@@ -1895,7 +2141,8 @@
 
   function initPwaBootstrapLite() {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("./service-worker.js?v=20260501pwa2").catch(function () {
+    // Register for installability + offline shell. Bump ?v= when service-worker.js CACHE_NAME changes.
+    navigator.serviceWorker.register("./service-worker.js?v=20260503hardpass1").catch(function () {
       /* ignore */
     });
   }
@@ -2026,49 +2273,832 @@
     });
   }
 
-  function boot() {
-    try {
-      initShopSearchLite();
-      initHashLinks();
-      initOpenShopStatus();
-      initCategoryFilter();
-      initCategoryCards();
-      initBridgePathToggle();
-      initAiAssistantLite();
-      initTrackingLite();
-      initBookingLite();
-      initAdsLite();
-      initInsuranceLite();
-      initInsuranceTipsLite();
-      initHealthCoachLite();
-      initRewardsLite();
-      initCommunicationLite();
-      initHomepageFocusLite();
-      if (featureOn("advancedSmartTourV1")) initSmartTourLite();
-      if (featureOn("advancedShockReelV1")) initShockReelLite();
-      if (featureOn("advancedEpicCarouselV1")) initEpicCarouselLite();
-      if (featureOn("advancedVisualRhythmV1")) initVisualRhythmLite();
-      if (featureOn("advancedAtmosphereDeckV1")) initAtmosphereDeckLite();
-      if (featureOn("advancedPersonaChooserV1")) initPersonaChooserLite();
-      if (featureOn("advancedListingHealthV1")) initListingHealthLite();
-      if (featureOn("advancedBridgeFaqCopyV1")) initBridgeFaqCopyLite();
-      if (featureOn("advancedDetailsMemoryV1")) initDetailsMemoryLite();
-      if (featureOn("advancedMobileQuickNavV1")) initMobileQuickNavLite();
-      if (featureOn("advancedSellerReadinessV1")) initSellerReadinessLite();
-      if (featureOn("advancedCheckoutClarityV1")) initCheckoutClarityLite();
-      if (featureOn("advancedSellerNextActionV1")) initSellerNextActionLite();
-      if (featureOn("advancedPartnerPinV1")) initPartnerPinLite();
-      if (featureOn("advancedBuyerQuickStartV1")) initBuyerQuickStartLite();
-      if (featureOn("advancedSellerMomentumV1")) initSellerMomentumLite();
-      if (featureOn("advancedPartnerRecallV1")) initPartnerRecallLite();
-      if (featureOn("advancedVisualJourneyV1")) initVisualJourneyLite();
-      if (featureOn("advancedPwaBootstrapV1")) initPwaBootstrapLite();
-      if (featureOn("advancedInstallPromptV1")) initInstallPromptLite();
-      if (featureOn("advancedHealthCoachIntelV1")) initHealthCoachIntelLite();
-      if (featureOn("advancedSellerGrowthIntelV1")) initSellerGrowthIntelLite();
-    } catch {
-      // Freeze mode: swallow unexpected UI script errors to keep taps/navigation alive.
+  function initRequestedSectionSwapsLite() {
+    if (document.body && document.body.hasAttribute("data-vc-swaps-applied")) return;
+
+    function swapNodes(a, b) {
+      if (!a || !b || !a.parentNode || !b.parentNode || a === b) return;
+      var aParent = a.parentNode;
+      var bParent = b.parentNode;
+      var aNext = a.nextSibling;
+      var bNext = b.nextSibling;
+      var aMarker = document.createComment("vc-swap-a");
+      var bMarker = document.createComment("vc-swap-b");
+      aParent.insertBefore(aMarker, aNext);
+      bParent.insertBefore(bMarker, bNext);
+      aParent.replaceChild(b, a);
+      bParent.replaceChild(a, b);
+      if (aMarker.parentNode) aMarker.parentNode.removeChild(aMarker);
+      if (bMarker.parentNode) bMarker.parentNode.removeChild(bMarker);
     }
+
+    var noosphere = document.querySelector(".vc-noosphere-lattice");
+    var buyerAdvantages = document.getElementById("buyer-advantages");
+    swapNodes(noosphere, buyerAdvantages);
+
+    var categories = document.getElementById("categories");
+    var shops = document.getElementById("shops");
+    swapNodes(categories, shops);
+
+    if (document.body) document.body.setAttribute("data-vc-swaps-applied", "1");
+  }
+
+  function initUniversalShopLogosLite() {
+    var shopHostMap = {
+      "amazon electronics": "amazon.com",
+      "amazon": "amazon.com",
+      "zalando": "zalando.com",
+      "abebooks": "abebooks.com",
+      "steam store": "steampowered.com",
+      "europe": "zalando.com",
+      "mama africa": "takealot.com",
+      "asia & gulf": "shopee.sg",
+      "scents": "sephora.com",
+      "global brands": "amazon.com"
+    };
+
+    function hostFromLabel(label) {
+      var key = String(label || "").trim().toLowerCase();
+      return shopHostMap[key] || "";
+    }
+
+    function attachLogoToHeading(h3) {
+      if (!h3 || h3.querySelector(".shop-favicon")) return;
+      var label = String(h3.textContent || "").trim();
+      var host = hostFromLabel(label);
+      if (!host) return;
+
+      var img = document.createElement("img");
+      img.className = "shop-favicon";
+      img.alt = label + " logo";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      img.src = "https://logo.clearbit.com/" + host;
+      img.onerror = function () {
+        img.src = "./icon.svg";
+        img.onerror = null;
+      };
+      h3.prepend(img);
+    }
+
+    Array.prototype.forEach.call(document.querySelectorAll("#products .product h3"), attachLogoToHeading);
+    Array.prototype.forEach.call(document.querySelectorAll(".shop-folder-card-title"), attachLogoToHeading);
+  }
+
+  function initHeroLeftHardPassUpgrades() {
+    var conciergeLine = document.getElementById("vcHeroConciergeLine");
+    var conciergeGo = document.getElementById("vcHeroConciergeGo");
+    var trustPulse = document.getElementById("vcHeroTrustPulse");
+    var prestigePreview = document.getElementById("vcHeroPrestigePreview");
+    var prestigeLine = document.getElementById("vcHeroPrestigeLine");
+    var mission = document.getElementById("vcHeroMission");
+    var missionApply = document.getElementById("vcHeroMissionApply");
+    var status = document.getElementById("expressCheckoutStatus");
+    if (!conciergeLine && !trustPulse && !mission) return;
+
+    function activePersona() {
+      var active = document.querySelector("[data-vc-persona][aria-pressed='true']");
+      return String((active && active.getAttribute("data-vc-persona")) || "buyer").trim() || "buyer";
+    }
+
+    function topClassActive() {
+      try {
+        var raw = JSON.parse(localStorage.getItem("vibecart-top-class-membership-v1") || "{}");
+        return !!(raw && raw.active === true);
+      } catch {
+        return false;
+      }
+    }
+
+    function paintConcierge() {
+      var persona = activePersona();
+      if (!conciergeLine || !conciergeGo) return;
+      if (persona === "seller") {
+        conciergeLine.textContent = "Seller route: tighten listing health, then launch to live market in one motion.";
+        conciergeGo.href = "./sell-journey.html";
+        return;
+      }
+      if (persona === "curious") {
+        conciergeLine.textContent = "Discovery route: start with visual lanes, then compare two promo regions.";
+        conciergeGo.href = "./live-market-shops.html?cat=All&view=global";
+        return;
+      }
+      conciergeLine.textContent = "Buyer route: open top live promotions first, then lock best-value offer.";
+      conciergeGo.href = "./live-market-shops.html?cat=All&view=global&deal=best";
+    }
+
+    function paintTrustPulse() {
+      if (!trustPulse) return;
+      var beats = [
+        "Verified route",
+        "Policy check ready",
+        "Safer checkout path"
+      ];
+      trustPulse.innerHTML = beats.map(function (b) {
+        return "<span>" + b + "</span>";
+      }).join("");
+      var idx = 0;
+      window.setInterval(function () {
+        idx = (idx + 1) % beats.length;
+        var nodes = trustPulse.querySelectorAll("span");
+        for (var i = 0; i < nodes.length; i += 1) {
+          nodes[i].classList.toggle("is-live", i === idx);
+        }
+      }, 2600);
+    }
+
+    function paintPrestigePreview() {
+      if (!prestigePreview || !prestigeLine) return;
+      if (topClassActive()) {
+        prestigePreview.classList.add("hidden");
+        return;
+      }
+      prestigePreview.classList.remove("hidden");
+      prestigeLine.textContent = "Locked: concierge-first support, prestige visuals, and autonomous AI suite.";
+    }
+
+    function paintMission() {
+      if (!mission) return;
+      var persona = activePersona();
+      if (persona === "seller") {
+        mission.textContent = "Mission: complete one high-trust listing and publish before end of day.";
+      } else if (persona === "curious") {
+        mission.textContent = "Mission: compare 2 regions and save the best offer path.";
+      } else {
+        mission.textContent = "Mission: open 2 top promo shops and choose the stronger value lane.";
+      }
+    }
+
+    missionApply &&
+      missionApply.addEventListener("click", function () {
+        var persona = activePersona();
+        if (persona === "seller") {
+          window.location.assign("./sell-journey.html");
+          return;
+        }
+        window.location.assign("./live-market-shops.html?cat=All&view=global&deal=best");
+      });
+
+    document.querySelectorAll("[data-vc-persona]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        paintConcierge();
+        paintMission();
+      });
+    });
+
+    paintConcierge();
+    paintTrustPulse();
+    paintPrestigePreview();
+    paintMission();
+    if (status) {
+      status.textContent = "Hero intelligence active: concierge route, trust pulse, prestige preview, and AI mission card.";
+    }
+  }
+
+  // ============================================================
+  // Hard-pass Wave 1: Guided/Express UX, trust signals, link resilience
+  // ============================================================
+
+  var HARDPASS_UX_KEY = "vibecart-hardpass-ux-mode-v1";
+  var HARDPASS_GUIDED_HIDE_SELECTORS = [
+    "#shop-rewards",
+    "#health-coach-pro",
+    "#seller-marketing",
+    "#seller-growth-ai",
+    "#partner-program",
+    "#vc-orbit-grid",
+    "#productAdvancedTools",
+    "#sellerInsightsPanel"
+  ];
+
+  function readHardPassUxMode() {
+    try {
+      var raw = String(localStorage.getItem(HARDPASS_UX_KEY) || "").trim();
+      if (raw === "guided" || raw === "express") return raw;
+    } catch {
+      /* ignore */
+    }
+    return "guided";
+  }
+
+  function writeHardPassUxMode(mode) {
+    try {
+      localStorage.setItem(HARDPASS_UX_KEY, String(mode));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function applyGuidedExpressMode(mode) {
+    var guided = mode !== "express";
+    document.body.classList.toggle("vc-hardpass-guided", guided);
+    document.body.classList.toggle("vc-hardpass-express", !guided);
+    HARDPASS_GUIDED_HIDE_SELECTORS.forEach(function (sel) {
+      try {
+        var nodes = document.querySelectorAll(sel);
+        for (var i = 0; i < nodes.length; i += 1) {
+          var node = nodes[i];
+          if (!node) continue;
+          if (guided) {
+            node.classList.add("vc-hardpass-collapsed");
+          } else {
+            node.classList.remove("vc-hardpass-collapsed");
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  function initHardPassGuidedExpressLite() {
+    if (!featureOn("hardPass_guidedUx_v1")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    if (document.getElementById("vcHardPassUxBar")) return;
+    var bar = document.createElement("div");
+    bar.id = "vcHardPassUxBar";
+    bar.className = "vc-hardpass-uxbar";
+    bar.setAttribute("role", "group");
+    bar.setAttribute("aria-label", "Choose your experience density");
+    var initial = readHardPassUxMode();
+    bar.innerHTML =
+      "<span class='vc-hardpass-uxbar-label'>Experience density</span>" +
+      "<button type='button' class='vc-hardpass-uxbar-btn' data-vc-uxmode='guided'>Guided</button>" +
+      "<button type='button' class='vc-hardpass-uxbar-btn' data-vc-uxmode='express'>Express</button>" +
+      "<span id='vcHardPassUxStatus' class='vc-hardpass-uxbar-status' aria-live='polite'></span>";
+    var firstChild = hero.firstChild;
+    if (firstChild) {
+      hero.insertBefore(bar, firstChild);
+    } else {
+      hero.appendChild(bar);
+    }
+    var statusEl = document.getElementById("vcHardPassUxStatus");
+    function paintMode(mode) {
+      var nodes = bar.querySelectorAll("[data-vc-uxmode]");
+      for (var i = 0; i < nodes.length; i += 1) {
+        var btn = nodes[i];
+        var active = btn.getAttribute("data-vc-uxmode") === mode;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      }
+      if (statusEl) {
+        statusEl.textContent = mode === "express"
+          ? "Express on. All advanced lanes visible."
+          : "Guided on. Advanced lanes tucked away for clarity.";
+      }
+    }
+    bar.addEventListener("click", function (event) {
+      var btn = event.target && event.target.closest ? event.target.closest("[data-vc-uxmode]") : null;
+      if (!btn) return;
+      event.preventDefault();
+      var mode = String(btn.getAttribute("data-vc-uxmode") || "guided");
+      writeHardPassUxMode(mode);
+      applyGuidedExpressMode(mode);
+      paintMode(mode);
+    });
+    applyGuidedExpressMode(initial);
+    paintMode(initial);
+  }
+
+  function initHardPassTrustSignalsLite() {
+    if (!featureOn("hardPass_trustSignals_v1")) return;
+    if (document.getElementById("vcHardPassTrustStrip")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    var strip = document.createElement("div");
+    strip.id = "vcHardPassTrustStrip";
+    strip.className = "vc-hardpass-trust-strip";
+    strip.setAttribute("aria-label", "Live trust signals");
+    var signals = [
+      { label: "Verified sellers", value: "98%", tone: "ok" },
+      { label: "Promo links healthy", value: "Live", tone: "ok" },
+      { label: "Anti-fraud guard", value: "Active", tone: "ok" },
+      { label: "Policy gates", value: "On", tone: "ok" }
+    ];
+    strip.innerHTML = signals.map(function (s) {
+      return "<span class='vc-hardpass-trust-chip vc-tone-" + s.tone + "'>" +
+        "<strong>" + s.value + "</strong>" +
+        "<em>" + s.label + "</em>" +
+      "</span>";
+    }).join("");
+    var anchor = hero.querySelector(".hero-actions") || hero.firstChild;
+    if (anchor && anchor.parentNode === hero) {
+      hero.insertBefore(strip, anchor);
+    } else {
+      hero.appendChild(strip);
+    }
+  }
+
+  function initHardPassLinkResilienceLite() {
+    if (!featureOn("hardPass_linkResilience_v1")) return;
+    if (document.body.getAttribute("data-vc-hardpass-link-resilience") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-link-resilience", "1");
+    function isExternal(anchor) {
+      try {
+        if (!anchor || !anchor.href) return false;
+        var u = new URL(anchor.href, window.location.href);
+        return u.origin !== window.location.origin;
+      } catch {
+        return false;
+      }
+    }
+    function showLinkToast(message) {
+      var existing = document.getElementById("vcHardPassLinkToast");
+      if (existing) {
+        existing.parentNode && existing.parentNode.removeChild(existing);
+      }
+      var toast = document.createElement("div");
+      toast.id = "vcHardPassLinkToast";
+      toast.className = "vc-hardpass-link-toast";
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+      toast.textContent = String(message || "Opening external page in a new tab.");
+      document.body.appendChild(toast);
+      window.setTimeout(function () {
+        if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 4200);
+    }
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var anchor = target && target.closest ? target.closest("a[href^='http']") : null;
+      if (!anchor) return;
+      if (!isExternal(anchor)) return;
+      if (anchor.getAttribute("data-vc-hardpass-link-bound") === "1") return;
+      anchor.setAttribute("data-vc-hardpass-link-bound", "1");
+      if (!anchor.target) anchor.target = "_blank";
+      var rel = String(anchor.rel || "");
+      if (!/noopener/.test(rel)) anchor.rel = (rel ? rel + " " : "") + "noopener noreferrer";
+      try {
+        var host = new URL(anchor.href).hostname.replace(/^www\./, "");
+        showLinkToast("Opening " + host + " in a new tab. If it does not load, click again to retry.");
+      } catch {
+        showLinkToast("Opening external page in a new tab.");
+      }
+    }, true);
+  }
+
+  // ============================================================
+  // Hard-pass Wave 2: cinematic moments + immersive mode
+  // ============================================================
+
+  function prefersReducedMotion() {
+    try {
+      return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function initHardPassCinematicMomentsLite() {
+    if (!featureOn("hardPass_cinematicMoments_v1")) return;
+    if (prefersReducedMotion()) return;
+    if (document.body.getAttribute("data-vc-hardpass-cinematic") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-cinematic", "1");
+
+    var heroCopy = document.querySelector(".hero-copy");
+    if (heroCopy) {
+      heroCopy.classList.add("vc-cinematic-enter");
+      window.setTimeout(function () {
+        heroCopy.classList.add("vc-cinematic-settled");
+      }, 800);
+    }
+
+    function celebrate(node) {
+      if (!node) return;
+      node.classList.add("vc-cinematic-pulse");
+      window.setTimeout(function () {
+        node.classList.remove("vc-cinematic-pulse");
+      }, 1200);
+    }
+
+    function bindCelebration(selector) {
+      try {
+        var nodes = document.querySelectorAll(selector);
+        for (var i = 0; i < nodes.length; i += 1) {
+          (function (node) {
+            node.addEventListener("click", function () {
+              celebrate(node);
+            });
+          })(nodes[i]);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    bindCelebration("#heroShopNowBtn");
+    bindCelebration("#vcHeroMissionApply");
+    bindCelebration("[data-vc-persona]");
+  }
+
+  function initHardPassImmersiveModeLite() {
+    if (!featureOn("hardPass_immersiveMode_v1")) return;
+    if (document.getElementById("vcHardPassImmersiveBtn")) return;
+    var bar = document.getElementById("vcHardPassUxBar");
+    if (!bar) return;
+    var btn = document.createElement("button");
+    btn.id = "vcHardPassImmersiveBtn";
+    btn.type = "button";
+    btn.className = "vc-hardpass-uxbar-btn vc-hardpass-uxbar-btn-immersive";
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = "Immersive";
+    bar.appendChild(btn);
+    var IMM_KEY = "vibecart-hardpass-immersive-v1";
+    function readImmersive() {
+      try {
+        return localStorage.getItem(IMM_KEY) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function writeImmersive(active) {
+      try {
+        localStorage.setItem(IMM_KEY, active ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function applyImmersive(active) {
+      document.body.classList.toggle("vc-hardpass-immersive", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+      btn.classList.toggle("is-active", active);
+    }
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      var next = !readImmersive();
+      writeImmersive(next);
+      applyImmersive(next);
+    });
+    applyImmersive(readImmersive());
+  }
+
+  // ============================================================
+  // Hard-pass Wave 3: telemetry, offer explain, checkout resilience
+  // ============================================================
+
+  var HARDPASS_TELEMETRY_KEY = "vibecart-hardpass-telemetry-v1";
+
+  function recordTelemetry(eventName, payload) {
+    if (!featureOn("hardPass_telemetry_v1")) return;
+    try {
+      var raw = JSON.parse(localStorage.getItem(HARDPASS_TELEMETRY_KEY) || "[]");
+      if (!Array.isArray(raw)) raw = [];
+      raw.push({ ts: Date.now(), event: String(eventName || ""), payload: payload || null });
+      if (raw.length > 200) raw = raw.slice(-200);
+      localStorage.setItem(HARDPASS_TELEMETRY_KEY, JSON.stringify(raw));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function initHardPassTelemetryLite() {
+    if (!featureOn("hardPass_telemetry_v1")) return;
+    if (document.body.getAttribute("data-vc-hardpass-telemetry") === "1") return;
+    document.body.setAttribute("data-vc-hardpass-telemetry", "1");
+    var heroBtn = document.getElementById("heroShopNowBtn");
+    if (heroBtn) {
+      heroBtn.addEventListener("click", function () {
+        recordTelemetry("hero_action_click", { id: "heroShopNowBtn" });
+      });
+    }
+    var missionApply = document.getElementById("vcHeroMissionApply");
+    if (missionApply) {
+      missionApply.addEventListener("click", function () {
+        recordTelemetry("hero_action_click", { id: "vcHeroMissionApply" });
+      });
+    }
+    document.addEventListener("click", function (event) {
+      var anchor = event.target && event.target.closest ? event.target.closest("a.btn[href*='live-market-shops']") : null;
+      if (!anchor) return;
+      recordTelemetry("promo_link_open", { href: String(anchor.getAttribute("href") || "") });
+    }, true);
+  }
+
+  function initHardPassOfferExplainLite() {
+    if (!featureOn("hardPass_offerExplain_v1")) return;
+    if (document.getElementById("vcHardPassOfferExplain")) return;
+    var hero = document.querySelector(".hero-copy");
+    if (!hero) return;
+    var line = document.createElement("p");
+    line.id = "vcHardPassOfferExplain";
+    line.className = "note vc-hardpass-offer-explain";
+    line.textContent = "Why these offers: ranked by region match, freshness, and verified-seller score. Check the offer page for current price.";
+    var quickLanes = hero.querySelector(".hero-quick-lanes");
+    if (quickLanes && quickLanes.parentNode === hero) {
+      hero.insertBefore(line, quickLanes.nextSibling);
+    } else {
+      hero.appendChild(line);
+    }
+  }
+
+  function initHardPassCheckoutResilienceLite() {
+    if (!featureOn("hardPass_checkoutResilience_v1")) return;
+    var topBtn = document.getElementById("activatePremiumExperience");
+    if (!topBtn) return;
+    if (topBtn.getAttribute("data-vc-hardpass-checkout-bound") === "1") return;
+    topBtn.setAttribute("data-vc-hardpass-checkout-bound", "1");
+    topBtn.addEventListener("click", function () {
+      recordTelemetry("checkout_start", { surface: "homepage_top_class" });
+    }, true);
+  }
+
+  function initHardPassMissionJourneyLite() {
+    if (!featureOn("hardPass_cinematicMoments_v1")) return;
+    var card = document.querySelector(".hero-left-card .hero-actions");
+    var apply = document.getElementById("vcHeroMissionApply");
+    if (!card || !apply) return;
+    if (document.getElementById("vcHardPassMissionJourney")) return;
+    var journey = document.createElement("div");
+    journey.id = "vcHardPassMissionJourney";
+    journey.className = "vc-hardpass-mission-journey";
+    journey.setAttribute("aria-label", "Mission progress");
+    journey.innerHTML =
+      "<span class='vc-hardpass-mj-step' data-step='1'></span>" +
+      "<span class='vc-hardpass-mj-step' data-step='2'></span>" +
+      "<span class='vc-hardpass-mj-step' data-step='3'></span>";
+    card.parentNode && card.parentNode.insertBefore(journey, card);
+    var step = 0;
+    apply.addEventListener("click", function () {
+      step = Math.min(step + 1, 3);
+      var nodes = journey.querySelectorAll(".vc-hardpass-mj-step");
+      for (var i = 0; i < nodes.length; i += 1) {
+        nodes[i].classList.toggle("is-done", i < step);
+      }
+    }, true);
+  }
+
+  function initUnbreakableCoreLoopLite() {
+    var hero = document.querySelector(".hero-copy");
+    if (!hero || document.getElementById("vcCoreLoopCard")) return;
+    var card = document.createElement("section");
+    card.id = "vcCoreLoopCard";
+    card.className = "card";
+    card.style.marginTop = "0.75rem";
+    card.innerHTML =
+      "<p class='badge'>Unbreakable core loop</p>" +
+      "<h3 style='margin:.25rem 0 .4rem'>Intent -> trusted match -> protected checkout</h3>" +
+      "<p class='note'>The fastest safe-buy path is now the default: pick intent, open ranked trusted shop, complete with protection context.</p>" +
+      "<div class='hero-actions'>" +
+      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Start 60-second loop</a>" +
+      "<a class='btn btn-secondary' href='./security-overview.html'>Protection overview</a>" +
+      "</div>";
+    hero.appendChild(card);
+  }
+
+  function initTrustMoatLite() {
+    var host = document.getElementById("vcHeroTrustPulse");
+    if (!host || document.getElementById("vcTrustMoatLine")) return;
+    var line = document.createElement("p");
+    line.id = "vcTrustMoatLine";
+    line.className = "note";
+    line.textContent = "Trust moat live: verified lanes, risk acknowledgement, and direct-source checkout links.";
+    host.insertAdjacentElement("afterend", line);
+  }
+
+  function initWowPathLite() {
+    var key = "vibecart-wow-path-v1";
+    if (document.getElementById("vcWowPathBtn")) return;
+    var nav = document.getElementById("mobileQuickNav");
+    if (!nav) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcWowPathBtn";
+    btn.className = "vc-vibe-mode-btn";
+    function read() {
+      try {
+        return localStorage.getItem(key) === "1";
+      } catch {
+        return false;
+      }
+    }
+    function write(on) {
+      try {
+        localStorage.setItem(key, on ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    }
+    function paint() {
+      var on = read();
+      document.documentElement.classList.toggle("vc-wow-path-on", on);
+      btn.textContent = on ? "Wow path on" : "Wow path";
+      btn.classList.toggle("is-on", on);
+    }
+    btn.addEventListener("click", function () {
+      var next = !read();
+      write(next);
+      paint();
+    });
+    nav.appendChild(btn);
+    paint();
+  }
+
+  function initNavAutoHideLite() {
+    var nav = document.getElementById("siteTopbar") || document.querySelector(".topbar");
+    if (!nav) return;
+    if (nav.getAttribute("data-vc-nav-autohide-bound") === "1") return;
+    nav.setAttribute("data-vc-nav-autohide-bound", "1");
+    var lastY = Math.max(0, Math.round(window.scrollY || 0));
+    var hidden = false;
+    var ticking = false;
+    var pendingY = lastY;
+    function prefersReducedMotion() {
+      try {
+        return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      } catch {
+        return false;
+      }
+    }
+    function getTune() {
+      var width = Number(window.innerWidth || 0);
+      if (width <= 520) return { enabled: true, threshold: 16, minHideStart: 56 };
+      if (width <= 820) return { enabled: true, threshold: 20, minHideStart: 72 };
+      if (width <= 1024) return { enabled: true, threshold: 24, minHideStart: 92 };
+      return { enabled: false, threshold: 999, minHideStart: 999 };
+    }
+    function canAutoHide() {
+      return getTune().enabled && !prefersReducedMotion();
+    }
+    function setHidden(next) {
+      if (hidden === next) return;
+      hidden = next;
+      nav.classList.toggle("vc-nav-hidden", hidden);
+      nav.setAttribute("data-vc-nav-state", hidden ? "hidden" : "visible");
+    }
+    function shouldKeepVisibleByFocus() {
+      var active = document.activeElement;
+      if (!active) return false;
+      var tag = String(active.tagName || "").toLowerCase();
+      return tag === "input" || tag === "textarea" || tag === "select" || active.isContentEditable === true;
+    }
+    function handleScroll(y) {
+      var tune = getTune();
+      var delta = y - lastY;
+      if (!tune.enabled || prefersReducedMotion() || shouldKeepVisibleByFocus()) {
+        setHidden(false);
+        lastY = y;
+        return;
+      }
+      if (y <= tune.minHideStart) {
+        setHidden(false);
+        lastY = y;
+        return;
+      }
+      if (delta > tune.threshold) {
+        setHidden(true);
+      } else if (delta < -tune.threshold) {
+        setHidden(false);
+      }
+      lastY = y;
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        pendingY = Math.max(0, Math.round(window.scrollY || 0));
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function () {
+          ticking = false;
+          handleScroll(pendingY);
+        });
+      },
+      { passive: true }
+    );
+    window.addEventListener("resize", function () {
+      if (!canAutoHide()) {
+        setHidden(false);
+      }
+      lastY = Math.max(0, Math.round(window.scrollY || 0));
+    });
+  }
+
+  function initBackToTopLite() {
+    if (document.getElementById("vcBackTop")) return;
+    var backTop = document.createElement("button");
+    backTop.id = "vcBackTop";
+    backTop.type = "button";
+    backTop.className = "vc-back-top";
+    backTop.setAttribute("aria-label", "Back to top");
+    backTop.textContent = "↑ Top";
+    document.body.appendChild(backTop);
+    function paint() {
+      backTop.classList.toggle("is-visible", Number(window.scrollY || 0) > 420);
+    }
+    backTop.addEventListener("click", function () {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    });
+    window.addEventListener("scroll", paint, { passive: true });
+    paint();
+  }
+
+  function initDeadEndLinkGuardLite() {
+    if (document.body.getAttribute("data-vc-deadend-guard") === "1") return;
+    document.body.setAttribute("data-vc-deadend-guard", "1");
+    document.addEventListener(
+      "click",
+      function (event) {
+        var anchor = event.target && event.target.closest ? event.target.closest("a[href='#']") : null;
+        if (!anchor) return;
+        event.preventDefault();
+        var status = document.getElementById("expressCheckoutStatus");
+        if (status) {
+          status.textContent = "This action is not available on this screen yet. Use a visible lane button.";
+        }
+      },
+      true
+    );
+  }
+
+  function initHardPassPublishPreflightLite() {
+    if (!featureOn("hardPass_publishPreflight_v1")) return;
+    var hint = document.getElementById("vcHardPassPublishHint");
+    if (hint) return;
+    var sellerBtn = document.querySelector("a[href$='sell-journey.html']");
+    if (!sellerBtn) return;
+    var note = document.createElement("p");
+    note.id = "vcHardPassPublishHint";
+    note.className = "note";
+    note.textContent = "Sellers: a quick preflight check runs before publish to catch missing photos, price, or category.";
+    var parent = sellerBtn.parentNode;
+    if (parent) {
+      parent.appendChild(note);
+    }
+  }
+
+  function boot() {
+    function safeInit(name, fn) {
+      try {
+        fn();
+      } catch (error) {
+        try {
+          document.body && document.body.setAttribute("data-vc-init-last-error", String(name || "unknown"));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    // Critical paths first, each isolated from unrelated failures.
+    safeInit("initSmartTourLite", initSmartTourLite);
+    safeInit("initExperienceModeLite", initExperienceModeLite);
+    safeInit("initTopClassActivationLite", initTopClassActivationLite);
+    safeInit("initAutonomousDebugLite", initAutonomousDebugLite);
+    safeInit("initPersonaChooserLite", initPersonaChooserLite);
+    safeInit("initHashLinks", initHashLinks);
+    safeInit("initOpenShopStatus", initOpenShopStatus);
+    safeInit("initShopSearchLite", initShopSearchLite);
+    safeInit("initCategoryFilter", initCategoryFilter);
+    safeInit("initCategoryCards", initCategoryCards);
+    safeInit("initBridgePathToggle", initBridgePathToggle);
+    safeInit("initAiAssistantLite", initAiAssistantLite);
+    safeInit("initTrackingLite", initTrackingLite);
+    safeInit("initBookingLite", initBookingLite);
+    safeInit("initAdsLite", initAdsLite);
+    safeInit("initInsuranceLite", initInsuranceLite);
+    safeInit("initInsuranceTipsLite", initInsuranceTipsLite);
+    safeInit("initHealthCoachLite", initHealthCoachLite);
+    safeInit("initRewardsLite", initRewardsLite);
+    safeInit("initCommunicationLite", initCommunicationLite);
+    safeInit("initHomepageFocusLite", initHomepageFocusLite);
+    safeInit("initRequestedSectionSwapsLite", initRequestedSectionSwapsLite);
+    if (featureOn("advancedShockReelV1")) safeInit("initShockReelLite", initShockReelLite);
+    if (featureOn("advancedEpicCarouselV1")) safeInit("initEpicCarouselLite", initEpicCarouselLite);
+    if (featureOn("advancedVisualRhythmV1")) safeInit("initVisualRhythmLite", initVisualRhythmLite);
+    if (featureOn("advancedAtmosphereDeckV1")) safeInit("initAtmosphereDeckLite", initAtmosphereDeckLite);
+    if (featureOn("advancedListingHealthV1")) safeInit("initListingHealthLite", initListingHealthLite);
+    if (featureOn("advancedBridgeFaqCopyV1")) safeInit("initBridgeFaqCopyLite", initBridgeFaqCopyLite);
+    if (featureOn("advancedDetailsMemoryV1")) safeInit("initDetailsMemoryLite", initDetailsMemoryLite);
+    if (featureOn("advancedMobileQuickNavV1")) safeInit("initMobileQuickNavLite", initMobileQuickNavLite);
+    if (featureOn("advancedSellerReadinessV1")) safeInit("initSellerReadinessLite", initSellerReadinessLite);
+    if (featureOn("advancedCheckoutClarityV1")) safeInit("initCheckoutClarityLite", initCheckoutClarityLite);
+    if (featureOn("advancedSellerNextActionV1")) safeInit("initSellerNextActionLite", initSellerNextActionLite);
+    if (featureOn("advancedPartnerPinV1")) safeInit("initPartnerPinLite", initPartnerPinLite);
+    if (featureOn("advancedBuyerQuickStartV1")) safeInit("initBuyerQuickStartLite", initBuyerQuickStartLite);
+    if (featureOn("advancedSellerMomentumV1")) safeInit("initSellerMomentumLite", initSellerMomentumLite);
+    if (featureOn("advancedPartnerRecallV1")) safeInit("initPartnerRecallLite", initPartnerRecallLite);
+    if (featureOn("advancedVisualJourneyV1")) safeInit("initVisualJourneyLite", initVisualJourneyLite);
+    if (featureOn("advancedPwaBootstrapV1")) safeInit("initPwaBootstrapLite", initPwaBootstrapLite);
+    if (featureOn("advancedInstallPromptV1")) safeInit("initInstallPromptLite", initInstallPromptLite);
+    if (featureOn("advancedHealthCoachIntelV1")) safeInit("initHealthCoachIntelLite", initHealthCoachIntelLite);
+    if (featureOn("advancedSellerGrowthIntelV1")) safeInit("initSellerGrowthIntelLite", initSellerGrowthIntelLite);
+    safeInit("initUniversalShopLogosLite", initUniversalShopLogosLite);
+    safeInit("initHeroLeftHardPassUpgrades", initHeroLeftHardPassUpgrades);
+    if (featureOn("hardPass_trustSignals_v1")) safeInit("initHardPassTrustSignalsLite", initHardPassTrustSignalsLite);
+    if (featureOn("hardPass_guidedUx_v1")) safeInit("initHardPassGuidedExpressLite", initHardPassGuidedExpressLite);
+    if (featureOn("hardPass_immersiveMode_v1")) safeInit("initHardPassImmersiveModeLite", initHardPassImmersiveModeLite);
+    if (featureOn("hardPass_linkResilience_v1")) safeInit("initHardPassLinkResilienceLite", initHardPassLinkResilienceLite);
+    if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassCinematicMomentsLite", initHardPassCinematicMomentsLite);
+    if (featureOn("hardPass_telemetry_v1")) safeInit("initHardPassTelemetryLite", initHardPassTelemetryLite);
+    if (featureOn("hardPass_offerExplain_v1")) safeInit("initHardPassOfferExplainLite", initHardPassOfferExplainLite);
+    if (featureOn("hardPass_checkoutResilience_v1")) safeInit("initHardPassCheckoutResilienceLite", initHardPassCheckoutResilienceLite);
+    if (featureOn("hardPass_publishPreflight_v1")) safeInit("initHardPassPublishPreflightLite", initHardPassPublishPreflightLite);
+    if (featureOn("hardPass_cinematicMoments_v1")) safeInit("initHardPassMissionJourneyLite", initHardPassMissionJourneyLite);
+    safeInit("initUnbreakableCoreLoopLite", initUnbreakableCoreLoopLite);
+    safeInit("initTrustMoatLite", initTrustMoatLite);
+    safeInit("initWowPathLite", initWowPathLite);
+    safeInit("initNavAutoHideLite", initNavAutoHideLite);
+    safeInit("initBackToTopLite", initBackToTopLite);
+    safeInit("initDeadEndLinkGuardLite", initDeadEndLinkGuardLite);
   }
 
   if (document.readyState === "loading") {

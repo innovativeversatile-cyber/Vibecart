@@ -1058,7 +1058,7 @@
       var t = String(intent || "buy").toLowerCase();
       var map = {
         buy: {
-          title: "Find real bargains in seconds with trusted checkout.",
+          title: "Deals, bakers, barbers, and beauty — trusted checkout in seconds.",
           sub: "Buyer mode on. Brandon will prioritize quick deals, safe payments, and fast routes.",
           cta: "Show me best deal now"
         },

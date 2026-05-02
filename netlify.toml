@@ -5,6 +5,7 @@
 # If /api/health returns 404 "Application not found", this hostname is wrong or that Railway service is gone.
 # Explicit no-op build: avoids long default Node installs when Netlify detects root package.json.
 [build]
+  # Production site files live in deploy-web/ — edits under vibecart-netlify/ are not published unless copied here.
   publish = "deploy-web"
   command = "exit 0"
 

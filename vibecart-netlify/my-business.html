@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Business · My Hustle · VibeCart</title>
-  <meta name="description" content="Run your hustle dashboard with listings, bakery portfolio, and client bookings in one place." />
-  <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+  <title>Beauty &amp; services · My Business · VibeCart</title>
+  <meta name="description" content="Beauty and service booking, slots, and prepay — plus listings, portfolio cards, and client requests in one My Business hub." />
+  <link rel="stylesheet" href="./styles.css?v=20260503hardpass1" />
   <style>
     .vc-biz-shell { max-width: 1120px; margin: 0 auto; }
     .vc-biz-hero { border: 1px solid rgba(255,255,255,0.18); border-radius: 16px; padding: 1rem; background: linear-gradient(135deg, rgba(129,187,255,0.16), rgba(255,153,202,0.12)); }
@@ -16,10 +16,40 @@
     .vc-pill { display: inline-flex; border-radius: 999px; padding: .25rem .6rem; background: rgba(255,255,255,.09); font-size: .8rem; }
     .vc-work-list, .vc-booking-list { display: grid; gap: .65rem; margin-top: .7rem; }
     .vc-work-item, .vc-booking-item { border: 1px solid rgba(255,255,255,.12); border-radius: 12px; padding: .75rem; }
-    .vc-work-item img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; margin-top: .45rem; }
+    .vc-work-thumb {
+      margin-top: .45rem;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(0,0,0,0.28);
+      aspect-ratio: 16 / 10;
+      max-height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .vc-work-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+    }
+    #beauty-services .vc-visual-step h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    #beauty-services .vc-visual-step img {
+      width: 26px;
+      height: 26px;
+      object-fit: contain;
+      flex-shrink: 0;
+      margin: 0;
+    }
   </style>
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page vc-my-business-dashboard">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
@@ -28,9 +58,46 @@
   </header>
 
   <main class="section alt shops-lane-main vc-biz-shell">
-    <section class="vc-biz-hero">
-      <h1 class="shops-lane-title">My Business / My Hustle Dashboard</h1>
-      <p class="note">Run products, service offers, and Bakery bookings from one attractive control center.</p>
+    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1">
+      <h2 style="margin-top:0;">Beauty &amp; service booking</h2>
+      <p class="note">
+        Run hair, barber, nails, makeup, and <strong>baking</strong> from one dashboard. Pick a service line, show slots, then route prepayment through checkout when you are ready.
+      </p>
+      <div class="vc-visual-grid" style="margin:0.65rem 0;">
+        <article class="vc-visual-step">
+          <h3><img src="./icon-maskable.svg" alt="" width="26" height="26" decoding="async" />Service previews</h3>
+          <p>Each line (including bakery) can carry its own visuals, packages, and deposit rules.</p>
+        </article>
+        <article class="vc-visual-step">
+          <h3><img src="./icon-maskable.svg" alt="" width="26" height="26" decoding="async" />Built for conversion</h3>
+          <p>Designed to move clients from browsing into booked, prepayment-ready slots.</p>
+        </article>
+      </div>
+      <div class="ai-grid">
+        <label for="beautyBookingServiceType">Service type</label>
+        <select id="beautyBookingServiceType">
+          <option value="Hair Styling">Hair styling / hairdresser</option>
+          <option value="Barber">Barber</option>
+          <option value="Bakery / custom cakes">Bakery / custom cakes</option>
+          <option value="Nails">Nails</option>
+          <option value="Makeup">Makeup</option>
+        </select>
+        <label for="beautyBookingDate">Preferred date</label>
+        <input id="beautyBookingDate" type="date" />
+        <button type="button" class="btn btn-primary" id="beautyShowBookingSlots">Show available slots</button>
+      </div>
+      <div id="beautyBookingSlotsResult" class="ai-result" style="margin-top:0.5rem;"></div>
+      <p class="hero-actions" style="margin-top:0.65rem;">
+        <a id="beautyBookingPrepayRouteBtn" class="btn btn-primary" href="./account-hub.html#bookings">Require prepayment to confirm booking</a>
+        <a class="btn btn-secondary" href="./service-provider-hub.html">Provider payment template</a>
+      </p>
+    </section>
+
+    <section class="vc-biz-hero" style="margin-top:0.85rem;">
+      <h1 class="shops-lane-title">My Business overview</h1>
+      <p class="note">
+        Beauty and service tools are at the top of this page. Here: live counts for listings, service cards, and booking requests — refresh anytime.
+      </p>
       <p class="hero-actions">
         <button class="btn btn-primary" id="bizRefreshBtn" type="button">Refresh dashboard</button>
         <span class="note" id="bizStatus" aria-live="polite"></span>
@@ -39,13 +106,26 @@
     </section>
 
     <section class="vc-biz-card" style="margin-top:.95rem;">
-      <h2 style="margin-top:0;">Bakery setup (for bakers)</h2>
-      <p class="note">Add your best work images, prices, and clear requirements so clients can book with confidence.</p>
+      <h2 style="margin-top:0;">Service portfolio (baking, beauty, hair &amp; more)</h2>
+      <p class="note">
+        <strong>Baking</strong> is one service line here — same card flow works for cakes, hair, barber, nails, or makeup. Add your best photo, price, and requirements so clients can book with confidence.
+      </p>
       <div class="vc-biz-form">
         <div class="vc-biz-row">
-          <input id="bakeryBusinessName" type="text" placeholder="Bakery name (e.g. Sweet Crumbs)" />
-          <input id="bakeryWorkTitle" type="text" placeholder="Work type (e.g. Wedding cake 3-tier)" />
-          <input id="bakeryStyleTheme" type="text" placeholder="Style/theme (minimal, floral, luxury...)" />
+          <label for="bakeryServiceCategory">Service line</label>
+          <select id="bakeryServiceCategory">
+            <option value="Bakery / custom cakes">Bakery / custom cakes</option>
+            <option value="Hair Styling">Hair styling / hairdresser</option>
+            <option value="Barber">Barber</option>
+            <option value="Nails">Nails</option>
+            <option value="Makeup">Makeup</option>
+            <option value="Other service">Other service</option>
+          </select>
+        </div>
+        <div class="vc-biz-row">
+          <input id="bakeryBusinessName" type="text" placeholder="Business or artist name (e.g. Sweet Crumbs)" />
+          <input id="bakeryWorkTitle" type="text" placeholder="Offer title (e.g. Wedding cake 3-tier, Bridal glam, Fade &amp; beard)" />
+          <input id="bakeryStyleTheme" type="text" placeholder="Style / theme (minimal, floral, luxury…)" />
         </div>
         <div class="vc-biz-row">
           <input id="bakeryBasePrice" type="number" min="0" step="0.01" placeholder="Base price" />
@@ -54,7 +134,7 @@
         </div>
         <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
         <p class="hero-actions">
-          <button class="btn btn-primary" id="bakerySaveBtn" type="button">Save bakery work card</button>
+          <button class="btn btn-primary" id="bakerySaveBtn" type="button">Save service work card</button>
         </p>
       </div>
       <div id="bakeryWorkList" class="vc-work-list"></div>
@@ -68,8 +148,8 @@
     </section>
 
     <section class="vc-biz-card" style="margin-top:.95rem;">
-      <h2 style="margin-top:0;">Client booking requests (for bakers)</h2>
-      <p class="note">Review requests, dates, style/theme preferences, and update status quickly.</p>
+      <h2 style="margin-top:0;">Client booking requests</h2>
+      <p class="note">Review requests, dates, style or service line, and update status quickly.</p>
       <div id="bakeryBookingList" class="vc-booking-list"></div>
     </section>
 
@@ -79,8 +159,8 @@
     </section>
 
     <section class="vc-biz-card" style="margin-top:.95rem;">
-      <h2 style="margin-top:0;">Book a bakery service (for customers)</h2>
-      <p class="note">Tell the baker what you want, pick your date, and provide style + theme details.</p>
+      <h2 style="margin-top:0;">Request a booking (customers)</h2>
+      <p class="note">Pick a published offer (often baking first), add your date, and describe what you need.</p>
       <div class="vc-biz-form">
         <div class="vc-biz-row">
           <input id="discoverQuery" type="search" placeholder="Search baker, style, business..." />
@@ -111,7 +191,7 @@
     </section>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
-  <script src="./my-business.js?v=20260501sessbind1" defer></script>
+  <script src="./my-business.js?v=20260503hardpass1" defer></script>
   <script src="./site-chrome.js?v=20260421chrome1" defer></script>
 </body>
 </html>

@@ -10,7 +10,7 @@
 </head>
 <body class="start-selling-page">
   <header class="shops-lane-topbar">
-    <a href="./index.html#beauty-booking" class="btn btn-secondary">Back</a>
+    <a href="./my-business.html#beauty-services" class="btn btn-secondary">Back</a>
     <h1 class="shops-lane-title" id="spHubTitle">Provider Booking Template</h1>
   </header>
   <main class="section">
@@ -24,7 +24,7 @@
       <label for="spBusinessName">Business name</label>
       <input id="spBusinessName" type="text" placeholder="Example: Papa Fresh Cuts" />
       <label for="spServiceType">Main service</label>
-      <input id="spServiceType" type="text" placeholder="Barber / Nails / Makeup / Hair" />
+      <input id="spServiceType" type="text" placeholder="Bakery / Barber / Hair / Nails / Makeup" />
       <label for="spPaymentUrl">Payment link (required prepay route)</label>
       <input id="spPaymentUrl" type="url" placeholder="https://yourpay.example/checkout" />
       <label for="spDepositAmount">Deposit amount</label>
@@ -84,6 +84,11 @@
           title: "Barber booking studio",
           lead: "Highlight cuts, fades, beard work, and timing so walk-ins become booked clients.",
           bullets: ["Fade and line-up tiers", "Beard detailing options", "Express vs full grooming"]
+        },
+        "Bakery / custom cakes": {
+          title: "Bakery & custom cake booking studio",
+          lead: "Show tiers, flavors, lead times, and deposit rules so celebration orders convert with clarity.",
+          bullets: ["Wedding and event cake pathways", "Allergen and dietary notes", "Pickup vs delivery windows"]
         }
       };
       var activeTheme = serviceThemes[serviceHint] || serviceThemes["Hair Styling"];
