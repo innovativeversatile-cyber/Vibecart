@@ -324,7 +324,12 @@
     : "manual";
   var map = mapByRegion[resolvedRegion] || mapByRegion.global;
   var categories = Object.keys(map);
-  var cat = categories.indexOf(requested) >= 0 ? requested : "Electronics";
+  var cat =
+    requested === "All"
+      ? "All"
+      : categories.indexOf(requested) >= 0
+        ? requested
+        : "Electronics";
   var trustedHosts = buildTrustedHostSet(mapByRegion);
   function renderRegionResolutionHint() {
     if (!regionSelect) return;
@@ -492,6 +497,15 @@
   }
 
   function listForCategory(category) {
+    if (category === "All") {
+      var combined = [];
+      categories.forEach(function (categoryName) {
+        (map[categoryName] || []).forEach(function (shop) {
+          combined.push({ shop: shop, category: categoryName });
+        });
+      });
+      return combined;
+    }
     return (map[category] || []).map(function (shop) {
       return { shop: shop, category: category };
     });
@@ -499,7 +513,10 @@
 
   function paintCategoryUi(active) {
     if (intro) {
-      intro.textContent = "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
+      intro.textContent =
+        active === "All"
+          ? "Live market shops across every category below. Pick a shop and continue checkout on that site."
+          : "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
     }
     if (topCta) {
       topCta.setAttribute("href", "./live-market.html");
@@ -701,7 +718,7 @@
     Array.prototype.slice.call(tabsWrap.querySelectorAll("[data-live-cat]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         var next = String(btn.getAttribute("data-live-cat") || "").trim();
-        if (!next || categories.indexOf(next) < 0) {
+        if (!next || (next !== "All" && categories.indexOf(next) < 0)) {
           return;
         }
         cat = next;

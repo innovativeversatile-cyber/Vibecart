@@ -45,6 +45,37 @@
         { name: "GOG", url: "https://www.gog.com", desc: "Poland-based DRM-free games." }
       ]
     },
+    ie: {
+      Electronics: [
+        { name: "Amazon Ireland", url: "https://www.amazon.ie", desc: "Republic of Ireland — electronics, tech, and home." },
+        { name: "Currys Ireland", url: "https://www.currys.ie", desc: "IE — laptops, TVs, appliances, and accessories." },
+        { name: "DID Electrical", url: "https://www.did.ie", desc: "Ireland — electrical and tech retail." },
+        { name: "Harvey Norman Ireland", url: "https://www.harveynorman.ie", desc: "IE — computers, gaming, and home tech." },
+        { name: "Argos Ireland", url: "https://www.argos.ie", desc: "IE — click-and-collect tech and home." },
+        { name: "Currys UK (NI)", url: "https://www.currys.co.uk", desc: "Northern Ireland / UK — electronics (many NI shoppers use UK routes)." }
+      ],
+      Fashion: [
+        { name: "Brown Thomas", url: "https://www.brownthomas.com", desc: "Ireland — luxury fashion, beauty, and gifts." },
+        { name: "Dunnes Stores", url: "https://www.dunnesstores.com", desc: "All-island favourite — fashion, home, and groceries online." },
+        { name: "Primark Ireland", url: "https://www.primark.com/en-ie", desc: "IE — high-street fashion and basics." },
+        { name: "Littlewoods Ireland", url: "https://www.littlewoodsireland.ie", desc: "IE — fashion, home, and pay-spread options." },
+        { name: "ASOS", url: "https://www.asos.com", desc: "Delivers to Ireland and Northern Ireland — global youth fashion." },
+        { name: "Zalando", url: "https://www.zalando.ie", desc: "IE storefront — EU fashion marketplace." }
+      ],
+      Books: [
+        { name: "Eason", url: "https://www.easons.com", desc: "Ireland — books, study, and gifts (ROI + NI delivery where offered)." },
+        { name: "Kennys Bookshop", url: "https://www.kennys.ie", desc: "Galway — independent books and world shipping." },
+        { name: "Dubray Books", url: "https://www.dubraybooks.ie", desc: "Ireland — curated reads and gifts." },
+        { name: "O'Mahony's Books", url: "https://www.omahonys.ie", desc: "Ireland — academic and general books." },
+        { name: "Waterstones", url: "https://www.waterstones.com", desc: "UK — many titles ship to Northern Ireland and Ireland; check checkout." }
+      ],
+      Gaming: [
+        { name: "Smyths Toys Ireland", url: "https://www.smythstoys.com/ie", desc: "IE — consoles, games, and toys." },
+        { name: "GameStop Ireland", url: "https://www.gamestop.ie", desc: "IE — games, merch, and pre-orders." },
+        { name: "Steam Store", url: "https://store.steampowered.com", desc: "PC games — works everywhere on the island." },
+        { name: "Currys Gaming IE", url: "https://www.currys.ie/gaming", desc: "IE — consoles, accessories, and PC gaming." }
+      ]
+    },
     za: {
       Electronics: [
         { name: "Takealot Tech", url: "https://www.takealot.com", desc: "South Africa tech and accessories." },
@@ -158,6 +189,15 @@
       if (tz.indexOf("johannesburg") >= 0 || tz.indexOf("cape_town") >= 0) return "za";
       if (tz.indexOf("nairobi") >= 0) return "ke";
       if (tz.indexOf("harare") >= 0) return "zw";
+      if (
+        tz.indexOf("dublin") >= 0 ||
+        tz.indexOf("cork") >= 0 ||
+        tz.indexOf("galway") >= 0 ||
+        tz.indexOf("limerick") >= 0 ||
+        tz.indexOf("belfast") >= 0
+      ) {
+        return "ie";
+      }
       if (tz.indexOf("warsaw") >= 0 || tz.indexOf("berlin") >= 0 || tz.indexOf("london") >= 0 || tz.indexOf("paris") >= 0) return "eu";
       if (tz.indexOf("dubai") >= 0 || tz.indexOf("riyadh") >= 0) return "gulf";
       if (tz.indexOf("tokyo") >= 0 || tz.indexOf("singapore") >= 0 || tz.indexOf("seoul") >= 0 || tz.indexOf("kolkata") >= 0) return "asia";
@@ -217,6 +257,8 @@
         return "eg";
       case "MA":
         return "ma";
+      case "IE":
+        return "ie";
       // Gulf
       case "AE":
       case "SA":
@@ -262,6 +304,15 @@
     }
   }
 
+  try {
+    var regionParam = String(params.get("region") || "").trim().toLowerCase();
+    if (regionParam && mapByRegion[regionParam]) {
+      writeRegionMode(regionParam);
+    }
+  } catch {
+    /* ignore */
+  }
+
   var regionMode = readRegionMode();
   var inferredCountryCode = inferCountryCode();
   var countryMappedRegion = inferRegionFromCountryCode(inferredCountryCode);
@@ -273,7 +324,12 @@
     : "manual";
   var map = mapByRegion[resolvedRegion] || mapByRegion.global;
   var categories = Object.keys(map);
-  var cat = categories.indexOf(requested) >= 0 ? requested : "Electronics";
+  var cat =
+    requested === "All"
+      ? "All"
+      : categories.indexOf(requested) >= 0
+        ? requested
+        : "Electronics";
   var trustedHosts = buildTrustedHostSet(mapByRegion);
   function renderRegionResolutionHint() {
     if (!regionSelect) return;
@@ -441,6 +497,15 @@
   }
 
   function listForCategory(category) {
+    if (category === "All") {
+      var combined = [];
+      categories.forEach(function (categoryName) {
+        (map[categoryName] || []).forEach(function (shop) {
+          combined.push({ shop: shop, category: categoryName });
+        });
+      });
+      return combined;
+    }
     return (map[category] || []).map(function (shop) {
       return { shop: shop, category: category };
     });
@@ -448,7 +513,10 @@
 
   function paintCategoryUi(active) {
     if (intro) {
-      intro.textContent = "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
+      intro.textContent =
+        active === "All"
+          ? "Live market shops across every category below. Pick a shop and continue checkout on that site."
+          : "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
     }
     if (topCta) {
       topCta.setAttribute("href", "./live-market.html");
@@ -493,6 +561,7 @@
     ];
     var regionHints = {
       eu: "EU lanes: minimalist cuts and quality basics convert best.",
+      ie: "Ireland lanes: mix high-street (.ie) with reliable UK/NI delivery routes where shoppers already buy.",
       za: "South Africa lanes: bold color accents and practical fabrics move faster.",
       ke: "Kenya lanes: breathable street-smart styles perform well across day wear.",
       zw: "Zimbabwe lanes: flexible basics plus one standout item keeps value high.",
@@ -524,11 +593,132 @@
     renderList(matches, matches.length ? ("Search '" + q + "': " + matches.length + " result(s).") : ("No shop found for '" + q + "'."));
   }
 
+  function getAuthToken() {
+    try {
+      return String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function inferBuyerCountry() {
+    try {
+      var raw = localStorage.getItem("vibecart-public-auth-user");
+      var user = raw ? JSON.parse(raw) : {};
+      var cc = String((user && user.countryCode) || "").trim().toUpperCase();
+      if (cc.length === 2) return cc;
+    } catch {
+      /* ignore */
+    }
+    try {
+      var tz = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
+      if (tz.indexOf("dublin") >= 0 || tz.indexOf("cork") >= 0 || tz.indexOf("galway") >= 0 || tz.indexOf("limerick") >= 0) {
+        return "IE";
+      }
+      if (tz.indexOf("belfast") >= 0) {
+        return "GB";
+      }
+    } catch {
+      /* ignore */
+    }
+    return "ZA";
+  }
+
+  function renderLiveProducts(products) {
+    if (!grid || !Array.isArray(products) || !products.length) return;
+    var heading = document.createElement("div");
+    heading.className = "shop";
+    heading.innerHTML = "<h3>Real VibeCart live listings</h3><p>These are actual seller listings from your marketplace (with secure shipping + fee breakdown).</p>";
+    grid.insertBefore(heading, grid.firstChild);
+    products.slice(0, 14).forEach(function (p) {
+      var card = document.createElement("a");
+      card.className = "shop";
+      card.href = "#";
+      card.innerHTML =
+        "<h3>" + String(p.title || "Listing") + "</h3>" +
+        "<p>" + String(p.shopName || "Shop") + " · " + Number(p.basePrice || 0).toFixed(2) + " " + String(p.currency || "EUR") + " · stock " + Number(p.stock || 0) + "</p>";
+      card.addEventListener("click", async function (event) {
+        event.preventDefault();
+        var shippingMethod = String(window.prompt("Choose shipping: economy / standard / express / pickup", "standard") || "standard").trim().toLowerCase();
+        var buyerCountry = inferBuyerCountry();
+        try {
+          var quoteRes = await fetch(
+            "/api/public/orders/quote?productId=" +
+              encodeURIComponent(String(p.id || 0)) +
+              "&quantity=1&buyerCountry=" +
+              encodeURIComponent(buyerCountry) +
+              "&shippingMethod=" +
+              encodeURIComponent(shippingMethod)
+          );
+          var quoteBody = await quoteRes.json();
+          if (!quoteRes.ok || !quoteBody.ok || !quoteBody.quote) {
+            throw new Error(quoteBody.code || "QUOTE_FAILED");
+          }
+          var q = quoteBody.quote;
+          var proceed = window.confirm(
+            "Subtotal: " +
+              Number(q.subtotal || 0).toFixed(2) +
+              " " +
+              q.currency +
+              "\nShipping: " +
+              Number(q.shippingFee || 0).toFixed(2) +
+              "\nService fee: " +
+              Number(q.serviceFee || 0).toFixed(2) +
+              "\nTotal: " +
+              Number(q.totalAmount || 0).toFixed(2) +
+              "\n\nContinue order?"
+          );
+          if (!proceed) return;
+          var token = getAuthToken();
+          if (!token) {
+            if (searchStatus) searchStatus.textContent = "Sign in as buyer first to complete secure checkout.";
+            return;
+          }
+          var orderHeaders = { "Content-Type": "application/json" };
+          if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+            orderHeaders = window.VibeCartSessionDevice.merge(token, orderHeaders);
+          } else {
+            orderHeaders.Authorization = "Bearer " + token;
+          }
+          var createRes = await fetch("/api/public/orders/create", {
+            method: "POST",
+            headers: orderHeaders,
+            body: JSON.stringify({
+              productId: Number(p.id || 0),
+              quantity: 1,
+              shippingMethod: shippingMethod,
+              buyerCountry: buyerCountry
+            })
+          });
+          var createBody = await createRes.json();
+          if (!createRes.ok || !createBody.ok) throw new Error(createBody.code || "ORDER_FAILED");
+          if (searchStatus) {
+            searchStatus.textContent = "Order #" + Number(createBody.order.orderId || 0) + " placed. Track in Orders; escrow release is automatic after dual confirmation.";
+          }
+        } catch (err) {
+          if (searchStatus) searchStatus.textContent = "Secure order failed: " + String((err && err.message) || "unknown");
+        }
+      });
+      grid.insertBefore(card, heading.nextSibling);
+    });
+  }
+
+  async function loadLiveProducts() {
+    try {
+      var res = await fetch("/api/public/products/live?limit=20");
+      var body = await res.json();
+      if (!res.ok || !body.ok || !Array.isArray(body.products)) return;
+      renderLiveProducts(body.products);
+    } catch {
+      /* ignore */
+    }
+  }
+
   if (tabsWrap) {
     Array.prototype.slice.call(tabsWrap.querySelectorAll("[data-live-cat]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
         var next = String(btn.getAttribute("data-live-cat") || "").trim();
-        if (!next || categories.indexOf(next) < 0) {
+        if (!next || (next !== "All" && categories.indexOf(next) < 0)) {
           return;
         }
         cat = next;
@@ -594,4 +784,5 @@
       renderList(listForCategory(cat), "Showing " + cat + " shops.");
     });
   }
+  loadLiveProducts();
 })();
