@@ -2747,19 +2747,23 @@
     });
   }
 
-  function mountHeavyMobileStickers() {
+  function isLeanMobileHudTemplatePage() {
     try {
       var p = String((typeof location !== "undefined" && location.pathname) || "").toLowerCase();
-      if (p.indexOf("service-provider-hub") !== -1) return false;
-      if (p.indexOf("coach-experience") !== -1) return false;
-      if (p.indexOf("checkout-details") !== -1) return false;
+      if (p.indexOf("service-provider-hub") !== -1) return true;
+      if (p.indexOf("coach-experience") !== -1) return true;
+      if (p.indexOf("checkout-details") !== -1) return true;
       if (document.body && document.body.classList.contains("start-selling-page")) {
-        return false;
+        return true;
       }
     } catch {
       /* ignore */
     }
-    return true;
+    return false;
+  }
+
+  function mountHeavyMobileStickers() {
+    return !isLeanMobileHudTemplatePage();
   }
 
   function teardownEphemeralStickerHud() {
@@ -2772,7 +2776,13 @@
       "vcMobileInboxPulse",
       "vcFirst5Bar",
       "vcIntentBlast",
-      "vcFirst5Reveal"
+      "vcFirst5Reveal",
+      "vcMotionModeBtn",
+      "vcArrangeHud",
+      "vcArrangeResetHud",
+      "vcActionHub",
+      "vcQuickActionTrigger",
+      "vcVibeModeBtn"
     ].forEach(function (id) {
       try {
         var n = document.getElementById(id);
@@ -2783,6 +2793,14 @@
         /* ignore */
       }
     });
+    try {
+      var sheet = document.getElementById("vcQuickActionSheet");
+      if (sheet && sheet.parentNode) {
+        sheet.parentNode.removeChild(sheet);
+      }
+    } catch {
+      /* ignore */
+    }
   }
 
   function runMobileHudPack() {
@@ -2812,14 +2830,14 @@
       initInboxPulse();
       initMissionHud();
       initDealDraftComposer();
+      initQuickActionSheet();
+      initVibeThemeSwitch();
+      initFirstFiveSecondsBar();
+      initMotionModeToggle();
+      initSmartPrefetch();
+      initFloatingActionHub();
+      initFloatingControlLayout();
     }
-    initQuickActionSheet();
-    initVibeThemeSwitch();
-    initFirstFiveSecondsBar();
-    initMotionModeToggle();
-    initSmartPrefetch();
-    initFloatingActionHub();
-    initFloatingControlLayout();
   }
 
   window.addEventListener(
