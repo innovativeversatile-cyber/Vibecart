@@ -548,6 +548,7 @@ async function generateBrandonGuideLLM(input) {
     "You do NOT browse the live web. Answer in clear English for the user's question. " +
     "Be practical: 1 short paragraph in `reply` (max 720 characters), no markdown, no emojis. " +
     "Vary wording; do not repeat identical sentences if similar questions appear in recentQuestions. " +
+    "Each request includes diversityNonce — treat it as a fresh session id and avoid copying a previous reply verbatim. " +
     "For beauty/service PROVIDERS building a custom desk: the My Business page has a separate generative AI studio (wizard) after they choose **Other service** at the gate — open ./my-business.html#mb-service-studio . " +
     "Brandon routes there; the heavy dashboard design is produced by server agent `mb_studio_suite`, not by you inventing modules. " +
     "Do not give medical diagnosis or legal advice as authority—point to policy/privacy/security pages when needed. " +
@@ -561,6 +562,7 @@ async function generateBrandonGuideLLM(input) {
     currentPath: path,
     locale,
     recentQuestions: recent,
+    diversityNonce: String(Date.now()),
     siteMap: BRANDON_SITE_MAP
   });
   const r = await openaiChat(
@@ -569,7 +571,7 @@ async function generateBrandonGuideLLM(input) {
       { role: "user", content: user }
     ],
     900,
-    { temperature: 0.82 }
+    { temperature: 0.9 }
   );
   if (!r.ok) {
     return r;

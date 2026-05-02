@@ -943,7 +943,8 @@
               } catch {
                 return [];
               }
-            })()
+            })(),
+            diversityNonce: String(Date.now())
           })
           .then(function (res) {
             if (res && String(res.reply || "").trim()) {

@@ -6019,15 +6019,6 @@ html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai {
   -webkit-overflow-scrolling: touch;
 }
 
-html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai {
-  left: auto;
-  right: 12px;
-  top: auto;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
-  align-items: flex-end;
-  max-height: min(70vh, 520px);
-}
-
 html.vc-mobile-app body.health-coach-page .vc-mobile-ai,
 html.vc-phone body.health-coach-page .vc-mobile-ai,
 html.vc-brandon-universal body.health-coach-page .vc-mobile-ai {
@@ -6042,10 +6033,6 @@ html.vc-mobile-app body:not(.health-coach-page) .vc-mobile-ai__micro,
 html.vc-phone body:not(.health-coach-page) .vc-mobile-ai__micro,
 html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai__micro {
   text-align: left;
-}
-
-html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai__micro {
-  text-align: right;
 }
 
 .vc-mobile-ai__orb:active {
