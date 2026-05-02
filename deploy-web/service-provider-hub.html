@@ -6,7 +6,7 @@
   <title>Service Provider Hub · VibeCart</title>
   <meta name="description" content="Set up beauty and service booking offers with visual service previews, package guidance, and prepayment-ready booking routes." />
   <link rel="canonical" href="https://vibe-cart.com/service-provider-hub.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260502motion4" />
+  <link rel="stylesheet" href="./styles.css?v=20260502motion5" />
 </head>
 <body class="start-selling-page">
   <header class="shops-lane-topbar">
@@ -76,14 +76,46 @@
       var slotHint = String(params.get("slot") || "").trim();
       var HERO_LOCAL_FALLBACK = "./hero-masterpiece-afro-euro-asia.svg";
       var motionStill = {
-        "Hair Styling":
+        "Hair Styling": [
           "https://images.unsplash.com/photo-1560066984-138d9534a059?auto=format&fit=crop&w=1600&q=82",
-        Nails: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1600&q=82",
-        Makeup: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1600&q=82",
-        Barber: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1600&q=82",
-        "Bakery / custom cakes":
-          "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1600&q=82"
+          "https://images.unsplash.com/photo-1573496359142-b80d948464d4?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1503951914875-89f26e475d27?auto=format&fit=crop&w=1600&q=82"
+        ],
+        Nails: [
+          "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1610992652870-b7dcdc4c77cb?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1519014816548-bf5898892bb9?auto=format&fit=crop&w=1600&q=82"
+        ],
+        Makeup: [
+          "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1487412720507-eb43ef43ca66?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1596462508899-7b3ebc3df4f0?auto=format&fit=crop&w=1600&q=82"
+        ],
+        Barber: [
+          "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1621605815976-792b3f1c7c36?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1503951914875-89f26e475d27?auto=format&fit=crop&w=1600&q=82"
+        ],
+        "Bakery / custom cakes": [
+          "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1464346575507-95eca0c2d585?auto=format&fit=crop&w=1600&q=82",
+          "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=1600&q=82"
+        ]
       };
+      function hashMotionSalt(s) {
+        var str = String(s || "");
+        var h = 0;
+        for (var i = 0; i < str.length; i++) {
+          h = (h * 31 + str.charCodeAt(i)) | 0;
+        }
+        return Math.abs(h);
+      }
+      function resolveMotionUrl(entry, salt) {
+        if (!entry) return HERO_LOCAL_FALLBACK;
+        if (typeof entry === "string") return entry;
+        if (entry.length) return entry[hashMotionSalt(salt) % entry.length];
+        return HERO_LOCAL_FALLBACK;
+      }
       function motionFromFreeText(t) {
         var s = String(t || "").toLowerCase();
         if (/bake|cake|cupcake|wedding cake|pastry|sweet|dessert|tier/.test(s)) return motionStill["Bakery / custom cakes"];
@@ -97,7 +129,9 @@
         var box = document.getElementById("spHeroMotion");
         if (!img) return;
         var key = themeKey && motionStill[themeKey] ? themeKey : "";
-        var url = key ? motionStill[key] : motionFromFreeText(freeText);
+        var entry = key ? motionStill[key] : motionFromFreeText(freeText);
+        var salt = String(freeText || "") + "|" + String(serviceHint || "") + "|" + String((name && name.value) || "");
+        var url = resolveMotionUrl(entry, salt);
         img.onerror = function () {
           img.onerror = null;
           img.src = HERO_LOCAL_FALLBACK;
@@ -201,6 +235,6 @@
       });
     })();
   </script>
-  <script src="./site-chrome.js?v=20260502providerhud2" defer></script>
+  <script src="./site-chrome.js?v=20260502placestills1" defer></script>
 </body>
 </html>

@@ -698,7 +698,7 @@
     return;
   }
   window.__vcVisualMotionScheduled = "1";
-  var src = "./vc-visual-motion.js?v=20260502motion1";
+  var src = "./vc-visual-motion.js?v=20260502placestills1";
   function inject() {
     if (window.__vcVisualMotionLoaded === "1") {
       return;

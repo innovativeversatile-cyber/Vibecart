@@ -6,7 +6,7 @@
   <title>Coach package experience · VibeCart</title>
   <meta name="description" content="Preview each VibeCart coach package with visuals, feature depth, and direct plan-specific checkout routing." />
   <link rel="canonical" href="https://vibe-cart.com/coach-experience.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260502motion2" />
+  <link rel="stylesheet" href="./styles.css?v=20260502motion5" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
@@ -69,8 +69,11 @@
           routine: "3-4 structured sessions per week with gentle progression.",
           nutrition: "Simple habits and hydration guidance.",
           tracking: "Weekly milestones and consistency score.",
-          motion:
-            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1600&q=82"
+          motion: [
+            "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1600&q=82"
+          ]
         },
         "ai-home": {
           title: "AI Home Workout preview",
@@ -79,8 +82,11 @@
           routine: "Daily guided blocks designed for minimal equipment.",
           nutrition: "Light fueling notes matched to session intensity.",
           tracking: "Daily streak and completion snapshots.",
-          motion:
-            "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1600&q=82"
+          motion: [
+            "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1600&q=82"
+          ]
         },
         "plus": {
           title: "Coach Plus preview",
@@ -89,8 +95,11 @@
           routine: "Personalized split with rest-day balancing.",
           nutrition: "Expanded meal templates by goal type.",
           tracking: "Weekly trend summary with corrective actions.",
-          motion:
-            "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=82"
+          motion: [
+            "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1600&q=82"
+          ]
         },
         "pro": {
           title: "Coach Pro preview",
@@ -99,14 +108,27 @@
           routine: "High-detail programming with load progression guidance.",
           nutrition: "Macro-aware meal strategy with periodic recalibration.",
           tracking: "Comprehensive dashboard and risk flags.",
-          motion:
-            "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?auto=format&fit=crop&w=1600&q=82"
+          motion: [
+            "https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1600&q=82",
+            "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=82"
+          ]
         }
       };
+      function coachMotionPick(list, salt) {
+        if (!list || !list.length) return "";
+        if (typeof list === "string") return list;
+        var str = String(salt || "");
+        var h = 0;
+        for (var i = 0; i < str.length; i++) {
+          h = (h * 31 + str.charCodeAt(i)) | 0;
+        }
+        return list[Math.abs(h) % list.length];
+      }
       var cfg = map[plan] || map.starter;
       var coachImg = document.getElementById("coachHeroMotionImg");
       if (coachImg && cfg.motion) {
-        coachImg.src = cfg.motion;
+        coachImg.src = coachMotionPick(cfg.motion, plan + "|" + cfg.title);
         coachImg.alt = cfg.title + " — training visual";
       }
       document.getElementById("coachExpTitle").textContent = cfg.title;
@@ -138,6 +160,6 @@
       botBtn.addEventListener("click", gateCheckout);
     })();
   </script>
-  <script src="./site-chrome.js?v=20260502motion1" defer></script>
+  <script src="./site-chrome.js?v=20260502placestills1" defer></script>
 </body>
 </html>
