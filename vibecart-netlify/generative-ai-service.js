@@ -177,20 +177,24 @@ async function generateCoachWorkspacePlanLLM(input) {
       "Always frame the AI as an accountability and planning assistant, not a clinician.";
   }
   const system =
-    "You write post-checkout wellness workspace copy for VibeCart. " +
-    "Strict rules: NOT medical advice — no diagnoses, treatments, prescriptions, or claims to cure conditions. " +
-    "If user notes mention conditions, add one line urging them to follow their clinician's guidance. " +
+    "You are VibeCart's live generative coach for the post-checkout workspace. " +
+    "Write warm, vivid, motivating copy that feels personal and action-led (second person). " +
+    "Celebrate small wins, name momentum, and anchor habits to realistic times using the profile when helpful. " +
+    "Strict safety: NOT medical advice — no diagnoses, treatments, prescriptions, dosing, or claims to cure conditions. " +
+    "If user notes mention conditions, add one short line urging them to follow their clinician's guidance. " +
     `${capsHint}` +
-    " Output ONLY JSON (no markdown): " +
-    '{"routine":"multi-line text where each logical line is separated by \\\\n (between 10 and 20 lines)","notifications":["...","..."]} ' +
-    "routine: structured day plan + accountability tone. notifications: exactly 6 short strings suitable as mobile reminders (max 120 chars each).";
+    " Output ONLY JSON (no markdown fences): " +
+    '{"routine":"string: multi-line day plan; each logical line separated by \\\\n; aim for 12–18 lines mixing morning/midday/evening blocks, hydration, movement, mindset check-in, and one rest boundary","notifications":[' +
+    '"exactly 6 distinct short mobile reminders, max 118 chars each, imperative or gentle nudge — vary focus across hydration, movement, breath/stretch, meal-prep habit if allowed by caps, sleep wind-down, accountability check"]} ' +
+    "All six notification strings must differ in wording and intent.";
   const user = JSON.stringify({ flow, ownedPlans, profile });
   const r = await openaiChat(
     [
       { role: "system", content: system },
       { role: "user", content: user }
     ],
-    1400
+    2000,
+    { temperature: 0.62 }
   );
   if (!r.ok) {
     return r;
@@ -209,8 +213,8 @@ async function generateCoachWorkspacePlanLLM(input) {
     .map((x) => String(x || "").trim())
     .filter(Boolean)
     .map((x) => x.slice(0, 200))
-    .slice(0, 8);
-  if (routine.length < 80 || notifications.length < 4) {
+    .slice(0, 6);
+  if (routine.length < 60 || notifications.length < 5) {
     return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
   }
   return {
@@ -277,10 +281,43 @@ async function generateVibecoachTipLLM(input) {
   return { ok: true, tip: tip.slice(0, 600) };
 }
 
+const AI_OPS_DB_TYPES = new Set(["marketing", "security", "inventory", "research", "product_update", "compliance", "pricing"]);
+
+function mapAiOpsOperationTypeToEnum(raw) {
+  const t = String(raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+  if (AI_OPS_DB_TYPES.has(t)) return t;
+  if (/sec|fraud|trust|auth|abuse|malware|ddos|spam|phish/.test(t)) return "security";
+  if (/price|fee|margin|commission|payout|tax/.test(t)) return "pricing";
+  if (/legal|gdpr|privacy|compliance|jurisdiction|regulat/.test(t)) return "compliance";
+  if (/product|catalog|sku|listing|inventory|stock|warehouse|fulfill/.test(t)) return "inventory";
+  if (/search|discover|seo|content|experiment|ab_test/.test(t)) return "research";
+  if (/update|release|deploy|patch|version/.test(t)) return "product_update";
+  return "marketing";
+}
+
+/** DB enum on ai_operations_queue.execution_mode — never return autonomous_safe from the model path; owner decides. */
+function sanitizeOpsExecutionMode(mode) {
+  const m = String(mode || "").trim().toLowerCase();
+  if (m === "recommend_only") return "recommend_only";
+  if (m === "owner_approval_required") return "owner_approval_required";
+  if (m === "autonomous_safe" || m === "manual" || m === "auto" || m === "auto_execute") {
+    return "owner_approval_required";
+  }
+  return "owner_approval_required";
+}
+
 async function generateAiOpsRecommendationsLLM(stats) {
   const system =
-    "You are VibeCart operations AI for the owner console. Given live marketplace stats, propose EXACTLY 4 distinct recommendations. " +
-    "Output ONLY JSON (no markdown): {\"items\":[{\"operationType\":\"short_snake_case\",\"summaryText\":\"...\",\"recommendationText\":\"...\",\"riskLevel\":\"low|medium|high\",\"executionMode\":\"recommend_only|owner_approval_required|manual\",\"ownerAction\":\"...\",\"expectedImpact\":\"...\",\"confidenceScore\":0.0-1.0}]}. " +
+    "You are VibeCart's senior operations and trust AI for the OWNER console only. " +
+    "You must respect all jurisdictions: output is NOT legal, tax, regulatory, or medical advice — cite that the owner must confirm with qualified counsel where needed. " +
+    "Never instruct bypass of sanctions, AML/KYC, consumer protection, GDPR-style privacy duties, or platform policy. " +
+    "No autonomous execution: every item executionMode must be recommend_only or owner_approval_required only (never autonomous_safe, auto_execute, or silent deploy). " +
+    "Given marketplace stats JSON, propose EXACTLY 4 DISTINCT recommendations prioritizing security, fraud prevention, data minimization, and sustainable growth. " +
+    "Each item MUST include regulatoryNotice (one sentence: jurisdiction-neutral compliance reminder). " +
+    "Output ONLY JSON (no markdown): {\"items\":[{\"operationType\":\"short_snake_case\",\"summaryText\":\"...\",\"recommendationText\":\"...\",\"riskLevel\":\"low|medium|high\",\"executionMode\":\"recommend_only|owner_approval_required\",\"ownerAction\":\"...\",\"expectedImpact\":\"...\",\"confidenceScore\":0.0-1.0,\"regulatoryNotice\":\"...\"}]}. " +
     "operationType must be unique per item. Be specific to the numbers provided.";
   const user = JSON.stringify(stats);
   const r = await openaiChat(
@@ -288,7 +325,7 @@ async function generateAiOpsRecommendationsLLM(stats) {
       { role: "system", content: system },
       { role: "user", content: user }
     ],
-    1400
+    1600
   );
   if (!r.ok) {
     return r;
@@ -299,20 +336,133 @@ async function generateAiOpsRecommendationsLLM(stats) {
     return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
   }
   const items = itemsRaw.slice(0, 6).map((row) => ({
-    operationType: String(row.operationType || "ops_insight").trim().toLowerCase().replace(/\s+/g, "_"),
+    operationType: mapAiOpsOperationTypeToEnum(row.operationType),
     summaryText: String(row.summaryText || row.summary || "AI recommendation").trim().slice(0, 220),
     recommendationText: String(row.recommendationText || row.recommendation || "").trim().slice(0, 900),
     riskLevel: ["low", "medium", "high"].includes(String(row.riskLevel || "").toLowerCase())
       ? String(row.riskLevel).toLowerCase()
       : "medium",
-    executionMode: String(row.executionMode || "recommend_only")
-      .trim()
-      .toLowerCase(),
+    executionMode: sanitizeOpsExecutionMode(row.executionMode),
     ownerAction: String(row.ownerAction || "Review in AI ops queue.").trim().slice(0, 400),
     expectedImpact: String(row.expectedImpact || "Operational uplift.").trim().slice(0, 400),
-    confidenceScore: Math.max(0, Math.min(1, Number(row.confidenceScore ?? row.confidence ?? 0.78) || 0.78))
+    confidenceScore: Math.max(0, Math.min(1, Number(row.confidenceScore ?? row.confidence ?? 0.78) || 0.78)),
+    regulatoryNotice: String(row.regulatoryNotice || "Owner must verify obligations in their own jurisdictions before acting.")
+      .trim()
+      .slice(0, 400)
   }));
   return { ok: true, items };
+}
+
+async function generateOwnerSecurityComplianceReviewLLM(stats) {
+  const system =
+    "You are VibeCart's CHIEF security and compliance analyst for the marketplace OWNER. " +
+    "You produce a structured posture review from aggregate stats only (no PII). " +
+    "You are NOT a lawyer or regulator: flag categories of risk and controls; the owner makes final legal and operational decisions. " +
+    "Never suggest circumventing law, sanctions, licensing, age restrictions, financial promotion rules, or privacy duties. " +
+    "Output ONLY JSON (no markdown): {\"executiveSummary\":\"...\",\"threatModelBullets\":[\"...\"],\"priorityControls\":[{\"control\":\"...\",\"rationale\":\"...\",\"severity\":\"low|medium|high\"}],\"auditChecklist\":[\"...\"],\"jurisdictionDisclaimer\":\"...\",\"requiresOwnerDecision\":[\"...\"]}. " +
+    "executiveSummary max 900 chars; 4–7 threatModelBullets; 4–8 priorityControls; 6–12 auditChecklist strings.";
+  const user = JSON.stringify(stats);
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    1800,
+    { temperature: 0.25 }
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  if (!parsed || typeof parsed.executiveSummary !== "string") {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  return {
+    ok: true,
+    executiveSummary: String(parsed.executiveSummary || "").trim().slice(0, 1200),
+    threatModelBullets: Array.isArray(parsed.threatModelBullets) ? parsed.threatModelBullets.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 10) : [],
+    priorityControls: Array.isArray(parsed.priorityControls) ? parsed.priorityControls.slice(0, 12) : [],
+    auditChecklist: Array.isArray(parsed.auditChecklist) ? parsed.auditChecklist.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 14) : [],
+    jurisdictionDisclaimer: String(parsed.jurisdictionDisclaimer || "").trim().slice(0, 800),
+    requiresOwnerDecision: Array.isArray(parsed.requiresOwnerDecision)
+      ? parsed.requiresOwnerDecision.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 10)
+      : []
+  };
+}
+
+async function generateOwnerSiteAutopilotPlanLLM(stats) {
+  const system =
+    "You are VibeCart's automation strategist for the OWNER. Using aggregate stats only, propose a 30-day style autopilot PLAN where every change is queued for OWNER APPROVAL — nothing auto-ships to production. " +
+    "Respect marketing law, unfair commercial practices, data protection, and platform safety. No legal advice as authority. " +
+    "Output ONLY JSON (no markdown): {\"planTitle\":\"...\",\"cadenceNote\":\"...\",\"workstreams\":[{\"name\":\"...\",\"objectives\":[\"...\"],\"metrics\":[\"...\"],\"ownerDecisionGates\":[\"...\"],\"riskNotes\":\"...\"}]}. " +
+    "Exactly 3–5 workstreams; each with 3–6 objectives; ownerDecisionGates must be concrete yes/no decisions for the human.";
+  const user = JSON.stringify(stats);
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    1800,
+    { temperature: 0.35 }
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  if (!parsed || !Array.isArray(parsed.workstreams) || parsed.workstreams.length < 2) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  return {
+    ok: true,
+    planTitle: String(parsed.planTitle || "VibeCart owner autopilot plan").trim().slice(0, 200),
+    cadenceNote: String(parsed.cadenceNote || "").trim().slice(0, 600),
+    workstreams: parsed.workstreams.slice(0, 6)
+  };
+}
+
+async function generateAccountActivityDigestLLM(snapshot) {
+  if (!isGenerativeAiConfigured()) {
+    const oc = Number(snapshot?.ordersCount || 0);
+    return {
+      ok: true,
+      headline: "Account snapshot (offline assist)",
+      nudges: [
+        oc ? `You have ${oc} order record(s) on file — open Orders & tracking for status.` : "No orders on file yet — browse Hot picks or your regional lanes.",
+        snapshot?.hasCoachProfile ? "Coach profile is on file — open Plan workspace for routines." : "Optional: set coach goals in the wellbeing lane when you are ready."
+      ],
+      complianceDisclaimer:
+        "This digest is informational, not legal or medical advice. Payment and password actions use official VibeCart screens only."
+    };
+  }
+  const system =
+    "You are VibeCart's signed-in account copilot. Input is an aggregate JSON snapshot with NO email, name, phone, or payment data. " +
+    "Produce friendly nudges (shopping, orders, coach, insurance) that respect privacy and marketing law — no pressure, no deceptive urgency. " +
+    "Not legal, tax, investment, or medical advice. " +
+    "Output ONLY JSON (no markdown): {\"headline\":\"...\",\"nudges\":[\"...\",\"...\",\"...\"],\"complianceDisclaimer\":\"...\"}. " +
+    "headline max 140 chars; exactly 3 nudges each max 220 chars.";
+  const user = JSON.stringify(snapshot);
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    700,
+    { temperature: 0.45 }
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  if (!parsed || typeof parsed.headline !== "string") {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  const nudges = Array.isArray(parsed.nudges) ? parsed.nudges.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 5) : [];
+  return {
+    ok: true,
+    headline: String(parsed.headline || "").trim().slice(0, 200),
+    nudges,
+    complianceDisclaimer: String(parsed.complianceDisclaimer || "").trim().slice(0, 500)
+  };
 }
 
 async function generateHotPicksTrendSlidesLLM(input) {
@@ -580,6 +730,20 @@ async function generateMbStudioSuiteLLM(input) {
   };
 }
 
+function brandonGuideQuestionHitsCredentialScope(q) {
+  const s = String(q || "").trim().toLowerCase();
+  if (!s) return false;
+  if (/\b(forgot password|password reset|where (do i|to) reset)\b/.test(s)) return false;
+  if (/\b(cvv|cvc|card number|routing number|bank account number|sort code|iban\b|swift code|bic code|wire transfer|account number)\b/.test(s)) {
+    return true;
+  }
+  if (/\b(atm pin|card pin)\b/.test(s)) return true;
+  if (/\bpassword\b/.test(s) && /\b(give|send|paste|tell me what|reveal|hack|stolen)\b/.test(s)) return true;
+  if (/\b(otp|one[- ]time code|2fa secret)\b/.test(s)) return true;
+  if (/\b(ssn|social security number)\b/.test(s)) return true;
+  return false;
+}
+
 async function generateBrandonGuideLLM(input) {
   if (!isGenerativeAiConfigured()) {
     return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
@@ -591,18 +755,33 @@ async function generateBrandonGuideLLM(input) {
   if (question.length < 2) {
     return { ok: false, code: "INVALID_INPUT" };
   }
+  if (brandonGuideQuestionHitsCredentialScope(question)) {
+    return {
+      ok: true,
+      reply:
+        "I cannot help with passwords, card numbers, CVV, PIN, bank account data, or one-time codes. Use official VibeCart checkout and account screens only.",
+      actions: [
+        { label: "Security overview", href: "./security-overview.html" },
+        { label: "Account hub", href: "./account-hub.html" },
+        { label: "Privacy", href: "./privacy.html" }
+      ]
+    };
+  }
   const recent = Array.isArray(input.recentQuestions)
     ? input.recentQuestions.map((x) => String(x || "").trim().slice(0, 200)).filter(Boolean).slice(-5)
     : [];
   const system =
     "You are Brandon, VibeCart's in-app guide for the static marketplace site (buy/sell cross-border, live shop grids, coach lanes). " +
     "You do NOT browse the live web. Answer in clear English for the user's question. " +
-    "Be practical: 1 short paragraph in `reply` (max 720 characters), no markdown, no emojis. " +
+    "Be decisively helpful: when several lanes could apply, pick the single clearest next step and the best matching `href` set; only mention a second path if it fits naturally in the same breath. " +
+    "Be practical: one tight paragraph in `reply` (max ~820 characters), no markdown, no emojis—concrete next clicks over generic reassurance, present tense, warm and direct without hype. " +
+    "If the question is broad, add one clarifying angle inside the same paragraph, then anchor navigation to the strongest destination. " +
     "Vary wording; do not repeat identical sentences if similar questions appear in recentQuestions. " +
     "Each request includes diversityNonce — treat it as a fresh session id and avoid copying a previous reply verbatim. " +
     "For beauty/service PROVIDERS building a custom desk: the My Business page has a separate generative AI studio (wizard) after they choose **Other service** at the gate — open ./my-business.html#mb-service-studio . " +
     "Brandon routes there; the heavy dashboard design is produced by server agent `mb_studio_suite`, not by you inventing modules. " +
     "Do not give medical diagnosis or legal advice as authority—point to policy/privacy/security pages when needed. " +
+    "Never request or process passwords, OTPs, CVV, full card numbers, PINs, bank account numbers, or wire instructions—refuse and point to ./security-overview.html and ./account-hub.html . " +
     "Never invent external URLs. For navigation, output 0–4 buttons in JSON `actions` with `label` and `href`. " +
     "Each `href` MUST be copied exactly from the allowed list below (including optional ?query). " +
     "If the user is vague, suggest browse-categories + global-search (or live market All shops), not hot-picks plus Fashion grid. " +
@@ -669,6 +848,7 @@ async function generateAdminPromptLLM(input) {
   const system =
     "You help a VibeCart marketplace owner draft a prompt for an external AI assistant (e.g. ChatGPT). " +
     "The prompt must ask for secure, production-safe engineering guidance: risks, implementation steps, test checklist, rollback plan. " +
+    "The drafted prompt must insist on respecting applicable laws (privacy, consumer protection, payments, marketing) and on owner final sign-off before production changes. " +
     "Output ONLY JSON (no markdown): {\"prompt\":\"...\"}. The prompt may be multi-line inside the JSON string.";
   const user = JSON.stringify({
     ownerRequest: task || "Suggest top-priority improvements for security, performance, and UX."
@@ -696,6 +876,7 @@ async function generateAdminAdCreativeLLM(input) {
   const budget = Math.max(0, Math.min(1e7, Number(input.budget) || 50));
   const system =
     "You are VibeCart's ads strategist. Propose compliant, trust-preserving sponsored placements and 2–4 concrete campaign angles. " +
+    "Respect unfair commercial practices law, truth-in-advertising, and jurisdiction-specific marketing rules — the owner must validate copy with counsel where needed. " +
     "Output ONLY JSON (no markdown): {\"suggestions\":\"...\"} where suggestions is one multi-paragraph string the owner can paste into the admin textarea.";
   const user = JSON.stringify({ adSlotLabel: slot, minimumCampaignBudgetEur: budget });
   const r = await openaiChat(
@@ -729,6 +910,7 @@ async function generateAdminAffiliateOutreachLLM(input) {
   const trafficRegions = String(input.trafficRegions || "").trim().slice(0, 200);
   const system =
     "You draft professional affiliate partnership emails for a marketplace operator. Tone: concise, respectful, no hype, no legal guarantees. " +
+    "Avoid CAN-SPAM/GDPR-style compliance mistakes: no deceptive subjects, include clear opt-out language placeholder where appropriate, and remind the owner to verify recipient consent and local electronic marketing law. " +
     "Output ONLY JSON (no markdown): {\"subject\":\"...\",\"body\":\"...\"}. Body is plain text with paragraphs separated by \\n\\n in JSON.";
   const user = JSON.stringify({
     draftType,
@@ -789,6 +971,9 @@ module.exports = {
   generateBrandonGuideLLM,
   generateMbStudioSuiteLLM,
   generateAiOpsRecommendationsLLM,
+  generateOwnerSecurityComplianceReviewLLM,
+  generateOwnerSiteAutopilotPlanLLM,
+  generateAccountActivityDigestLLM,
   runPublicGenerativeAgent,
   runOwnerGenerativeAgent
 };

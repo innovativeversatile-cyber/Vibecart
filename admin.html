@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>VibeCart Owner Panel</title>
-    <link rel="stylesheet" href="./styles.css?v=20260424mobnav1" />
+    <link rel="stylesheet" href="./styles.css?v=20260508uxharden1" />
   </head>
-  <body class="admin-surface">
+  <body class="admin-surface vc-no-brandon">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">V</span>
@@ -30,10 +30,20 @@
         <div class="admin-grid">
           <label>Backend API Base URL</label>
           <input id="apiBaseUrl" type="url" placeholder="https://api.yourdomain.com" />
+          <p id="adminApiBaseChip" class="note admin-api-chip" role="status" style="grid-column: 1 / -1; margin: 0"></p>
           <input id="ownerUsername" type="email" placeholder="Enter owner username (email)" />
-          <input id="ownerCode" type="password" placeholder="Enter owner passcode" />
-          <input id="ownerPhrase" type="password" placeholder="Enter owner security phrase" />
-          <input id="ownerMfaCode" type="password" placeholder="Enter MFA/backup code (if required)" />
+          <div class="vc-password-field" style="grid-column: 1 / -1">
+            <input id="ownerCode" type="password" placeholder="Enter owner passcode" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="ownerCode">Show</button>
+          </div>
+          <div class="vc-password-field" style="grid-column: 1 / -1">
+            <input id="ownerPhrase" type="password" placeholder="Enter owner security phrase" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="ownerPhrase">Show</button>
+          </div>
+          <div class="vc-password-field" style="grid-column: 1 / -1">
+            <input id="ownerMfaCode" type="password" placeholder="Enter MFA/backup code (if required)" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="ownerMfaCode">Show</button>
+          </div>
           <button id="unlockBtn" type="button" class="btn btn-primary">Unlock Panel</button>
         </div>
         <p class="note">
@@ -193,10 +203,16 @@
           <input id="newOwnerEmail" type="email" placeholder="Enter new owner email" />
 
           <label>New Owner Password</label>
-          <input id="newOwnerPasscode" type="password" placeholder="Enter new owner password (min 10 chars)" />
+          <div class="vc-password-field">
+            <input id="newOwnerPasscode" type="password" placeholder="Enter new owner password (min 10 chars)" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="newOwnerPasscode">Show</button>
+          </div>
 
           <label>New Security Phrase</label>
-          <input id="newOwnerPhrase" type="password" placeholder="Enter new security phrase (min 10 chars)" />
+          <div class="vc-password-field">
+            <input id="newOwnerPhrase" type="password" placeholder="Enter new security phrase (min 10 chars)" />
+            <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="newOwnerPhrase">Show</button>
+          </div>
         </div>
         <div class="hero-actions">
           <button id="updateOwnerAuth" type="button" class="btn btn-secondary">Update Email and Password</button>
@@ -751,6 +767,20 @@
         <div id="aiOpsRecommendationsBox" class="ai-result"></div>
         <div id="aiOpsQueueList" class="messages-box"></div>
 
+        <h3>AI automation — security &amp; site strategy</h3>
+        <p class="note">
+          Generative drafts use server-side models. Outputs are advisory only: you must make final legal, security, and product
+          decisions. Emails fire when SMTP is configured (<code>EMAIL_NOTIFICATIONS_ENABLED</code>).
+        </p>
+        <div class="hero-actions">
+          <button id="runAiSecurityReview" type="button" class="btn btn-secondary">Run security &amp; compliance review</button>
+          <button id="runAiAutopilotPlan" type="button" class="btn btn-secondary">Generate owner autopilot plan</button>
+        </div>
+        <label>Latest security / compliance JSON</label>
+        <pre id="aiSecurityReviewOut" class="ai-result" style="white-space: pre-wrap; max-height: 18rem; overflow: auto"></pre>
+        <label>Latest autopilot plan JSON</label>
+        <pre id="aiAutopilotPlanOut" class="ai-result" style="white-space: pre-wrap; max-height: 18rem; overflow: auto"></pre>
+
         <hr />
         <h3>Insurance Jurisdiction Control</h3>
         <p class="note">
@@ -787,7 +817,8 @@
       </section>
     </main>
 
-    <script src="./admin.js?v=20260423readinesslegalfix2"></script>
+    <script src="./password-toggle.js?v=20260502pw1"></script>
+    <script src="./admin.js?v=20260508uxharden1"></script>
     <script src="./nav-autohide-global.js?v=20260429navglobal2" defer></script>
   </body>
 </html>

@@ -2354,7 +2354,8 @@ async function generateAiOpsRecommendationsFromPanel() {
         summaryText: item.summaryText,
         recommendationText: item.recommendationText,
         riskLevel: item.riskLevel,
-        executionMode: item.executionMode
+        executionMode: item.executionMode,
+        regulatoryNotice: item.regulatoryNotice
       });
     }
   }
@@ -2365,6 +2366,48 @@ async function generateAiOpsRecommendationsFromPanel() {
   }
   await refreshAiOps();
   setStatus("VibeAI recommendations generated and queued for owner review.");
+}
+
+async function runAiSecurityReviewFromPanel() {
+  const out = document.getElementById("aiSecurityReviewOut");
+  if (!isSessionValid()) {
+    if (out) out.textContent = "Sign in to run the security review.";
+    setStatus("Security review requires owner session.");
+    return;
+  }
+  try {
+    const payload = await authedPost("/api/ai-ops/security-review", {});
+    if (out) {
+      out.textContent = JSON.stringify(payload, null, 2);
+    }
+    setStatus("Security & compliance review generated.");
+  } catch (err) {
+    if (out) {
+      out.textContent = String(err?.message || err);
+    }
+    setStatus(`Security review failed: ${String(err?.message || err)}`);
+  }
+}
+
+async function runAiAutopilotPlanFromPanel() {
+  const out = document.getElementById("aiAutopilotPlanOut");
+  if (!isSessionValid()) {
+    if (out) out.textContent = "Sign in to generate the autopilot plan.";
+    setStatus("Autopilot plan requires owner session.");
+    return;
+  }
+  try {
+    const payload = await authedPost("/api/ai-ops/autopilot/plan", {});
+    if (out) {
+      out.textContent = JSON.stringify(payload, null, 2);
+    }
+    setStatus("Owner autopilot plan generated.");
+  } catch (err) {
+    if (out) {
+      out.textContent = String(err?.message || err);
+    }
+    setStatus(`Autopilot plan failed: ${String(err?.message || err)}`);
+  }
 }
 
 async function decideAiOpFromPanel() {
@@ -3869,6 +3912,12 @@ bindClick("refreshAiOps", () => {
 });
 bindClick("generateAiOpsRecommendations", () => {
   generateAiOpsRecommendationsFromPanel().catch((error) => setStatus(`AI ops recommendation failed: ${error.message}`));
+});
+bindClick("runAiSecurityReview", () => {
+  runAiSecurityReviewFromPanel().catch((error) => setStatus(`Security review failed: ${error.message}`));
+});
+bindClick("runAiAutopilotPlan", () => {
+  runAiAutopilotPlanFromPanel().catch((error) => setStatus(`Autopilot plan failed: ${error.message}`));
 });
 bindClick("decideAiOp", () => {
   decideAiOpFromPanel().catch((error) => setStatus(`AI op decision failed: ${error.message}`));

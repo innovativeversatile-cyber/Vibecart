@@ -30,15 +30,101 @@
     }
   }
 
+  function urlBase64ToUint8Array(base64String) {
+    var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    var raw = atob(base64);
+    var arr = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) {
+      arr[i] = raw.charCodeAt(i);
+    }
+    return arr;
+  }
+
+  function postJsonAuth(path, token, bodyObj) {
+    var h = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+      h = window.VibeCartSessionDevice.merge(token, { "Content-Type": "application/json" });
+    }
+    return fetch(path, {
+      method: "POST",
+      headers: h,
+      body: JSON.stringify(bodyObj || {})
+    });
+  }
+
+  function registerBrowserWebPushSubscription(token, statusEl) {
+    if (!token || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      return Promise.resolve(false);
+    }
+    function set(msg) {
+      if (statusEl) {
+        statusEl.textContent = String(msg || "");
+      }
+    }
+    return fetch("/api/public/web-push/config")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || !j.ok || !j.publicKey) {
+          return false;
+        }
+        return navigator.serviceWorker.register("./service-worker.js").then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (existing) {
+            if (existing) {
+              return existing;
+            }
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(String(j.publicKey))
+            });
+          });
+        });
+      })
+      .then(function (sub) {
+        if (!sub || sub === false) {
+          return false;
+        }
+        return postJsonAuth("/api/public/account/web-push/register", token, { subscription: sub.toJSON() }).then(function (r) {
+          return r.json().then(function (body) {
+            return { ok: r.ok, body: body };
+          });
+        });
+      })
+      .then(function (x) {
+        if (x && x.ok && x.body && x.body.ok) {
+          set("Signed in: this device is registered for coach alerts on your phone.");
+          return true;
+        }
+        return false;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
+  function sendCoachEncouragePush(token, title, message) {
+    if (!token || !message) {
+      return;
+    }
+    postJsonAuth("/api/public/account/coach-workspace/encourage-push", token, {
+      title: title || "Your coach is with you",
+      message: String(message).slice(0, 500)
+    }).catch(function () {});
+  }
+
   function fetchRemotePlanViewMode() {
     var token = getPublicAuthToken();
     if (!token) {
       return Promise.resolve("");
     }
+    var gh = { Authorization: "Bearer " + token };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+      gh = window.VibeCartSessionDevice.authHeaders(token);
+    }
     return fetch("/api/public/user/preferences", {
-      headers: {
-        Authorization: "Bearer " + token
-      }
+      headers: gh
     })
       .then(function (res) {
         if (!res.ok) {
@@ -62,12 +148,13 @@
     if (!token) {
       return;
     }
+    var ph = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+      ph = window.VibeCartSessionDevice.merge(token, { "Content-Type": "application/json" });
+    }
     fetch("/api/public/user/preferences", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
+      headers: ph,
       body: JSON.stringify({
         preferences: {
           planViewMode: String(mode || "merged").trim().toLowerCase()
@@ -310,6 +397,7 @@
       if (statusEl) {
         statusEl.textContent = "Phone notifications are enabled for plan updates.";
       }
+      registerBrowserWebPushSubscription(getPublicAuthToken(), statusEl);
       return;
     }
     Notification.requestPermission().then(function (perm) {
@@ -321,6 +409,7 @@
       }
       if (perm === "granted") {
         pushNotifyNow("VibeCart Coach", "Notifications are now enabled.");
+        registerBrowserWebPushSubscription(getPublicAuthToken(), statusEl);
       }
     }).catch(function () {
       if (statusEl) {
@@ -415,12 +504,16 @@
               })
               .filter(Boolean)
           : [];
-        if (r.length < 80 || n.length < 4) {
+        if (r.length < 60 || n.length < 5) {
           pushFirstLine(notifications);
           return;
         }
         commitPlan(r, n, "generative");
         pushFirstLine(n);
+        var tok = getPublicAuthToken();
+        if (tok && n[0]) {
+          sendCoachEncouragePush(tok, "Your live coach plan is ready — you've got this", n[0]);
+        }
       })
       .catch(function () {
         pushFirstLine(notifications);
@@ -435,45 +528,96 @@
     }
   }
 
-  function init() {
-    var params = readParams();
-    var title = byId("workspaceTitle");
-    var status = byId("workspaceStatus");
-    var meta = byId("workspaceMeta");
-    var buildBtn = byId("buildPlanBtn");
-    var out = byId("planOutput");
-    var list = byId("planNotifications");
-    var planStatus = byId("planBuildStatus");
-    var ownedPlansEl = byId("workspaceOwnedPlans");
-    var enablePushBtn = byId("enablePushBtn");
-    var planViewModeEl = byId("planViewMode");
-
-    var paidPlans = readPaidPlans();
-    if (params.sessionId) {
-      var incomingPlans = [normalizePlan(params.plan)];
-      if (params.flow === "coach" && params.addonPlan) {
-        var addon = normalizePlan(params.addonPlan);
-        if (incomingPlans.indexOf(addon) < 0) {
-          incomingPlans.push(addon);
-        }
+  function mergeUrlParamsIntoPaidPlans(params, paidPlans) {
+    var plans = Array.isArray(paidPlans) ? paidPlans.slice() : [];
+    if (!params.sessionId) {
+      return plans;
+    }
+    var incomingPlans = [normalizePlan(params.plan)];
+    if (params.flow === "coach" && params.addonPlan) {
+      var addon = normalizePlan(params.addonPlan);
+      if (incomingPlans.indexOf(addon) < 0) {
+        incomingPlans.push(addon);
       }
-      incomingPlans.forEach(function (planCode) {
-        var incoming = {
-          flow: params.flow,
-          plan: planCode,
-          provider: params.provider,
-          sessionId: params.sessionId,
-          activatedAt: new Date().toISOString()
-        };
-        paidPlans = upsertPaidPlans(paidPlans, incoming);
-      });
-      savePaidPlans(paidPlans);
     }
-    if (!Array.isArray(paidPlans) || paidPlans.length === 0) {
-      window.location.assign("./account-hub.html?plan_locked=1");
-      return;
-    }
+    incomingPlans.forEach(function (planCode) {
+      var incoming = {
+        flow: params.flow,
+        plan: planCode,
+        provider: params.provider,
+        sessionId: params.sessionId,
+        activatedAt: new Date().toISOString()
+      };
+      plans = upsertPaidPlans(plans, incoming);
+    });
+    savePaidPlans(plans);
+    return readPaidPlans();
+  }
 
+  function hydrateCoachFulfillmentFromServer() {
+    var token = getPublicAuthToken();
+    if (!token) {
+      return Promise.resolve(false);
+    }
+    var headers = { Authorization: "Bearer " + token, Accept: "application/json" };
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+      headers = window.VibeCartSessionDevice.authHeaders(token);
+      headers.Accept = "application/json";
+    }
+    return fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return null;
+        });
+      })
+      .then(function (body) {
+        if (!body || !body.ok || !Array.isArray(body.sessions) || !body.sessions.length) {
+          return false;
+        }
+        var merged = readPaidPlans();
+        body.sessions.forEach(function (row) {
+          if (!row || !row.sessionId) {
+            return;
+          }
+          var ic = [normalizePlan(row.plan || "starter")];
+          if (row.addonPlan) {
+            var ad = normalizePlan(row.addonPlan);
+            if (ad && ic.indexOf(ad) < 0) {
+              ic.push(ad);
+            }
+          }
+          ic.forEach(function (planCode) {
+            merged = upsertPaidPlans(merged, {
+              flow: "coach",
+              plan: planCode,
+              provider: row.provider || "card",
+              sessionId: String(row.sessionId).trim(),
+              activatedAt: new Date().toISOString()
+            });
+          });
+        });
+        savePaidPlans(merged);
+        return readPaidPlans().length > 0;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
+  function runWorkspaceInit(
+    params,
+    title,
+    status,
+    meta,
+    buildBtn,
+    out,
+    list,
+    planStatus,
+    ownedPlansEl,
+    enablePushBtn,
+    planViewModeEl,
+    paidPlans
+  ) {
     var current = paidPlans[0];
     if (!params.sessionId && !params.plan) {
       params.plan = current.plan;
@@ -554,6 +698,7 @@
       if (planStatus) {
         planStatus.textContent = "Phone notifications are enabled for coach updates.";
       }
+      registerBrowserWebPushSubscription(getPublicAuthToken(), null);
     }
 
     if (params.sessionId && params.flow === "coach" && ownedPlans.length > 1) {
@@ -628,6 +773,49 @@
         notes: String((notesEl && notesEl.value) || "").trim()
       };
       renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans);
+    });
+  }
+
+  function init() {
+    var params = readParams();
+    var title = byId("workspaceTitle");
+    var status = byId("workspaceStatus");
+    var meta = byId("workspaceMeta");
+    var buildBtn = byId("buildPlanBtn");
+    var out = byId("planOutput");
+    var list = byId("planNotifications");
+    var planStatus = byId("planBuildStatus");
+    var ownedPlansEl = byId("workspaceOwnedPlans");
+    var enablePushBtn = byId("enablePushBtn");
+    var planViewModeEl = byId("planViewMode");
+    var paidPlans = mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
+    function go(listArg) {
+      runWorkspaceInit(
+        params,
+        title,
+        status,
+        meta,
+        buildBtn,
+        out,
+        list,
+        planStatus,
+        ownedPlansEl,
+        enablePushBtn,
+        planViewModeEl,
+        listArg
+      );
+    }
+    if (paidPlans.length) {
+      go(paidPlans);
+      return;
+    }
+    hydrateCoachFulfillmentFromServer().then(function () {
+      var again = readPaidPlans();
+      if (!again.length) {
+        window.location.assign("./account-hub.html?plan_locked=1");
+        return;
+      }
+      go(again);
     });
   }
 

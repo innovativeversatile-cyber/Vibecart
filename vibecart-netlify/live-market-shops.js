@@ -177,12 +177,6 @@
       Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", desc: "Global gaming marketplace." }]
     }
   };
-  mapByRegion.global.Electronics.push({
-    name: "Brainrot Studio",
-    url: "https://brainrot.mov?ref=ApLX4MJQoF",
-    desc: "AI creator studio partner (external checkout)."
-  });
-
   function inferRegionFromTimezone() {
     try {
       var tz = String((Intl.DateTimeFormat().resolvedOptions().timeZone || "")).toLowerCase();

@@ -123,6 +123,12 @@ function runQaScripts() {
     fail("QA verify-launch-flows", String(error?.message || error));
   }
   try {
+    execSync("node scripts/audit-static-links.mjs", { cwd: root, stdio: "pipe" });
+    ok("QA audit-static-links", "all HTML hrefs + flow anchors");
+  } catch (error) {
+    fail("QA audit-static-links", String(error?.message || error));
+  }
+  try {
     execSync("node scripts/run-full-smoke.mjs", {
       cwd: root,
       stdio: "pipe",

@@ -147,9 +147,38 @@
     }
   }
 
+  function brandonPageMountBlocked() {
+    try {
+      if (document.body && document.body.classList.contains("vc-no-brandon")) return true;
+      if (document.body && document.body.classList.contains("admin-surface")) return true;
+      var path = String(window.location.pathname || "").toLowerCase();
+      if (
+        path.indexOf("admin.html") >= 0 ||
+        path.indexOf("admin-app.html") >= 0 ||
+        path.indexOf("admin-messages.html") >= 0 ||
+        path.indexOf("owner-access-kuda") >= 0
+      ) {
+        return true;
+      }
+      if (
+        path.indexOf("checkout-details.html") >= 0 ||
+        path.indexOf("payment-confirmation.html") >= 0 ||
+        path.indexOf("top-class-checkout.html") >= 0
+      ) {
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+
   function ensureAiCoach() {
     applyPhoneDocumentClasses();
     if (document.getElementById(AI_ID)) {
+      return;
+    }
+    if (brandonPageMountBlocked()) {
       return;
     }
     try {
@@ -172,11 +201,11 @@
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
           <strong>Brandon</strong>
-          <span class="vc-mobile-ai__sub">Server AI + local fallback · no wall of text</span>
+          <span class="vc-mobile-ai__sub">VibeCart-first routing · auto-hides on passwords, cards &amp; checkout screens</span>
         </div>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
         <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Ask Brandon or tell a preference</label>
-        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Ireland shops, track my order, seller boost, affiliate, privacy, live market"></textarea>
+        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Ireland shops, jewellery, book salon, track order, sell — do not paste passwords or card data"></textarea>
         <button type="button" class="btn btn-primary vc-mobile-ai__save">Ask Brandon</button>
         <p id="vc-mobile-ai-reply" class="note vc-mobile-ai__saved" hidden></p>
         <p id="vc-mobile-ai-saved" class="note vc-mobile-ai__saved" hidden>Saved locally — thank you.</p>
@@ -422,8 +451,8 @@
             key: "payment",
             line:
               (microCycle % 2 === 0
-                ? "Payment zone detected. Verify totals and trusted destination."
-                : "Need safety support? Ask me for a pre-pay checklist.") +
+                ? "Payment zone detected. Use only on-page fields—never paste card data or passwords into chat."
+                : "For pay safety, read Security overview; I do not handle card numbers or PINs.") +
               " " +
               tipFromBank("payment", profile, y)
           };
@@ -545,6 +574,18 @@
         blurb: "Providers, gigs, and professional services."
       },
       {
+        keys: "book appointment haircut nails barber salon bakery booking deposit",
+        href: "./service-provider-hub.html",
+        label: "Book a service",
+        blurb: "Beauty, barber, nails, hair, bakery-style prepaid bookings."
+      },
+      {
+        keys: "jewelry jewellery watches rings gold silver gems",
+        href: "./live-market-shops.html?cat=Fashion&view=global",
+        label: "Fashion / jewellery grid",
+        blurb: "Live shop grid for style and jewellery picks."
+      },
+      {
         keys: "audience fit persona icp targeting",
         href: "./audience-fit.html",
         label: "Audience fit",
@@ -641,16 +682,10 @@
         blurb: "Choose popular vs full live market."
       },
       {
-        keys: "admin owner portal operator dashboard backoffice",
-        href: "./admin.html",
-        label: "Owner admin",
-        blurb: "Operator tools (sign-in required)."
-      },
-      {
-        keys: "admin messages inbox moderation",
-        href: "./admin-messages.html",
-        label: "Admin messages",
-        blurb: "Operator message review."
+        keys: "owner operator staff backoffice internal tools report",
+        href: "./account-hub.html",
+        label: "Account hub",
+        blurb: "Account tools on the public site. Owner admin is a separate signed-in area—Brandon does not open it from here."
       },
       {
         keys: "account hub profile sign login signup register wallet",
@@ -738,6 +773,32 @@
       return brandonFashionLiveGridIntent(ask) || brandonBeautyScentsServiceIntent(ask);
     }
 
+    /** Topics Brandon must never coach on — user uses official forms only. */
+    function brandonAskIsSensitiveCredentialsTopic(ask) {
+      var s = String(ask || "").trim().toLowerCase();
+      if (!s) return false;
+      if (/\b(forgot password|password reset|where (do i|to) reset|change password link)\b/.test(s)) return false;
+      if (/\b(cvv|cvc|security code on back|3[- ]digit code|card number|card no\b|routing number|bank account number|sort code|iban\b|swift code|bic code|wire transfer|account number)\b/.test(s)) {
+        return true;
+      }
+      if (/\b(atm pin|card pin|pin for)\b/.test(s)) return true;
+      if (/\bpassword\b/.test(s) && /\b(give|send|paste|tell me what|reveal|hack|stolen|recover without email)\b/.test(s)) {
+        return true;
+      }
+      if (/\b(otp|one[- ]time code|2fa secret|authenticator key)\b/.test(s)) return true;
+      if (/\b(ssn|social security number|national insurance number)\b/.test(s)) return true;
+      if (/\b(what is my|read my|decode my|store my)\b.*\b(card|cvv|pin|password)\b/.test(s)) return true;
+      return false;
+    }
+
+    function brandonCloudAssistEnabled() {
+      try {
+        return window.localStorage.getItem("vibecart-brandon-cloud-assist") === "1";
+      } catch {
+        return false;
+      }
+    }
+
     function generateBrandonResponse(text) {
       var ask = String(text || "").trim().toLowerCase();
       if (!ask) {
@@ -750,10 +811,21 @@
           ]
         };
       }
+      if (brandonAskIsSensitiveCredentialsTopic(ask)) {
+        return {
+          reply:
+            "That touches sign-in secrets, cards, bank details, or one-time codes. I stop there by design: use only official VibeCart screens and your bank or wallet app. Never paste CVV, PIN, full card numbers, passwords, or OTPs into this chat.",
+          actions: [
+            { label: "Security overview", href: "./security-overview.html" },
+            { label: "Account hub", href: "./account-hub.html" },
+            { label: "Privacy", href: "./privacy.html" }
+          ]
+        };
+      }
       if (/\b(hello|hi|hey|who are you|brandon|introduce)\b/.test(ask)) {
         return {
           reply:
-            "I am Brandon — a fast on-device guide. I cannot browse the web for you, but I can route you to the right VibeCart page. Name a goal (buy, sell, track, legal, region).",
+            "I am Brandon — VibeCart's built-in guide. I map almost every shopper and seller lane on this site and app with fast, exact taps. I do not browse the random web, I never handle passwords or payment fields, and I stay off owner admin. Say a goal: buy, sell, track, coach, region, or fashion.",
           actions: [
             { label: "Browse categories", href: "./browse-categories.html" },
             { label: "Regional shops", href: "./regional-shops.html" },
@@ -764,9 +836,9 @@
       if (/my business|service studio|custom service desk|salon dashboard|provider suite|mb studio/.test(ask)) {
         return {
           reply:
-            "My Business has a dedicated generative studio for custom trades: choose Other service at the gate, then open the studio block. It runs the mb_studio_suite AI on the server while I stay lightweight in-browser.",
+            "My Business includes a generative studio for custom service desks: choose Other service at the gate, then open the studio block. I route you there; the heavy layout is produced inside that wizard—not by typing secrets here.",
           actions: [
-            { label: "Open AI studio", href: "./my-business.html#mb-service-studio" },
+            { label: "Open studio", href: "./my-business.html#mb-service-studio" },
             { label: "My Business hub", href: "./my-business.html" }
           ]
         };
@@ -895,12 +967,24 @@
           ]
         };
       }
-      if (/payment|pay|card|checkout|safe|escrow|refund/.test(ask)) {
+      if (/\b(refund|dispute|escrow|payment protection|chargeback|is (this|it) (safe|legit)|avoid scam)\b/.test(ask)) {
         return {
           reply:
-            "Use trusted checkout paths only. Verify totals, route, and final domain before payment is confirmed.",
+            "For money safety I stay high-level: verify the seller domain, use tracked shipping when it matters, and complete card entry only on official checkout pages. I will not walk through CVV, PIN, or account numbers.",
           actions: [
-            { label: "Checkout details", href: "./checkout-details.html" },
+            { label: "Security overview", href: "./security-overview.html" },
+            { label: "Buy journey", href: "./buy-journey.html" },
+            { label: "Policy", href: "./policy.html" }
+          ]
+        };
+      }
+      if (/\b(checkout|how (do|to) pay|pay online|place order)\b/.test(ask)) {
+        return {
+          reply:
+            "Use the guided buy journey, then complete payment only on the real checkout screen. I can point to flows—I do not collect or repeat payment credentials.",
+          actions: [
+            { label: "Buy journey", href: "./buy-journey.html" },
+            { label: "Browse categories", href: "./browse-categories.html" },
             { label: "Security overview", href: "./security-overview.html" }
           ]
         };
@@ -1013,43 +1097,47 @@
     }
 
     function tryBrandonLlmThenRules(text) {
-      if (typeof window.vibecartAiGenerate === "function") {
-        return window
-          .vibecartAiGenerate("brandon_guide", {
-            question: String(text || "").trim().slice(0, 400),
-            pageUrl: typeof location !== "undefined" ? String(location.href || "").slice(0, 500) : "",
-            path: (function () {
-              try {
-                return String(window.location.pathname || "").slice(0, 200);
-              } catch {
-                return "";
-              }
-            })(),
-            locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12),
-            recentQuestions: (function () {
-              try {
-                var p = loadAiProfile();
-                return Array.isArray(p.notes) ? p.notes.slice(-5) : [];
-              } catch {
-                return [];
-              }
-            })(),
-            diversityNonce: String(Date.now())
-          })
-          .then(function (res) {
-            if (res && String(res.reply || "").trim()) {
-              return {
-                reply: String(res.reply || "").trim().slice(0, 1200),
-                actions: finalizeBrandonLlmActionsForQuestion(text, res.actions)
-              };
-            }
-            return generateBrandonResponse(text);
-          })
-          .catch(function () {
-            return generateBrandonResponse(text);
-          });
+      var trimmed = String(text || "").trim();
+      if (brandonAskIsSensitiveCredentialsTopic(trimmed)) {
+        return Promise.resolve(generateBrandonResponse(trimmed));
       }
-      return Promise.resolve(generateBrandonResponse(text));
+      if (!brandonCloudAssistEnabled() || typeof window.vibecartAiGenerate !== "function") {
+        return Promise.resolve(generateBrandonResponse(trimmed));
+      }
+      return window
+        .vibecartAiGenerate("brandon_guide", {
+          question: trimmed.slice(0, 400),
+          pageUrl: typeof location !== "undefined" ? String(location.href || "").slice(0, 500) : "",
+          path: (function () {
+            try {
+              return String(window.location.pathname || "").slice(0, 200);
+            } catch {
+              return "";
+            }
+          })(),
+          locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12),
+          recentQuestions: (function () {
+            try {
+              var p = loadAiProfile();
+              return Array.isArray(p.notes) ? p.notes.slice(-5) : [];
+            } catch {
+              return [];
+            }
+          })(),
+          diversityNonce: String(Date.now())
+        })
+        .then(function (res) {
+          if (res && String(res.reply || "").trim()) {
+            return {
+              reply: String(res.reply || "").trim().slice(0, 1200),
+              actions: finalizeBrandonLlmActionsForQuestion(text, res.actions)
+            };
+          }
+          return generateBrandonResponse(text);
+        })
+        .catch(function () {
+          return generateBrandonResponse(text);
+        });
     }
 
     function detectInteractiveContext() {
@@ -1078,13 +1166,17 @@
       var id = String(field.getAttribute("id") || "").toLowerCase();
       var autocomplete = String(field.getAttribute("autocomplete") || "").toLowerCase();
       var holder = String(field.getAttribute("placeholder") || "").toLowerCase();
-      var joined = `${name} ${id} ${autocomplete} ${holder}`;
-      if (type === "password" || type === "email" || type === "tel" || type === "number") return true;
-      if (/card|cvv|cvc|expiry|exp|payment|pay|billing|address|phone|email|secret|pin/.test(joined)) return true;
+      var joined = name + " " + id + " " + autocomplete + " " + holder;
+      if (type === "password") return true;
+      if (/card|cvv|cvc|cc-number|cc-exp|iban|routing|account-number|sort-code|payment|billing|otp|mfa|secret|pin\b|ssn/.test(joined)) {
+        return true;
+      }
+      if (type === "tel" && /card|cvv|otp|sms|verify/.test(joined)) return true;
+      if (type === "number" && /cvv|cvc|card|exp|amount|security/.test(joined)) return true;
       var form = field.closest("form");
       if (form) {
         var formText = String(form.id || "") + " " + String(form.className || "");
-        if (/payment|checkout|auth|owner|billing|profile|account/i.test(formText)) return true;
+        if (/payment|checkout|billing|card-form|owner-auth|admin-login/i.test(formText)) return true;
       }
       return false;
     }

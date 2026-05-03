@@ -8,6 +8,9 @@
     "start": "node owner-auth-api.js",
     "db:ensure-mobile-feedback": "node scripts/ensure-mobile-app-feedback-table.js",
     "db:ensure-mobile-feedback:railway": "npx --yes @railway/cli run -- npm run db:ensure-mobile-feedback",
+    "db:ensure-web-push": "node scripts/ensure-web-push-subscriptions-table.js",
+    "db:ensure-web-push:railway": "npx --yes @railway/cli run -- npm run db:ensure-web-push",
+    "support:fulfill-coach": "node scripts/fulfill-coach-checkout-support.js",
     "db:apply-schema": "node scripts/apply-schema.js",
     "db:reset-owner": "node -r dotenv/config railway-migrations/20260417_reset_owner_admin_login.js",
     "db:reset-owner:railway": "npx --yes @railway/cli run -- node railway-migrations/20260417_reset_owner_admin_login.js",
@@ -20,10 +23,11 @@
     "health:dns": "node scripts/diagnose-vibe-cart-dns.mjs",
     "smoke:full": "node scripts/run-full-smoke.mjs",
     "smoke:homepage-lite": "node scripts/smoke-homepage-lite.mjs",
+    "audit:links": "node scripts/audit-static-links.mjs",
     "freeze:homepage": "node scripts/homepage-freeze-gate.mjs",
     "readiness:gate": "node scripts/production-readiness-gate.mjs",
     "test:bookings": "node scripts/test-bookings.mjs",
-    "test:syntax": "node -e \"require('child_process').execSync('node --check db-env.js',{stdio:'inherit'});require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/apply-schema.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/seed-demo.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/diagnose-vibe-cart-dns.mjs',{stdio:'inherit'});require('child_process').execSync('node --check scripts/run-full-smoke.mjs',{stdio:'inherit'});require('child_process').execSync('node --check booking-state-machine.js',{stdio:'inherit'});require('child_process').execSync('node --check bakery-booking-payments.js',{stdio:'inherit'});require('child_process').execSync('node --check bakery-realtime.js',{stdio:'inherit'});\""
+    "test:syntax": "node -e \"require('child_process').execSync('node --check db-env.js',{stdio:'inherit'});require('child_process').execSync('node --check owner-auth-api.js',{stdio:'inherit'});require('child_process').execSync('node --check push-notification-service.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/ensure-web-push-subscriptions-table.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/fulfill-coach-checkout-support.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/apply-schema.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/seed-demo.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/script.js',{stdio:'inherit'});require('child_process').execSync('node --check deploy-web/admin.js',{stdio:'inherit'});require('child_process').execSync('node --check scripts/diagnose-vibe-cart-dns.mjs',{stdio:'inherit'});require('child_process').execSync('node --check scripts/run-full-smoke.mjs',{stdio:'inherit'});require('child_process').execSync('node --check booking-state-machine.js',{stdio:'inherit'});require('child_process').execSync('node --check bakery-booking-payments.js',{stdio:'inherit'});require('child_process').execSync('node --check bakery-realtime.js',{stdio:'inherit'});\""
   },
   "engines": {
     "node": ">=20.0.0"
@@ -34,6 +38,7 @@
     "mysql2": "^3.15.2",
     "nodemailer": "^8.0.5",
     "stripe": "^22.0.2",
+    "web-push": "^3.6.7",
     "ws": "^8.20.0"
   }
 }

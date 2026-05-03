@@ -11,7 +11,6 @@
     { title: "Fashion trends lane", url: "./fashion-trends.html", keywords: "fashion trends outfits style runway clothes shoes" },
     { title: "Live market shops", url: "./live-market-shops.html", keywords: "market shops fashion electronics books gaming affiliate ireland dublin belfast northern ireland ROI" },
     { title: "World shop experience", url: "./world-shop-experience.html", keywords: "world shop experience preview lanes" },
-    { title: "Brainrot Studio partner", url: "/api/public/shop/redirect?shop=Brainrot%20Studio&cat=Electronics&partner=Brainrot%20Studio&target=https%3A%2F%2Fbrainrot.mov%3Fref%3DApLX4MJQoF", keywords: "brainrot affiliate ai video creator studio partner" },
     { title: "Popular market", url: "./popular-market.html", keywords: "popular market categories" },
     { title: "Live market folders", url: "./live-market.html", keywords: "live market folders" },
     { title: "Regional shops", url: "./regional-shops.html", keywords: "africa europe asia ireland regional shops folders" },

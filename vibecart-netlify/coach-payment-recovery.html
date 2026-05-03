@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Restore coach access · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260502recover2" />
+  <link rel="stylesheet" href="./styles.css?v=20260502recover3" />
   <style>
+    /* Real Stripe Checkout IDs look like cs_live_… / cs_test_… (underscores); keep readable feedback. */
     #recoverStatus:not(:empty) {
       color: var(--fg, #1a1a1a);
       margin-top: 0.75rem;
@@ -34,8 +35,9 @@
     </p>
     <p class="recover-status" id="recoverStatus" aria-live="polite"></p>
     <p class="note" style="margin-top: 1rem">
-      You must be <strong>signed in</strong> with the same VibeCart account (and email) you used at checkout. If you cannot find
-      the session ID, check the email receipt from Stripe or your card statement’s reference line.
+      You must be <strong>signed in</strong> with the same VibeCart account (and email) you used at checkout. If anything was
+      clipped when copying, open the Stripe receipt in your browser and copy the part after <code>session_id=</code> in the address
+      bar. You can paste a full Stripe URL here — we pull the ID out automatically.
     </p>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
@@ -52,9 +54,53 @@
         }
       }
       if (!btn || !input) return;
+      function extractCheckoutSessionId(text) {
+        var s = String(text || "").trim().replace(/\s+/g, " ");
+        var fromParam = s.match(/[?&]session_id=(cs_(?:live|test)_[a-zA-Z0-9_]+)/i);
+        if (fromParam) {
+          return fromParam[1];
+        }
+        var standalone = s.match(/\b(cs_(?:live|test)_[a-zA-Z0-9_]+)\b/i);
+        if (standalone) {
+          return standalone[1];
+        }
+        return s.replace(/\s+/g, "");
+      }
+      function friendlyRecoverError(body, httpStatus) {
+        var code = body && body.code ? String(body.code) : "";
+        var msg = body && body.message ? String(body.message).trim() : "";
+        if (msg) {
+          return msg;
+        }
+        if (code === "STRIPE_SESSION_NOT_FOUND") {
+          return "Stripe could not find that session. Try copying again from your receipt (after session_id= in the link, or from the Stripe Dashboard).";
+        }
+        if (code === "NOT_COACH_CHECKOUT") {
+          return "That receipt is not for a VibeCart health coach package. Use the Stripe email from your coach checkout.";
+        }
+        if (code === "NOT_YOUR_PURCHASE") {
+          return "That payment belongs to a different VibeCart account. Sign in with the account you used when you paid.";
+        }
+        if (code === "EMAIL_MISMATCH") {
+          return "Sign in with the same email address you entered at Stripe checkout, then try again.";
+        }
+        if (code === "PAYMENT_NOT_COMPLETE") {
+          return "Stripe shows this checkout as not fully paid yet. If you were charged, wait a few minutes and retry.";
+        }
+        if (code === "USER_NOT_RESOLVED") {
+          return "We could not match this checkout to your account. Sign in with your checkout email or contact support.";
+        }
+        if (httpStatus === 401) {
+          return "Session expired or sign-in check failed — open Account hub, sign out and sign in again, then return here.";
+        }
+        if (code === "STRIPE_NOT_CONFIGURED") {
+          return "Payments are not configured on this server. Please contact support.";
+        }
+        return code || "Could not verify this session.";
+      }
       btn.addEventListener("click", function () {
         var raw = String(input.value || "").trim();
-        var sid = raw.replace(/\s+/g, "");
+        var sid = extractCheckoutSessionId(raw);
         if (sid.indexOf("@") >= 0) {
           if (status) {
             status.textContent =
@@ -80,12 +126,16 @@
         var timer = window.setTimeout(function () {
           ctl.abort();
         }, 55000);
-        var url =
-          "/api/public/payments/checkout/recover?session_id=" +
-          encodeURIComponent(sid) +
-          "&authToken=" +
-          encodeURIComponent(tok);
-        fetch(url, { method: "GET", credentials: "same-origin", signal: ctl.signal })
+        var recoverUrl = "/api/public/payments/checkout/recover?session_id=" + encodeURIComponent(sid);
+        fetch(recoverUrl, {
+          method: "GET",
+          credentials: "same-origin",
+          signal: ctl.signal,
+          headers: {
+            Authorization: "Bearer " + tok,
+            Accept: "application/json"
+          }
+        })
           .then(function (r) {
             return r.text().then(function (t) {
               var j = null;
@@ -104,10 +154,11 @@
               window.location.assign(x.body.redirectUrl);
               return;
             }
-            var msg =
-              (x.body && (x.body.message || x.body.code)) ||
-              (x.status === 401 ? "Session expired or device check failed — sign out and sign in again, then retry." : "") ||
-              (x.ok ? "Unexpected response." : "Could not verify this session.");
+            var msg = friendlyRecoverError(x.body, x.status);
+            if (!x.body && x.raw && /^\s*</.test(String(x.raw || ""))) {
+              msg =
+                "Could not reach the payment API (got a web page instead of data). Confirm you are on the real VibeCart site and that /api routes to the backend.";
+            }
             if (!String(msg || "").trim()) {
               msg = "Could not verify (HTTP " + x.status + "). Try again or contact support with this code.";
             }

@@ -7,7 +7,7 @@
     <title>VibeCart Owner Panel</title>
     <link rel="stylesheet" href="./styles.css?v=20260508uxharden1" />
   </head>
-  <body class="admin-surface">
+  <body class="admin-surface vc-no-brandon">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">V</span>
@@ -766,6 +766,20 @@
         </div>
         <div id="aiOpsRecommendationsBox" class="ai-result"></div>
         <div id="aiOpsQueueList" class="messages-box"></div>
+
+        <h3>AI automation — security &amp; site strategy</h3>
+        <p class="note">
+          Generative drafts use server-side models. Outputs are advisory only: you must make final legal, security, and product
+          decisions. Emails fire when SMTP is configured (<code>EMAIL_NOTIFICATIONS_ENABLED</code>).
+        </p>
+        <div class="hero-actions">
+          <button id="runAiSecurityReview" type="button" class="btn btn-secondary">Run security &amp; compliance review</button>
+          <button id="runAiAutopilotPlan" type="button" class="btn btn-secondary">Generate owner autopilot plan</button>
+        </div>
+        <label>Latest security / compliance JSON</label>
+        <pre id="aiSecurityReviewOut" class="ai-result" style="white-space: pre-wrap; max-height: 18rem; overflow: auto"></pre>
+        <label>Latest autopilot plan JSON</label>
+        <pre id="aiAutopilotPlanOut" class="ai-result" style="white-space: pre-wrap; max-height: 18rem; overflow: auto"></pre>
 
         <hr />
         <h3>Insurance Jurisdiction Control</h3>

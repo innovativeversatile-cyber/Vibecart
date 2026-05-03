@@ -14,6 +14,27 @@
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title" data-page-i18n="account.title">Account access</h1>
     <p class="note shops-lane-intro" data-page-i18n="account.intro">Login, roles, and saved preferences in one place.</p>
+    <section id="accountAiDigestWrap" class="section alt" style="margin-top: 0.75rem" hidden>
+      <h2 class="shops-lane-title" style="font-size: 1.15rem">Your activity digest</h2>
+      <p id="accountAiDigestLead" class="note"></p>
+      <ul id="accountAiDigestList" class="note" style="margin: 0.5rem 0 0 1.1rem"></ul>
+      <p id="accountAiDigestDisclaimer" class="note" style="margin-top: 0.5rem"></p>
+      <p class="hero-actions" style="margin-top: 0.5rem; flex-wrap: wrap; gap: 0.5rem">
+        <button type="button" class="btn btn-secondary" id="accountWebPushDigestBtn" hidden>
+          Send this digest to my browsers (Web Push)
+        </button>
+      </p>
+    </section>
+    <section id="accountBrowserPushWrap" class="section alt" style="margin-top: 0.75rem" hidden>
+      <h2 class="shops-lane-title" style="font-size: 1.15rem">Browser notifications</h2>
+      <p class="note">
+        Standard Web Push (VAPID) for your signed-in account when the server exposes keys. Use HTTPS or localhost, then allow notifications.
+      </p>
+      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem">
+        <button type="button" class="btn btn-primary" id="accountWebPushEnableBtn">Enable on this device</button>
+      </p>
+      <p class="note" id="accountWebPushStatus" aria-live="polite"></p>
+    </section>
     <section class="section alt vc-edge-lane vc-edge-lane--compact" id="accountHubEdge" aria-labelledby="accountHubEdgeTitle">
       <div class="vc-edge-head">
         <p class="badge" data-page-i18n="account.edge.badge">Hub lane</p>
@@ -49,6 +70,9 @@
       <a class="shop" href="./lane-passport.html"><h3 data-page-i18n="account.signin">Sign in / register</h3><p data-page-i18n="account.signin.desc">Open the Lane passport page to create an account or sign in.</p></a>
       <a class="shop" href="./insurance.html"><h3>Insurance</h3><p data-page-i18n="account.insurance.desc">Plans and partner offers.</p></a>
       <a class="shop" href="./wellbeing.html"><h3>Health coach</h3><p data-page-i18n="account.health.desc">Goals and wearable preferences.</p></a>
+      <a class="shop" href="./coach-payment-recovery.html"
+        ><h3>Restore coach access</h3><p>Paid in Stripe but the plan page did not open? Paste your Checkout session ID here — no second charge.</p></a
+      >
       <a class="shop" id="activePlanCard" href="./plan-workspace.html" hidden><h3 data-page-i18n="account.myPlan">My active plan</h3><p data-page-i18n="account.myPlan.desc">Open routines, updates, meals, and AI notifications.</p></a>
       <a class="shop" href="./orders-tracking.html"><h3>Orders &amp; tracking</h3><p data-page-i18n="account.orders.desc">Shipment timeline tools.</p></a>
     </div>
@@ -145,6 +169,288 @@
             "Seller Boost still checks your seller session — but the guided <a href=\"./sell-journey.html\">sell journey</a> " +
             "is open so you can stage photos, shipping, and copy first. Sign in here when you are ready for payouts.";
         }
+      } catch (e) {}
+    })();
+    (function () {
+      function urlBase64ToUint8Array(base64String) {
+        var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+        var raw = atob(base64);
+        var arr = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) {
+          arr[i] = raw.charCodeAt(i);
+        }
+        return arr;
+      }
+      try {
+        var token = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        var wrap = document.getElementById("accountAiDigestWrap");
+        var lead = document.getElementById("accountAiDigestLead");
+        var list = document.getElementById("accountAiDigestList");
+        var disc = document.getElementById("accountAiDigestDisclaimer");
+        var digestPushBtn = document.getElementById("accountWebPushDigestBtn");
+        var browserWrap = document.getElementById("accountBrowserPushWrap");
+        var enableBtn = document.getElementById("accountWebPushEnableBtn");
+        var pushStatus = document.getElementById("accountWebPushStatus");
+        var vapidPublicKey = null;
+        function setPushStatus(msg) {
+          if (pushStatus) pushStatus.textContent = String(msg || "");
+        }
+        function applyVapidConfig(j) {
+          if (j && j.ok && j.publicKey && browserWrap && "serviceWorker" in navigator && "PushManager" in window) {
+            vapidPublicKey = String(j.publicKey);
+            browserWrap.hidden = false;
+            return true;
+          }
+          return false;
+        }
+        var configPromise =
+          token && browserWrap
+            ? fetch("/api/public/web-push/config")
+                .then(function (r) {
+                  return r.json();
+                })
+                .then(function (j) {
+                  applyVapidConfig(j);
+                  return j;
+                })
+                .catch(function () {
+                  return null;
+                })
+            : Promise.resolve(null);
+        if (enableBtn && token) {
+          enableBtn.addEventListener("click", function () {
+            if (!vapidPublicKey) {
+              setPushStatus("Web Push is not configured on this server yet.");
+              return;
+            }
+            setPushStatus("Working…");
+            navigator.serviceWorker
+              .register("./service-worker.js")
+              .then(function (reg) {
+                return reg.pushManager.getSubscription().then(function (existing) {
+                  if (existing) return existing;
+                  return reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                  });
+                });
+              })
+              .then(function (sub) {
+                return fetch("/api/public/account/web-push/register", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+                  body: JSON.stringify({ subscription: sub.toJSON() })
+                }).then(function (r) {
+                  return r.json().then(function (j) {
+                    return { ok: r.ok, j: j };
+                  });
+                });
+              })
+              .then(function (x) {
+                if (x && x.ok && x.j && x.j.ok) {
+                  setPushStatus("This browser is registered for Web Push.");
+                } else {
+                  setPushStatus((x && x.j && x.j.message) || "Could not save subscription.");
+                }
+              })
+              .catch(function (err) {
+                setPushStatus(err && err.message ? err.message : "Enable blocked or denied.");
+              });
+          });
+        }
+        if (!token || !wrap || !lead || !list || !disc) return;
+        var digestPromise = fetch("/api/public/account/ai-digest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: "{}"
+        }).then(function (r) {
+          return r.json().then(function (j) {
+            return { ok: r.ok, j: j };
+          });
+        });
+        Promise.all([configPromise, digestPromise])
+          .then(function (pair) {
+            var x = pair[1];
+            if (!x || !x.ok || !x.j || !x.j.ok || !x.j.result) {
+              return;
+            }
+            var res = x.j.result;
+            wrap.hidden = false;
+            lead.textContent = String(res.headline || "").trim() || "Account digest";
+            list.innerHTML = "";
+            (Array.isArray(res.nudges) ? res.nudges : []).forEach(function (n) {
+              var li = document.createElement("li");
+              li.textContent = String(n || "").trim();
+              if (li.textContent) list.appendChild(li);
+            });
+            disc.textContent = String(res.complianceDisclaimer || "").trim();
+            if (digestPushBtn && vapidPublicKey) {
+              digestPushBtn.hidden = false;
+            }
+          })
+          .catch(function () {});
+        if (digestPushBtn && token) {
+          digestPushBtn.addEventListener("click", function () {
+            setPushStatus("Sending digest push…");
+            fetch("/api/public/account/ai-digest", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+              body: JSON.stringify({ deliverPush: true })
+            })
+              .then(function (r) {
+                return r.json().then(function (j) {
+                  return { ok: r.ok, j: j };
+                });
+              })
+              .then(function (x) {
+                if (x.ok && x.j && x.j.ok) {
+                  setPushStatus("Digest push queued for your registered browsers.");
+                } else if (x.j && x.j.code === "RATE_LIMITED") {
+                  setPushStatus("Rate limited: wait a few minutes before another digest or push.");
+                } else {
+                  setPushStatus("Digest push could not be sent.");
+                }
+              })
+              .catch(function () {
+                setPushStatus("Network error sending digest push.");
+              });
+          });
+        }
+      } catch (e) {}
+    })();
+    (function () {
+      function readPaidPlansHub() {
+        try {
+          var rawList = JSON.parse(localStorage.getItem("vibecart-paid-plans") || "[]");
+          if (Array.isArray(rawList) && rawList.length) {
+            return rawList.filter(function (x) {
+              return x && x.sessionId;
+            });
+          }
+          var legacy = JSON.parse(localStorage.getItem("vibecart-paid-plan") || "null");
+          return legacy && legacy.sessionId ? [legacy] : [];
+        } catch {
+          return [];
+        }
+      }
+      function savePaidPlansHub(list) {
+        try {
+          localStorage.setItem("vibecart-paid-plans", JSON.stringify(list || []));
+          if (Array.isArray(list) && list[0]) {
+            localStorage.setItem("vibecart-paid-plan", JSON.stringify(list[0]));
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      function upsertPaidPlansHub(existing, incoming) {
+        var list = Array.isArray(existing) ? existing.slice() : [];
+        var key = [incoming.flow, incoming.plan, incoming.sessionId].join(":");
+        var index = list.findIndex(function (row) {
+          return [row.flow, row.plan, row.sessionId].join(":") === key;
+        });
+        if (index >= 0) {
+          list[index] = incoming;
+        } else {
+          list.unshift(incoming);
+        }
+        return list;
+      }
+      function normalizePlanHub(plan) {
+        var p = String(plan || "").toLowerCase();
+        if (p === "pro" || p === "plus" || p === "ai-home" || p === "starter") {
+          return p;
+        }
+        return "starter";
+      }
+      try {
+        var params = new URLSearchParams(window.location.search || "");
+        if (params.get("plan_locked") !== "1") {
+          return;
+        }
+        var token = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        if (!token) {
+          return;
+        }
+        var headers = { Authorization: "Bearer " + token, Accept: "application/json" };
+        if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+          headers = window.VibeCartSessionDevice.authHeaders(token);
+          headers.Accept = "application/json";
+        }
+        fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
+          .then(function (r) {
+            return r.json().catch(function () {
+              return null;
+            });
+          })
+          .then(function (body) {
+            if (!body || !body.ok || !Array.isArray(body.sessions) || !body.sessions.length) {
+              return;
+            }
+            var merged = readPaidPlansHub();
+            body.sessions.forEach(function (row) {
+              if (!row || !row.sessionId) {
+                return;
+              }
+              var ic = [normalizePlanHub(row.plan || "starter")];
+              if (row.addonPlan) {
+                var ad = normalizePlanHub(row.addonPlan);
+                if (ad && ic.indexOf(ad) < 0) {
+                  ic.push(ad);
+                }
+              }
+              ic.forEach(function (planCode) {
+                merged = upsertPaidPlansHub(merged, {
+                  flow: "coach",
+                  plan: planCode,
+                  provider: row.provider || "card",
+                  sessionId: String(row.sessionId).trim(),
+                  activatedAt: new Date().toISOString()
+                });
+              });
+            });
+            savePaidPlansHub(merged);
+            var paidPlan = merged[0];
+            var activePlanCard = document.getElementById("activePlanCard");
+            var activePlanBadge = document.getElementById("activePlanBadge");
+            var activePlanBadgeText = document.getElementById("activePlanBadgeText");
+            var summary = document.getElementById("bookingSummary");
+            if (activePlanCard && paidPlan && paidPlan.sessionId) {
+              activePlanCard.hidden = false;
+              activePlanCard.href =
+                "./plan-workspace.html?flow=" +
+                encodeURIComponent(String(paidPlan.flow || "coach")) +
+                "&plan=" +
+                encodeURIComponent(String(paidPlan.plan || "starter")) +
+                "&provider=" +
+                encodeURIComponent(String(paidPlan.provider || "card")) +
+                "&session_id=" +
+                encodeURIComponent(String(paidPlan.sessionId));
+            }
+            if (activePlanBadge) {
+              activePlanBadge.hidden = false;
+            }
+            if (activePlanBadgeText && paidPlan) {
+              var label = String(paidPlan.plan || "standard").replace(/-/g, " ");
+              activePlanBadgeText.textContent = String(paidPlan.flow || "coach") + " · " + label;
+            }
+            if (summary) {
+              summary.innerHTML =
+                "Your coach purchase is linked to this account. Open <a href=\"" +
+                (activePlanCard ? activePlanCard.href : "./plan-workspace.html") +
+                "\">your plan workspace</a> — or use <a href=\"./coach-payment-recovery.html\">Restore coach access</a> if you still need help.";
+            }
+            try {
+              var u = new URL(window.location.href);
+              u.searchParams.delete("plan_locked");
+              var qs = u.searchParams.toString();
+              window.history.replaceState({}, "", u.pathname + (qs ? "?" + qs : "") + u.hash);
+            } catch {
+              /* ignore */
+            }
+          })
+          .catch(function () {});
       } catch (e) {}
     })();
   </script>

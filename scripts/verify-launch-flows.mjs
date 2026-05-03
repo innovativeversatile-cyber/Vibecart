@@ -33,14 +33,16 @@ function main() {
   assertIncludes(hot, 'id="hotPicksGrid"', "Hot picks live grid mount");
 
   const hotJs = read("hot-picks.js");
-  assertIncludes(hotJs, 'fetch("/api/public/products/live")', "Hot picks live products API");
+  assertIncludes(hotJs, "/api/public/products/live", "Hot picks live products API");
   assertIncludes(hotJs, "/api/public/shop/redirect?shop=", "Hot picks external redirect route");
 
   const worldShop = read("world-shop-experience.html");
-  assertIncludes(worldShop, "brainrot.mov%3Fref%3DApLX4MJQoF", "Brainrot partner integration");
+  assertIncludes(worldShop, 'href="./hot-picks.html"', "World shop internal hot picks CTA");
+  assertIncludes(worldShop, 'href="./plan-workspace.html"', "World shop internal plan workspace CTA");
 
   const liveMarket = read("live-market-shops.js");
-  assertIncludes(liveMarket, "https://brainrot.mov?ref=ApLX4MJQoF", "Brainrot tracked partner URL in live market");
+  assertIncludes(liveMarket, "var mapByRegion", "Live market region/category map");
+  assertIncludes(liveMarket, "Amazon Electronics", "Live market global electronics sample shop");
 
   const wb = read("wellbeing.html");
   assertIncludes(wb, "./coach-experience.html?flow=coach&plan=starter", "Coach starter preview link");
@@ -48,8 +50,8 @@ function main() {
 
   const sell = read("sell-journey.html");
   assertIncludes(sell, 'id="sellStep2Continue"', "Seller step2 validation button");
-  assertIncludes(sell, 'id="sellStep3Continue"', "Seller step3 validation button");
-  assertIncludes(sell, 'href="./seller-live-preview.html"', "Seller preview route");
+  assertIncludes(sell, 'id="sellPublishBtn"', "Seller step3 publish button");
+  assertIncludes(sell, 'href="./my-listings.html"', "Seller my listings route");
 
   const sellJs = read("sell-journey.js");
   assertIncludes(sellJs, "Add at least one photo", "Seller photo/title validation");

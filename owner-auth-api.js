@@ -16,6 +16,7 @@ const {
   registerMobileInstallPush,
   recordMobileAppFeedback,
   registerDeviceToken,
+  registerWebPushSubscription,
   sendOrderUpdateNotifications,
   sendPushToUser
 } = require("./push-notification-service");
@@ -112,7 +113,14 @@ const {
   queueAiOpsRecommendations,
   getAiReadinessStatus
 } = require("./ai-operations-service");
-const { runPublicGenerativeAgent, runOwnerGenerativeAgent } = require("./generative-ai-service");
+const {
+  runPublicGenerativeAgent,
+  runOwnerGenerativeAgent,
+  generateOwnerSecurityComplianceReviewLLM,
+  generateOwnerSiteAutopilotPlanLLM,
+  generateAccountActivityDigestLLM,
+  isGenerativeAiConfigured
+} = require("./generative-ai-service");
 const { getMacroRegionFromCountry } = require("./analytics-region-map");
 const {
   createStripePaymentIntent,
@@ -132,6 +140,10 @@ const DB_USER = _db.user;
 const DB_PASSWORD = _db.password;
 const DB_NAME = _db.database;
 const CRON_SECRET = String(process.env.CRON_SECRET || "");
+/** userId -> last ms for POST /api/public/account/ai-digest */
+const publicAccountDigestRate = new Map();
+/** userId -> last ms for POST /api/public/account/coach-workspace/encourage-push */
+const coachWorkspaceEncouragePushRate = new Map();
 const ANALYTICS_VISITOR_SALT = String(process.env.ANALYTICS_VISITOR_SALT || CRON_SECRET || "vibecart-analytics-salt-dev").trim();
 const NOTIFICATION_EMAIL = String(process.env.NOTIFICATION_EMAIL || "").trim().toLowerCase();
 const EMAIL_NOTIFICATIONS_ENABLED = String(process.env.EMAIL_NOTIFICATIONS_ENABLED || "false").trim().toLowerCase() === "true";
@@ -5271,6 +5283,263 @@ async function handleOwnerAiOperationsDecide(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function buildOwnerAutomationStatsBundle() {
+  const stats = {
+    activeSellers: 0,
+    activeProducts: 0,
+    avgTrustScore: 60,
+    highRiskChatEvents7d: 0,
+    snapshotGeneratedAt: new Date().toISOString()
+  };
+  try {
+    const [sellerRows] = await pool.execute(`SELECT COUNT(*) AS active_sellers FROM shops WHERE active = 1`);
+    stats.activeSellers = Number(sellerRows[0]?.active_sellers || 0);
+  } catch {
+    /* ignore */
+  }
+  try {
+    const [productRows] = await pool.execute(`SELECT COUNT(*) AS active_products FROM products WHERE status = 'active'`);
+    stats.activeProducts = Number(productRows[0]?.active_products || 0);
+  } catch {
+    /* ignore */
+  }
+  try {
+    const [trustRows] = await pool.execute(`SELECT AVG(trust_score) AS avg_trust FROM trust_profiles`);
+    stats.avgTrustScore = Number(trustRows[0]?.avg_trust || 60);
+  } catch {
+    /* ignore */
+  }
+  try {
+    const [chatRows] = await pool.execute(
+      `SELECT COUNT(*) AS c FROM chat_safety_events WHERE risk_level = 'high' AND created_at >= (NOW() - INTERVAL 7 DAY)`
+    );
+    stats.highRiskChatEvents7d = Number(chatRows[0]?.c || 0);
+  } catch {
+    /* ignore */
+  }
+  return stats;
+}
+
+async function buildAccountSnapshotForDigest(userId) {
+  const uid = Number(userId || 0);
+  const snap = {
+    ordersCount: 0,
+    hasCoachProfile: false,
+    insuranceSubscriptionsApprox: 0,
+    snapshotGeneratedAt: new Date().toISOString()
+  };
+  if (!uid) {
+    return snap;
+  }
+  try {
+    const [orows] = await pool.execute(`SELECT COUNT(*) AS c FROM orders WHERE buyer_user_id = ?`, [uid]);
+    snap.ordersCount = Number(orows[0]?.c || 0);
+  } catch {
+    /* ignore */
+  }
+  try {
+    const [crows] = await pool.execute(`SELECT id FROM ai_coach_profiles WHERE user_id = ? LIMIT 1`, [uid]);
+    snap.hasCoachProfile = Array.isArray(crows) && crows.length > 0;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const [irows] = await pool.execute(
+      `SELECT COUNT(*) AS c FROM insurance_subscriptions WHERE user_id = ? AND status IN ('active','paused')`,
+      [uid]
+    );
+    snap.insuranceSubscriptionsApprox = Number(irows[0]?.c || 0);
+  } catch {
+    /* ignore */
+  }
+  return snap;
+}
+
+async function handleOwnerAiOpsSecurityReview(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  if (!isGenerativeAiConfigured()) {
+    return sendJson(res, 503, { ok: false, code: "OPENAI_NOT_CONFIGURED" });
+  }
+  const stats = await buildOwnerAutomationStatsBundle();
+  const result = await generateOwnerSecurityComplianceReviewLLM(stats);
+  if (!result.ok) {
+    const status = result.code === "AI_PARSE_ERROR" ? 400 : 502;
+    return sendJson(res, status, result);
+  }
+  await sendAdminNotificationEmail("VibeCart AI — security & compliance review", [
+    `Summary (truncated): ${String(result.executiveSummary || "").slice(0, 400)}`,
+    `High-risk chat events (7d): ${stats.highRiskChatEvents7d}`,
+    `Timestamp: ${stats.snapshotGeneratedAt}`
+  ]);
+  return sendJson(res, 200, { ok: true, stats, result });
+}
+
+async function handleOwnerAiOpsAutopilotPlan(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  if (!isGenerativeAiConfigured()) {
+    return sendJson(res, 503, { ok: false, code: "OPENAI_NOT_CONFIGURED" });
+  }
+  const stats = await buildOwnerAutomationStatsBundle();
+  const result = await generateOwnerSiteAutopilotPlanLLM(stats);
+  if (!result.ok) {
+    const status = result.code === "AI_PARSE_ERROR" ? 400 : 502;
+    return sendJson(res, status, result);
+  }
+  await sendAdminNotificationEmail("VibeCart AI — owner autopilot plan draft", [
+    `Plan: ${String(result.planTitle || "").slice(0, 200)}`,
+    `Workstreams: ${Array.isArray(result.workstreams) ? result.workstreams.length : 0}`,
+    `Timestamp: ${new Date().toISOString()}`
+  ]);
+  return sendJson(res, 200, { ok: true, stats, result });
+}
+
+async function handlePublicAccountAiDigest(req, res) {
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const deliverPush = Boolean(body && body.deliverPush);
+  const uid = Number(session.user_id || 0);
+  const now = Date.now();
+  const last = Number(publicAccountDigestRate.get(String(uid)) || 0);
+  if (now - last < 4 * 60 * 1000) {
+    return sendJson(res, 429, { ok: false, code: "RATE_LIMITED", message: "Account digest is limited to once every 4 minutes." });
+  }
+  publicAccountDigestRate.set(String(uid), now);
+  if (publicAccountDigestRate.size > 8000) {
+    const first = publicAccountDigestRate.keys().next().value;
+    publicAccountDigestRate.delete(first);
+  }
+  const snapshot = await buildAccountSnapshotForDigest(uid);
+  const result = await generateAccountActivityDigestLLM(snapshot);
+  if (!result.ok) {
+    const status = result.code === "AI_PARSE_ERROR" ? 400 : 502;
+    return sendJson(res, status, result);
+  }
+  if (deliverPush) {
+    const base = resolvePublicWebBaseUrl(req);
+    const headline = String(result.headline || "Your VibeCart digest").trim().slice(0, 120);
+    const nudge0 =
+      Array.isArray(result.nudges) && result.nudges.length ? String(result.nudges[0] || "").trim() : "";
+    const pushBody = (nudge0 || headline).slice(0, 500);
+    try {
+      await sendPushToUser(pool, {
+        userId: uid,
+        title: headline || "Account digest",
+        message: pushBody,
+        deepLink: `${base.replace(/\/$/, "")}/account-hub.html`,
+        eventType: "account_ai_digest"
+      });
+    } catch {
+      /* ignore push failures */
+    }
+  }
+  return sendJson(res, 200, { ok: true, result });
+}
+
+async function handlePublicWebPushConfig(req, res) {
+  if (req.method !== "GET") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const pub = String(process.env.VAPID_PUBLIC_KEY || "").trim();
+  if (!pub) {
+    return sendJson(res, 200, { ok: false, code: "WEB_PUSH_NOT_CONFIGURED" });
+  }
+  return sendJson(res, 200, { ok: true, publicKey: pub });
+}
+
+async function handlePublicWebPushRegister(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const sub = body && body.subscription ? body.subscription : body;
+  try {
+    await registerWebPushSubscription(pool, {
+      userId: Number(session.user_id || 0),
+      subscription: sub
+    });
+    return sendJson(res, 200, { ok: true });
+  } catch (error) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "WEB_PUSH_REGISTER_FAILED",
+      message: String(error.message || error).slice(0, 200)
+    });
+  }
+}
+
+async function handlePublicCoachWorkspaceEncouragePush(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const uid = Number(session.user_id || 0);
+  const now = Date.now();
+  const last = Number(coachWorkspaceEncouragePushRate.get(String(uid)) || 0);
+  if (now - last < 45 * 1000) {
+    return sendJson(res, 429, {
+      ok: false,
+      code: "RATE_LIMITED",
+      message: "Coach encouragement pushes are limited to once every 45 seconds."
+    });
+  }
+  coachWorkspaceEncouragePushRate.set(String(uid), now);
+  if (coachWorkspaceEncouragePushRate.size > 8000) {
+    const first = coachWorkspaceEncouragePushRate.keys().next().value;
+    coachWorkspaceEncouragePushRate.delete(first);
+  }
+  const title = String(body.title || "Your coach is with you").trim().slice(0, 120);
+  const message = String(body.message || "").trim().slice(0, 500);
+  if (!message) {
+    return sendJson(res, 400, { ok: false, code: "MISSING_MESSAGE", message: "message is required." });
+  }
+  const base = resolvePublicWebBaseUrl(req);
+  const deep = `${String(base || "").replace(/\/$/, "")}/plan-workspace.html`;
+  try {
+    await sendPushToUser(pool, {
+      userId: uid,
+      title: title || "VibeCart Coach",
+      message,
+      deepLink: deep,
+      eventType: "coach_workspace_encourage"
+    });
+  } catch {
+    /* ignore push failures */
+  }
+  return sendJson(res, 200, { ok: true });
+}
+
 async function handleOwnerAiOpsRecommendations(req, res) {
   const data = await readBodyWithSession(req, res);
   if (!data) {
@@ -5467,15 +5736,13 @@ async function handlePublicOrderCreate(req, res) {
       );
       const sellerUserId = Number(sellerOwnerRows[0]?.owner_user_id || 0);
       if (sellerUserId > 0) {
-        await sendPushToUser(sellerUserId, {
+        const ordersUrl = `${resolvePublicWebBaseUrl(req).replace(/\/$/, "")}/seller-orders.html`;
+        await sendPushToUser(pool, {
+          userId: sellerUserId,
           title: "Item sold on VibeCart",
-          body: `${String(product.title || "One item")} (${quantity}x) has a new order.`,
-          data: {
-            type: "seller_sale",
-            orderId,
-            productId,
-            shopId: Number(product.shop_id)
-          }
+          message: `${String(product.title || "One item")} (${quantity}x) has a new order.`,
+          deepLink: ordersUrl,
+          eventType: "seller_sale"
         });
       }
     } catch {
@@ -6380,19 +6647,45 @@ async function handlePublicCheckoutStart(req, res) {
  * this account, then runs the same idempotent fulfillment as the webhook.
  */
 async function handlePublicCheckoutRecover(req, res) {
-  const acct = await requirePublicAccountSession(req, res);
+  let recoverToken = getBearerToken(req);
+  if (!recoverToken && req && req.url) {
+    try {
+      const recoverUrlObj = new URL(req.url, "http://localhost");
+      recoverToken = String(
+        recoverUrlObj.searchParams.get("token") || recoverUrlObj.searchParams.get("authToken") || ""
+      ).trim();
+    } catch {
+      recoverToken = "";
+    }
+  }
+  if (!recoverToken) {
+    sendHighValueAccountRequired(res);
+    return;
+  }
+  const acct = await requirePublicSession(recoverToken, req, { skipDeviceBinding: true });
   if (!acct) {
+    sendHighValueAccountRequired(res);
     return;
   }
   if (!stripe) {
     return sendJson(res, 503, { ok: false, code: "STRIPE_NOT_CONFIGURED" });
   }
   let sessionId = "";
-  try {
-    const urlObj = new URL(req.url, "http://localhost");
-    sessionId = String(urlObj.searchParams.get("session_id") || "").trim();
-  } catch {
-    sessionId = "";
+  if (req.method === "POST") {
+    try {
+      const body = await readJson(req);
+      sessionId = String(body.session_id || body.sessionId || "").trim();
+    } catch {
+      return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+    }
+  }
+  if (!sessionId) {
+    try {
+      const urlObj = new URL(req.url, "http://localhost");
+      sessionId = String(urlObj.searchParams.get("session_id") || "").trim();
+    } catch {
+      sessionId = "";
+    }
   }
   // Stripe Checkout session ids are cs_test_… / cs_live_… (underscores after the mode prefix).
   if (!/^cs_[a-zA-Z0-9_]+$/.test(sessionId)) {
@@ -6406,11 +6699,22 @@ async function handlePublicCheckoutRecover(req, res) {
   try {
     checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
   } catch {
-    return sendJson(res, 400, { ok: false, code: "STRIPE_SESSION_NOT_FOUND" });
+    return sendJson(res, 400, {
+      ok: false,
+      code: "STRIPE_SESSION_NOT_FOUND",
+      message:
+        "Stripe could not find that session. Double-check the Checkout session ID (e.g. from the receipt link after session_id=, or Stripe Dashboard), live vs test mode, and that it matches this environment."
+    });
   }
   const paymentStatus = String(checkoutSession.payment_status || "").toLowerCase();
   if (paymentStatus !== "paid") {
-    return sendJson(res, 400, { ok: false, code: "PAYMENT_NOT_COMPLETE", paymentStatus });
+    return sendJson(res, 400, {
+      ok: false,
+      code: "PAYMENT_NOT_COMPLETE",
+      paymentStatus,
+      message:
+        "Stripe still shows this checkout as not paid. If you were charged, wait a few minutes and try again, or open the receipt link in your Stripe email."
+    });
   }
   const metadata = checkoutSession.metadata || {};
   const flow = String(metadata.flow || "").trim().toLowerCase();
@@ -6466,6 +6770,46 @@ async function handlePublicCheckoutRecover(req, res) {
     fulfillment: fulfillResult,
     redirectUrl
   });
+}
+
+/**
+ * Signed-in user: list fulfilled Stripe coach checkouts so the web app can hydrate localStorage
+ * and avoid plan-workspace ↔ account-hub redirect loops when the browser never captured session_id.
+ */
+async function handlePublicCoachCheckoutSessionsList(req, res) {
+  if (req.method !== "GET") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const session = await requirePublicAccountSession(req, res);
+  if (!session) {
+    return;
+  }
+  const uid = Number(session.user_id);
+  if (!uid) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_USER" });
+  }
+  try {
+    const [rows] = await pool.execute(
+      `SELECT stripe_checkout_session_id AS sessionId, plan_slug AS plan, addon_slug AS addonPlan, created_at AS fulfilledAt
+       FROM stripe_checkout_fulfillment_events
+       WHERE user_id = ? AND flow = 'coach' AND payment_status = 'paid'
+       ORDER BY id DESC
+       LIMIT 25`,
+      [uid]
+    );
+    const sessions = (Array.isArray(rows) ? rows : [])
+      .map((r) => ({
+        sessionId: String(r.sessionId || "").trim(),
+        plan: String(r.plan || "starter").trim().toLowerCase(),
+        addonPlan: String(r.addonPlan || "").trim().toLowerCase(),
+        provider: "card",
+        fulfilledAt: r.fulfilledAt || null
+      }))
+      .filter((s) => /^cs_[a-zA-Z0-9_]+$/.test(s.sessionId));
+    return sendJson(res, 200, { ok: true, sessions });
+  } catch {
+    return sendJson(res, 200, { ok: true, sessions: [] });
+  }
 }
 
 async function handlePublicCheckoutRedirect(req, res) {
@@ -6722,6 +7066,18 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/ai/generate") {
       return await handlePublicAiGenerate(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/public/account/ai-digest") {
+      return await handlePublicAccountAiDigest(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/web-push/config") {
+      return await handlePublicWebPushConfig(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/account/web-push/register") {
+      return await handlePublicWebPushRegister(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/account/coach-workspace/encourage-push") {
+      return await handlePublicCoachWorkspaceEncouragePush(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/coach/profile/upsert") {
       return await handlePublicCoachProfile(req, res);
     }
@@ -6891,8 +7247,14 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/api/public/payments/checkout/redirect") {
       return await handlePublicCheckoutRedirect(req, res);
     }
-    if (req.method === "GET" && pathname === "/api/public/payments/checkout/recover") {
+    if (
+      (req.method === "GET" || req.method === "POST") &&
+      pathname === "/api/public/payments/checkout/recover"
+    ) {
       return await handlePublicCheckoutRecover(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/payments/coach-checkout-sessions") {
+      return await handlePublicCoachCheckoutSessionsList(req, res);
     }
     if (req.method === "GET" && pathname === "/api/public/shop/redirect") {
       return await handlePublicShopRedirect(req, res);
@@ -7112,6 +7474,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/ai-ops/readiness") {
       return await handleOwnerAiReadiness(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/ai-ops/security-review") {
+      return await handleOwnerAiOpsSecurityReview(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/ai-ops/autopilot/plan") {
+      return await handleOwnerAiOpsAutopilotPlan(req, res);
     }
     if (req.method === "POST" && pathname === "/api/ai-ops/cron/autopilot") {
       return await handleAiOpsCronAutopilot(req, res);

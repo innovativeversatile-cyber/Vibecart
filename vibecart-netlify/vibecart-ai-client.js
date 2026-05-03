@@ -25,9 +25,20 @@
     if (!base) {
       return Promise.reject(new Error("no_api_base"));
     }
+    var headers = { "Content-Type": "application/json" };
+    try {
+      var token = String(global.localStorage.getItem("vibecart-public-auth-token") || "").trim();
+      if (token && global.VibeCartSessionDevice && typeof global.VibeCartSessionDevice.merge === "function") {
+        headers = global.VibeCartSessionDevice.merge(token, headers);
+      } else if (token) {
+        headers.Authorization = "Bearer " + token;
+      }
+    } catch (e) {
+      /* ignore */
+    }
     return fetch(base + "/api/public/ai/generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify({ agent: agent, input: input || {} })
     }).then(function (r) {
       return r.json().then(function (data) {

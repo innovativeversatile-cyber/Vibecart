@@ -1,9 +1,121 @@
 "use strict";
 
+const crypto = require("crypto");
+
 /**
  * Backend helper for push registration + order notifications.
- * Replace sendViaProvider() with your real push provider integration.
+ * Native: Expo + FCM legacy (`FCM_SERVER_KEY`). Browser: Web Push via `web-push` + VAPID env vars.
  */
+
+let webPushModule;
+function loadWebPush() {
+  if (webPushModule !== undefined) {
+    return webPushModule;
+  }
+  try {
+    webPushModule = require("web-push");
+  } catch {
+    webPushModule = null;
+  }
+  return webPushModule;
+}
+
+let webPushVapidReady = false;
+function ensureWebPushVapidConfigured() {
+  const webpush = loadWebPush();
+  if (!webpush) {
+    return false;
+  }
+  if (webPushVapidReady) {
+    return true;
+  }
+  const pub = String(process.env.VAPID_PUBLIC_KEY || "").trim();
+  const prv = String(process.env.VAPID_PRIVATE_KEY || "").trim();
+  const subj = String(process.env.VAPID_SUBJECT || "mailto:support@vibe-cart.com").trim();
+  if (!pub || !prv) {
+    return false;
+  }
+  webpush.setVapidDetails(subj, pub, prv);
+  webPushVapidReady = true;
+  return true;
+}
+
+function tryParseWebPushSubscription(raw) {
+  const s = String(raw || "").trim();
+  if (!s.startsWith("{")) {
+    return null;
+  }
+  try {
+    const o = JSON.parse(s);
+    if (!o || typeof o.endpoint !== "string" || !o.keys || typeof o.keys.p256dh !== "string" || typeof o.keys.auth !== "string") {
+      return null;
+    }
+    return o;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureWebPushSubscriptionsTable(db) {
+  await db.execute(
+    `CREATE TABLE IF NOT EXISTS web_push_subscriptions (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id BIGINT UNSIGNED NOT NULL,
+      endpoint_hash CHAR(64) NOT NULL,
+      subscription_json JSON NOT NULL,
+      active TINYINT(1) NOT NULL DEFAULT 1,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_web_push_user_endpoint (user_id, endpoint_hash),
+      KEY idx_web_push_user_active (user_id, active),
+      CONSTRAINT fk_web_push_user FOREIGN KEY (user_id) REFERENCES users (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+  );
+}
+
+/**
+ * Persist a browser PushSubscription JSON for a signed-in user (VAPID). Uses a dedicated table so long endpoints fit.
+ */
+async function registerWebPushSubscription(db, payload) {
+  const userId = Number(payload.userId || 0);
+  const subscription = payload.subscription;
+  if (!userId) {
+    throw new Error("Missing userId.");
+  }
+  if (!subscription || typeof subscription.endpoint !== "string") {
+    throw new Error("Invalid PushSubscription (endpoint required).");
+  }
+  const keys = subscription.keys || {};
+  if (typeof keys.p256dh !== "string" || typeof keys.auth !== "string") {
+    throw new Error("Invalid PushSubscription keys (p256dh and auth required).");
+  }
+  const normalized = {
+    endpoint: String(subscription.endpoint).trim().slice(0, 4096),
+    keys: {
+      p256dh: String(keys.p256dh).trim().slice(0, 512),
+      auth: String(keys.auth).trim().slice(0, 256)
+    },
+    expirationTime: subscription.expirationTime != null ? subscription.expirationTime : undefined
+  };
+  if (normalized.endpoint.length < 12) {
+    throw new Error("Invalid subscription endpoint.");
+  }
+  const endpointHash = crypto.createHash("sha256").update(normalized.endpoint, "utf8").digest("hex");
+  const jsonStr = JSON.stringify(normalized);
+
+  await ensureWebPushSubscriptionsTable(db);
+  await db.execute(
+    `INSERT INTO web_push_subscriptions (user_id, endpoint_hash, subscription_json, active)
+     VALUES (?, ?, ?, 1)
+     ON DUPLICATE KEY UPDATE
+       subscription_json = VALUES(subscription_json),
+       active = 1,
+       updated_at = CURRENT_TIMESTAMP`,
+    [userId, endpointHash, jsonStr]
+  );
+  return { ok: true };
+}
 
 async function registerMobileInstallPush(db, payload) {
   const installId = String(payload.installId || "").trim().slice(0, 64);
@@ -103,7 +215,24 @@ async function getActiveTokensByUser(db, userId) {
      WHERE user_id = ? AND active = 1`,
     [userId]
   );
-  return rows.map((row) => row.push_token);
+  const native = rows.map((row) => row.push_token);
+  let webStrings = [];
+  try {
+    const [webRows] = await db.execute(
+      `SELECT subscription_json FROM web_push_subscriptions WHERE user_id = ? AND active = 1`,
+      [userId]
+    );
+    webStrings = webRows.map((row) => {
+      const j = row.subscription_json;
+      if (j && typeof j === "object") {
+        return JSON.stringify(j);
+      }
+      return String(j || "").trim();
+    });
+  } catch {
+    webStrings = [];
+  }
+  return native.concat(webStrings);
 }
 
 async function logNotificationEvent(db, userId, eventType, title, message, deepLink) {
@@ -141,9 +270,15 @@ async function sendViaProvider(tokens, title, message, deepLink) {
   }
   const expoTokens = [];
   const fcmTokens = [];
+  const webSubs = [];
   for (const token of list) {
     const t = String(token || "").trim();
     if (!t) {
+      continue;
+    }
+    const webParsed = tryParseWebPushSubscription(t);
+    if (webParsed) {
+      webSubs.push({ subscription: webParsed, raw: t.slice(0, 120) });
       continue;
     }
     if (/^(ExponentPushToken|ExpoPushToken)\[.+\]$/i.test(t)) {
@@ -154,6 +289,36 @@ async function sendViaProvider(tokens, title, message, deepLink) {
   }
 
   const results = [];
+  const webPayload = JSON.stringify({
+    title: String(title || "").slice(0, 120),
+    body: String(message || "").slice(0, 500),
+    url: String(deepLink || "./").slice(0, 512)
+  });
+  if (webSubs.length && ensureWebPushVapidConfigured()) {
+    const webpush = loadWebPush();
+    for (const { subscription, raw } of webSubs) {
+      try {
+        await webpush.sendNotification(subscription, webPayload, {
+          TTL: 3600,
+          urgency: "normal"
+        });
+        results.push({ token: raw, success: true, providerMessageId: "web_push" });
+      } catch (err) {
+        const status = err && err.statusCode;
+        results.push({
+          token: raw,
+          success: false,
+          providerMessageId: null,
+          webPushStatus: status || null
+        });
+      }
+    }
+  } else if (webSubs.length) {
+    for (const { raw } of webSubs) {
+      results.push({ token: raw, success: false, providerMessageId: null });
+    }
+  }
+
   if (expoTokens.length) {
     for (const token of expoTokens) {
       try {
@@ -231,8 +396,8 @@ async function sendViaProvider(tokens, title, message, deepLink) {
 }
 
 /**
- * Sends a push to every active device token for a public `users.id` (owner phone when that user registers the app).
- * Requires `FCM_SERVER_KEY` (Firebase Cloud Messaging legacy server key) in the Railway environment.
+ * Sends a push to every active device + browser subscription for a public `users.id`.
+ * Native: `FCM_SERVER_KEY` and/or Expo. Browser: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, optional `VAPID_SUBJECT`.
  */
 async function sendPushToUser(db, opts) {
   const userId = Number(opts.userId || 0);
@@ -254,7 +419,7 @@ async function sendPushToUser(db, opts) {
     if (anySent) {
       await markNotificationSent(db, eventId, results.find((r) => r.success)?.providerMessageId || null);
     } else {
-      await markNotificationFailed(db, eventId, "push_provider_failed_or_fcm_not_configured");
+      await markNotificationFailed(db, eventId, "push_provider_failed_or_keys_missing");
     }
   } catch (error) {
     await markNotificationFailed(db, eventId, String(error.message || error));
@@ -305,6 +470,8 @@ module.exports = {
   registerMobileInstallPush,
   recordMobileAppFeedback,
   registerDeviceToken,
+  registerWebPushSubscription,
+  ensureWebPushSubscriptionsTable,
   sendOrderUpdateNotifications,
   sendPushToUser
 };
