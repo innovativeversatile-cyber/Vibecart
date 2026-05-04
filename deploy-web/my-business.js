@@ -4,6 +4,8 @@
   var TOKEN_KEY = "vibecart-public-auth-token";
   var MB_CFG_KEY = "vibecart-mb-dashboard-v2";
   var MB_SESS_KEY = "vibecart-mb-unlock-sess-v2";
+  /** Provider desk uses VibeCart seller session instead of a device-only password. */
+  var MB_VC_PROVIDER_MARKER = "__vc__";
 
   var SERVICES = [
     { value: "Hair Styling", label: "Hair / hairdresser" },
@@ -37,8 +39,7 @@
     },
     "Other service": {
       title: "Custom service line · client reservation",
-      lead:
-        "You picked a custom line. Use the provider AI studio (desktop below) to shape your desk, then publish offers so clients can book the exact niche you serve."
+      lead: "You picked a custom line. Publish a work card for that niche so it appears in client search for this line."
     }
   };
 
@@ -119,11 +120,47 @@
       if (o.persona === "client" && o.pwdHash === "__none__") {
         return o;
       }
+      if (o.persona === "provider" && o.pwdHash === MB_VC_PROVIDER_MARKER) {
+        return o;
+      }
       if (!o.pwdHash || !o.salt) return null;
       return o;
     } catch (_) {
       return null;
     }
+  }
+
+  function isSellerSessionPayload(res) {
+    var role = String((res && res.user && res.user.role) || "").toLowerCase();
+    return role === "seller" || role === "service_provider";
+  }
+
+  function serviceRowMatchesLine(s, lineLower) {
+    if (!lineLower) return true;
+    var st = String((s && s.styleTheme) || "").trim().toLowerCase();
+    var head = st.split("·")[0].trim();
+    return head === lineLower || st.indexOf(lineLower) === 0;
+  }
+
+  function filterServicesForLine(services, line) {
+    var needle = String(line || "").trim().toLowerCase();
+    if (!needle) return Array.isArray(services) ? services.slice() : [];
+    return (Array.isArray(services) ? services : []).filter(function (s) {
+      return serviceRowMatchesLine(s, needle);
+    });
+  }
+
+  function filterBookingsForLine(bookings, line, servicesForLine) {
+    var needle = String(line || "").trim().toLowerCase();
+    var idSet = {};
+    (servicesForLine || []).forEach(function (s) {
+      idSet[Number(s.id)] = true;
+    });
+    return (Array.isArray(bookings) ? bookings : []).filter(function (b) {
+      if (idSet[Number(b.serviceId)]) return true;
+      if (!needle) return true;
+      return serviceRowMatchesLine({ styleTheme: b.styleTheme }, needle);
+    });
   }
 
   function saveMbConfig(cfg) {
@@ -190,7 +227,7 @@
   }
 
   function hideAllSteps() {
-    ["mbStepPersona", "mbStepService", "mbStepPassword", "mbStepUnlock"].forEach(function (id) {
+    ["mbStepPersona", "mbStepService", "mbStepVcAuth", "mbStepUnlock"].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.hidden = true;
     });
@@ -246,28 +283,32 @@
     applyServiceSelects(service);
 
     var beautySec = document.getElementById("beauty-services");
-    var studioSec = document.getElementById("mb-service-studio");
-    var isOtherProvider = persona === "provider" && service === "Other service";
     if (beautySec) {
-      beautySec.hidden = !!isOtherProvider;
+      beautySec.hidden = false;
     }
-    if (studioSec) {
-      studioSec.hidden = !isOtherProvider;
+    var beautyTitle = document.getElementById("mbBeautySectionTitle");
+    var beautyLead = document.getElementById("mbBeautySectionLead");
+    if (persona === "provider" && beautyTitle) {
+      beautyTitle.textContent = "Slots · " + service;
     }
-
-    var beautyH = document.querySelector("#beauty-services h2");
-    if (beautyH && persona === "provider") {
-      beautyH.textContent = isOtherProvider
-        ? "Beauty & service tools (hidden while studio is active)"
-        : "Beauty & service booking (provider preview)";
+    if (persona === "provider" && beautyLead) {
+      beautyLead.textContent =
+        "Preview published times for " + service + ". Add a matching work card below if nothing appears for your dates.";
     }
 
     var provLine = document.getElementById("mbProviderSessionLine");
     if (provLine && persona === "provider") {
       provLine.textContent =
-        "Everything below is framed for " +
-        service +
-        ". Connect payouts, publish work cards, and confirm bookings in line with your local rules for that trade.";
+        "Dashboard lists are filtered to " + service + ". Save payout settings once; publish work cards to go live.";
+    }
+    var portHead = document.getElementById("mbPortfolioHead");
+    var portLead = document.getElementById("mbPortfolioLead");
+    if (persona === "provider" && portHead) {
+      portHead.textContent = "Service portfolio · " + service;
+    }
+    if (persona === "provider" && portLead) {
+      portLead.textContent =
+        "Create or edit offers tagged for this line. Use Pause / Relist on a card to control whether clients can book it.";
     }
 
     document.title = (persona === "provider" ? "Provider" : "Client") + " · " + service + " · My Business · VibeCart";
@@ -324,29 +365,6 @@
 
   function scrollToBeautyHashIfAllowed(cfg) {
     var raw = String(location.hash || "").replace(/\/$/, "");
-    if (raw === "#mb-service-studio") {
-      var st = document.getElementById("mb-service-studio");
-      if (st && cfg && cfg.persona === "provider" && cfg.service === "Other service") {
-        requestAnimationFrame(function () {
-          st.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-      }
-      return;
-    }
-    if (cfg && cfg.persona === "provider" && cfg.service === "Other service") {
-      var studio = document.getElementById("mb-service-studio");
-      if (studio && (raw === "#beauty-services" || raw === "")) {
-        requestAnimationFrame(function () {
-          studio.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
-        try {
-          history.replaceState({}, "", location.pathname + location.search + "#mb-service-studio");
-        } catch (_) {
-          /* ignore */
-        }
-      }
-      return;
-    }
     if (raw !== "#beauty-services" && raw !== "#mb-client-service-desk") return;
     if (cfg && cfg.persona !== "client") return;
     var el =
@@ -947,21 +965,25 @@
     }
     var svcLab = document.getElementById("mbStepServiceLabel");
     if (svcLab) {
-      svcLab.textContent = draftPersona === "provider" ? "Step 2 of 3" : "Step 2 of 2";
+      svcLab.textContent = "Step 2 of 2";
     }
     buildServiceGrid();
     setGateStatus("mbGateStatusService", "", false);
   }
 
-  function showPasswordStep() {
+  function showVcAuthStep() {
     hideAllSteps();
-    var s = document.getElementById("mbStepPassword");
+    var s = document.getElementById("mbStepVcAuth");
     if (s) s.hidden = false;
-    var a = document.getElementById("mbNewPw");
-    var b = document.getElementById("mbNewPw2");
-    if (a) a.value = "";
-    if (b) b.value = "";
-    setGateStatus("mbGateStatusPwd", "", false);
+    var a = document.getElementById("mbVcOpenAccount");
+    if (a) {
+      try {
+        a.setAttribute("href", "./lane-passport.html?next=" + encodeURIComponent(location.pathname + location.search + location.hash));
+      } catch (_) {
+        a.setAttribute("href", "./lane-passport.html");
+      }
+    }
+    setGateStatus("mbGateStatusVc", "", false);
   }
 
   function showUnlockStep(cfg) {
@@ -970,23 +992,32 @@
     if (s) s.hidden = false;
     var echo = document.getElementById("mbUnlockEcho");
     var clientNoPwd = cfg && cfg.persona === "client" && cfg.pwdHash === "__none__";
+    var vcProvider = cfg && cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER;
     if (echo) {
-      echo.textContent = clientNoPwd
-        ? "Continue to your client booking tools for " + cfg.service + "."
-        : "Enter the password for your " +
-            (cfg.persona === "provider" ? "provider" : "client") +
-            " dashboard · " +
-            cfg.service +
-            ".";
+      if (clientNoPwd) {
+        echo.textContent = "Continue to your client booking tools for " + cfg.service + ".";
+      } else if (vcProvider) {
+        echo.textContent = "Provider desk · " + cfg.service + " · confirm your signed-in seller account.";
+      } else {
+        echo.textContent =
+          "Enter the password for your " +
+          (cfg.persona === "provider" ? "provider" : "client") +
+          " dashboard · " +
+          cfg.service +
+          ".";
+      }
     }
     var inp = document.getElementById("mbUnlockPw");
     if (inp) inp.value = "";
     var pwRow = document.getElementById("mbUnlockPwRow");
     var quick = document.getElementById("mbUnlockQuick");
     var unlockSubmit = document.getElementById("mbUnlockSubmit");
-    if (pwRow) pwRow.hidden = !!clientNoPwd;
+    if (pwRow) pwRow.hidden = !!clientNoPwd || !!vcProvider;
     if (quick) quick.hidden = !clientNoPwd;
     if (unlockSubmit) unlockSubmit.hidden = !!clientNoPwd;
+    if (unlockSubmit) {
+      unlockSubmit.textContent = vcProvider ? "Continue" : "Enter dashboard";
+    }
     setGateStatus("mbGateStatusUnlock", "", false);
   }
 
@@ -1046,41 +1077,51 @@
           revealMainAndLoad(cfgClient);
           return;
         }
-        showPasswordStep();
+        showVcAuthStep();
       });
-    document.getElementById("mbBackToService") &&
-      document.getElementById("mbBackToService").addEventListener("click", function () {
+    document.getElementById("mbBackFromVcAuth") &&
+      document.getElementById("mbBackFromVcAuth").addEventListener("click", function () {
         showServiceStep();
       });
 
-    document.getElementById("mbSavePassword") &&
-      document.getElementById("mbSavePassword").addEventListener("click", function () {
+    document.getElementById("mbVcContinueSignedIn") &&
+      document.getElementById("mbVcContinueSignedIn").addEventListener("click", function () {
         if (gateBusy) return;
-        var p1 = document.getElementById("mbNewPw");
-        var p2 = document.getElementById("mbNewPw2");
-        var a = p1 ? String(p1.value || "") : "";
-        var b = p2 ? String(p2.value || "") : "";
-        if (a.length < 8) {
-          setGateStatus("mbGateStatusPwd", "Use at least 8 characters.", false);
-          return;
-        }
-        if (a !== b) {
-          setGateStatus("mbGateStatusPwd", "Passwords do not match.", false);
-          return;
-        }
         gateBusy = true;
-        var salt = randomSalt();
-        hashPassword(a, salt).then(function (hex) {
-          var cfg = { persona: draftPersona, service: draftService, pwdHash: hex, salt: salt };
-          saveMbConfig(cfg);
-          setSessionUnlocked(cfg.persona, cfg.service);
-          gateBusy = false;
-          setGateStatus("mbGateStatusPwd", "Saved. Opening dashboard…", true);
-          revealMainAndLoad(cfg);
-        }).catch(function () {
-          gateBusy = false;
-          setGateStatus("mbGateStatusPwd", "Could not save password on this device.", false);
-        });
+        setGateStatus("mbGateStatusVc", "Checking your account…", false);
+        refreshMbSessionUser()
+          .then(function () {
+            return api("/api/public/auth/session");
+          })
+          .then(function (res) {
+            gateBusy = false;
+            if (!getToken()) {
+              setGateStatus("mbGateStatusVc", "Sign in first (Create or sign in), then tap Continue again.", false);
+              return;
+            }
+            if (!isSellerSessionPayload(res)) {
+              setGateStatus(
+                "mbGateStatusVc",
+                "This desk needs a seller account. Register or sign in as seller / service provider, not buyer-only.",
+                false
+              );
+              return;
+            }
+            var cfg = {
+              persona: "provider",
+              service: draftService,
+              pwdHash: MB_VC_PROVIDER_MARKER,
+              salt: MB_VC_PROVIDER_MARKER
+            };
+            saveMbConfig(cfg);
+            setSessionUnlocked(cfg.persona, cfg.service);
+            setGateStatus("mbGateStatusVc", "Opening dashboard…", true);
+            revealMainAndLoad(cfg);
+          })
+          .catch(function () {
+            gateBusy = false;
+            setGateStatus("mbGateStatusVc", "Could not verify session. Sign in from Account, then try again.", false);
+          });
       });
 
     document.getElementById("mbUnlockQuick") &&
@@ -1103,6 +1144,33 @@
         if (cfg.persona === "client" && cfg.pwdHash === "__none__") {
           setSessionUnlocked(cfg.persona, cfg.service);
           revealMainAndLoad(cfg);
+          return;
+        }
+        if (cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER) {
+          gateBusy = true;
+          setGateStatus("mbGateStatusUnlock", "Checking your account…", false);
+          refreshMbSessionUser()
+            .then(function () {
+              return api("/api/public/auth/session");
+            })
+            .then(function (res) {
+              gateBusy = false;
+              if (!getToken()) {
+                setGateStatus("mbGateStatusUnlock", "Sign in with your seller account, then continue.", false);
+                return;
+              }
+              if (!isSellerSessionPayload(res)) {
+                setGateStatus("mbGateStatusUnlock", "Seller role required for this desk.", false);
+                return;
+              }
+              setSessionUnlocked(cfg.persona, cfg.service);
+              setGateStatus("mbGateStatusUnlock", "Welcome back.", true);
+              revealMainAndLoad(cfg);
+            })
+            .catch(function () {
+              gateBusy = false;
+              setGateStatus("mbGateStatusUnlock", "Session check failed. Sign in again.", false);
+            });
           return;
         }
         var inp = document.getElementById("mbUnlockPw");
@@ -1137,17 +1205,6 @@
         }
       });
     }
-    var pw2 = document.getElementById("mbNewPw2");
-    if (pw2) {
-      pw2.addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter") {
-          ev.preventDefault();
-          var btn = document.getElementById("mbSavePassword");
-          if (btn) btn.click();
-        }
-      });
-    }
-
     document.getElementById("mbResetProfile") &&
       document.getElementById("mbResetProfile").addEventListener("click", function () {
         clearMbConfig();
@@ -1510,6 +1567,10 @@
   }
 
   function saveProvScheduleSlots() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account to publish slots.");
+      return Promise.resolve();
+    }
     var sel = document.getElementById("mbProvSlotService");
     var dateEl = document.getElementById("mbProvSlotDate");
     var timesEl = document.getElementById("mbProvSlotTimes");
@@ -1558,7 +1619,7 @@
     var root = document.getElementById("bakeryWorkList");
     if (!root) return;
     if (!Array.isArray(services) || !services.length) {
-      root.innerHTML = '<p class="note">No bakery work cards yet. Add one above.</p>';
+      root.innerHTML = '<p class="note">No work cards for this service line yet. Add one above and save.</p>';
       return;
     }
     root.innerHTML = services.map(function (s) {
@@ -1584,7 +1645,7 @@
     if (!root) return;
     providerBookingsCache = Array.isArray(bookings) ? bookings : [];
     if (!providerBookingsCache.length) {
-      root.innerHTML = '<p class="note">No bakery booking requests yet.</p>';
+      root.innerHTML = '<p class="note">No booking requests for this service line yet.</p>';
       return;
     }
     root.innerHTML = providerBookingsCache.map(function (b) {
@@ -1651,39 +1712,6 @@
     });
   }
 
-  function renderMediatorOrders(orders) {
-    var root = document.getElementById("orderMediatorList");
-    if (!root) return;
-    root.innerHTML = "";
-    if (!Array.isArray(orders) || !orders.length) {
-      root.innerHTML = '<p class="note">No orders yet.</p>';
-      return;
-    }
-    orders.slice(0, 30).forEach(function (o) {
-      var p = o.progress || {};
-      var node = document.createElement("article");
-      node.className = "vc-booking-item";
-      node.innerHTML =
-        "<h3>Order #" + Number(o.orderId || 0) + " · " + escapeHtml(o.title || "Item") + "</h3>" +
-        "<p class='note'>Status: " + escapeHtml(o.status || "pending") + " · Buyer: " + (p.buyerConfirmedAt ? "confirmed" : "pending") + " · Seller: " + (p.sellerConfirmedAt ? "confirmed" : "pending") + "</p>" +
-        "<p class='hero-actions'><button type='button' class='btn btn-primary' data-order-confirm='" + Number(o.orderId || 0) + "'>Confirm my side</button></p>";
-      root.appendChild(node);
-    });
-  }
-
-  function loadDiscover(q) {
-    return api("/api/public/bakery/services/discover?q=" + encodeURIComponent(String(q || ""))).then(function (res) {
-      var pick = document.getElementById("bookingService");
-      if (!pick) return [];
-      var list = Array.isArray(res.services) ? res.services : [];
-      pick.innerHTML = list.map(function (s) {
-        var label = s.businessName + " · " + s.workTitle + " · " + Number(s.basePrice || 0).toFixed(2) + " " + (s.currency || "USD");
-        return '<option value="' + Number(s.id) + '">' + escapeHtml(label) + "</option>";
-      }).join("");
-      return list;
-    });
-  }
-
   function loadAll() {
     var cfg = loadMbConfig();
     if (!cfg || !isSessionUnlocked(cfg.persona, cfg.service)) {
@@ -1696,20 +1724,22 @@
       });
     }
     setStatus("Loading My Business…");
+    var line = String(cfg.service || "").trim();
     return Promise.all([
       api("/api/public/seller/listings").catch(function () { return { listings: [] }; }),
       api("/api/public/bakery/services/mine").catch(function () { return { services: [] }; }),
-      api("/api/public/bakery/bookings/mine").catch(function () { return { bookings: [] }; }),
-      api("/api/public/orders/mine").catch(function () { return { orders: [] }; }),
-      loadDiscover("")
+      api("/api/public/bakery/bookings/mine").catch(function () { return { bookings: [] }; })
     ]).then(function (results) {
-      mbLastProviderServices = Array.isArray(results[1].services) ? results[1].services : [];
-      renderKpis(results[0].listings || [], results[1].services || [], results[2].bookings || []);
-      renderServices(results[1].services || []);
+      var svcAll = Array.isArray(results[1].services) ? results[1].services : [];
+      var bookAll = Array.isArray(results[2].bookings) ? results[2].bookings : [];
+      var svcFiltered = filterServicesForLine(svcAll, line);
+      var bookFiltered = filterBookingsForLine(bookAll, line, svcFiltered);
+      mbLastProviderServices = svcFiltered;
+      renderKpis(results[0].listings || [], svcFiltered, bookFiltered);
+      renderServices(svcFiltered);
       renderProvSlotServiceSelect(mbLastProviderServices);
-      renderBookings(results[2].bookings || []);
-      renderCalendar(results[2].bookings || []);
-      renderMediatorOrders(results[3].orders || []);
+      renderBookings(bookFiltered);
+      renderCalendar(bookFiltered);
       if (providerFocusBookingId) {
         loadProviderFocus(providerFocusBookingId);
       }
@@ -1720,40 +1750,25 @@
   }
 
   function saveBakeryService() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account to save a work card.");
+      return Promise.resolve();
+    }
     var body = readBakeryForm();
     return api("/api/public/bakery/services/upsert", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     }).then(function () {
-      setStatus("Bakery work card saved");
+      setStatus("Work card saved.");
       return loadAll();
     }).catch(function (err) {
-      setStatus("Save failed: " + err.message);
-    });
-  }
-
-  function submitBooking() {
-    var serviceId = Number(document.getElementById("bookingService").value || 0);
-    var body = {
-      serviceId: serviceId,
-      customerName: document.getElementById("bookingCustomerName").value,
-      customerPhone: document.getElementById("bookingPhone").value,
-      eventDate: document.getElementById("bookingDate").value,
-      occasionType: document.getElementById("bookingOccasion").value,
-      styleTheme: document.getElementById("bookingStyleTheme").value,
-      budgetAmount: Number(document.getElementById("bookingBudget").value || 0),
-      requestDetails: document.getElementById("bookingDetails").value
-    };
-    return api("/api/public/bakery/bookings/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    }).then(function () {
-      setStatus("Booking request sent to baker");
-      return loadAll();
-    }).catch(function (err) {
-      setStatus("Booking failed: " + err.message);
+      var msg = String(err.message || "");
+      if (msg.indexOf("ROLE_FORBIDDEN") >= 0 || msg.indexOf("403") >= 0) {
+        setStatus("Save failed: use a seller VibeCart account (not buyer-only).");
+      } else {
+        setStatus("Save failed: " + msg);
+      }
     });
   }
 
@@ -1780,7 +1795,11 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ serviceId: serviceId, isActive: active })
-      }).then(loadAll);
+      })
+        .then(loadAll)
+        .catch(function (err) {
+          setStatus(err.message || "Could not update listing — sign in as seller.");
+        });
       return;
     }
     var focusOpen = e.target.closest && e.target.closest("[data-mb-focus-booking]");
@@ -1830,21 +1849,6 @@
         });
       return;
     }
-    var orderConfirmBtn = e.target.closest && e.target.closest("[data-order-confirm]");
-    if (orderConfirmBtn) {
-      var orderId = Number(orderConfirmBtn.getAttribute("data-order-confirm") || 0);
-      if (!orderId) return;
-      api("/api/public/orders/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: orderId })
-      }).then(function (res) {
-        setStatus(res.released ? "Both sides confirmed. Escrow released automatically." : "Your confirmation saved. Waiting for the other side.");
-        return loadAll();
-      }).catch(function (err) {
-        setStatus("Order confirmation failed: " + err.message);
-      });
-    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -1860,18 +1864,11 @@
 
     var btnRefresh = document.getElementById("bizRefreshBtn");
     var btnSaveBakery = document.getElementById("bakerySaveBtn");
-    var btnDiscover = document.getElementById("discoverBtn");
-    var btnBooking = document.getElementById("bookingSubmitBtn");
     var btnPayout = document.getElementById("savePayoutAccountBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", loadAll);
     var btnClientBookings = document.getElementById("mbClientBookingsRefresh");
     if (btnClientBookings) btnClientBookings.addEventListener("click", loadClientDashboard);
     if (btnSaveBakery) btnSaveBakery.addEventListener("click", saveBakeryService);
-    if (btnDiscover) btnDiscover.addEventListener("click", function () {
-      var q = document.getElementById("discoverQuery").value;
-      loadDiscover(q).then(function () { setStatus("Bakery styles updated"); });
-    });
-    if (btnBooking) btnBooking.addEventListener("click", submitBooking);
     if (btnPayout) btnPayout.addEventListener("click", savePayoutAccount);
     document.body.addEventListener("click", onClick);
     var beautySlotsBtn = document.getElementById("beautyShowBookingSlots");
@@ -1971,92 +1968,6 @@
           .catch(function (err) {
             setStatus(err.message || "Request failed");
           });
-      });
-    }
-
-    var studioBtn = document.getElementById("mbStudioGenerate");
-    if (studioBtn) {
-      studioBtn.addEventListener("click", function () {
-        var trade = document.getElementById("mbStudioTrade");
-        var niche = document.getElementById("mbStudioNiche");
-        var aud = document.getElementById("mbStudioAudience");
-        var pain = document.getElementById("mbStudioPain");
-        var ops = document.getElementById("mbStudioOps");
-        var tone = document.getElementById("mbStudioTone");
-        var out = document.getElementById("mbStudioOutput");
-        if (!trade || !niche || !out) return;
-        var payload = {
-          tradeName: String(trade.value || "").trim(),
-          niche: String(niche.value || "").trim(),
-          audience: aud ? String(aud.value || "").trim() : "",
-          painPoints: pain ? String(pain.value || "").trim() : "",
-          dailyOps: ops ? String(ops.value || "").trim() : "",
-          tone: tone ? String(tone.value || "").trim() : "premium-calm"
-        };
-        if (payload.tradeName.length < 2 || payload.niche.length < 4) {
-          setStatus("Add a trade name and a short niche so the studio can design your suite.");
-          return;
-        }
-        out.innerHTML = '<p class="note">Generating a bespoke dashboard suite…</p>';
-        studioBtn.disabled = true;
-        function renderStudio(res) {
-          var html = "";
-          html += "<h3 style=\"margin:0 0 .35rem 0\">" + escapeHtml(res.suiteName || "Your suite") + "</h3>";
-          html += "<p class=\"note\">" + escapeHtml(res.tagline || "") + "</p>";
-          if (res.clientPromise) {
-            html += "<p class=\"note\"><strong>Client promise:</strong> " + escapeHtml(res.clientPromise) + "</p>";
-          }
-          if (res.toneNotes) {
-            html += "<p class=\"note\"><strong>Copy tone:</strong> " + escapeHtml(res.toneNotes) + "</p>";
-          }
-          html += "<div class=\"vc-biz-grid\" style=\"margin-top:.65rem\">";
-          (res.modules || []).forEach(function (m) {
-            html += '<article class="vc-biz-card"><h4 style="margin:0">' + escapeHtml(m.title || "Module") + "</h4>";
-            html += "<p class=\"note\">" + escapeHtml(m.purpose || "") + "</p>";
-            if (m.kpis && m.kpis.length) {
-              html += "<p class=\"note\"><strong>KPIs:</strong> " + escapeHtml(m.kpis.join(" · ")) + "</p>";
-            }
-            if (m.widgets && m.widgets.length) {
-              html += "<p class=\"note\"><strong>Widgets:</strong> " + escapeHtml(m.widgets.join(" · ")) + "</p>";
-            }
-            html += "</article>";
-          });
-          html += "</div>";
-          if (res.onboardingChecklist && res.onboardingChecklist.length) {
-            html += "<h4 style=\"margin:.85rem 0 .25rem\">Launch checklist</h4><ul>";
-            res.onboardingChecklist.forEach(function (line) {
-              html += "<li>" + escapeHtml(line) + "</li>";
-            });
-            html += "</ul>";
-          }
-          out.innerHTML = html;
-          try {
-            localStorage.setItem(
-              "vibecart-mb-studio-last-v1",
-              JSON.stringify({ savedAt: Date.now(), suiteName: res.suiteName, modules: res.modules })
-            );
-          } catch (_) {
-            /* ignore */
-          }
-        }
-        if (typeof window.vibecartAiGenerate === "function") {
-          window
-            .vibecartAiGenerate("mb_studio_suite", payload)
-            .then(renderStudio)
-            .catch(function (err) {
-              out.innerHTML =
-                '<p class="note">Studio AI unavailable (' +
-                escapeHtml(err.message || "error") +
-                "). Configure OPENAI on the API host, then retry.</p>";
-            })
-            .finally(function () {
-              studioBtn.disabled = false;
-            });
-        } else {
-          out.innerHTML =
-            '<p class="note">AI client not loaded. Ensure <code>vibecart-ai-client.js</code> is on this page, then refresh.</p>';
-          studioBtn.disabled = false;
-        }
       });
     }
   });

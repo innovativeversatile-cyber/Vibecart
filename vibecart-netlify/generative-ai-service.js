@@ -562,8 +562,7 @@ const BRANDON_SITE_MAP =
     "./buy-journey.html — buyer flow",
     "./sell-journey.html — start selling",
     "./seller-boost.html — seller growth tools",
-    "./my-business.html — seller business desk / bookings (provider: pick Other service for AI studio)",
-    "./my-business.html#mb-service-studio — AI studio wizard (custom service dashboard suite)",
+    "./my-business.html — My Business client bookings and provider desk (seller sign-in required for provider tools)",
     "./orders-tracking.html — order tracking",
     "./checkout-details.html — checkout safety notes",
     "./payment-confirmation.html — after payment",
@@ -778,8 +777,7 @@ async function generateBrandonGuideLLM(input) {
     "If the question is broad, add one clarifying angle inside the same paragraph, then anchor navigation to the strongest destination. " +
     "Vary wording; do not repeat identical sentences if similar questions appear in recentQuestions. " +
     "Each request includes diversityNonce — treat it as a fresh session id and avoid copying a previous reply verbatim. " +
-    "For beauty/service PROVIDERS building a custom desk: the My Business page has a separate generative AI studio (wizard) after they choose **Other service** at the gate — open ./my-business.html#mb-service-studio . " +
-    "Brandon routes there; the heavy dashboard design is produced by server agent `mb_studio_suite`, not by you inventing modules. " +
+    "For service PROVIDERS: point them to ./my-business.html (provider path, signed-in seller) for offers and bookings, and ./service-provider-hub.html for prepayment/checkout copy — do not imply a separate AI studio page on My Business. " +
     "Do not give medical diagnosis or legal advice as authority—point to policy/privacy/security pages when needed. " +
     "Never request or process passwords, OTPs, CVV, full card numbers, PINs, bank account numbers, or wire instructions—refuse and point to ./security-overview.html and ./account-hub.html . " +
     "Never invent external URLs. For navigation, output 0–4 buttons in JSON `actions` with `label` and `href`. " +
