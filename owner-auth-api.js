@@ -1645,12 +1645,13 @@ async function handlePublicBakeryBookingCreate(req, res) {
   );
   const bookingId = Number(inserted.insertId || 0);
   const mbUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
+  const mbProviderDeep = `${mbUrl}#mb-provider-bookings`;
   try {
     await sendPushToUser(pool, {
       userId: Number(svc.baker_user_id),
       title: "New booking request",
       message: `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}. Open My Business to accept or decline.`,
-      deepLink: mbUrl,
+      deepLink: mbProviderDeep,
       eventType: "bakery_booking_new"
     });
   } catch {
@@ -1673,7 +1674,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
         `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}.`,
         `Booking #${bookingId}.`,
         "Open My Business (provider) to accept or decline.",
-        mbUrl,
+        mbProviderDeep,
         "",
         `Details: ${requestDetails.slice(0, 1200)}`
       ].join("\n")
@@ -1687,7 +1688,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
       [
         `Your reservation request #${bookingId} for "${String(svc.work_title || "service")}" on ${eventDate} was sent.`,
         "Your provider will accept or decline — we will notify you by push and email when they respond.",
-        mbUrl
+        `${mbUrl}#mb-client-service-desk`
       ].join("\n")
     );
   }
@@ -1833,6 +1834,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     /* ignore audit failures */
   }
   const mbUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
+  const mbClientDeep = `${mbUrl}#mb-client-service-desk`;
   const buyerId = Number(before.buyer_user_id || 0);
   if (buyerId && (status === "confirmed" || status === "declined")) {
     try {
@@ -1843,7 +1845,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
           status === "confirmed"
             ? `Your booking #${bookingId} for "${String(before.work_title || "service")}" was accepted. You can message your provider in My Business.`
             : `Your booking request #${bookingId} was declined. Pick another time or provider when you are ready.`,
-        deepLink: mbUrl,
+        deepLink: mbClientDeep,
         eventType: "bakery_booking_status"
       });
     } catch {
@@ -1876,7 +1878,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
         userId: buyerId,
         title: "Booking completed",
         message: `Booking #${bookingId} for "${String(before.work_title || "service")}" was marked complete by your provider.`,
-        deepLink: mbUrl,
+        deepLink: mbClientDeep,
         eventType: "bakery_booking_status"
       });
     } catch {

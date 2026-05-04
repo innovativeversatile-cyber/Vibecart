@@ -71,16 +71,18 @@
       a.className = "promo-card";
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.href = "/api/public/shop/redirect?to=" + encodeURIComponent(shop.promoUrl) + "&src=killswitch-market-fallback";
-      a.innerHTML = "<h3>" + shop.name + " deals</h3><p>Kill-switch fallback promo lane.</p>";
+      a.href = shop.promoUrl;
+      a.innerHTML = "<h3>" + shop.name + " deals</h3><p>Opens the retailer site directly.</p>";
       promoGrid.appendChild(a);
 
       var card = document.createElement("article");
       card.className = "shop-bubble";
       card.innerHTML =
         "<h3>" + shop.name + "</h3>" +
-        "<p>Kill-switch fallback listing to guarantee frequent-shop visibility.</p>" +
-        "<p><a class='btn btn-primary' target='_blank' rel='noopener noreferrer' href='" + a.href + "'>Open shop</a></p>";
+        "<p>Fallback listing for visibility.</p>" +
+        "<p><a class='btn btn-primary' target='_blank' rel='noopener noreferrer' href='" +
+        shop.promoUrl +
+        "'>Open shop</a></p>";
       shopGrid.appendChild(card);
     });
   }

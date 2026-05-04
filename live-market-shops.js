@@ -28,6 +28,10 @@
       ],
       Fashion: [
         { name: "Zalando", url: "https://www.zalando.com", desc: "EU fashion and lifestyle." },
+        { name: "Primark", url: "https://www.primark.com", desc: "High-street fashion — choose your country on site." },
+        { name: "Zara", url: "https://www.zara.com", desc: "Inditex flagship — pick your market at checkout." },
+        { name: "SHEIN EU", url: "https://eu.shein.com", desc: "EU storefront for SHEIN." },
+        { name: "Notino", url: "https://www.notino.com", desc: "Beauty, fragrance, and skincare." },
         { name: "Reserved", url: "https://www.reserved.com", desc: "Central EU fashion brand." },
         { name: "About You", url: "https://www.aboutyou.com", desc: "Germany-based style platform." },
         { name: "Allegro Fashion", url: "https://allegro.pl", desc: "Poland fashion sellers." }
@@ -85,7 +89,9 @@
       Fashion: [
         { name: "Superbalist", url: "https://www.superbalist.com", desc: "South Africa youth fashion." },
         { name: "H&M South Africa", url: "https://www.hm.com/za", desc: "South Africa fashion storefront." },
-        { name: "Zara South Africa", url: "https://www.zara.com/za/", desc: "South Africa seasonal drops." }
+        { name: "Zara South Africa", url: "https://www.zara.com/za/", desc: "South Africa seasonal drops." },
+        { name: "SHEIN", url: "https://www.shein.com", desc: "Global fast fashion — delivers to ZA where offered." },
+        { name: "Primark", url: "https://www.primark.com", desc: "Browse online — Primark ships from UK/EU where available." }
       ],
       Books: [
         { name: "Takealot Books", url: "https://www.takealot.com", desc: "South Africa books and study sets." },
@@ -121,7 +127,9 @@
       ],
       Fashion: [
         { name: "Zara", url: "https://www.zara.com", desc: "Global seasonal fashion drops." },
-        { name: "SHEIN", url: "https://www.shein.com", desc: "Youth fashion and trend picks." }
+        { name: "SHEIN", url: "https://www.shein.com", desc: "Youth fashion and trend picks." },
+        { name: "Notino", url: "https://www.notino.com", desc: "Beauty and fragrance — check shipping to your country." },
+        { name: "Primark", url: "https://www.primark.com", desc: "Value fashion hub — ships where offered." }
       ],
       Books: [
         { name: "Amazon Books", url: "https://www.amazon.com/books-used-books-textbooks", desc: "Books and study resources." },
@@ -140,7 +148,9 @@
       ],
       Fashion: [
         { name: "Namshi", url: "https://en-ae.namshi.com", desc: "Gulf fashion and lifestyle." },
-        { name: "Noon Fashion", url: "https://www.noon.com/uae-en/fashion", desc: "UAE fashion listings." }
+        { name: "Noon Fashion", url: "https://www.noon.com/uae-en/fashion", desc: "UAE fashion listings." },
+        { name: "SHEIN", url: "https://www.shein.com", desc: "Delivers to many Gulf addresses — check checkout." },
+        { name: "Primark", url: "https://www.primark.com", desc: "Order where international delivery is offered." }
       ],
       Books: [
         { name: "Amazon UAE Books", url: "https://www.amazon.ae/books-used-books-textbooks", desc: "UAE books and personal development." },
@@ -159,7 +169,9 @@
       ],
       Fashion: [
         { name: "SHEIN", url: "https://www.shein.com", desc: "Asia-driven fast fashion trends." },
-        { name: "Lazada Fashion", url: "https://www.lazada.sg/shop-fashion", desc: "SEA fashion listings." }
+        { name: "Lazada Fashion", url: "https://www.lazada.sg/shop-fashion", desc: "SEA fashion listings." },
+        { name: "Uniqlo", url: "https://www.uniqlo.com", desc: "Regional storefronts across Asia." },
+        { name: "Primark", url: "https://www.primark.com", desc: "EU/US shipping where offered from online hub." }
       ],
       Books: [
         { name: "Rakuten Books", url: "https://books.rakuten.co.jp", desc: "Japan books and manga." },
@@ -172,7 +184,13 @@
     },
     global: {
       Electronics: [{ name: "Amazon Electronics", url: "https://www.amazon.com/s?i=electronics&tag=vibecart20-20", desc: "Global electronics marketplace." }],
-      Fashion: [{ name: "ASOS", url: "https://www.asos.com", desc: "Global youth fashion." }],
+      Fashion: [
+        { name: "ASOS", url: "https://www.asos.com", desc: "Global youth fashion." },
+        { name: "SHEIN", url: "https://www.shein.com", desc: "Trend-led fashion worldwide." },
+        { name: "Zara", url: "https://www.zara.com", desc: "Seasonal fashion — pick your region on site." },
+        { name: "Primark", url: "https://www.primark.com", desc: "High-street value — UK, US, EU online where available." },
+        { name: "Notino", url: "https://www.notino.com", desc: "Beauty and fragrance (strong EU delivery)." }
+      ],
       Books: [{ name: "AbeBooks", url: "https://www.abebooks.com", desc: "Global books and textbooks." }],
       Gaming: [{ name: "Steam Store", url: "https://store.steampowered.com", desc: "Global gaming marketplace." }]
     }
@@ -418,16 +436,11 @@
     a.className = "shop";
     var trusted = isTrustedShopUrl(shop.url);
     var commissionEnabled = isCommissionTrackedUrl(shop.url);
-    a.href =
-      "/api/public/shop/redirect?shop=" +
-      encodeURIComponent(shop.name) +
-      "&cat=" +
-      encodeURIComponent(category) +
-      "&partner=" +
-      encodeURIComponent(shop.name) +
-      "&target=" +
-      encodeURIComponent(shop.url);
-    if (!trusted) {
+    if (trusted) {
+      a.href = String(shop.url || "").trim();
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+    } else {
       a.href = "#";
       a.classList.add("is-disabled");
     }
@@ -513,8 +526,18 @@
           : "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
     }
     if (topCta) {
-      topCta.setAttribute("href", "./live-market.html");
-      topCta.textContent = "Open live market folders";
+      try {
+        if (String(window.location.pathname || "").toLowerCase().indexOf("live-market-shops") >= 0) {
+          topCta.setAttribute("href", "#liveMarketShopGrid");
+          topCta.textContent = "Jump to shops list";
+        } else {
+          topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global");
+          topCta.textContent = "Open full live marketplace";
+        }
+      } catch (_) {
+        topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global");
+        topCta.textContent = "Open full live marketplace";
+      }
     }
     if (tabsWrap) {
       Array.prototype.slice.call(tabsWrap.querySelectorAll("[data-live-cat]")).forEach(function (btn) {

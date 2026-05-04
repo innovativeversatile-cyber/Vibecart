@@ -40,18 +40,6 @@
                 <h3>eBay</h3>
                 <p>Auctions, resale, and collectors.</p>
               </a>
-              <a href="https://www.allegro.pl" target="_blank" rel="noopener noreferrer" class="shop">
-                <h3>Allegro</h3>
-                <p>Major Poland marketplace with strong EU lane demand.</p>
-              </a>
-              <a href="https://www.olx.com" target="_blank" rel="noopener noreferrer" class="shop">
-                <h3>OLX</h3>
-                <p>Classified marketplace for local and regional buyer-seller deals.</p>
-              </a>
-              <a href="https://www.ebay.co.uk" target="_blank" rel="noopener noreferrer" class="shop">
-                <h3>Northern Ireland lane</h3>
-                <p>UK and Northern Ireland resale route benchmark for cross-border listings.</p>
-              </a>
               <a href="https://www.etsy.com" target="_blank" rel="noopener noreferrer" class="shop">
                 <h3>Etsy</h3>
                 <p>Handmade, vintage, and artisan items.</p>
@@ -84,6 +72,14 @@
                 <h3>H&amp;M</h3>
                 <p>Global fashion — high-frequency mobile sessions.</p>
               </a>
+              <a href="https://www.primark.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Primark</h3>
+                <p>High-street value — UK, US, and EU online where available.</p>
+              </a>
+              <a href="https://www.notino.com" target="_blank" rel="noopener noreferrer" class="shop">
+                <h3>Notino</h3>
+                <p>Beauty and fragrance with broad European delivery.</p>
+              </a>
               <a href="https://www.mediamarkt.de" target="_blank" rel="noopener noreferrer" class="shop">
                 <h3>MediaMarkt</h3>
                 <p>EU electronics retail giant — promo-heavy traffic.</p>
@@ -110,8 +106,17 @@
               </a>
     </div>
   </main>
-  <script src="./bridge-hop.js?v=20260420csp1"></script>
-  <script src="./shop-favicons.js?v=20260426logos1"></script>
-  <script src="./site-chrome.js?v=20260421chrome1" defer></script>
+  <script>
+(function () {
+  var key = "vibecart-bridge-path";
+  document.querySelectorAll("[data-bridge-hop]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var path = link.getAttribute("data-bridge-hop");
+      if (!path) return;
+      try { localStorage.setItem(key, path); } catch (e) {}
+    });
+  });
+})();
+  </script>
 </body>
 </html>

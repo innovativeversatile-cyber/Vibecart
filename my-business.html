@@ -176,6 +176,10 @@
       <span class="vc-pill" id="mbSessionPill">My Business</span>
       <button type="button" class="btn btn-secondary" id="mbLockAgain">Lock dashboard</button>
     </div>
+    <p class="note" id="mbWebPushRow" hidden style="margin-top:0.35rem;">
+      <button type="button" class="btn btn-secondary" id="mbWebPushBtn">Phone alerts for bookings</button>
+      <span id="mbWebPushNote" class="note" style="display:inline-block;margin-left:0.5rem;max-width:100%;"></span>
+    </p>
 
     <section class="vc-biz-card" data-mb-show="provider" style="margin-top:0;">
       <h2 style="margin-top:0;">Your service line</h2>
@@ -207,7 +211,7 @@
       <div id="mbClientStep2" class="vc-mb-client-step" hidden>
         <label for="mbCliDate">Preferred date</label>
         <input id="mbCliDate" type="date" />
-        <p class="note" style="margin-top:0.5rem">Pick a time. If your provider published slots for this date, those appear first; otherwise you see common example times until they publish.</p>
+        <p class="note" style="margin-top:0.5rem">Pick a time. Only slots your provider has published for this date appear here.</p>
         <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
       </div>
       <div id="mbClientStep3" class="vc-mb-client-step" hidden>
@@ -392,7 +396,7 @@
       </div>
     </section>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+    <section id="mb-provider-bookings" class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Client booking requests</h2>
       <p class="note">Open a request below to see full details, accept or decline, and message the client after you accept — all on this page.</p>
       <article id="mbProvFocusRoot" class="vc-mb-prov-focus" hidden data-booking-id="">
@@ -439,7 +443,7 @@
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
   <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-  <script src="./my-business.js?v=20260504mbdesk1" defer></script>
+  <script src="./my-business.js?v=20260504mbpush1" defer></script>
   <script src="./site-chrome.js?v=20260509chromebrandon1" defer></script>
 </body>
 </html>

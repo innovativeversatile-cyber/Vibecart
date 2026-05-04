@@ -74,6 +74,88 @@
     if (node) node.textContent = String(text || "");
   }
 
+  function urlBase64ToUint8Array(base64String) {
+    var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    var rawData = atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  function wireMbWebPushControls() {
+    var btn = document.getElementById("mbWebPushBtn");
+    var note = document.getElementById("mbWebPushNote");
+    if (!btn || btn.getAttribute("data-mb-wired") === "1") return;
+    btn.setAttribute("data-mb-wired", "1");
+    var vapidPublicKey = null;
+    function setNote(t) {
+      if (note) note.textContent = String(t || "");
+    }
+    fetch("/api/public/web-push/config")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (j) {
+        if (j && j.ok && j.publicKey) vapidPublicKey = String(j.publicKey);
+      })
+      .catch(function () {});
+    btn.addEventListener("click", function () {
+      var token = getToken();
+      if (!token) {
+        setNote("Sign in first, then try again.");
+        return;
+      }
+      if (!vapidPublicKey) {
+        setNote("Web Push is not configured on this server.");
+        return;
+      }
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setNote("Use Chrome on Android, or add VibeCart to your Home Screen on iPhone for notifications.");
+        return;
+      }
+      setNote("Working…");
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (existing) {
+            if (existing) return existing;
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            });
+          });
+        })
+        .then(function (sub) {
+          var headers = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+          if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+            headers = window.VibeCartSessionDevice.merge(token, headers);
+          }
+          return fetch("/api/public/account/web-push/register", {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({ subscription: sub.toJSON() })
+          }).then(function (r) {
+            return r.json().then(function (j) {
+              return { ok: r.ok, j: j };
+            });
+          });
+        })
+        .then(function (x) {
+          if (x && x.ok && x.j && x.j.ok) {
+            setNote("Booking alerts enabled for this browser. Allow notifications in phone settings if prompted.");
+          } else {
+            setNote((x && x.j && (x.j.message || x.j.code)) || "Could not save subscription.");
+          }
+        })
+        .catch(function (err) {
+          setNote((err && err.message) || "Permission denied or blocked.");
+        });
+    });
+  }
+
   function api(path, options) {
     var base = Object.assign({}, (options && options.headers) || {});
     var token = getToken();
@@ -318,6 +400,11 @@
     }
 
     document.title = (persona === "provider" ? "Provider" : "Client") + " · " + service + " · My Business · VibeCart";
+
+    var pushRow = document.getElementById("mbWebPushRow");
+    if (pushRow) {
+      pushRow.hidden = !getToken();
+    }
 
     if (persona === "client") {
       clearProviderDeskPoll();
@@ -1113,9 +1200,13 @@
     var vcProvider = cfg && cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER;
     if (echo) {
       if (clientNoPwd) {
-        echo.textContent = "Continue to your client booking tools for " + cfg.service + ".";
+        echo.textContent = getToken()
+          ? "You're signed in — tap Continue once to open your client desk for " + cfg.service + "."
+          : "Continue to your client booking tools for " + cfg.service + ".";
       } else if (vcProvider) {
-        echo.textContent = "Provider desk · " + cfg.service + " · confirm your signed-in seller account.";
+        echo.textContent = getToken()
+          ? "You're signed in — tap Continue to confirm your seller account for " + cfg.service + "."
+          : "Provider desk · " + cfg.service + " · confirm your signed-in seller account.";
       } else {
         echo.textContent =
           "Enter the password for your " +
@@ -1139,6 +1230,29 @@
     setGateStatus("mbGateStatusUnlock", "", false);
   }
 
+  function tryAutoUnlockForReturningUser(cfg) {
+    if (!cfg || !getToken()) return Promise.resolve(false);
+    return refreshMbSessionUser()
+      .then(function () {
+        return api("/api/public/auth/session");
+      })
+      .then(function (res) {
+        if (!res || !res.user) return false;
+        if (cfg.persona === "client" && cfg.pwdHash === "__none__") {
+          setSessionUnlocked(cfg.persona, cfg.service);
+          return true;
+        }
+        if (cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER && isSellerSessionPayload(res)) {
+          setSessionUnlocked(cfg.persona, cfg.service);
+          return true;
+        }
+        return false;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   function bootGate() {
     var cfg = loadMbConfig();
 
@@ -1150,6 +1264,25 @@
         loadAll();
       });
       requestAnimationFrame(function () { scrollToBeautyHashIfAllowed(cfg); });
+      return;
+    }
+
+    if (cfg && getToken()) {
+      tryAutoUnlockForReturningUser(cfg).then(function (ok) {
+        if (ok) {
+          document.body.classList.remove("mb-boot-pending");
+          hideGate();
+          applyDashboard(cfg);
+          refreshMbSessionUser().then(function () {
+            loadAll();
+          });
+          requestAnimationFrame(function () { scrollToBeautyHashIfAllowed(cfg); });
+          return;
+        }
+        document.body.classList.add("mb-boot-pending");
+        showGate();
+        showUnlockStep(cfg);
+      });
       return;
     }
 
@@ -2374,6 +2507,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     wireGateUi();
+    wireMbWebPushControls();
     bootGate();
 
     window.addEventListener("pageshow", function () {
