@@ -2098,14 +2098,26 @@
     window.addEventListener("appinstalled", function () {
       btn.classList.add("hidden");
       var hint = ensureHint();
-      hint.textContent = "VibeCart app installed successfully.";
+      hint.textContent = "Installed.";
     });
 
     function showManualHint() {
       var hint = ensureHint();
-      hint.textContent =
-        "Install tip: use browser menu -> Install app (Android/desktop) or Share -> Add to Home Screen on iPhone Safari.";
-      btn.classList.remove("hidden");
+      var ua = String((window.navigator && window.navigator.userAgent) || "").toLowerCase();
+      var isIos = ua.indexOf("iphone") >= 0 || ua.indexOf("ipad") >= 0;
+      if (isIos) {
+        hint.textContent = "Safari → Share → Add to Home Screen.";
+        try {
+          var help = document.getElementById("installPwaHelp");
+          if (help) help.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          /* ignore */
+        }
+      } else if (ua.indexOf("edg/") >= 0) {
+        hint.textContent = "Menu (⋯) → Apps → Install this site.";
+      } else {
+        hint.textContent = "Menu (⋮) → Install app.";
+      }
     }
 
     btn.addEventListener("click", function () {
@@ -2127,18 +2139,9 @@
     var ua = String((window.navigator && window.navigator.userAgent) || "").toLowerCase();
     var isIos = ua.indexOf("iphone") >= 0 || ua.indexOf("ipad") >= 0;
     if (isIos) {
-      btn.textContent = "How to install app";
-      showManualHint();
+      btn.textContent = "Add to Home Screen";
       return;
     }
-
-    // If native prompt is not fired quickly, surface the manual path.
-    window.setTimeout(function () {
-      if (!deferredPrompt) {
-        btn.textContent = "How to install app";
-        showManualHint();
-      }
-    }, 1500);
   }
 
   function initPwaBootstrapLite() {
