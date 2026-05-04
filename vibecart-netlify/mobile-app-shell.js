@@ -205,7 +205,7 @@
         </div>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
         <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Ask Brandon or tell a preference</label>
-        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Ireland shops, jewellery, book salon, track order, sell — do not paste passwords or card data"></textarea>
+        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Tokyo bookstores, Paris bakeries, track order, sell — Maps &amp; web links appear below. No passwords or card data."></textarea>
         <button type="button" class="btn btn-primary vc-mobile-ai__save">Ask Brandon</button>
         <p id="vc-mobile-ai-reply" class="note vc-mobile-ai__saved" hidden></p>
         <p id="vc-mobile-ai-saved" class="note vc-mobile-ai__saved" hidden>Saved locally — thank you.</p>
@@ -254,6 +254,12 @@
     }
 
     const actionsEl = wrap.querySelector("#vc-mobile-ai-actions");
+    const brandonWorldwideSlot = document.createElement("div");
+    brandonWorldwideSlot.id = "vcBrandonWorldwideSlot";
+    brandonWorldwideSlot.className = "note";
+    brandonWorldwideSlot.style.margin = "0.15rem 0 0.35rem";
+    brandonWorldwideSlot.setAttribute("aria-label", "Worldwide shop search shortcuts");
+    actionsEl.after(brandonWorldwideSlot);
     let startY = 0;
     var introKey = "vibecart-brandon-introduced-v1";
     var lastMicroPromptAt = 0;
@@ -774,6 +780,58 @@
     }
 
     /** Topics Brandon must never coach on — user uses official forms only. */
+    function buildVcWorldwideRetailLinkDescriptors(rawQ) {
+      var q = String(rawQ || "").trim();
+      if (!q) {
+        return [];
+      }
+      return [
+        {
+          label: "Google Maps",
+          href: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q),
+          external: true
+        },
+        {
+          label: "VibeCart global search",
+          href: "./global-search.html?q=" + encodeURIComponent(q),
+          external: false
+        },
+        {
+          label: "DuckDuckGo",
+          href: "https://duckduckgo.com/?q=" + encodeURIComponent(q + " shop OR store OR restaurant"),
+          external: true
+        }
+      ];
+    }
+
+    function paintBrandonWorldwideSlot(rawQ) {
+      var slot = wrap.querySelector("#vcBrandonWorldwideSlot");
+      if (!slot) {
+        return;
+      }
+      var q = String(rawQ || "").trim();
+      slot.textContent = "";
+      if (!q || brandonAskIsSensitiveCredentialsTopic(q.toLowerCase())) {
+        return;
+      }
+      var lead = document.createElement("span");
+      lead.textContent = "Real shops anywhere (opens Maps & search — we never invent store URLs): ";
+      slot.appendChild(lead);
+      buildVcWorldwideRetailLinkDescriptors(q).forEach(function (item, idx) {
+        if (idx > 0) {
+          slot.appendChild(document.createTextNode(" · "));
+        }
+        var a = document.createElement("a");
+        a.href = item.href;
+        a.textContent = item.label;
+        if (item.external) {
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+        }
+        slot.appendChild(a);
+      });
+    }
+
     function brandonAskIsSensitiveCredentialsTopic(ask) {
       var s = String(ask || "").trim().toLowerCase();
       if (!s) return false;
@@ -825,7 +883,7 @@
       if (/\b(hello|hi|hey|who are you|brandon|introduce)\b/.test(ask)) {
         return {
           reply:
-            "I am Brandon — VibeCart's built-in guide. I map almost every shopper and seller lane on this site and app with fast, exact taps. I do not browse the random web, I never handle passwords or payment fields, and I stay off owner admin. Say a goal: buy, sell, track, coach, region, or fashion.",
+            "I am Brandon — VibeCart's built-in guide. I map shopper and seller lanes on this site with fast taps. For shops outside VibeCart I link to Google Maps and trusted web search — never invented store URLs. I never handle passwords or payment fields, and I stay off owner admin. Say a goal: buy, sell, track, coach, region, or fashion.",
           actions: [
             { label: "Browse categories", href: "./browse-categories.html" },
             { label: "Regional shops", href: "./regional-shops.html" },
@@ -1446,6 +1504,7 @@
           if (reply) {
           reply.textContent = result.reply;
           renderActionSuggestions(result.actions);
+          paintBrandonWorldwideSlot(textForLog);
           reply.hidden = false;
         }
           if (ta) {
@@ -1463,6 +1522,7 @@
             var fb = generateBrandonResponse(textForLog);
             reply.textContent = fb.reply;
             renderActionSuggestions(fb.actions);
+            paintBrandonWorldwideSlot(textForLog);
             reply.hidden = false;
           }
         })
@@ -2775,6 +2835,7 @@
         { id: "vcMissionHud", node: document.getElementById("vcMissionHud") },
         { id: "vcMotionModeBtn", node: document.getElementById("vcMotionModeBtn") },
         { id: "vcMobileStreakChip", node: document.getElementById("vcMobileStreakChip") },
+        { id: "vcActionHub", node: document.getElementById("vcActionHub") },
         { id: "vcDealDraftComposer", node: document.getElementById("vcDealDraftComposer") },
         { id: "vc-mobile-ai", node: document.getElementById("vc-mobile-ai") }
       ].filter(function (row) {
@@ -2921,10 +2982,26 @@
       if (document.body && document.body.getAttribute("data-vc-lean-hud") === "1") {
         return true;
       }
+      if (document.body && document.body.classList.contains("health-coach-page")) {
+        return true;
+      }
       var p = String((typeof location !== "undefined" && location.pathname) || "").toLowerCase();
       if (p.indexOf("service-provider-hub") !== -1) return true;
       if (p.indexOf("coach-experience") !== -1) return true;
       if (p.indexOf("checkout-details") !== -1) return true;
+      if (p.indexOf("top-class-checkout") !== -1) return true;
+      if (p.indexOf("payment-confirmation") !== -1) return true;
+      if (p.indexOf("coach-payment-recovery") !== -1) return true;
+      if (p.indexOf("plan-workspace") !== -1) return true;
+      if (p.indexOf("account-hub") !== -1) return true;
+      if (p.indexOf("my-business") !== -1) return true;
+      if (p.indexOf("legal-settings") !== -1) return true;
+      if (p.indexOf("insurance") !== -1) return true;
+      if (p.indexOf("orders-tracking") !== -1) return true;
+      if (p.indexOf("seller-live-preview") !== -1) return true;
+      if (p.indexOf("admin-app") !== -1) return true;
+      if (p.indexOf("admin-messages") !== -1) return true;
+      if (p.indexOf("admin.html") !== -1) return true;
       if (document.body && document.body.classList.contains("start-selling-page")) {
         return true;
       }
@@ -3106,6 +3183,12 @@
           document.body.classList.add("vc-mobile-shell");
           initMainSectionRevealForApp();
           ensureAppShopHubLink();
+        }
+        /* BFCache restore: strip any frozen sticker HUD so lean-route rules re-apply cleanly. */
+        try {
+          teardownEphemeralStickerHud();
+        } catch {
+          /* ignore */
         }
         runMobileHudPack();
       } catch {

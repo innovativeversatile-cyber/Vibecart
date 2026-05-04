@@ -145,7 +145,7 @@
       "persona.status.aura": "Full experience live — richer visuals and expanded context are active.",
       "persona.status.exclusive": "Home focused live — cleaner layout and reduced visual noise are active.",
       "search.label": "Search shops",
-      "search.placeholder": "Search Europe, Africa, Asia, scents…",
+      "search.placeholder": "Shops, cities, brands worldwide…",
       "search.submit": "Find",
       "search.reset": "All regional folders visible.",
       "search.matchCount": "{n} shop lanes match your search.",

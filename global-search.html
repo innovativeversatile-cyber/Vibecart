@@ -6,7 +6,7 @@
   <title>Global Search · VibeCart</title>
   <meta
     name="description"
-    content="Search VibeCart pages and jump to regional shops, hot picks, account hub, and checkout flows. Opens web search helpers when you need broader results."
+    content="Search VibeCart pages, then open Google Maps, OpenStreetMap, DuckDuckGo, or Google for real shops anywhere — plus site-only search on vibe-cart.com."
   />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://vibe-cart.com/global-search.html" />
@@ -19,17 +19,18 @@
   </header>
   <main class="section">
     <form id="globalSearchForm" class="shop-search" role="search" aria-label="Global search">
-      <input id="globalSearchInput" class="shop-search-input" type="search" placeholder="Search VibeCart, app pages, or web..." />
+      <input id="globalSearchInput" class="shop-search-input" type="search" placeholder="Shops, cities, chains, or VibeCart pages…" />
       <button class="btn btn-primary" type="submit">Search</button>
     </form>
     <p id="globalSearchStatus" class="note"></p>
     <div id="globalSearchSiteResults" class="messages-box"></div>
+    <div id="globalWorldwideShopLinks" class="messages-box"></div>
     <div class="hero-actions" style="margin-top:0.8rem;">
-      <a id="globalWebSearchBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Search web</a>
-      <a id="globalGoogleSearchBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Search Google</a>
+      <a id="globalWebSearchBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">DuckDuckGo (worldwide)</a>
+      <a id="globalGoogleSearchBtn" class="btn btn-secondary" href="#" target="_blank" rel="noopener noreferrer">Google (worldwide)</a>
     </div>
   </main>
-  <script src="./global-search.js?v=global-search-2" defer></script>
+  <script src="./global-search.js?v=global-search-3" defer></script>
   <script src="./site-chrome.js?v=20260510inbox1" defer></script>
 </body>
 </html>

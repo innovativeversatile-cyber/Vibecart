@@ -14,6 +14,7 @@
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title" data-page-i18n="account.title">Account access</h1>
     <p class="note shops-lane-intro" data-page-i18n="account.intro">Login, roles, and saved preferences in one place.</p>
+    <p class="note" id="accountHubAlert" hidden aria-live="polite" style="margin-top: 0.65rem"></p>
     <section id="accountAiDigestWrap" class="section alt" style="margin-top: 0.75rem" hidden>
       <h2 class="shops-lane-title" style="font-size: 1.15rem">Your activity digest</h2>
       <p id="accountAiDigestLead" class="note"></p>
@@ -76,29 +77,13 @@
       <a class="shop" id="activePlanCard" href="./plan-workspace.html" hidden><h3 data-page-i18n="account.myPlan">My active plan</h3><p data-page-i18n="account.myPlan.desc">Open routines, updates, meals, and AI notifications.</p></a>
       <a class="shop" href="./orders-tracking.html"><h3>Orders &amp; tracking</h3><p data-page-i18n="account.orders.desc">Shipment timeline tools.</p></a>
     </div>
-    <section id="bookings" style="margin-top:1.25rem">
-      <h2 data-page-i18n="account.booking.title">Booking availability</h2>
-      <p id="bookingSummary" class="note" data-page-i18n="account.booking.default">Select a date and service to see available slots.</p>
-      <div class="shop-bubble-grid">
-        <article class="shop"><h3>09:00</h3><p data-page-i18n="account.slot.morning">Morning slot · Available</p></article>
-        <article class="shop"><h3>11:30</h3><p data-page-i18n="account.slot.latemorning">Late morning · Available</p></article>
-        <article class="shop"><h3>14:00</h3><p data-page-i18n="account.slot.afternoon">Afternoon slot · Available</p></article>
-        <article class="shop"><h3>16:30</h3><p data-page-i18n="account.slot.lateafternoon">Late afternoon · Available</p></article>
-      </div>
-      <p class="hero-actions" style="margin-top:0.75rem">
-        <a id="bookingPrepayConfirmBtn" class="btn btn-primary" href="./checkout-details.html?flow=service_booking" data-page-i18n="account.booking.confirm">Pay deposit to lock booking date</a>
-        <a class="btn btn-secondary" href="./my-business.html#beauty-services" data-page-i18n="account.booking.edit">Edit booking details</a>
-      </p>
-    </section>
   </main>
   <script src="./page-i18n.js?v=20260502layoutlift1"></script>
   <script>
     (function () {
       try {
         var params = new URLSearchParams(window.location.search || "");
-        var service = String(params.get("service") || "Service");
-        var date = String(params.get("date") || "");
-        var summary = document.getElementById("bookingSummary");
+        var alertEl = document.getElementById("accountHubAlert");
         var activePlanCard = document.getElementById("activePlanCard");
         var activePlanBadge = document.getElementById("activePlanBadge");
         var activePlanBadgeText = document.getElementById("activePlanBadgeText");
@@ -146,28 +131,18 @@
               encodeURIComponent(String(paidPlan.sessionId));
           }
         }
-        var prepayBtn = document.getElementById("bookingPrepayConfirmBtn");
-        if (summary && (service || date)) {
-          var dateText = date ? " on " + date : "";
-          summary.textContent = "Showing available slots for " + service + dateText + ". Prepayment is required to secure the date.";
-          if (prepayBtn) {
-            prepayBtn.href =
-              "./checkout-details.html?flow=service_booking&service=" +
-              encodeURIComponent(service) +
-              "&date=" +
-              encodeURIComponent(date || "");
-          }
-        }
-        if (summary && String(params.get("plan_locked") || "") === "1") {
-          summary.innerHTML =
+        if (alertEl && String(params.get("plan_locked") || "") === "1") {
+          alertEl.innerHTML =
             "If you already paid but did not reach your plan page, open " +
             "<a href=\"./coach-payment-recovery.html\">Restore coach access</a> — no second charge. " +
             "Otherwise complete checkout from the Health coach lane.";
+          alertEl.hidden = false;
         }
-        if (summary && String(params.get("seller_required") || "") === "1") {
-          summary.innerHTML =
+        if (alertEl && String(params.get("seller_required") || "") === "1") {
+          alertEl.innerHTML =
             "Seller Boost still checks your seller session — but the guided <a href=\"./sell-journey.html\">sell journey</a> " +
             "is open so you can stage photos, shipping, and copy first. Sign in here when you are ready for payouts.";
+          alertEl.hidden = false;
         }
       } catch (e) {}
     })();
@@ -417,7 +392,7 @@
             var activePlanCard = document.getElementById("activePlanCard");
             var activePlanBadge = document.getElementById("activePlanBadge");
             var activePlanBadgeText = document.getElementById("activePlanBadgeText");
-            var summary = document.getElementById("bookingSummary");
+            var alertEl = document.getElementById("accountHubAlert");
             if (activePlanCard && paidPlan && paidPlan.sessionId) {
               activePlanCard.hidden = false;
               activePlanCard.href =
@@ -437,11 +412,12 @@
               var label = String(paidPlan.plan || "standard").replace(/-/g, " ");
               activePlanBadgeText.textContent = String(paidPlan.flow || "coach") + " · " + label;
             }
-            if (summary) {
-              summary.innerHTML =
+            if (alertEl) {
+              alertEl.innerHTML =
                 "Your coach purchase is linked to this account. Open <a href=\"" +
                 (activePlanCard ? activePlanCard.href : "./plan-workspace.html") +
                 "\">your plan workspace</a> — or use <a href=\"./coach-payment-recovery.html\">Restore coach access</a> if you still need help.";
+              alertEl.hidden = false;
             }
             try {
               var u = new URL(window.location.href);

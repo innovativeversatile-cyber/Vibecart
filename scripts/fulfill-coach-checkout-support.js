@@ -9,10 +9,21 @@
  * - Set ALLOW_MANUAL_COACH_FULFILL=1 for this process only, then unset.
  * - Do NOT paste session IDs or customer emails into public chats.
  *
- * Usage:
+ * Usage (bash):
  *   ALLOW_MANUAL_COACH_FULFILL=1 node scripts/fulfill-coach-checkout-support.js cs_live_xxxx
  *
- * Railway (one-off):
+ * PowerShell (trusted machine, vibecart/.env has STRIPE_SECRET_KEY + DB_*):
+ *   cd path\to\vibecart
+ *   $env:ALLOW_MANUAL_COACH_FULFILL="1"
+ *   node scripts/fulfill-coach-checkout-support.js cs_live_xxxx
+ *   Remove-Item Env:\ALLOW_MANUAL_COACH_FULFILL
+ *
+ * Or pass session id via env (keeps cs_ out of argv if you prefer):
+ *   $env:ALLOW_MANUAL_COACH_FULFILL="1"; $env:STRIPE_COACH_CHECKOUT_SESSION_ID="cs_live_xxxx"
+ *   node scripts/fulfill-coach-checkout-support.js
+ *   Remove-Item Env:\ALLOW_MANUAL_COACH_FULFILL,Env:\STRIPE_COACH_CHECKOUT_SESSION_ID
+ *
+ * Railway (production DB + Stripe from service env, no local .env):
  *   npx @railway/cli run -- env ALLOW_MANUAL_COACH_FULFILL=1 node scripts/fulfill-coach-checkout-support.js cs_live_xxxx
  */
 
@@ -31,7 +42,9 @@ async function main() {
     );
     process.exit(1);
   }
-  const sessionId = String(process.argv[2] || "").trim();
+  const sessionId = String(
+    process.argv[2] || process.env.STRIPE_COACH_CHECKOUT_SESSION_ID || ""
+  ).trim();
   if (!/^cs_[a-zA-Z0-9_]+$/.test(sessionId)) {
     // eslint-disable-next-line no-console
     console.error("Pass one Stripe Checkout session id as argv[2] (cs_live_… or cs_test_…).");

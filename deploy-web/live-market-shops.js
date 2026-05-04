@@ -9,6 +9,7 @@
   var searchBtn = document.getElementById("liveMarketShopSearchBtn");
   var resetBtn = document.getElementById("liveMarketShopResetBtn");
   var searchStatus = document.getElementById("liveMarketShopSearchStatus");
+  var worldwideHint = document.getElementById("liveMarketWorldwideHint");
   var tabsWrap = document.getElementById("liveMarketCategoryTabs");
   var regionSelect = document.getElementById("liveMarketRegionSelect");
   var disclaimerAck = document.getElementById("liveMarketDisclaimerAck");
@@ -591,9 +592,41 @@
     return line + " " + hint;
   }
 
-  function runSearch() {
-    var q = String((searchInput && searchInput.value) || "").trim().toLowerCase();
+  function paintWorldwideHint(rawQuery, hasLocalMatches) {
+    if (!worldwideHint) {
+      return;
+    }
+    worldwideHint.textContent = "";
+    worldwideHint.hidden = true;
+    var q = String(rawQuery || "").trim();
     if (!q) {
+      return;
+    }
+    worldwideHint.hidden = false;
+    worldwideHint.appendChild(
+      document.createTextNode(hasLocalMatches ? "Also find real shops worldwide: " : "Search real shops worldwide: ")
+    );
+    var a = document.createElement("a");
+    a.href = "./global-search.html?q=" + encodeURIComponent(q);
+    a.textContent = "Open global search (Maps + web)";
+    worldwideHint.appendChild(a);
+    worldwideHint.appendChild(document.createTextNode(" · "));
+    var m = document.createElement("a");
+    m.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+    m.textContent = "Google Maps";
+    m.target = "_blank";
+    m.rel = "noopener noreferrer";
+    worldwideHint.appendChild(m);
+  }
+
+  function runSearch() {
+    var raw = String((searchInput && searchInput.value) || "").trim();
+    var q = raw.toLowerCase();
+    if (!q) {
+      if (worldwideHint) {
+        worldwideHint.textContent = "";
+        worldwideHint.hidden = true;
+      }
       renderList(listForCategory(cat), "Showing " + cat + " shops.");
       return;
     }
@@ -607,7 +640,11 @@
       var hay = (entry.shop.name + " " + entry.shop.desc + " " + entry.category).toLowerCase();
       return hay.indexOf(q) >= 0;
     });
-    renderList(matches, matches.length ? ("Search '" + q + "': " + matches.length + " result(s).") : ("No shop found for '" + q + "'."));
+    renderList(
+      matches,
+      matches.length ? ("Search '" + q + "': " + matches.length + " result(s).") : ("No shop found for '" + q + "' in this VibeCart grid.")
+    );
+    paintWorldwideHint(raw, matches.length > 0);
   }
 
   function getAuthToken() {
@@ -742,6 +779,10 @@
         if (searchInput) {
           searchInput.value = "";
         }
+        if (worldwideHint) {
+          worldwideHint.textContent = "";
+          worldwideHint.hidden = true;
+        }
         paintCategoryUi(cat);
         renderList(listForCategory(cat), "Showing " + cat + " shops.");
         try {
@@ -797,6 +838,10 @@
     resetBtn.addEventListener("click", function () {
       if (searchInput) {
         searchInput.value = "";
+      }
+      if (worldwideHint) {
+        worldwideHint.textContent = "";
+        worldwideHint.hidden = true;
       }
       renderList(listForCategory(cat), "Showing " + cat + " shops.");
     });

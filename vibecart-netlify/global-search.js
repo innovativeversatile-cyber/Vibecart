@@ -1,6 +1,78 @@
 "use strict";
 
 (function () {
+  /**
+   * Trusted third-party entry points for real-world shops (no invented merchant URLs).
+   * Opens Google Maps, OpenStreetMap search, DuckDuckGo, or Google web search with the user query.
+   */
+  function worldwideRetailLinkRows(rawQuery) {
+    var q = String(rawQuery || "").trim();
+    if (!q) {
+      return [];
+    }
+    return [
+      {
+        label: "Open in Google Maps",
+        href: "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q)
+      },
+      {
+        label: "Search OpenStreetMap",
+        href: "https://www.openstreetmap.org/search?query=" + encodeURIComponent(q)
+      },
+      {
+        label: "DuckDuckGo (shops & stores)",
+        href: "https://duckduckgo.com/?q=" + encodeURIComponent(q + " shop OR store OR restaurant")
+      },
+      {
+        label: "Google (shops & stores)",
+        href: "https://www.google.com/search?q=" + encodeURIComponent(q + " shop store")
+      }
+    ];
+  }
+
+  function renderWorldwideShopLinks(container, rawQuery) {
+    if (!container) {
+      return;
+    }
+    container.innerHTML = "";
+    var q = String(rawQuery || "").trim();
+    if (!q) {
+      return;
+    }
+    var head = document.createElement("p");
+    head.className = "note";
+    head.style.marginTop = "0.65rem";
+    head.innerHTML =
+      "<strong>Shops anywhere on the map &amp; web.</strong> These buttons open established map and search sites — VibeCart does not fabricate store links.";
+    container.appendChild(head);
+    var box = document.createElement("div");
+    box.className = "hero-actions";
+    box.style.flexWrap = "wrap";
+    box.style.marginTop = "0.45rem";
+    worldwideRetailLinkRows(q).forEach(function (row) {
+      var a = document.createElement("a");
+      a.className = "btn btn-secondary";
+      a.href = row.href;
+      a.textContent = row.label;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      box.appendChild(a);
+    });
+    container.appendChild(box);
+    var siteOnly = document.createElement("p");
+    siteOnly.className = "note";
+    siteOnly.style.marginTop = "0.55rem";
+    var ddgVc = "https://duckduckgo.com/?q=" + encodeURIComponent(q + " site:vibe-cart.com");
+    var gVc = "https://www.google.com/search?q=" + encodeURIComponent(q + " site:vibe-cart.com");
+    siteOnly.innerHTML =
+      "Search only this site: <a href=\"" +
+      ddgVc +
+      "\" target=\"_blank\" rel=\"noopener noreferrer\">DuckDuckGo</a> · <a href=\"" +
+      gVc +
+      "\" target=\"_blank\" rel=\"noopener noreferrer\">Google</a>";
+    container.appendChild(siteOnly);
+  }
+
   var siteIndex = [
     { title: "Home hub", url: "./index.html", keywords: "home marketplace bridge account" },
     { title: "Global search", url: "./global-search.html", keywords: "search find everything" },
@@ -54,6 +126,7 @@
   var input = document.getElementById("globalSearchInput");
   var status = document.getElementById("globalSearchStatus");
   var results = document.getElementById("globalSearchSiteResults");
+  var worldwideEl = document.getElementById("globalWorldwideShopLinks");
   var webBtn = document.getElementById("globalWebSearchBtn");
   var googleBtn = document.getElementById("globalGoogleSearchBtn");
 
@@ -74,6 +147,9 @@
     if (!q) {
       results.innerHTML = "<div class='msg msg-buyer'>Enter a keyword to search website and web.</div>";
       status.textContent = "";
+      if (worldwideEl) {
+        worldwideEl.innerHTML = "";
+      }
       return;
     }
     var matches = siteIndex.filter(function (item) {
@@ -91,10 +167,17 @@
       row.textContent = item.title + " | " + item.url;
       results.appendChild(row);
     });
-    var ddg = "https://duckduckgo.com/?q=" + encodeURIComponent(query + " site:vibe-cart.com");
-    var gg = "https://www.google.com/search?q=" + encodeURIComponent(query + " site:vibe-cart.com");
-    if (webBtn) webBtn.href = ddg;
-    if (googleBtn) googleBtn.href = gg;
+    renderWorldwideShopLinks(worldwideEl, String(query || "").trim());
+    var ddgWorld = "https://duckduckgo.com/?q=" + encodeURIComponent(String(query || "").trim() + " shop OR store");
+    var ggWorld = "https://www.google.com/search?q=" + encodeURIComponent(String(query || "").trim() + " shop store");
+    if (webBtn) {
+      webBtn.href = ddgWorld;
+      webBtn.textContent = "DuckDuckGo (worldwide shops)";
+    }
+    if (googleBtn) {
+      googleBtn.href = ggWorld;
+      googleBtn.textContent = "Google (worldwide shops)";
+    }
   }
 
   if (form && input) {
