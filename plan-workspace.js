@@ -559,18 +559,36 @@
     if (!token) {
       return Promise.resolve(false);
     }
-    var headers = { Authorization: "Bearer " + token, Accept: "application/json" };
-    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
-      headers = window.VibeCartSessionDevice.authHeaders(token);
-      headers.Accept = "application/json";
-    }
+    var headers =
+      window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
+        ? window.VibeCartSessionDevice.merge(token, { Accept: "application/json" })
+        : { Authorization: "Bearer " + token, Accept: "application/json" };
     return fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
       .then(function (r) {
-        return r.json().catch(function () {
-          return null;
-        });
+        var st = r.status;
+        return r
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (body) {
+            return { st: st, body: body };
+          });
       })
-      .then(function (body) {
+      .then(function (x) {
+        var st = x.st;
+        var body = x.body;
+        try {
+          window.__vibecartCoachHydrateLast = {
+            at: Date.now(),
+            httpStatus: st,
+            bodyOk: Boolean(body && body.ok),
+            code: body && body.code ? String(body.code) : "",
+            sessionCount: Array.isArray(body && body.sessions) ? body.sessions.length : -1
+          };
+        } catch {
+          /* ignore */
+        }
         if (!body || !body.ok || !Array.isArray(body.sessions) || !body.sessions.length) {
           return false;
         }
@@ -600,6 +618,17 @@
         return readPaidPlans().length > 0;
       })
       .catch(function () {
+        try {
+          window.__vibecartCoachHydrateLast = {
+            at: Date.now(),
+            httpStatus: 0,
+            bodyOk: false,
+            code: "network_error",
+            sessionCount: -1
+          };
+        } catch {
+          /* ignore */
+        }
         return false;
       });
   }
@@ -788,7 +817,6 @@
     var ownedPlansEl = byId("workspaceOwnedPlans");
     var enablePushBtn = byId("enablePushBtn");
     var planViewModeEl = byId("planViewMode");
-    var paidPlans = mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
     function go(listArg) {
       runWorkspaceInit(
         params,
@@ -805,18 +833,56 @@
         listArg
       );
     }
-    if (paidPlans.length) {
-      go(paidPlans);
-      return;
-    }
-    hydrateCoachFulfillmentFromServer().then(function () {
-      var again = readPaidPlans();
-      if (!again.length) {
+    function finishFromStoredPlans() {
+      var merged = mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
+      if (!merged.length) {
+        var tok = getPublicAuthToken();
+        var w = null;
+        try {
+          w = window.__vibecartCoachHydrateLast;
+        } catch {
+          w = null;
+        }
+        if (tok && w) {
+          if (Number(w.httpStatus || 0) >= 400 || w.bodyOk === false) {
+            if (status) {
+              status.textContent =
+                "We could not load your purchases from the server. Try signing out and signing in again on this browser.";
+            }
+            if (meta) {
+              meta.textContent =
+                "HTTP " +
+                String(w.httpStatus || "?") +
+                (w.code ? " · " + w.code : "") +
+                " · If this persists, open Account hub or contact support.";
+            }
+            return;
+          }
+          if (Number(w.httpStatus || 0) === 200 && w.bodyOk && Number(w.sessionCount || 0) === 0) {
+            if (status) {
+              status.textContent =
+                "No coach purchase is linked to this signed-in account yet. If you already paid, wait a moment and refresh, or use Account hub.";
+            }
+            if (meta) {
+              meta.textContent =
+                "Ask support to run a one-line Stripe fulfillment sync, or confirm you are signed in with the same email you used at checkout.";
+            }
+            return;
+          }
+        }
         window.location.assign("./account-hub.html?plan_locked=1");
         return;
       }
-      go(again);
-    });
+      go(merged);
+    }
+    if (getPublicAuthToken()) {
+      hydrateCoachFulfillmentFromServer().finally(function () {
+        finishFromStoredPlans();
+      });
+      return;
+    }
+    mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
+    finishFromStoredPlans();
   }
 
   if (document.readyState === "loading") {

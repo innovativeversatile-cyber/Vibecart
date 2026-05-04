@@ -6656,6 +6656,18 @@ body.vc-my-business-dashboard #mb-client-service-desk {
   scroll-margin-top: 5.5rem;
 }
 
+/* Client booking: visual hint when published slots exist for selected date (see my-business.js). */
+#mbCliDate[data-vc-slots="1"] {
+  outline: 2px solid rgba(46, 204, 113, 0.65);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+#mbCliDate[data-vc-slots="0"] {
+  outline: 2px solid rgba(231, 76, 60, 0.45);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 .vc-mb-client-desk .vc-mb-client-step:not([hidden]) {
   display: grid;
   gap: 0.55rem;

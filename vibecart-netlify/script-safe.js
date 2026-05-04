@@ -1,27 +1,6 @@
 /* Emergency safe mode for homepage interaction stability.
    Keeps essential browsing usable and blocks any automatic section jumps. */
 (function () {
-  function vcDeviceAuthHeaders(token) {
-    try {
-      if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
-        return window.VibeCartSessionDevice.authHeaders(token);
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    return { Authorization: "Bearer " + token };
-  }
-  function vcDeviceRegisterExtras() {
-    try {
-      if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.registerPayloadField === "function") {
-        return window.VibeCartSessionDevice.registerPayloadField();
-      }
-    } catch (e) {
-      /* ignore */
-    }
-    return {};
-  }
-
   function ready(fn) {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", fn, { once: true });
@@ -333,87 +312,10 @@
       var journeyAccountBtn = document.getElementById("vcAuthJourneyAccount");
       var journeyHint = document.getElementById("vcAuthJourneyHint");
       var createSubmitLabel = document.getElementById("vcAuthSubmitCreate");
-      var loggedInStrip = document.getElementById("vcAuthLoggedIn");
-      var loggedOutWrap = document.getElementById("vcAuthLoggedOut");
-      var welcomeLine = document.getElementById("vcAuthWelcomeLine");
-      var metaLine = document.getElementById("vcAuthMetaLine");
-      var statusEl = document.getElementById("vcAuthStatus");
-      var createForm = document.getElementById("vcAuthFormCreate");
-      var loginForm = document.getElementById("vcAuthFormLogin");
-      var logoutBtn = document.getElementById("vcAuthLogout");
-      var createEmail = document.getElementById("vcAuthEmail");
-      var createName = document.getElementById("vcAuthFullName");
-      var createCountry = document.getElementById("vcAuthCountry");
-      var createPassword = document.getElementById("vcAuthPassword");
-      var loginEmail = document.getElementById("vcAuthLoginEmail");
-      var loginPassword = document.getElementById("vcAuthLoginPassword");
-      var PREFILL_KEY = "vibecart-public-auth-prefill-v1";
 
       if (!panelCreate || !panelLogin) {
         return;
       }
-
-      function syncSignupPasswordBlockSafe() {
-        var block = document.getElementById("vcAuthPasswordBlock");
-        var pw = document.getElementById("vcAuthPassword");
-        var seller = String((roleInput && roleInput.value) || "buyer") === "seller";
-        if (block) {
-          block.classList.toggle("hidden", !seller);
-        }
-        if (pw) {
-          pw.required = seller;
-          if (!seller) {
-            pw.value = "";
-          }
-        }
-      }
-
-      function tryConsumeMagicLoginFromUrlSafe() {
-        return Promise.resolve()
-          .then(function () {
-            var u = new URL(window.location.href);
-            var raw = String(u.searchParams.get("magic_login") || "").trim();
-            if (!/^[a-f0-9]{64}$/i.test(raw)) {
-              return null;
-            }
-            var headers = { Accept: "application/json" };
-            if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.getSecret === "function") {
-              var sec = window.VibeCartSessionDevice.getSecret();
-              if (sec) {
-                headers["X-VibeCart-Device-Binding"] = sec;
-              }
-            }
-            return fetch("/api/public/auth/magic-link/consume?token=" + encodeURIComponent(raw), {
-              method: "GET",
-              credentials: "same-origin",
-              headers: headers
-            }).then(function (r) {
-              return r.json().catch(function () {
-                return {};
-              }).then(function (body) {
-                if (r.ok && body.ok && body.token && body.user) {
-                  persistAuth(body.token, body.user);
-                  u.searchParams.delete("magic_login");
-                  window.history.replaceState({}, "", u.pathname + (u.search ? u.search : "") + u.hash);
-                  return { ok: true, user: body.user };
-                }
-                return null;
-              });
-            });
-          })
-          .catch(function () {
-            return null;
-          });
-      }
-
-      void tryConsumeMagicLoginFromUrlSafe().then(function (magic) {
-        if (magic && magic.ok && magic.user) {
-          paintLoggedIn(magic.user);
-          setAuthStatus("Signed in from your email link.");
-          return;
-        }
-        refreshPublicSessionOnLoad().catch(function () {});
-      });
 
       function showCreate() {
         panelCreate.classList.remove("hidden");
@@ -441,7 +343,6 @@
         if (sellerNote) {
           sellerNote.classList.toggle("hidden", !seller);
         }
-        syncSignupPasswordBlockSafe();
       }
 
       function refreshJourneyUi() {
@@ -491,43 +392,6 @@
           refreshRoleUi();
         });
       }
-
-      var magicBtn = document.getElementById("vcAuthMagicLinkBtn");
-      if (magicBtn) {
-        magicBtn.addEventListener("click", function () {
-          setAuthStatus("");
-          var em = String((loginEmail && loginEmail.value) || "")
-            .trim()
-            .toLowerCase();
-          if (!em || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
-            setAuthStatus("That email does not look valid — check for typos.");
-            return;
-          }
-          magicBtn.disabled = true;
-          fetch("/api/public/auth/magic-link/request", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(Object.assign({ email: em }, vcDeviceRegisterExtras()))
-          })
-            .then(function (r) {
-              return r.json().catch(function () {
-                return {};
-              }).then(function (body) {
-                if (r.ok && body.ok) {
-                  setAuthStatus(String(body.message || "Check your inbox for a sign-in link."));
-                } else {
-                  setAuthStatus(String(body.message || "Could not send a link. Try again later."));
-                }
-              });
-            })
-            .catch(function () {
-              setAuthStatus("Could not send a link. Try again later.");
-            })
-            .finally(function () {
-              magicBtn.disabled = false;
-            });
-        });
-      }
       if (journeyPassportBtn) {
         journeyPassportBtn.addEventListener("click", function () {
           if (journeyInput) {
@@ -548,322 +412,10 @@
         roleInput.value = "buyer";
       }
       if (journeyInput && !journeyInput.value) {
-        journeyInput.value = "account";
+        journeyInput.value = "passport";
       }
       refreshRoleUi();
       refreshJourneyUi();
-      syncSignupPasswordBlockSafe();
-
-      function setAuthStatus(message) {
-        if (!statusEl) return;
-        statusEl.textContent = String(message || "");
-      }
-
-      function readPrefill() {
-        try {
-          var raw = JSON.parse(localStorage.getItem(PREFILL_KEY) || "{}");
-          return raw && typeof raw === "object" ? raw : {};
-        } catch {
-          return {};
-        }
-      }
-
-      function savePrefill(next) {
-        try {
-          var current = readPrefill();
-          var merged = Object.assign({}, current, next || {});
-          localStorage.setItem(PREFILL_KEY, JSON.stringify(merged));
-        } catch {
-          /* ignore */
-        }
-      }
-
-      function persistAuth(token, user) {
-        try {
-          localStorage.setItem(PUBLIC_AUTH_TOKEN_KEY, String(token || ""));
-          localStorage.setItem(PUBLIC_AUTH_USER_KEY, JSON.stringify(user || null));
-        } catch {
-          /* ignore */
-        }
-      }
-
-      function clearAuth() {
-        try {
-          localStorage.removeItem(PUBLIC_AUTH_TOKEN_KEY);
-          localStorage.removeItem(PUBLIC_AUTH_USER_KEY);
-        } catch {
-          /* ignore */
-        }
-      }
-
-      function paintLoggedIn(user) {
-        if (loggedInStrip) {
-          loggedInStrip.classList.remove("hidden");
-        }
-        if (loggedOutWrap) {
-          loggedOutWrap.classList.add("hidden");
-        }
-        var safeName = String((user && (user.fullName || user.email)) || "Member");
-        var role = String((user && user.role) || "buyer");
-        var countryCode = String((user && user.countryCode) || "").toUpperCase();
-        if (welcomeLine) {
-          welcomeLine.textContent = "Welcome, " + safeName + ".";
-        }
-        if (metaLine) {
-          metaLine.textContent = "Role: " + role + (countryCode ? " · Country: " + countryCode : "");
-        }
-        initRoleAndAccountVisibility();
-      }
-
-      function paintLoggedOut() {
-        if (loggedInStrip) {
-          loggedInStrip.classList.add("hidden");
-        }
-        if (loggedOutWrap) {
-          loggedOutWrap.classList.remove("hidden");
-        }
-        var prefill = readPrefill();
-        var knownEmail = String(prefill.email || "").trim();
-        if (knownEmail && loginEmail) {
-          loginEmail.value = knownEmail;
-          showLogin();
-        } else {
-          showCreate();
-        }
-        initRoleAndAccountVisibility();
-      }
-
-      function applyPrefill() {
-        var prefill = readPrefill();
-        if (createEmail && !createEmail.value && prefill.email) {
-          createEmail.value = String(prefill.email);
-        }
-        if (createName && !createName.value && prefill.fullName) {
-          createName.value = String(prefill.fullName);
-        }
-        if (createCountry && prefill.countryCode) {
-          var cc = String(prefill.countryCode).toUpperCase();
-          if ([].slice.call(createCountry.options || []).some(function (o) { return o.value === cc; })) {
-            createCountry.value = cc;
-          }
-        }
-        if (roleInput && prefill.role) {
-          roleInput.value = String(prefill.role).toLowerCase() === "seller" ? "seller" : "buyer";
-        }
-        if (journeyInput && prefill.journey) {
-          journeyInput.value = String(prefill.journey).toLowerCase() === "account" ? "account" : "passport";
-        }
-        if (loginEmail && !loginEmail.value && prefill.email) {
-          loginEmail.value = String(prefill.email);
-        }
-        refreshRoleUi();
-        refreshJourneyUi();
-      }
-
-      async function refreshPublicSessionOnLoad() {
-        var auth = getStoredAuthUser();
-        if (!auth || !auth.token) {
-          paintLoggedOut();
-          return;
-        }
-        try {
-          var response = await fetch("/api/public/auth/session", {
-            headers: vcDeviceAuthHeaders(auth.token)
-          });
-          var body = await response.json().catch(function () {
-            return {};
-          });
-          if (!response.ok || !body.ok || !body.user) {
-            clearAuth();
-            paintLoggedOut();
-            return;
-          }
-          persistAuth(body.token || auth.token, body.user);
-          savePrefill({
-            email: String(body.user.email || ""),
-            fullName: String(body.user.fullName || ""),
-            countryCode: String(body.user.countryCode || ""),
-            role: String(body.user.role || "buyer")
-          });
-          paintLoggedIn(body.user);
-        } catch {
-          clearAuth();
-          paintLoggedOut();
-        }
-      }
-
-      async function submitCreate(event) {
-        event.preventDefault();
-        setAuthStatus("");
-        var fullName = String((createName && createName.value) || "").trim();
-        var email = String((createEmail && createEmail.value) || "").trim().toLowerCase();
-        var password = String((createPassword && createPassword.value) || "");
-        var role = String((roleInput && roleInput.value) || "buyer");
-        var journey = journeyInput
-          ? String(journeyInput.value || "account").toLowerCase() === "account"
-            ? "account"
-            : "passport"
-          : "account";
-        var countryCode = String((createCountry && createCountry.value) || "ZA").toUpperCase();
-        var seller = role === "seller";
-        if (fullName.length < 2 || !email || countryCode.length !== 2) {
-          setAuthStatus("Please complete all fields correctly.");
-          return;
-        }
-        if (seller && password.length < 8) {
-          setAuthStatus("Service providers need a password (8+ characters).");
-          return;
-        }
-        if (!seller && password.length > 0 && password.length < 8) {
-          setAuthStatus("Password must be at least 8 characters, or leave it blank for shoppers.");
-          return;
-        }
-        setAuthStatus("Creating account...");
-        try {
-          var response = await fetch("/api/public/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(
-              Object.assign(
-                { email: email, password: password, role: role, fullName: fullName, countryCode: countryCode },
-                vcDeviceRegisterExtras()
-              )
-            )
-          });
-          var body = await response.json().catch(function () {
-            return {};
-          });
-          if (response.status === 409) {
-            setAuthStatus("This email is already registered. Please sign in.");
-            savePrefill({ email: email, fullName: fullName, countryCode: countryCode, role: role, journey: journey });
-            showLogin();
-            if (loginEmail) {
-              loginEmail.value = email;
-            }
-            return;
-          }
-          if (!response.ok || !body.ok || !body.token || !body.user) {
-            setAuthStatus("Could not create account. Please try again.");
-            return;
-          }
-          persistAuth(body.token, body.user);
-          savePrefill({
-            email: email,
-            fullName: String(body.user.fullName || fullName),
-            countryCode: String(body.user.countryCode || countryCode),
-            role: String(body.user.role || role),
-            journey: journey
-          });
-          paintLoggedIn(body.user);
-          setAuthStatus("Account created. You are signed in.");
-        } catch {
-          setAuthStatus("Could not create account. Please try again.");
-        }
-      }
-
-      async function submitLogin(event) {
-        event.preventDefault();
-        setAuthStatus("");
-        var email = String((loginEmail && loginEmail.value) || "").trim().toLowerCase();
-        var password = String((loginPassword && loginPassword.value) || "");
-        if (!email || !password) {
-          setAuthStatus("Enter your email and password.");
-          return;
-        }
-        setAuthStatus("Signing in...");
-        try {
-          var response = await fetch("/api/public/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(Object.assign({ email: email, password: password }, vcDeviceRegisterExtras()))
-          });
-          var body = await response.json().catch(function () {
-            return {};
-          });
-          if (!response.ok || !body.ok || !body.token || !body.user) {
-            setAuthStatus("Sign in failed. Check details and try again.");
-            return;
-          }
-          persistAuth(body.token, body.user);
-          savePrefill({
-            email: email,
-            fullName: String(body.user.fullName || ""),
-            countryCode: String(body.user.countryCode || ""),
-            role: String(body.user.role || "buyer")
-          });
-          paintLoggedIn(body.user);
-          setAuthStatus("");
-        } catch {
-          setAuthStatus("Sign in failed. Please try again.");
-        }
-      }
-
-      createForm && createForm.addEventListener("submit", submitCreate);
-      loginForm && loginForm.addEventListener("submit", submitLogin);
-      logoutBtn &&
-        logoutBtn.addEventListener("click", async function () {
-          var auth = getStoredAuthUser();
-          if (auth && auth.token) {
-            try {
-              await fetch("/api/public/auth/logout", {
-                method: "POST",
-                headers: vcDeviceAuthHeaders(auth.token)
-              });
-            } catch {
-              /* ignore */
-            }
-          }
-          clearAuth();
-          paintLoggedOut();
-          setAuthStatus("Signed out.");
-        });
-
-      if (createEmail) {
-        createEmail.addEventListener("blur", function () {
-          var email = String(createEmail.value || "").trim().toLowerCase();
-          if (!email) return;
-          savePrefill({ email: email });
-          if (loginEmail && !loginEmail.value) {
-            loginEmail.value = email;
-          }
-        });
-      }
-      if (createName) {
-        createName.addEventListener("blur", function () {
-          var fullName = String(createName.value || "").trim();
-          if (!fullName) return;
-          savePrefill({ fullName: fullName });
-        });
-      }
-      if (createCountry) {
-        createCountry.addEventListener("change", function () {
-          savePrefill({ countryCode: String(createCountry.value || "ZA").toUpperCase() });
-        });
-      }
-
-      applyPrefill();
-      try {
-        if (createCountry && createCountry.value === "ZA") {
-          var tzAuto = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
-          var langAuto = String(navigator.language || "").toLowerCase();
-          var looksIreland =
-            tzAuto.indexOf("dublin") >= 0 ||
-            tzAuto.indexOf("cork") >= 0 ||
-            tzAuto.indexOf("galway") >= 0 ||
-            tzAuto.indexOf("limerick") >= 0 ||
-            langAuto === "en-ie";
-          if (
-            looksIreland &&
-            [].slice.call(createCountry.options || []).some(function (o) {
-              return o.value === "IE";
-            })
-          ) {
-            createCountry.value = "IE";
-          }
-        }
-      } catch (e) {
-        /* ignore */
-      }
     }
 
     function initSafeHeroRouting() {
@@ -984,15 +536,6 @@
           if (tz.indexOf("johannesburg") >= 0 || tz.indexOf("cape_town") >= 0) return "za";
           if (tz.indexOf("nairobi") >= 0) return "ke";
           if (tz.indexOf("harare") >= 0) return "zw";
-          if (
-            tz.indexOf("dublin") >= 0 ||
-            tz.indexOf("cork") >= 0 ||
-            tz.indexOf("galway") >= 0 ||
-            tz.indexOf("limerick") >= 0 ||
-            tz.indexOf("belfast") >= 0
-          ) {
-            return "ie";
-          }
           if (tz.indexOf("warsaw") >= 0 || tz.indexOf("berlin") >= 0 || tz.indexOf("london") >= 0 || tz.indexOf("paris") >= 0) return "eu";
           if (tz.indexOf("dubai") >= 0 || tz.indexOf("riyadh") >= 0) return "gulf";
           if (tz.indexOf("tokyo") >= 0 || tz.indexOf("singapore") >= 0 || tz.indexOf("seoul") >= 0 || tz.indexOf("kolkata") >= 0) return "asia";
@@ -1033,12 +576,6 @@
           Fashion: { name: "Zalando", url: "https://www.zalando.com", badge: "Trending in EU", line: "Streetwear, sneakers, and seasonal drops." },
           Books: { name: "Empik", url: "https://www.empik.com", badge: "Trending in EU", line: "Textbooks, manga, and study essentials." },
           Gaming: { name: "Steam Store", url: "https://store.steampowered.com", badge: "Trending in EU", line: "PC games, bundles, and esports picks." }
-        },
-        ie: {
-          Electronics: { name: "Currys Ireland", url: "https://www.currys.ie", badge: "Ireland island", line: "Tech and appliances — Republic & Northern Ireland routes." },
-          Fashion: { name: "Dunnes Stores", url: "https://www.dunnesstores.com", badge: "Ireland island", line: "Fashion and home — trusted across ROI and NI." },
-          Books: { name: "Eason", url: "https://www.easons.com", badge: "Ireland island", line: "Books and study — delivery across the island where available." },
-          Gaming: { name: "Smyths Toys Ireland", url: "https://www.smythstoys.com/ie", badge: "Ireland island", line: "Consoles, games, and collectibles." }
         },
         za: {
           Electronics: { name: "Takealot Tech", url: "https://www.takealot.com", badge: "Top in South Africa", line: "Phones, smart devices, and accessories." },
@@ -1149,10 +686,10 @@
 
       var healthSection = document.getElementById("health-coach");
       if (healthSection) {
-        healthSection.style.display = isLoggedIn ? "" : "none";
+        healthSection.style.display = "";
       }
       Array.prototype.slice.call(document.querySelectorAll("a[href=\"./wellbeing.html\"], .vc-mobile-chip[href=\"./wellbeing.html\"]")).forEach(function (a) {
-        a.style.display = isLoggedIn ? "" : "none";
+        a.style.display = "";
       });
 
       if (privateInboxTop) {
@@ -1189,8 +726,6 @@
       var shopInput = document.getElementById("chatShopInput");
       var shopSuggestions = document.getElementById("chatShopSuggestions");
       var status = document.getElementById("chatDispatchStatus");
-      var safetyAlert = document.getElementById("chatSafetyAlert");
-      var UNREAD_KEY = "vibecart-public-inbox-unread-v1";
       if (!input || !sendBtn || !messagesBox) {
         return;
       }
@@ -1261,58 +796,7 @@
         messagesBox.appendChild(p);
       }
 
-      function bumpUnread() {
-        try {
-          var current = Number(localStorage.getItem(UNREAD_KEY) || "0");
-          localStorage.setItem(UNREAD_KEY, String(Math.max(0, current) + 1));
-        } catch {
-          /* ignore */
-        }
-      }
-
-      async function runChatSafetyCheck(messageText, shop) {
-        if (safetyAlert) {
-          safetyAlert.classList.add("hidden");
-          safetyAlert.textContent = "";
-        }
-        try {
-          var response = await fetch("/api/public/chat/safety-check", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              senderUserId: userKey,
-              conversationId: null,
-              messageText: String(messageText || ""),
-              shopName: String(shop || "")
-            })
-          });
-          var payload = await response.json().catch(function () {
-            return {};
-          });
-          if (!payload || !payload.ok || payload.riskLevel === "low") {
-            return;
-          }
-          if (safetyAlert) {
-            var matched = Array.isArray(payload.matchedRules) && payload.matchedRules.length
-              ? " Indicators: " + payload.matchedRules.join(", ") + "."
-              : "";
-            safetyAlert.textContent =
-              "Safety warning (" +
-              String(payload.riskLevel) +
-              "): this message may contain scam patterns." +
-              matched;
-            safetyAlert.classList.remove("hidden");
-          }
-        } catch {
-          if (safetyAlert) {
-            safetyAlert.textContent =
-              "Safety check is temporarily unavailable. Do not share OTPs or pay outside VibeCart.";
-            safetyAlert.classList.remove("hidden");
-          }
-        }
-      }
-
-      sendBtn.addEventListener("click", async function () {
+      sendBtn.addEventListener("click", function () {
         var text = String(input.value || "").trim();
         if (!text) {
           return;
@@ -1336,32 +820,17 @@
         if (status) {
           status.textContent = "Message sent to " + shop + ". Waiting for seller reply...";
         }
-        await runChatSafetyCheck(text, shop);
         window.setTimeout(function () {
           var reply = shop + " -> You: Thanks, we received your message and will update shipping details shortly.";
           appendMessage(reply, "msg-seller");
           thread.push({ who: "seller", text: reply, at: new Date().toISOString() });
           writeThread(shop, thread.slice(-100));
-          bumpUnread();
           if (status) {
             status.textContent = "New reply from " + shop + ".";
           }
           if (typeof Notification !== "undefined" && Notification.permission === "granted") {
             try {
-              if ("serviceWorker" in navigator) {
-                navigator.serviceWorker.ready
-                  .then(function (registration) {
-                    return registration.showNotification("New shop reply", {
-                      body: shop + " replied in Communication Hub.",
-                      icon: "./icon-192.png",
-                      badge: "./icon-192.png",
-                      tag: "vibecart-shop-reply"
-                    });
-                  })
-                  .catch(function () {});
-              } else {
-                new Notification("New shop reply", { body: shop + " replied in Communication Hub." });
-              }
+              new Notification("New shop reply", { body: shop + " replied in Communication Hub." });
             } catch {
               /* ignore */
             }
@@ -1383,12 +852,6 @@
           }
         });
       }
-      input.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
-          sendBtn.click();
-        }
-      });
     }
 
     // Restore forward progression for key journey buttons.
@@ -1412,60 +875,12 @@
     bindGo("earnRewardPoints", "./rewards-hub.html");
     bindGo("redeemReward", "./rewards-hub.html");
     initSafeAccountPassport();
-    initBuyerDestinationControl();
     initSafeHeroRouting();
     initMarketDeepLink();
     initSafeMarketFiltering();
     initRegionalYouthMarketCards();
     initRoleAndAccountVisibility();
     initCommunicationHub();
-
-    function initBuyerDestinationControl() {
-      var BUYER_DEST_KEY = "vibecart-buyer-destination";
-      var sel = document.getElementById("buyerDestinationSelect");
-      var hint = document.getElementById("buyerDestinationHint");
-      function hintText() {
-        if (!hint) {
-          return;
-        }
-        var d = "africa";
-        try {
-          d = String(localStorage.getItem(BUYER_DEST_KEY) || "africa").toLowerCase();
-        } catch (e) {
-          d = "africa";
-        }
-        if (d === "europe") {
-          hint.textContent = "Checkout defaults: Europe buyer (country PL), priority EU lane shipping.";
-        } else if (d === "ireland") {
-          hint.textContent =
-            "Checkout defaults: Ireland buyer (country IE) — Republic & Northern Ireland; standard shipping tier for quotes.";
-        } else {
-          hint.textContent = "Checkout defaults: Africa buyer (country ZA), express Africa lane shipping.";
-        }
-      }
-      if (!sel || sel.dataset.vcBuyerDestBound === "1") {
-        hintText();
-        return;
-      }
-      sel.dataset.vcBuyerDestBound = "1";
-      try {
-        var saved = String(localStorage.getItem(BUYER_DEST_KEY) || "africa").toLowerCase();
-        if ([].slice.call(sel.options || []).some(function (o) { return o.value === saved; })) {
-          sel.value = saved;
-        }
-      } catch (e) {
-        /* ignore */
-      }
-      sel.addEventListener("change", function () {
-        try {
-          localStorage.setItem(BUYER_DEST_KEY, String(sel.value || "africa"));
-        } catch (e) {
-          /* ignore */
-        }
-        hintText();
-      });
-      hintText();
-    }
 
     function initEmergencyHomepageTapGuard() {
       // Emergency stability mode for homepage: force Open shop to work and block accidental same-page hash jumps.
@@ -1483,14 +898,9 @@
               var title = String(btn.getAttribute("data-title") || "item");
               var directShopName = String(btn.getAttribute("data-shop-name") || title).trim();
               var cat = "All";
-              var productIdParam = "";
               try {
                 var card = btn.closest ? btn.closest(".product") : null;
                 cat = card ? String(card.getAttribute("data-category") || "All").trim() : "All";
-                var productId = Number(btn.getAttribute("data-product-id") || (card && card.getAttribute("data-product-id")) || 0);
-                if (productId > 0) {
-                  productIdParam = "&productId=" + encodeURIComponent(String(productId));
-                }
               } catch {
                 cat = "All";
               }
@@ -1501,7 +911,6 @@
                 encodeURIComponent(cat) +
                 "&partner=" +
                 encodeURIComponent(directShopName) +
-                productIdParam +
                 "&target=" +
                 encodeURIComponent(directShopUrl);
               event.preventDefault();
@@ -1574,7 +983,6 @@
       btn.addEventListener("click", function () {
         var title = String(btn.getAttribute("data-title") || "item");
         var cat = "All";
-        var productIdParam = "";
         var directShopUrl = String(btn.getAttribute("data-shop-url") || "").trim();
         var directShopName = String(btn.getAttribute("data-shop-name") || title).trim();
         var status = document.getElementById("expressCheckoutStatus");
@@ -1583,10 +991,6 @@
           var heading = card ? card.querySelector("h3") : null;
           var shipLine = card ? card.querySelector("p:not(.price)") : null;
           cat = card ? String(card.getAttribute("data-category") || "All").trim() : "All";
-          var productId = Number(btn.getAttribute("data-product-id") || (card && card.getAttribute("data-product-id")) || 0);
-          if (productId > 0) {
-            productIdParam = "&productId=" + encodeURIComponent(String(productId));
-          }
           var shopName = heading ? String(heading.textContent || "").trim() : title;
           var shipFrom = shipLine ? String(shipLine.textContent || "").trim() : "";
           localStorage.setItem(
@@ -1609,7 +1013,6 @@
             encodeURIComponent(cat) +
             "&partner=" +
             encodeURIComponent(directShopName) +
-            productIdParam +
             "&target=" +
             encodeURIComponent(directShopUrl);
           go(redirectUrl);
@@ -1637,14 +1040,9 @@
         var title = String(btn.getAttribute("data-title") || "item");
         var directShopName = String(btn.getAttribute("data-shop-name") || title).trim();
         var cat = "All";
-        var productIdParam = "";
         try {
           var card = btn.closest ? btn.closest(".product") : null;
           cat = card ? String(card.getAttribute("data-category") || "All").trim() : "All";
-          var productId = Number(btn.getAttribute("data-product-id") || (card && card.getAttribute("data-product-id")) || 0);
-          if (productId > 0) {
-            productIdParam = "&productId=" + encodeURIComponent(String(productId));
-          }
         } catch {
           cat = "All";
         }
@@ -1655,7 +1053,6 @@
           encodeURIComponent(cat) +
           "&partner=" +
           encodeURIComponent(directShopName) +
-          productIdParam +
           "&target=" +
           encodeURIComponent(directShopUrl);
         event.preventDefault();

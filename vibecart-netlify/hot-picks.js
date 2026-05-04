@@ -334,7 +334,6 @@
     var item = String(p.name || p.title || "Marketplace item");
     var cat = productCategory(p) || "All";
     var target = pickTargetUrl(p);
-    var productId = Number(p && p.id || 0);
     if (target) {
       return (
         "/api/public/shop/redirect?shop=" +
@@ -343,7 +342,6 @@
         encodeURIComponent(cat) +
         "&partner=" +
         encodeURIComponent(item) +
-        (productId > 0 ? "&productId=" + encodeURIComponent(String(productId)) : "") +
         "&target=" +
         encodeURIComponent(target)
       );

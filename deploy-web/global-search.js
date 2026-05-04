@@ -71,11 +71,6 @@
       return;
     }
     var q = String(query || "").trim().toLowerCase();
-    var qRaw = String(query || "").trim();
-    var ddgBase = "https://duckduckgo.com/?q=" + encodeURIComponent((qRaw || "VibeCart marketplace") + " site:vibe-cart.com");
-    var ggBase = "https://www.google.com/search?q=" + encodeURIComponent((qRaw || "VibeCart marketplace") + " site:vibe-cart.com");
-    if (webBtn) webBtn.href = ddgBase;
-    if (googleBtn) googleBtn.href = ggBase;
     if (!q) {
       results.innerHTML = "<div class='msg msg-buyer'>Enter a keyword to search website and web.</div>";
       status.textContent = "";
@@ -96,6 +91,10 @@
       row.textContent = item.title + " | " + item.url;
       results.appendChild(row);
     });
+    var ddg = "https://duckduckgo.com/?q=" + encodeURIComponent(query + " site:vibe-cart.com");
+    var gg = "https://www.google.com/search?q=" + encodeURIComponent(query + " site:vibe-cart.com");
+    if (webBtn) webBtn.href = ddg;
+    if (googleBtn) googleBtn.href = gg;
   }
 
   if (form && input) {

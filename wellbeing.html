@@ -36,6 +36,7 @@
     </p>
     <section id="coach-packages" style="margin-top: 1.25rem">
       <h2>Coach packages</h2>
+      <p class="note" id="coachPaidAccessBanner" hidden style="max-width: 42rem; margin-bottom: 0.75rem"></p>
       <div class="coach-checkout-disclaimer" style="max-width: 42rem">
         <p class="note" style="margin: 0">
           <label style="display: inline-flex; gap: 0.45rem; align-items: flex-start; cursor: pointer">
@@ -166,6 +167,21 @@
     </section>
   </main>
   <script src="./package-pricing.js?v=20260420flowfix17" defer></script>
+  <script>
+    (function () {
+      try {
+        var tok = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        var ban = document.getElementById("coachPaidAccessBanner");
+        if (ban && tok) {
+          ban.hidden = false;
+          ban.innerHTML =
+            "You look signed in on this device. Open <a href=\"./plan-workspace.html\"><strong>your plan workspace</strong></a> for routines and progress. Paid but stuck? Use <a href=\"./coach-payment-recovery.html\"><strong>Restore coach access</strong></a> (Stripe session id) — no second charge.";
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+  </script>
   <script>
     (function () {
       var mainEl = document.querySelector("main.shops-lane-main");

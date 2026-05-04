@@ -686,10 +686,10 @@
 
       var healthSection = document.getElementById("health-coach");
       if (healthSection) {
-        healthSection.style.display = isLoggedIn ? "" : "none";
+        healthSection.style.display = "";
       }
       Array.prototype.slice.call(document.querySelectorAll("a[href=\"./wellbeing.html\"], .vc-mobile-chip[href=\"./wellbeing.html\"]")).forEach(function (a) {
-        a.style.display = isLoggedIn ? "" : "none";
+        a.style.display = "";
       });
 
       if (privateInboxTop) {

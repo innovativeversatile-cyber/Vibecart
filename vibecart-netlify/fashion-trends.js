@@ -8,13 +8,6 @@
       { name: "Reserved", url: "https://www.reserved.com", desc: "Central EU everyday and runway-adjacent looks." },
       { name: "About You", url: "https://www.aboutyou.com", desc: "Personalised style feed and influencer collabs." }
     ],
-    ie: [
-      { name: "Brown Thomas", url: "https://www.brownthomas.com", desc: "Ireland — luxury fashion and beauty halls." },
-      { name: "Dunnes Stores", url: "https://www.dunnesstores.com", desc: "All-island favourite — high-street fashion online." },
-      { name: "Primark Ireland", url: "https://www.primark.com/en-ie", desc: "IE — affordable trend drops and basics." },
-      { name: "ASOS", url: "https://www.asos.com", desc: "Delivers across Ireland and Northern Ireland." },
-      { name: "Littlewoods Ireland", url: "https://www.littlewoodsireland.ie", desc: "IE — fashion, home, and flexible checkout." }
-    ],
     za: [
       { name: "Superbalist", url: "https://www.superbalist.com", desc: "South Africa campus and street style." },
       { name: "H&M South Africa", url: "https://www.hm.com/za", desc: "Basics, collabs, and conscious drops." },
@@ -83,15 +76,6 @@
       if (tz.indexOf("dubai") >= 0 || tz.indexOf("riyadh") >= 0) return "gulf";
       if (tz.indexOf("tokyo") >= 0 || tz.indexOf("singapore") >= 0 || tz.indexOf("seoul") >= 0 || tz.indexOf("kolkata") >= 0)
         return "asia";
-      if (
-        tz.indexOf("dublin") >= 0 ||
-        tz.indexOf("cork") >= 0 ||
-        tz.indexOf("galway") >= 0 ||
-        tz.indexOf("limerick") >= 0 ||
-        tz.indexOf("belfast") >= 0
-      ) {
-        return "ie";
-      }
       if (
         tz.indexOf("warsaw") >= 0 ||
         tz.indexOf("berlin") >= 0 ||

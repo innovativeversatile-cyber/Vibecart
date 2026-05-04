@@ -3,11 +3,14 @@
 # Settings → Networking → public URL (…up.railway.app) and paste ONLY that host below.
 # Project reference: https://railway.com/project/1521e97a-cf77-4f42-9c97-a60d32cbdbf7
 # If /api/health returns 404 "Application not found", this hostname is wrong or that Railway service is gone.
-# Explicit no-op build: avoids long default Node installs when Netlify detects root package.json.
+# Every production deploy runs sync first: copy canonical repo assets into deploy-web/ then publish.
+# Edit pages and scripts at the repo root (or mobile-app/); Netlify always ships the merged tree.
 [build]
-  # Production site files live in deploy-web/ — edits under vibecart-netlify/ are not published unless copied here.
   publish = "deploy-web"
-  command = "exit 0"
+  command = "node scripts/sync-deploy-web.mjs"
+
+[build.environment]
+  NODE_VERSION = "20"
 
 [[headers]]
   for = "/*"

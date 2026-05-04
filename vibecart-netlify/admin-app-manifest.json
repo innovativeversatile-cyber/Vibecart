@@ -1,11 +1,8 @@
 {
   "name": "VibeCart Admin App",
   "short_name": "VibeAdmin",
-  "id": "/admin-app.html",
   "start_url": "./admin-app.html",
-  "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#070b17",
   "theme_color": "#0b1226",
   "description": "Admin-only app entry for VibeCart owner operations.",

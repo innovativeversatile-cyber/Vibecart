@@ -7,24 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="VibeCart Coach" />
-  <title>Health &amp; fitness coach · AI wellness &amp; training · VibeCart</title>
-  <meta
-    name="description"
-    content="Health and fitness coaching on VibeCart: goals, check-ins, wearable-friendly summaries, and coach checkout—aligned with the mobile app for routines and accountability."
-  />
-  <meta
-    name="keywords"
-    content="health coach online, fitness coach, AI wellness coach, workout plan, nutrition coaching, wearable fitness, steps sleep tracking, coach subscription, VibeCart wellbeing"
-  />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
-  <meta property="og:title" content="Health &amp; fitness coach · VibeCart" />
-  <meta property="og:description" content="Private coaching flows, goals, and wearable-backed check-ins—with clear paths to coach packages and checkout." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://vibe-cart.com/wellbeing.html" />
-  <meta property="og:site_name" content="VibeCart" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Health &amp; fitness coach · VibeCart" />
-  <meta name="twitter:description" content="Wellbeing lane for coaching, goals, and wearable-friendly summaries on VibeCart." />
+  <title>Health &amp; fitness coach · VibeCart</title>
+  <meta name="description" content="Private health check-ins, goals, and wearable preferences on VibeCart — coordinated with the mobile app when you choose." />
   <link rel="canonical" href="https://vibe-cart.com/wellbeing.html" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png" />
@@ -52,6 +36,7 @@
     </p>
     <section id="coach-packages" style="margin-top: 1.25rem">
       <h2>Coach packages</h2>
+      <p class="note" id="coachPaidAccessBanner" hidden style="max-width: 42rem; margin-bottom: 0.75rem"></p>
       <div class="coach-checkout-disclaimer" style="max-width: 42rem">
         <p class="note" style="margin: 0">
           <label style="display: inline-flex; gap: 0.45rem; align-items: flex-start; cursor: pointer">
@@ -182,6 +167,21 @@
     </section>
   </main>
   <script src="./package-pricing.js?v=20260420flowfix17" defer></script>
+  <script>
+    (function () {
+      try {
+        var tok = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        var ban = document.getElementById("coachPaidAccessBanner");
+        if (ban && tok) {
+          ban.hidden = false;
+          ban.innerHTML =
+            "You look signed in on this device. Open <a href=\"./plan-workspace.html\"><strong>your plan workspace</strong></a> for routines and progress. Paid but stuck? Use <a href=\"./coach-payment-recovery.html\"><strong>Restore coach access</strong></a> (Stripe session id) — no second charge.";
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+  </script>
   <script>
     (function () {
       var mainEl = document.querySelector("main.shops-lane-main");

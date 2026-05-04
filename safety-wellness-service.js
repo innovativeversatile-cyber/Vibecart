@@ -1,5 +1,7 @@
 "use strict";
 
+const { sendPushToUser } = require("./push-notification-service");
+
 function ensure(value, message) {
   if (!value) {
     throw new Error(message);
@@ -158,6 +160,14 @@ async function ensureCoachMonetizationTables(db) {
 
 const COACH_STRIPE_PROMO_DAYS = 365;
 
+function coachCheckoutPublicPlanUrl(planSlug) {
+  const base = String(process.env.PUBLIC_WEB_ORIGIN || process.env.VIBECART_WEB_URL || "https://vibe-cart.com")
+    .trim()
+    .replace(/\/+$/, "");
+  const p = String(planSlug || "starter").trim().toLowerCase();
+  return `${base}/plan-workspace.html?flow=coach&plan=${encodeURIComponent(p)}`;
+}
+
 /**
  * Idempotent fulfillment for Stripe Checkout coach purchases: records the session once,
  * then inserts `health_feature_entitlements` rows (source_type promo) so `getCoachMonetizationState` picks them up.
@@ -260,6 +270,14 @@ async function fulfillStripeCoachCheckoutSession(db, session) {
   } finally {
     conn.release();
   }
+
+  void sendPushToUser(db, {
+    userId,
+    title: "Your workout plan is ready",
+    message: `Your health coach workspace is unlocked — tap to open your ${plan} plan.`,
+    deepLink: coachCheckoutPublicPlanUrl(plan),
+    eventType: "coach_checkout_fulfilled"
+  }).catch(() => {});
 
   return {
     ok: true,

@@ -604,20 +604,6 @@ const PUBLIC_AUTH_TOKEN_KEY = "vibecart-public-auth-token";
 const PUBLIC_AUTH_USER_KEY = "vibecart-public-auth-user";
 const PUBLIC_AUTH_JOURNEY_KEY = "vibecart-public-auth-journey";
 const easterKeyBuffer = [];
-
-function vcPublicAuthHeaders(token) {
-  if (typeof window !== "undefined" && window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
-    return window.VibeCartSessionDevice.authHeaders(token);
-  }
-  return { Authorization: `Bearer ${token}` };
-}
-
-function vcDeviceRegisterExtras() {
-  if (typeof window !== "undefined" && window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.registerPayloadField === "function") {
-    return window.VibeCartSessionDevice.registerPayloadField();
-  }
-  return {};
-}
 const AFRICA_ORIGIN_CODES = new Set(["ZA", "KE", "NG", "GH", "ZW", "NA", "ET", "TZ", "UG", "RW", "BW", "ZM"]);
 const EUROPE_ORIGIN_CODES = new Set(["PL", "DE", "FR", "ES", "IT", "NL", "BE", "PT", "SE", "NO", "DK", "FI", "IE", "AT", "CZ", "HU", "RO", "GR", "CH", "GB"]);
 const BRIDGE_PATH_KEY = "vibecart-bridge-path";
@@ -1183,35 +1169,17 @@ function getPathLabel(path) {
 
 function getBuyerCountryCode() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  if (destination === "europe") {
-    return "PL";
-  }
-  if (destination === "ireland") {
-    return "IE";
-  }
-  return "ZA";
+  return destination === "europe" ? "PL" : "ZA";
 }
 
 function getBuyerShippingMethod() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  if (destination === "europe") {
-    return "priority-eu-lane";
-  }
-  if (destination === "ireland") {
-    return "standard";
-  }
-  return "express-africa-lane";
+  return destination === "europe" ? "priority-eu-lane" : "express-africa-lane";
 }
 
 function getBuyerDestinationLabel() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
-  if (destination === "europe") {
-    return "Europe buyer";
-  }
-  if (destination === "ireland") {
-    return "Ireland buyer";
-  }
-  return "Africa buyer";
+  return destination === "europe" ? "Europe buyer" : "Africa buyer";
 }
 
 function updateBuyerDestinationHint() {
@@ -1221,9 +1189,6 @@ function updateBuyerDestinationHint() {
   const destination = String(localStorage.getItem(BUYER_DESTINATION_KEY) || "africa").toLowerCase();
   if (destination === "europe") {
     buyerDestinationHint.textContent = "Checkout defaults: Europe buyer (country PL), priority EU lane shipping.";
-  } else if (destination === "ireland") {
-    buyerDestinationHint.textContent =
-      "Checkout defaults: Ireland buyer (country IE) — Republic & Northern Ireland routes; quotes use standard shipping tier.";
   } else {
     buyerDestinationHint.textContent = "Checkout defaults: Africa buyer (country ZA), express Africa lane shipping.";
   }
@@ -2569,7 +2534,7 @@ function initVcHorizontalRails() {
       return;
     }
     const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const delayMs = root.classList.contains("vc-mobile-app") ? 1400 : 520;
+    const delayMs = root.classList.contains("vc-mobile-app") ? 3200 : 520;
     window.setTimeout(() => {
       try {
         const rails = Array.from(document.querySelectorAll(".vc-mobile-rail:not(.vc-mobile-rail--chips)"));
@@ -2684,33 +2649,6 @@ function initMobileWebLayoutGuards() {
   }
 }
 
-function vcSignalReactNativePaintReady() {
-  try {
-    const RN = typeof window !== "undefined" && window.ReactNativeWebView;
-    if (!RN || typeof RN.postMessage !== "function") {
-      return;
-    }
-    if (!document.documentElement.classList.contains("vc-mobile-app")) {
-      return;
-    }
-    if (window.__vcPaintReadySent) {
-      return;
-    }
-    window.__vcPaintReadySent = true;
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        try {
-          RN.postMessage(JSON.stringify({ vcPaintReady: true }));
-        } catch {
-          /* ignore */
-        }
-      });
-    });
-  } catch {
-    /* ignore */
-  }
-}
-
 function initCinematicIntro() {
   const intro = document.getElementById("cinematicIntro");
   if (!intro) {
@@ -2735,25 +2673,13 @@ function initCinematicIntro() {
   } catch {
     /* ignore */
   }
-  const inApp = document.documentElement.classList.contains("vc-mobile-app");
-  if (inApp) {
-    intro.classList.add("cinematic-intro--soft");
-  }
   const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduceMotion) {
     intro.classList.add("cinematic-intro--soft");
   }
   const coarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-  /* Native WebView: shorter hold so first paint + dock feel snappy. Desktop touch keeps a longer beat. */
-  const holdMs = inApp
-    ? reduceMotion
-      ? 520
-      : 980
-    : reduceMotion
-      ? 1600
-      : coarsePointer
-        ? 3000
-        : 2200;
+  /* Touch / phone: longer hold + next frame so the overlay paints before the hide timer. */
+  const holdMs = reduceMotion ? 1600 : coarsePointer ? 3000 : 2200;
   let unbindIntroVv = () => {};
   const reveal = () => {
     intro.classList.add("is-visible");
@@ -3199,10 +3125,6 @@ function wireOneClickBuy() {
         encodeURIComponent(cat) +
         "&partner=" +
         encodeURIComponent(shop) +
-        (function () {
-          var pid = Number(btn.getAttribute("data-product-id") || 0);
-          return pid > 0 ? "&productId=" + encodeURIComponent(String(pid)) : "";
-        })() +
         "&target=" +
         encodeURIComponent(target);
       trackAffiliateClick({ source: "index-buy-button", shop, target, commissionEligible: isCommissionTrackedUrl(target) });
@@ -3250,10 +3172,42 @@ function clearPublicAuth() {
   }
 }
 
+/** Bearer + optional X-VibeCart-Device-Binding so sessions validate after device-bound registration (session-device.js). */
+function buildPublicAuthBearerHeaders(token) {
+  const t = String(token || "").trim();
+  if (!t) {
+    return {};
+  }
+  try {
+    if (
+      typeof window !== "undefined" &&
+      window.VibeCartSessionDevice &&
+      typeof window.VibeCartSessionDevice.merge === "function"
+    ) {
+      return window.VibeCartSessionDevice.merge(t, { Authorization: `Bearer ${t}` });
+    }
+  } catch {
+    /* ignore */
+  }
+  return { Authorization: `Bearer ${t}` };
+}
+
+function attachPublicRegisterDevicePayload(body) {
+  const out = Object.assign({}, body || {});
+  try {
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.registerPayloadField === "function") {
+      Object.assign(out, window.VibeCartSessionDevice.registerPayloadField());
+    }
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
 async function validatePublicSession(token) {
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: vcPublicAuthHeaders(token)
+      headers: buildPublicAuthBearerHeaders(token)
     });
     const body = await response.json().catch(() => ({}));
     return Boolean(response.ok && body.ok && body.user);
@@ -3423,7 +3377,7 @@ async function refreshPublicSessionOnLoad() {
   }
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: vcPublicAuthHeaders(auth.token)
+      headers: buildPublicAuthBearerHeaders(auth.token)
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.ok || !body.user) {
@@ -3431,8 +3385,8 @@ async function refreshPublicSessionOnLoad() {
       paintAuthLoggedOut();
       return;
     }
-    const nextToken = body.token || auth.token;
-    persistPublicAuth(nextToken, body.user);
+    const nextTok = body.token ? String(body.token) : auth.token;
+    persistPublicAuth(nextTok, body.user);
     paintAuthLoggedIn(body.user);
   } catch {
     clearPublicAuth();
@@ -3461,58 +3415,13 @@ function refreshAccountPassportLabels() {
   if (countryNote) {
     countryNote.textContent = authT("accountPassport.countryAuto");
   }
-  syncSignupPasswordBlock();
-}
-
-function syncSignupPasswordBlock() {
-  const roleInput = document.getElementById("vcAuthRole");
-  const block = document.getElementById("vcAuthPasswordBlock");
-  const pw = document.getElementById("vcAuthPassword");
-  const seller = String(roleInput?.value || "buyer") === "seller";
-  if (block) {
-    block.classList.toggle("hidden", !seller);
-  }
-  if (pw) {
-    pw.required = seller;
-    if (!seller) {
-      pw.value = "";
-    }
-  }
-}
-
-async function tryConsumeMagicLoginFromUrl() {
-  try {
-    const u = new URL(window.location.href);
-    const raw = String(u.searchParams.get("magic_login") || "").trim();
-    if (!/^[a-f0-9]{64}$/i.test(raw)) {
-      return null;
-    }
-    const headers = { Accept: "application/json" };
-    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.getSecret === "function") {
-      const sec = window.VibeCartSessionDevice.getSecret();
-      if (sec) {
-        headers["X-VibeCart-Device-Binding"] = sec;
-      }
-    }
-    const r = await fetch(`/api/public/auth/magic-link/consume?token=${encodeURIComponent(raw)}`, {
-      method: "GET",
-      credentials: "same-origin",
-      headers
-    });
-    const body = await r.json().catch(() => ({}));
-    if (r.ok && body.ok && body.token && body.user) {
-      persistPublicAuth(body.token, body.user);
-      u.searchParams.delete("magic_login");
-      window.history.replaceState({}, "", u.pathname + (u.search ? u.search : "") + u.hash);
-      return { ok: true, user: body.user };
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
 }
 
 function initPublicAccountAuth() {
+  if (document.documentElement.getAttribute("data-vc-public-auth-init") === "1") {
+    return;
+  }
+  document.documentElement.setAttribute("data-vc-public-auth-init", "1");
   const panelCreate = document.getElementById("vcAuthPanelCreate");
   const panelLogin = document.getElementById("vcAuthPanelLogin");
   const linkToLogin = document.getElementById("vcAuthLinkToLogin");
@@ -3537,15 +3446,6 @@ function initPublicAccountAuth() {
   if (!panelCreate || !panelLogin) {
     return;
   }
-
-  void tryConsumeMagicLoginFromUrl().then((magic) => {
-    if (magic && magic.ok && magic.user) {
-      paintAuthLoggedIn(magic.user);
-      setAuthStatus(authT("accountPassport.magicSignedIn"));
-      return;
-    }
-    refreshPublicSessionOnLoad().catch(() => {});
-  });
 
   function showCreate() {
     panelCreate.classList.remove("hidden");
@@ -3578,12 +3478,25 @@ function initPublicAccountAuth() {
     }
   }
 
+  function isPassportUiLoggedIn() {
+    const strip = document.getElementById("vcAuthLoggedIn");
+    return Boolean(strip && !strip.classList.contains("hidden"));
+  }
+
   linkToLogin?.addEventListener("click", (event) => {
     event.preventDefault();
+    if (isPassportUiLoggedIn()) {
+      setAuthStatus("You are already signed in. Use Sign out first if you need a different account on this device.");
+      return;
+    }
     showLogin();
   });
   linkToCreate?.addEventListener("click", (event) => {
     event.preventDefault();
+    if (isPassportUiLoggedIn()) {
+      setAuthStatus("You are already signed in. Sign out first to create another account on this device.");
+      return;
+    }
     showCreate();
   });
   journeyPassportBtn?.addEventListener("click", () => {
@@ -3607,49 +3520,6 @@ function initPublicAccountAuth() {
     refreshAccountPassportLabels();
   });
 
-  const buyerRoleEl = document.getElementById("vcAuthRoleBuyer");
-  const sellerRoleEl = document.getElementById("vcAuthRoleSeller");
-  buyerRoleEl?.addEventListener("click", () => {
-    if (roleInput) {
-      roleInput.value = "buyer";
-    }
-    refreshAccountPassportLabels();
-  });
-  sellerRoleEl?.addEventListener("click", () => {
-    if (roleInput) {
-      roleInput.value = "seller";
-    }
-    refreshAccountPassportLabels();
-  });
-
-  const magicBtn = document.getElementById("vcAuthMagicLinkBtn");
-  magicBtn?.addEventListener("click", async () => {
-    setAuthStatus("");
-    const email = String(document.getElementById("vcAuthLoginEmail")?.value || "").trim().toLowerCase();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setAuthStatus(authT("accountPassport.errInvalidEmail"));
-      return;
-    }
-    magicBtn.disabled = true;
-    try {
-      const r = await fetch("/api/public/auth/magic-link/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, ...vcDeviceRegisterExtras() })
-      });
-      const body = await r.json().catch(() => ({}));
-      if (r.ok && body.ok) {
-        setAuthStatus(String(body.message || authT("accountPassport.magicLinkSent")));
-        return;
-      }
-      setAuthStatus(String(body.message || authT("accountPassport.magicLinkFail")));
-    } catch {
-      setAuthStatus(authT("accountPassport.magicLinkFail"));
-    } finally {
-      magicBtn.disabled = false;
-    }
-  });
-
   if (country && typeof getBuyerCountryCode === "function") {
     const code = getBuyerCountryCode();
     if ([...country.options].some((o) => o.value === code)) {
@@ -3660,7 +3530,7 @@ function initPublicAccountAuth() {
     roleInput.value = "buyer";
   }
   if (journeyInput && !journeyInput.value) {
-    journeyInput.value = "account";
+    journeyInput.value = "passport";
   }
   refreshAccountPassportLabels();
   refreshJourneyUi();
@@ -3692,23 +3562,10 @@ function initPublicAccountAuth() {
     const email = String(document.getElementById("vcAuthEmail")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("vcAuthPassword")?.value || "");
     const role = String(roleInput?.value || "buyer");
-    const journey = journeyInput
-      ? String(journeyInput.value || "account").toLowerCase() === "account"
-        ? "account"
-        : "passport"
-      : "account";
+    const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
     const countryCode = String(country?.value || "ZA").toUpperCase();
-    const seller = role === "seller";
-    if (fullName.length < 2 || !email || countryCode.length !== 2) {
+    if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
       setAuthStatus(authT("accountPassport.errMissingFields"));
-      return;
-    }
-    if (seller && password.length < 8) {
-      setAuthStatus(authT("accountPassport.errMissingFields"));
-      return;
-    }
-    if (!seller && password.length > 0 && password.length < 8) {
-      setAuthStatus(authT("accountPassport.pwShort"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -3723,7 +3580,7 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role, fullName, countryCode, ...vcDeviceRegisterExtras() })
+        body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password, role, fullName, countryCode }))
       });
       const body = await response.json().catch(() => ({}));
       if (response.status === 409) {
@@ -3787,11 +3644,17 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, ...vcDeviceRegisterExtras() })
+        body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password }))
       });
       const body = await response.json().catch(() => ({}));
       if (response.status === 401) {
-        setAuthStatus(authT("accountPassport.err401"));
+        const cur = getStoredPublicAuth();
+        const curEmail = cur && cur.user && cur.user.email ? String(cur.user.email).toLowerCase() : "";
+        const hint =
+          isPassportUiLoggedIn() && curEmail && curEmail !== email
+            ? " Another account is already active on this device — tap Sign out, then sign in with this email."
+            : "";
+        setAuthStatus((authT("accountPassport.err401") || "Sign in failed.") + hint);
         return;
       }
       if (response.status === 403) {
@@ -3824,7 +3687,7 @@ function initPublicAccountAuth() {
         try {
           await fetch("/api/public/auth/logout", {
             method: "POST",
-            headers: vcPublicAuthHeaders(auth.token)
+            headers: buildPublicAuthBearerHeaders(auth.token)
           });
         } catch {
           /* ignore */
@@ -3836,6 +3699,7 @@ function initPublicAccountAuth() {
     });
   }
 
+  refreshPublicSessionOnLoad().catch(() => {});
 }
 
 async function ensureQuickBuyerToken() {
@@ -3864,14 +3728,15 @@ async function ensureQuickBuyerToken() {
   const registerResponse = await fetch("/api/public/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: generatedEmail,
-      password: generatedPassword,
-      role: "buyer",
-      fullName: "Quick Buyer",
-      countryCode: "ZA",
-      ...vcDeviceRegisterExtras()
-    })
+    body: JSON.stringify(
+      attachPublicRegisterDevicePayload({
+        email: generatedEmail,
+        password: generatedPassword,
+        role: "buyer",
+        fullName: "Quick Buyer",
+        countryCode: "ZA"
+      })
+    )
   });
   const registerBody = await registerResponse.json();
   if (!registerResponse.ok || !registerBody.ok || !registerBody.token) {
@@ -3907,7 +3772,7 @@ async function runLiveOneClickCheckout(itemTitle) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...vcPublicAuthHeaders(token)
+      Authorization: `Bearer ${token}`
     },
     body: JSON.stringify({
       productId,
@@ -3921,7 +3786,7 @@ async function runLiveOneClickCheckout(itemTitle) {
     throw new Error(createBody.code || "ORDER_CREATE_FAILED");
   }
   const trackResponse = await fetch(`/api/public/orders/track?orderId=${Number(createBody.order.orderId)}`, {
-    headers: vcPublicAuthHeaders(token)
+    headers: { Authorization: `Bearer ${token}` }
   });
   const trackBody = await trackResponse.json();
   if (!trackResponse.ok || !trackBody.ok || !trackBody.order) {
@@ -3945,7 +3810,7 @@ async function startOrderTrackingPoll(orderId, token) {
   for (let i = 0; i < maxChecks; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, waitMs));
     const trackResponse = await fetch(`/api/public/orders/track?orderId=${Number(orderId)}`, {
-      headers: vcPublicAuthHeaders(token)
+      headers: { Authorization: `Bearer ${token}` }
     });
     const trackBody = await trackResponse.json();
     if (!trackResponse.ok || !trackBody.ok || !trackBody.order) {
@@ -4017,16 +3882,6 @@ function resolveMarketFromLocale() {
   if (tz.includes("kolkata") || tz.includes("singapore") || tz.includes("tokyo")) {
     return "asia";
   }
-  if (
-    locale.includes("en-ie") ||
-    tz.includes("dublin") ||
-    tz.includes("cork") ||
-    tz.includes("galway") ||
-    tz.includes("limerick") ||
-    tz.includes("belfast")
-  ) {
-    return "ireland";
-  }
   return "africa-general";
 }
 
@@ -4040,8 +3895,6 @@ function setMarketCopy(market) {
     zimbabwe: "Optimized for Zimbabwe buyers with legal products from Poland and Europe.",
     dubai: "Optimized for Dubai market users with secure cross-border sourcing from Europe, Africa, and Asia.",
     asia: "Optimized for Asian market users with secure trade routes to Europe and Africa.",
-    ireland:
-      "Built for Ireland — Republic and Northern Ireland — with regional shops, delivery-aware picks, and the same secure VibeCart experience island-wide.",
     "africa-general": "Optimized for African, European, Dubai, and Asian markets with legal cross-border sourcing."
   };
 
@@ -4231,8 +4084,7 @@ function initHeroParallaxDepth() {
 
 function initLuxuryMotion() {
   const params = new URLSearchParams(window.location.search || "");
-  const inApp = document.documentElement.classList.contains("vc-mobile-app");
-  if (params.get("instant") === "1" || inApp) {
+  if (params.get("instant") === "1") {
     document.body.classList.add("luxe-ready", "luxe-instant");
     document.querySelectorAll(".hero, .section").forEach((node) => node.classList.add("is-visible"));
     return;
@@ -4273,9 +4125,6 @@ function initLuxuryMotion() {
 }
 
 function initBrandSignatureMotion() {
-  if (document.documentElement.classList.contains("vc-mobile-app")) {
-    return;
-  }
   if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return;
   }
@@ -4416,7 +4265,6 @@ initVcScrollKinetics();
 initVcHorizontalRails();
 initVcCinematicExperience();
 initCinematicIntro();
-vcSignalReactNativePaintReady();
 initConnectivityBanner();
 initShopFolderKeyboardNav();
 initShopFolderConstellation();

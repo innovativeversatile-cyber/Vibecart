@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Top-Class checkout · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html#topClassExperience">← Back</a>
+    <a class="btn btn-primary" href="./index.html">Home</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Top-Class Prestige Checkout</h1>
+    <p class="note">Two-step secure activation: payment first, then instant premium unlock.</p>
+    <div class="admin-grid" style="max-width:36rem;">
+      <label for="topClassEmail">Email for receipt</label>
+      <input id="topClassEmail" type="email" placeholder="you@example.com" />
+      <label for="topClassName">Full name</label>
+      <input id="topClassName" type="text" placeholder="Your full name" />
+      <label for="topClassMethod">Payment option</label>
+      <select id="topClassMethod">
+        <option value="card">Bank card</option>
+        <option value="paypal">PayPal</option>
+        <option value="revolut">Revolut</option>
+        <option value="blik">BLIK</option>
+      </select>
+    </div>
+    <div class="hero-actions" style="margin-top:1rem;">
+      <button id="topClassStartPay" class="btn btn-primary" type="button">Step 1: Go to secure checkout</button>
+      <button id="topClassActivateNow" class="btn btn-secondary" type="button" hidden>Step 2: Confirm and activate Top-Class</button>
+    </div>
+    <p id="topClassCheckoutStatus" class="note" aria-live="polite"></p>
+    <div id="topClassDisclaimer" class="ai-result" style="margin-top:0.8rem;">
+      Top-Class includes autonomous AI suggestions, alerts, and advice. AI output is guidance only, not legal, medical, or financial advice.
+    </div>
+  </main>
+  <script src="./top-class-checkout.js?v=20260429hardpass2" defer></script>
+  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
+</body>
+</html>

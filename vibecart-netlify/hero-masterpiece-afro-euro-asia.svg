@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="Afro Euro Asia trade bridge masterpiece">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#09081d"/>
+      <stop offset="55%" stop-color="#0f1230"/>
+      <stop offset="100%" stop-color="#060b1a"/>
+    </linearGradient>
+    <radialGradient id="auroraA" cx="20%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#ff9f55" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#ff9f55" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="auroraB" cx="64%" cy="34%" r="48%">
+      <stop offset="0%" stop-color="#57dbff" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#57dbff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="auroraC" cx="86%" cy="40%" r="46%">
+      <stop offset="0%" stop-color="#8e78ff" stop-opacity="0.36"/>
+      <stop offset="100%" stop-color="#8e78ff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="tribal" width="56" height="56" patternUnits="userSpaceOnUse" patternTransform="rotate(20)">
+      <path d="M2 28 L28 2 L54 28" stroke="rgba(255,190,120,0.16)" stroke-width="2" fill="none"/>
+      <path d="M2 34 L28 54 L54 34" stroke="rgba(102,236,193,0.13)" stroke-width="2" fill="none"/>
+    </pattern>
+    <linearGradient id="routeMain" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffc76e"/>
+      <stop offset="48%" stop-color="#17d8ff"/>
+      <stop offset="100%" stop-color="#9e88ff"/>
+    </linearGradient>
+    <linearGradient id="routeAlt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#66ecc1"/>
+      <stop offset="100%" stop-color="#ff5faa"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3.8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#tribal)" opacity="0.22"/>
+  <rect width="1600" height="900" fill="url(#auroraA)"/>
+  <rect width="1600" height="900" fill="url(#auroraB)"/>
+  <rect width="1600" height="900" fill="url(#auroraC)"/>
+
+  <!-- Continent silhouettes -->
+  <g fill="rgba(200,220,255,0.11)">
+    <path d="M250 560 L340 500 L430 510 L500 470 L590 500 L560 590 L490 640 L390 660 L300 620 Z"/>
+    <path d="M590 330 L700 260 L820 280 L905 245 L980 278 L940 370 L830 420 L690 408 Z"/>
+    <path d="M930 385 L1040 340 L1160 366 L1270 320 L1380 360 L1330 460 L1190 510 L1030 500 Z"/>
+  </g>
+
+  <!-- Network mesh -->
+  <g stroke="rgba(150,190,255,0.16)" stroke-width="1">
+    <path d="M300 620 L700 262 L1030 350 L1320 362"/>
+    <path d="M360 500 L820 280 L1190 510"/>
+    <path d="M500 470 L980 278"/>
+  </g>
+
+  <!-- Primary bridge arcs -->
+  <path id="routeA" d="M300 620 C 450 430, 620 302, 760 300 S 1060 352, 1320 362"
+        fill="none" stroke="url(#routeMain)" stroke-width="16" stroke-linecap="round"
+        stroke-dasharray="30 18" filter="url(#glow)"/>
+  <path id="routeB" d="M340 650 C 560 520, 700 468, 845 468 S 1110 500, 1340 430"
+        fill="none" stroke="url(#routeAlt)" stroke-width="10" stroke-linecap="round"
+        stroke-dasharray="14 16" opacity="0.95" filter="url(#glow)"/>
+  <path id="routeC" d="M280 588 C 430 420, 615 350, 760 342 S 1035 382, 1360 350"
+        fill="none" stroke="rgba(168,245,255,0.95)" stroke-width="4.5" stroke-linecap="round"
+        stroke-dasharray="9 16"/>
+
+  <!-- Animated transit particles -->
+  <circle r="8" fill="#ffffff" filter="url(#glow)">
+    <animateMotion dur="6s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#routeA"/>
+    </animateMotion>
+  </circle>
+  <circle r="6" fill="#d4fff2" filter="url(#glow)">
+    <animateMotion dur="4.8s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#routeB"/>
+    </animateMotion>
+  </circle>
+  <circle r="5" fill="#b6ebff" filter="url(#glow)">
+    <animateMotion dur="5.5s" repeatCount="indefinite" rotate="auto">
+      <mpath href="#routeC"/>
+    </animateMotion>
+  </circle>
+
+  <!-- Hub nodes -->
+  <g fill="#fff" filter="url(#glow)">
+    <circle cx="300" cy="620" r="10"/>
+    <circle cx="760" cy="300" r="11"/>
+    <circle cx="1320" cy="362" r="12"/>
+    <circle cx="845" cy="468" r="8"/>
+  </g>
+  <g fill="none" stroke="rgba(255,255,255,0.2)">
+    <circle cx="300" cy="620" r="30"/>
+    <circle cx="760" cy="300" r="34"/>
+    <circle cx="1320" cy="362" r="36"/>
+  </g>
+</svg>

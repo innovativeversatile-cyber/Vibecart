@@ -11,25 +11,13 @@
       return;
     }
     try {
-      var hdr =
-        window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function"
-          ? window.VibeCartSessionDevice.authHeaders(token)
-          : { Authorization: "Bearer " + token };
       var res = await fetch("/api/public/auth/session", {
-        headers: hdr
+        headers: { Authorization: "Bearer " + token }
       });
       var body = await res.json().catch(function () { return {}; });
       var role = String((body && body.user && body.user.role) || "").toLowerCase();
       if (!res.ok || !body.ok || role !== "seller") {
         window.location.replace("./account-hub.html?seller_required=1");
-        return;
-      }
-      if (body.token) {
-        try {
-          localStorage.setItem("vibecart-public-auth-token", String(body.token));
-        } catch (e) {
-          /* ignore */
-        }
       }
     } catch {
       window.location.replace("./account-hub.html?seller_required=1");

@@ -175,6 +175,8 @@ const PAYPAL_CLIENT_ID = String(process.env.PAYPAL_CLIENT_ID || "").trim();
 const PAYPAL_CLIENT_SECRET = String(process.env.PAYPAL_CLIENT_SECRET || "").trim();
 const PAYPAL_API_BASE = String(process.env.PAYPAL_API_BASE || "https://api-m.paypal.com").trim().replace(/\/$/, "");
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
+/** Bump when shipping payment/coach fixes so `/api/health` proves Railway picked up the deploy. */
+const PUBLIC_API_BUILD_TAG = "20260206-coach-v2";
 /** When unset: ON. Set AI_AUTOPILOT_ENABLED=false|0|off|no to disable. Set true|1|on|yes to force enable. */
 const AI_AUTOPILOT_ENABLED = (() => {
   const raw = process.env.AI_AUTOPILOT_ENABLED;
@@ -7379,7 +7381,13 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, {
         ok: true,
         service: "vibecart-owner-api",
-        dbConfigured: Boolean(DB_HOST && DB_USER && DB_NAME)
+        dbConfigured: Boolean(DB_HOST && DB_USER && DB_NAME),
+        buildTag: PUBLIC_API_BUILD_TAG,
+        stripe: {
+          secretConfigured: Boolean(STRIPE_SECRET_KEY),
+          webhookSecretConfigured: Boolean(STRIPE_WEBHOOK_SECRET)
+        },
+        coachCheckoutWebhookEvents: ["checkout.session.completed", "checkout.session.async_payment_succeeded"]
       });
     }
     if (req.method === "OPTIONS" && pathname.startsWith("/api/")) {

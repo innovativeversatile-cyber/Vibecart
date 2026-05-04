@@ -1289,7 +1289,7 @@
         function firstPromptStillActive() {
           try {
             if (sessionStorage.getItem("vibecart-first-prompt-active-v1") === "1") return true;
-            if (sessionStorage.getItem("vibecart-mobile-wow-first5-v1") !== "1") return true;
+            if (sessionStorage.getItem("vibecart-mobile-wow-done-v1") !== "1") return true;
           } catch {
             /* ignore */
           }
@@ -1667,6 +1667,16 @@
       document.documentElement.classList.contains("vc-mobile-app") ||
       document.documentElement.classList.contains("vc-phone");
     if (!isMobileShell) return;
+    try {
+      if (
+        sessionStorage.getItem("vibecart-mobile-wow-first5-v1") === "1" &&
+        sessionStorage.getItem("vibecart-mobile-wow-done-v1") !== "1"
+      ) {
+        sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
+      }
+    } catch {
+      /* ignore */
+    }
     var heroCopy = document.querySelector(".hero-copy");
     if (!heroCopy) return;
     var heroTitle = document.getElementById("heroTitle");
@@ -1691,6 +1701,11 @@
           title: "Speed lane unlocked for instant wins.",
           sub: "Fast mode on. Brandon will push shortest paths to hot picks, tracking, and checkout.",
           cta: "Launch speed lane"
+        },
+        book: {
+          title: "Beauty, barber, nails, and bakery — book a live offer in minutes.",
+          sub: "Service booking mode. Brandon will keep you on the fastest safe path to reserve.",
+          cta: "Open booking desk"
         }
       };
       var picked = map[t] || map.buy;
@@ -1860,10 +1875,11 @@
           "<div class='vc-intent-blast__card'>" +
           "<p class='badge'>Welcome to your wow lane</p>" +
           "<h3>Choose your power start</h3>" +
-          "<p class='note'>One tap and Brandon aligns your route instantly.</p>" +
+          "<p class='note'>Browse first — account prompts appear when you reserve or check out.</p>" +
           "<div class='vc-intent-blast__grid'>" +
           "<button type='button' class='vc-intent-blast__btn' data-intent='buy'>I want to Buy</button>" +
           "<button type='button' class='vc-intent-blast__btn' data-intent='sell'>I want to Sell</button>" +
+          "<button type='button' class='vc-intent-blast__btn' data-intent='book'>I want to Book</button>" +
           "<button type='button' class='vc-intent-blast__btn' data-intent='fast'>Fast Deals</button>" +
           "</div>" +
           "<button type='button' class='btn btn-secondary vc-intent-blast__skip' id='vcIntentBlastSkip'>Skip</button>" +
@@ -1874,6 +1890,8 @@
           if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
           try {
             sessionStorage.setItem("vibecart-first-prompt-active-v1", "0");
+            sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
+            sessionStorage.setItem("vibecart-mobile-wow-first5-v1", "1");
           } catch {
             /* ignore */
           }
@@ -1898,6 +1916,34 @@
           } catch {
             /* ignore */
           }
+          if (intent === "book") {
+            closeSplash("intent", intent);
+            window.setTimeout(function () {
+              window.location.assign("./my-business.html?flow=book");
+            }, 120);
+            return;
+          }
+          if (intent === "buy") {
+            closeSplash("intent", intent);
+            window.setTimeout(function () {
+              window.location.assign("./live-market-shops.html?cat=All&view=global&deal=best");
+            }, 120);
+            return;
+          }
+          if (intent === "sell") {
+            closeSplash("intent", intent);
+            window.setTimeout(function () {
+              window.location.assign("./sell-journey.html");
+            }, 120);
+            return;
+          }
+          if (intent === "fast") {
+            closeSplash("intent", intent);
+            window.setTimeout(function () {
+              window.location.assign("./hot-picks.html");
+            }, 120);
+            return;
+          }
           closeSplash("intent", intent);
         });
         document.getElementById("vcIntentBlastSkip")?.addEventListener("click", function () {
@@ -1908,16 +1954,11 @@
 
     var seenThisSession = false;
     try {
-      seenThisSession = sessionStorage.getItem("vibecart-mobile-wow-first5-v1") === "1";
+      seenThisSession = sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1";
     } catch {
       seenThisSession = false;
     }
     if (seenThisSession) return;
-    try {
-      sessionStorage.setItem("vibecart-mobile-wow-first5-v1", "1");
-    } catch {
-      /* ignore */
-    }
     var welcomeSheet = document.getElementById("vcMobileWelcomeSheet");
     if (welcomeSheet) {
       var onWelcomeDone = function () {
@@ -2496,6 +2537,7 @@
     bar.innerHTML =
       "<a class='vc-first5-pill' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
       "<a class='vc-first5-pill' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='vc-first5-pill' href='./my-business.html?flow=book'>I want to Book</a>" +
       "<a class='vc-first5-pill' href='./sell-journey.html'>Start hustle</a>";
     document.body.appendChild(bar);
   }
@@ -2553,6 +2595,7 @@
       "<div class='vc-action-hub__panel' id='vcActionHubPanel' hidden>" +
       "<a class='vc-action-hub__item' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
       "<a class='vc-action-hub__item' href='./hot-picks.html'>Hot picks</a>" +
+      "<a class='vc-action-hub__item' href='./my-business.html?flow=book'>I want to Book</a>" +
       "<a class='vc-action-hub__item' href='./sell-journey.html'>Start hustle</a>" +
       "<button type='button' class='vc-action-hub__item' id='vcActionHubQuick'>Quick panel</button>" +
       "<button type='button' class='vc-action-hub__item' id='vcActionHubDeal'>Deal note</button>" +
@@ -2658,7 +2701,41 @@
   }
 
   function initFloatingControlLayout() {
-    var key = "vibecart-mobile-floating-layout-v1";
+    function layoutScopeKey() {
+      try {
+        var p = String((window.location && window.location.pathname) || "") || "root";
+        return "vibecart-mobile-floating-layout-v1:" + p.replace(/[^a-z0-9/_-]+/gi, "_").slice(-120);
+      } catch {
+        return "vibecart-mobile-floating-layout-v1:default";
+      }
+    }
+    function canBrandonArrange() {
+      try {
+        if (String((window.location && window.location.search) || "").indexOf("brandonArrange=1") >= 0) {
+          localStorage.setItem("vibecart-brandon-arrange-v1", "1");
+        }
+      } catch {
+        /* ignore */
+      }
+      try {
+        if (localStorage.getItem("vibecart-brandon-arrange-v1") === "1") return true;
+      } catch {
+        /* ignore */
+      }
+      try {
+        var raw = localStorage.getItem("vibecart-public-auth-user");
+        var u = raw ? JSON.parse(raw) : null;
+        var em = String((u && u.email) || "").toLowerCase();
+        if (em.indexOf("brandon") >= 0) return true;
+      } catch {
+        /* ignore */
+      }
+      return false;
+    }
+    if (!canBrandonArrange()) {
+      return;
+    }
+    var key = layoutScopeKey();
     var modeKey = "vibecart-mobile-floating-arrange-v1";
     if (document.getElementById("vcArrangeHud")) return;
     var root = document.documentElement;

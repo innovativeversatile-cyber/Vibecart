@@ -40,7 +40,7 @@
           <h2 id="vcAccountPassportTitle" data-i18n="accountPassport.title">Lane passport</h2>
           <p class="vc-passport-tagline" data-i18n="accountPassport.tagline">Create once. Shop or sell with the same secure session.</p>
           <p class="note" data-i18n="accountPassport.honest">
-            Shoppers use email only at signup (no password). Service providers set a password — stored with salted hashes.
+            Real email, real password — server-stored with salted hash. No social login theater; just a straight deal.
           </p>
           <p class="note account-passport-pay-note" data-i18n="accountPassport.paymentsNote">
             Checkout uses Stripe when the server is configured. Blink Payment is not connected here yet.
@@ -70,13 +70,7 @@
               <span data-i18n="accountPassport.haveAccount">Already registered?</span>
               <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToLogin" data-i18n="accountPassport.goLogin">Sign in</button>
             </p>
-            <p class="note" data-i18n="accountPassport.createLeadFast">
-              Two quick steps: your details, then a short welcome. Shoppers do not need a password.
-            </p>
-            <ol class="vc-passport-steps" aria-label="Signup steps">
-              <li data-i18n="accountPassport.step1">Enter your details</li>
-              <li data-i18n="accountPassport.step2">Welcome — you are signed in</li>
-            </ol>
+            <p class="note" data-i18n="accountPassport.createLeadFast">Three fields plus password — country defaults from your lane (edit if needed).</p>
 
             <div class="vc-passport-role-inline">
               <span data-i18n="accountPassport.signingUpAs">Signing up as</span>
@@ -88,21 +82,15 @@
             </div>
             <p id="vcAuthSellerNote" class="note hidden" data-i18n="accountPassport.sellerNote"></p>
             <input type="hidden" id="vcAuthRole" value="buyer" />
-            <input type="hidden" id="vcAuthJourney" value="account" />
 
             <form id="vcAuthFormCreate" class="vc-passport-form" autocomplete="on" novalidate>
               <div class="ai-grid vc-passport-fields">
                 <label for="vcAuthEmail" data-i18n="accountPassport.email">Email</label>
                 <input id="vcAuthEmail" name="email" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com" />
 
-                <div id="vcAuthPasswordBlock" class="vc-auth-password-block hidden">
-                  <label for="vcAuthPassword" data-i18n="accountPassport.passwordSeller">Password for your provider account (8+)</label>
-                  <div class="vc-password-field">
-                    <input id="vcAuthPassword" name="password" type="password" autocomplete="new-password" minlength="8" />
-                    <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="vcAuthPassword">Show</button>
-                  </div>
-                  <p id="vcAuthPwMeter" class="vc-passport-pw-meter" aria-live="polite"></p>
-                </div>
+                <label for="vcAuthPassword" data-i18n="accountPassport.password">Password (8+ characters)</label>
+                <input id="vcAuthPassword" name="password" type="password" autocomplete="new-password" minlength="8" required />
+                <p id="vcAuthPwMeter" class="vc-passport-pw-meter" aria-live="polite"></p>
 
                 <label for="vcAuthFullName" data-i18n="accountPassport.fullName">What should we call you?</label>
                 <input id="vcAuthFullName" name="name" type="text" autocomplete="name" maxlength="80" required placeholder="First name or nickname" />
@@ -138,26 +126,16 @@
               <span data-i18n="accountPassport.newHere">New here?</span>
               <button type="button" class="vc-passport-text-btn" id="vcAuthLinkToCreate" data-i18n="accountPassport.goCreate">Create account</button>
             </p>
-            <p class="note" data-i18n="accountPassport.loginLead">
-              Service providers: email and password. Shoppers: email sign-in link if you shop without a password.
-            </p>
+            <p class="note" data-i18n="accountPassport.loginLead">Use the email and password from your passport.</p>
             <form id="vcAuthFormLogin" class="vc-passport-form" autocomplete="on" novalidate>
               <div class="ai-grid vc-passport-fields">
                 <label for="vcAuthLoginEmail" data-i18n="accountPassport.email">Email</label>
                 <input id="vcAuthLoginEmail" name="email" type="email" autocomplete="email" required />
 
                 <label for="vcAuthLoginPassword" data-i18n="accountPassport.password">Password</label>
-                <div class="vc-password-field">
-                  <input id="vcAuthLoginPassword" name="password" type="password" autocomplete="current-password" required />
-                  <button type="button" class="btn btn-secondary vc-password-toggle" data-vc-pw-toggle-for="vcAuthLoginPassword">Show</button>
-                </div>
+                <input id="vcAuthLoginPassword" name="password" type="password" autocomplete="current-password" required />
               </div>
-              <p class="hero-actions" style="margin-top: 0.35rem">
-                <button type="submit" id="vcAuthSubmitLogin" class="btn btn-primary" data-i18n="accountPassport.submitLogin">Sign in</button>
-                <button type="button" class="btn btn-secondary" id="vcAuthMagicLinkBtn" data-i18n="accountPassport.magicLinkCta">
-                  Email me a sign-in link
-                </button>
-              </p>
+              <button type="submit" id="vcAuthSubmitLogin" class="btn btn-primary" data-i18n="accountPassport.submitLogin">Sign in</button>
             </form>
           </div>
 
@@ -166,11 +144,10 @@
       </section>
     </main>
 
-    <script src="./i18n.js?v=20260502authflow1"></script>
+    <script src="./i18n.js?v=20260426langhotfix6"></script>
     <script src="./session-device.js?v=20260501sess1"></script>
-    <script src="./password-toggle.js?v=20260502pw1"></script>
     <script src="./analytics-visit.js?v=20260501visit1" defer></script>
-    <script src="./script.js?v=20260502authflow1" defer></script>
-    <script src="./script-safe.js?v=20260502authflow1"></script>
+    <script src="./script.js?v=20260501sessbind1" defer></script>
+    <script src="./script-safe.js?v=20260501sessbind1"></script>
   </body>
 </html>

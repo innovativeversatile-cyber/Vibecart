@@ -472,6 +472,16 @@ async function processStripeWebhookEvent(pool, event) {
     }
     return fulfillStripeCoachCheckoutSession(pool, session);
   }
+  // Delayed payment methods (e.g. some wallets / bank debits): first `checkout.session.completed`
+  // may arrive with `payment_status` not yet `paid`; fulfillment runs here once Stripe marks it paid.
+  if (event.type === "checkout.session.async_payment_succeeded") {
+    const session = event.data?.object || {};
+    const bakery = await tryFulfillBakeryBookingCheckout(pool, session);
+    if (!bakery.skipped) {
+      return bakery;
+    }
+    return fulfillStripeCoachCheckoutSession(pool, session);
+  }
   if (event.type === "payment_intent.succeeded") {
     return handleStripePaymentIntentSucceeded(pool, event.data?.object || {});
   }

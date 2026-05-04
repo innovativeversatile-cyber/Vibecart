@@ -737,6 +737,19 @@
             })
             .join("");
       }
+      try {
+        var sp = new URLSearchParams(String((typeof location !== "undefined" && location.search) || ""));
+        var wantSid = Number(sp.get("vcServiceId") || sp.get("serviceId") || 0);
+        if (wantSid > 0 && pick) {
+          var opt = pick.querySelector('option[value="' + wantSid + '"]');
+          if (opt) {
+            pick.value = String(wantSid);
+            updateMbCliProviderPreview();
+          }
+        }
+      } catch (_) {
+        /* ignore */
+      }
       updateMbCliProviderPreview();
       return list;
     });
@@ -770,6 +783,10 @@
     var root = document.getElementById("mbCliSlots");
     if (!root) return;
     var list = Array.isArray(times) ? times.filter(Boolean) : [];
+    var dateEl = document.getElementById("mbCliDate");
+    if (dateEl) {
+      dateEl.setAttribute("data-vc-slots", list.length ? "1" : "0");
+    }
     if (!list.length) {
       root.innerHTML =
         '<p class="note" data-mb-no-slots>No published times for this day yet. Pick another date or ask your provider to publish slots for this offer.</p>';
@@ -803,6 +820,8 @@
     if (!sid || !date) {
       root.innerHTML = '<p class="note">Select a provider and date to load published times.</p>';
       clientSelectedSlot = "";
+      var d0 = document.getElementById("mbCliDate");
+      if (d0) d0.removeAttribute("data-vc-slots");
       return;
     }
     root.innerHTML = '<p class="note">Loading published times…</p>';
@@ -814,6 +833,8 @@
       .catch(function () {
         root.innerHTML = '<p class="note">Could not load times. Try again or pick another date.</p>';
         clientSelectedSlot = "";
+        var de = document.getElementById("mbCliDate");
+        if (de) de.removeAttribute("data-vc-slots");
       });
   }
 
@@ -1338,6 +1359,37 @@
 
   function bootGate() {
     var cfg = loadMbConfig();
+    try {
+      var sp = new URLSearchParams(String((typeof location !== "undefined" && location.search) || ""));
+      var flowBook = String(sp.get("flow") || "").toLowerCase() === "book";
+      var lineQ = String(sp.get("line") || "").trim();
+      if (!cfg && flowBook && lineQ) {
+        var decoded = decodeURIComponent(lineQ.replace(/\+/g, " ")).trim();
+        var known = SERVICES.some(function (s) {
+          return s.value === decoded;
+        });
+        if (known) {
+          var autoCfg = { persona: "client", service: decoded, pwdHash: "__none__", salt: "" };
+          saveMbConfig(autoCfg);
+          setSessionUnlocked(autoCfg.persona, autoCfg.service);
+          document.body.classList.remove("mb-boot-pending");
+          hideGate();
+          applyDashboard(autoCfg);
+          refreshMbSessionUser().then(function () {
+            loadAll();
+          });
+          window.setTimeout(function () {
+            var desk = document.getElementById("mb-client-service-desk");
+            if (desk && desk.scrollIntoView) {
+              desk.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          }, 380);
+          return;
+        }
+      }
+    } catch (_) {
+      /* ignore */
+    }
 
     if (cfg && isSessionUnlocked(cfg.persona, cfg.service)) {
       document.body.classList.remove("mb-boot-pending");
@@ -1408,6 +1460,11 @@
         if (!draftService) {
           setGateStatus("mbGateStatusService", "Pick a service line to continue.", false);
           return;
+        }
+        try {
+          localStorage.setItem("vibecart-mb-last-persona-v1", String(draftPersona || ""));
+        } catch (_) {
+          /* ignore */
         }
         if (draftPersona === "client") {
           var cfgClient = { persona: "client", service: draftService, pwdHash: "__none__", salt: "" };

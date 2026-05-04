@@ -3172,10 +3172,42 @@ function clearPublicAuth() {
   }
 }
 
+/** Bearer + optional X-VibeCart-Device-Binding so sessions validate after device-bound registration (session-device.js). */
+function buildPublicAuthBearerHeaders(token) {
+  const t = String(token || "").trim();
+  if (!t) {
+    return {};
+  }
+  try {
+    if (
+      typeof window !== "undefined" &&
+      window.VibeCartSessionDevice &&
+      typeof window.VibeCartSessionDevice.merge === "function"
+    ) {
+      return window.VibeCartSessionDevice.merge(t, { Authorization: `Bearer ${t}` });
+    }
+  } catch {
+    /* ignore */
+  }
+  return { Authorization: `Bearer ${t}` };
+}
+
+function attachPublicRegisterDevicePayload(body) {
+  const out = Object.assign({}, body || {});
+  try {
+    if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.registerPayloadField === "function") {
+      Object.assign(out, window.VibeCartSessionDevice.registerPayloadField());
+    }
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
 async function validatePublicSession(token) {
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: buildPublicAuthBearerHeaders(token)
     });
     const body = await response.json().catch(() => ({}));
     return Boolean(response.ok && body.ok && body.user);
@@ -3345,7 +3377,7 @@ async function refreshPublicSessionOnLoad() {
   }
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: { Authorization: `Bearer ${auth.token}` }
+      headers: buildPublicAuthBearerHeaders(auth.token)
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.ok || !body.user) {
@@ -3353,7 +3385,8 @@ async function refreshPublicSessionOnLoad() {
       paintAuthLoggedOut();
       return;
     }
-    persistPublicAuth(auth.token, body.user);
+    const nextTok = body.token ? String(body.token) : auth.token;
+    persistPublicAuth(nextTok, body.user);
     paintAuthLoggedIn(body.user);
   } catch {
     clearPublicAuth();
@@ -3385,6 +3418,10 @@ function refreshAccountPassportLabels() {
 }
 
 function initPublicAccountAuth() {
+  if (document.documentElement.getAttribute("data-vc-public-auth-init") === "1") {
+    return;
+  }
+  document.documentElement.setAttribute("data-vc-public-auth-init", "1");
   const panelCreate = document.getElementById("vcAuthPanelCreate");
   const panelLogin = document.getElementById("vcAuthPanelLogin");
   const linkToLogin = document.getElementById("vcAuthLinkToLogin");
@@ -3441,12 +3478,25 @@ function initPublicAccountAuth() {
     }
   }
 
+  function isPassportUiLoggedIn() {
+    const strip = document.getElementById("vcAuthLoggedIn");
+    return Boolean(strip && !strip.classList.contains("hidden"));
+  }
+
   linkToLogin?.addEventListener("click", (event) => {
     event.preventDefault();
+    if (isPassportUiLoggedIn()) {
+      setAuthStatus("You are already signed in. Use Sign out first if you need a different account on this device.");
+      return;
+    }
     showLogin();
   });
   linkToCreate?.addEventListener("click", (event) => {
     event.preventDefault();
+    if (isPassportUiLoggedIn()) {
+      setAuthStatus("You are already signed in. Sign out first to create another account on this device.");
+      return;
+    }
     showCreate();
   });
   journeyPassportBtn?.addEventListener("click", () => {
@@ -3530,7 +3580,7 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role, fullName, countryCode })
+        body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password, role, fullName, countryCode }))
       });
       const body = await response.json().catch(() => ({}));
       if (response.status === 409) {
@@ -3594,11 +3644,17 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password }))
       });
       const body = await response.json().catch(() => ({}));
       if (response.status === 401) {
-        setAuthStatus(authT("accountPassport.err401"));
+        const cur = getStoredPublicAuth();
+        const curEmail = cur && cur.user && cur.user.email ? String(cur.user.email).toLowerCase() : "";
+        const hint =
+          isPassportUiLoggedIn() && curEmail && curEmail !== email
+            ? " Another account is already active on this device — tap Sign out, then sign in with this email."
+            : "";
+        setAuthStatus((authT("accountPassport.err401") || "Sign in failed.") + hint);
         return;
       }
       if (response.status === 403) {
@@ -3631,7 +3687,7 @@ function initPublicAccountAuth() {
         try {
           await fetch("/api/public/auth/logout", {
             method: "POST",
-            headers: { Authorization: `Bearer ${auth.token}` }
+            headers: buildPublicAuthBearerHeaders(auth.token)
           });
         } catch {
           /* ignore */
@@ -3672,13 +3728,15 @@ async function ensureQuickBuyerToken() {
   const registerResponse = await fetch("/api/public/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: generatedEmail,
-      password: generatedPassword,
-      role: "buyer",
-      fullName: "Quick Buyer",
-      countryCode: "ZA"
-    })
+    body: JSON.stringify(
+      attachPublicRegisterDevicePayload({
+        email: generatedEmail,
+        password: generatedPassword,
+        role: "buyer",
+        fullName: "Quick Buyer",
+        countryCode: "ZA"
+      })
+    )
   });
   const registerBody = await registerResponse.json();
   if (!registerResponse.ok || !registerBody.ok || !registerBody.token) {

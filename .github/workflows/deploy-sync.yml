@@ -1,0 +1,20 @@
+# Ensures the Netlify sync script runs cleanly on every push (same step as production build).
+name: Deploy sync script
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run deploy-web sync
+        run: node scripts/sync-deploy-web.mjs
+        env:
+          SKIP_NETLIFY_MIRROR: "1"

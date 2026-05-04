@@ -143,8 +143,17 @@
               </a>
     </div>
   </main>
-  <script src="./bridge-hop.js?v=20260420csp1"></script>
-  <script src="./shop-favicons.js?v=20260426logos1"></script>
-  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
+  <script>
+(function () {
+  var key = "vibecart-bridge-path";
+  document.querySelectorAll("[data-bridge-hop]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var path = link.getAttribute("data-bridge-hop");
+      if (!path) return;
+      try { localStorage.setItem(key, path); } catch (e) {}
+    });
+  });
+})();
+  </script>
 </body>
 </html>
