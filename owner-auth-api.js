@@ -1343,33 +1343,61 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
   if (!session) return;
   await ensureBakeryServicesTable();
+  await ensureBakeryServiceGalleryColumn();
   const body = await readJson(req);
   const serviceId = Number(body.serviceId || 0);
   const businessName = String(body.businessName || "").trim().slice(0, 160);
   const workTitle = String(body.workTitle || "").trim().slice(0, 160);
   const styleTheme = String(body.styleTheme || "").trim().slice(0, 180);
   const requirementsText = String(body.requirementsText || "").trim().slice(0, 4000);
-  const imageUrl = String(body.imageUrl || "").trim().slice(0, 500);
+  let imageUrl = String(body.imageUrl || "").trim().slice(0, 500);
   const currency = String(body.currency || "USD").trim().toUpperCase().slice(0, 8) || "USD";
   const basePrice = Number.isFinite(Number(body.basePrice)) ? Math.max(0, Number(Number(body.basePrice).toFixed(2))) : 0;
+  const galleryJson = sanitizeBakeryGalleryInput(body.gallery);
+  const galleryArr = galleryJson ? parseBakeryGalleryJson(galleryJson) : [];
+  const firstImg = galleryArr.find((x) => x && x.kind === "image" && typeof x.url === "string");
+  if (firstImg && firstImg.url) {
+    imageUrl = String(firstImg.url).trim().slice(0, 500);
+  }
   if (!businessName || !workTitle) {
     return sendJson(res, 400, { ok: false, code: "BUSINESS_AND_WORK_REQUIRED" });
   }
   if (serviceId > 0) {
     await pool.execute(
       `UPDATE bakery_services
-       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?
+       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?, gallery_json = ?
        WHERE id = ? AND baker_user_id = ?
        LIMIT 1`,
-      [businessName, workTitle, styleTheme || null, basePrice, currency, requirementsText || null, imageUrl || null, serviceId, Number(session.user_id)]
+      [
+        businessName,
+        workTitle,
+        styleTheme || null,
+        basePrice,
+        currency,
+        requirementsText || null,
+        imageUrl || null,
+        galleryJson,
+        serviceId,
+        Number(session.user_id)
+      ]
     );
     return sendJson(res, 200, { ok: true, serviceId });
   }
   const [inserted] = await pool.execute(
     `INSERT INTO bakery_services (
-      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-    [Number(session.user_id), businessName, workTitle, styleTheme || null, basePrice, currency, requirementsText || null, imageUrl || null]
+      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+    [
+      Number(session.user_id),
+      businessName,
+      workTitle,
+      styleTheme || null,
+      basePrice,
+      currency,
+      requirementsText || null,
+      imageUrl || null,
+      galleryJson
+    ]
   );
   return sendJson(res, 200, { ok: true, serviceId: Number(inserted.insertId || 0) });
 }
@@ -1378,8 +1406,9 @@ async function handlePublicBakeryServicesMine(req, res) {
   const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
   if (!session) return;
   await ensureBakeryServicesTable();
+  await ensureBakeryServiceGalleryColumn();
   const [rows] = await pool.execute(
-    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, is_active, created_at, updated_at
+    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, is_active, created_at, updated_at
      FROM bakery_services
      WHERE baker_user_id = ?
      ORDER BY id DESC
@@ -1397,6 +1426,7 @@ async function handlePublicBakeryServicesMine(req, res) {
       currency: String(row.currency || "USD"),
       requirementsText: String(row.requirements_text || ""),
       imageUrl: String(row.image_url || ""),
+      gallery: galleryArrayForApi(row.gallery_json),
       isActive: Boolean(Number(row.is_active || 0)),
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -1406,11 +1436,12 @@ async function handlePublicBakeryServicesMine(req, res) {
 
 async function handlePublicBakeryServicesDiscover(req, res) {
   await ensureBakeryServicesTable();
+  await ensureBakeryServiceGalleryColumn();
   const urlObj = new URL(req.url, "http://localhost");
   const q = String(urlObj.searchParams.get("q") || "").trim().toLowerCase();
   const line = String(urlObj.searchParams.get("line") || "").trim().toLowerCase();
   const [rows] = await pool.execute(
-    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url,
+    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json,
             u.full_name
      FROM bakery_services bs
      JOIN users u ON u.id = bs.baker_user_id
@@ -1441,7 +1472,8 @@ async function handlePublicBakeryServicesDiscover(req, res) {
       basePrice: Number(row.base_price || 0),
       currency: String(row.currency || "USD"),
       requirementsText: String(row.requirements_text || ""),
-      imageUrl: String(row.image_url || "")
+      imageUrl: String(row.image_url || ""),
+      gallery: galleryArrayForApi(row.gallery_json)
     }))
   });
 }
@@ -2651,6 +2683,220 @@ async function readRawBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+/** Raw binary upload (e.g. phone photo/video) with a higher cap than readJson. */
+async function readUploadBody(req, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let total = 0;
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+      total += chunk.length;
+      if (total > maxBytes) {
+        reject(new Error("FILE_TOO_LARGE"));
+        try {
+          req.destroy();
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+    });
+    req.on("end", () => {
+      resolve(Buffer.concat(chunks));
+    });
+    req.on("error", reject);
+  });
+}
+
+const BAKERY_MEDIA_ROOT = path.join(process.cwd(), "uploads", "bakery-media");
+const BAKERY_MEDIA_MAX_BYTES = 26_214_400; /* 25 MiB */
+const BAKERY_MEDIA_IMAGE_MAX = 12_582_912; /* 12 MiB decoded */
+const BAKERY_MEDIA_VIDEO_MAX = BAKERY_MEDIA_MAX_BYTES;
+
+let bakeryMediaTableEnsured = false;
+async function ensureBakeryMediaTable() {
+  if (bakeryMediaTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS bakery_media (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      storage_key CHAR(32) NOT NULL,
+      owner_user_id BIGINT UNSIGNED NOT NULL,
+      content_type VARCHAR(120) NOT NULL,
+      byte_length INT UNSIGNED NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_bakery_media_key (storage_key),
+      INDEX idx_bakery_media_owner (owner_user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  await fs.mkdir(BAKERY_MEDIA_ROOT, { recursive: true });
+  bakeryMediaTableEnsured = true;
+}
+
+let bakeryGalleryColumnEnsured = false;
+async function ensureBakeryServiceGalleryColumn() {
+  if (bakeryGalleryColumnEnsured) {
+    return;
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_services ADD COLUMN gallery_json MEDIUMTEXT NULL AFTER image_url");
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (!/Duplicate column name/i.test(m)) {
+      /* ignore only duplicate-column; other errors surface on next query */
+    }
+  }
+  bakeryGalleryColumnEnsured = true;
+}
+
+function detectBakeryMediaMime(buf) {
+  if (!buf || buf.length < 12) return "";
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return "image/jpeg";
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return "image/png";
+  if (buf.length >= 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP") return "image/webp";
+  if (buf.length >= 12 && buf.toString("ascii", 4, 8) === "ftyp") return "video/mp4";
+  return "";
+}
+
+function sanitizeBakeryGalleryInput(raw) {
+  if (!Array.isArray(raw) || !raw.length) {
+    return null;
+  }
+  const out = [];
+  for (const item of raw.slice(0, 12)) {
+    const kind = String((item && item.kind) || "image").toLowerCase() === "video" ? "video" : "image";
+    const url = String((item && item.url) || "").trim().slice(0, 2000);
+    if (!url) continue;
+    if (/^https?:\/\//i.test(url)) {
+      out.push({ kind, url });
+      continue;
+    }
+    if (/^\/api\/public\/bakery-media\/[a-f0-9]{32}$/i.test(url)) {
+      out.push({ kind, url });
+    }
+  }
+  return out.length ? JSON.stringify(out) : null;
+}
+
+function parseBakeryGalleryJson(text) {
+  if (!text) return [];
+  try {
+    const v = JSON.parse(String(text));
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
+function galleryArrayForApi(text) {
+  const arr = parseBakeryGalleryJson(text);
+  return arr
+    .filter((x) => x && (x.kind === "image" || x.kind === "video") && typeof x.url === "string")
+    .slice(0, 12)
+    .map((x) => ({ kind: x.kind, url: String(x.url).slice(0, 2000) }));
+}
+
+async function handlePublicBakeryServiceMediaUpload(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  await ensureBakeryMediaTable();
+  let buf;
+  try {
+    buf = await readUploadBody(req, BAKERY_MEDIA_MAX_BYTES);
+  } catch (e) {
+    const code = String(e && e.message) === "FILE_TOO_LARGE" ? "FILE_TOO_LARGE" : "UPLOAD_READ_FAILED";
+    return sendJson(res, 413, { ok: false, code, message: "File is too large (max 25 MB video, 12 MB image)." });
+  }
+  if (!buf || buf.length < 16) {
+    return sendJson(res, 400, { ok: false, code: "EMPTY_FILE" });
+  }
+  const headerMime = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  const sniff = detectBakeryMediaMime(buf);
+  const allowed = new Set(["image/jpeg", "image/png", "image/webp", "video/mp4"]);
+  let mime = sniff || headerMime;
+  if (!allowed.has(mime)) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "UNSUPPORTED_MEDIA",
+      message: "Use JPEG, PNG, WebP photos, or MP4 video."
+    });
+  }
+  if (mime.startsWith("image/") && buf.length > BAKERY_MEDIA_IMAGE_MAX) {
+    return sendJson(res, 413, { ok: false, code: "IMAGE_TOO_LARGE", message: "Image must be 12 MB or smaller." });
+  }
+  if (mime.startsWith("video/") && buf.length > BAKERY_MEDIA_VIDEO_MAX) {
+    return sendJson(res, 413, { ok: false, code: "VIDEO_TOO_LARGE", message: "Video must be 25 MB or smaller." });
+  }
+  const storageKey = crypto.randomBytes(16).toString("hex");
+  const filePath = path.join(BAKERY_MEDIA_ROOT, storageKey);
+  try {
+    await pool.execute(
+      `INSERT INTO bakery_media (storage_key, owner_user_id, content_type, byte_length) VALUES (?, ?, ?, ?)`,
+      [storageKey, Number(session.user_id), mime, buf.length]
+    );
+  } catch (e) {
+    return sendJson(res, 500, { ok: false, code: "MEDIA_DB_FAILED", message: String(e.message || e).slice(0, 200) });
+  }
+  try {
+    await fs.writeFile(filePath, buf, { mode: 0o640 });
+  } catch (e) {
+    try {
+      await pool.execute(`DELETE FROM bakery_media WHERE storage_key = ? LIMIT 1`, [storageKey]);
+    } catch {
+      /* ignore */
+    }
+    return sendJson(res, 500, { ok: false, code: "MEDIA_WRITE_FAILED", message: String(e.message || e).slice(0, 200) });
+  }
+  const publicPath = `/api/public/bakery-media/${storageKey}`;
+  return sendJson(res, 200, {
+    ok: true,
+    url: publicPath,
+    kind: mime.startsWith("video/") ? "video" : "image",
+    contentType: mime,
+    bytes: buf.length
+  });
+}
+
+async function handlePublicBakeryMediaGet(req, res, pathname) {
+  applyCorsHeaders(req, res);
+  await ensureBakeryMediaTable();
+  const key = String(pathname.split("/").pop() || "").trim().toLowerCase();
+  if (!/^[a-f0-9]{32}$/.test(key)) {
+    res.statusCode = 400;
+    res.end("Bad key");
+    return;
+  }
+  const [rows] = await pool.execute(
+    `SELECT content_type, byte_length FROM bakery_media WHERE storage_key = ? LIMIT 1`,
+    [key]
+  );
+  const row = rows[0];
+  if (!row) {
+    res.statusCode = 404;
+    res.end("Not found");
+    return;
+  }
+  const filePath = path.join(BAKERY_MEDIA_ROOT, key);
+  let data;
+  try {
+    data = await fs.readFile(filePath);
+  } catch {
+    res.statusCode = 404;
+    res.end("Missing file");
+    return;
+  }
+  const ct = String(row.content_type || "application/octet-stream");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.writeHead(200, {
+    "Content-Type": ct,
+    "Content-Length": data.length,
+    "Cache-Control": "public, max-age=86400",
+    "X-Content-Type-Options": "nosniff"
+  });
+  res.end(data);
 }
 
 const PROMO_SCOUT_SEED_SHOPS = {
@@ -7138,6 +7384,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && pathname === "/api/public/seller/notifications") {
       return await handlePublicSellerSaleNotifications(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/services/media/upload") {
+      return await handlePublicBakeryServiceMediaUpload(req, res);
+    }
+    if (req.method === "GET" && pathname.startsWith("/api/public/bakery-media/")) {
+      return await handlePublicBakeryMediaGet(req, res, pathname);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/services/upsert") {
       return await handlePublicBakeryServiceUpsert(req, res);

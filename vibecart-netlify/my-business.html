@@ -47,6 +47,50 @@
       flex-shrink: 0;
       margin: 0;
     }
+    .vc-mb-gallery-editor {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      align-items: flex-start;
+    }
+    .vc-mb-gallery-tile {
+      position: relative;
+      width: 112px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.35);
+    }
+    .vc-mb-gallery-tile img,
+    .vc-mb-gallery-tile video {
+      display: block;
+      width: 112px;
+      height: 84px;
+      object-fit: cover;
+    }
+    .vc-mb-gallery-tile .vc-mb-gallery-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      padding: 0.1rem 0.35rem;
+      font-size: 0.7rem;
+      line-height: 1.2;
+    }
+    .vc-mb-cli-media {
+      margin-top: 0.65rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.45rem;
+    }
+    .vc-mb-cli-media img,
+    .vc-mb-cli-media video {
+      width: 100%;
+      max-height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
   </style>
 </head>
 <body class="shops-lane-page vc-my-business-dashboard mb-boot-pending vc-no-brandon">
@@ -154,6 +198,7 @@
         <p class="note">Choose a live provider offer for this service, then add how we should reach you.</p>
         <label for="mbCliProviderSelect">Provider offer</label>
         <select id="mbCliProviderSelect"></select>
+        <div id="mbCliProviderMediaPreview" class="vc-mb-cli-media" hidden></div>
         <div class="vc-biz-row" style="margin-top:0.5rem">
           <input id="mbCliCustName" type="text" placeholder="Your full name" autocomplete="name" />
           <input id="mbCliCustPhone" type="tel" placeholder="Phone / WhatsApp" autocomplete="tel" />
@@ -279,8 +324,28 @@
         <div class="vc-biz-row">
           <input id="bakeryBasePrice" type="number" min="0" step="0.01" placeholder="Base price" />
           <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
-          <input id="bakeryImageUrl" type="url" placeholder="Work image URL" />
+          <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
         </div>
+        <input type="hidden" id="bakeryEditServiceId" value="0" />
+        <label for="bakeryMediaPick">Photos &amp; videos (clients see these)</label>
+        <p class="note" style="margin-top:0.15rem">
+          Upload from your phone or computer (JPEG/PNG/WebP up to 12 MB, MP4 up to 25 MB), or paste a public image/video link below. Up to 12 items.
+        </p>
+        <input id="bakeryMediaPick" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" multiple />
+        <p class="hero-actions" style="margin-top:0.35rem">
+          <button type="button" class="btn btn-secondary" id="bakeryAddMediaUrl">Add media from URL</button>
+          <button type="button" class="btn btn-secondary" id="bakeryClearWorkForm">New card (clear form)</button>
+        </p>
+        <label for="bakeryExternalMediaUrl">External media URL (optional)</label>
+        <div class="vc-biz-row">
+          <input id="bakeryExternalMediaUrl" type="url" placeholder="https://… image or .mp4" />
+          <select id="bakeryExternalMediaKind" aria-label="Media type">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+          </select>
+          <button type="button" class="btn btn-secondary" id="bakeryExternalMediaAdd">Add link</button>
+        </div>
+        <div id="bakeryGalleryEditor" class="vc-mb-gallery-editor" aria-live="polite"></div>
         <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
         <p class="hero-actions">
           <button class="btn btn-primary" id="bakerySaveBtn" type="button">Save service work card</button>
@@ -359,7 +424,7 @@
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
   <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-  <script src="./my-business.js?v=20260504mbprov1" defer></script>
+  <script src="./my-business.js?v=20260504mbmedia1" defer></script>
   <script src="./site-chrome.js?v=20260509chromebrandon1" defer></script>
 </body>
 </html>

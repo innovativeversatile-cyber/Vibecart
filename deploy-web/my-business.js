@@ -58,6 +58,9 @@
   var draftPersona = "";
   var draftService = "";
   var gateBusy = false;
+  /** Work-card gallery { kind: "image"|"video", url } for save + client preview */
+  var mbWorkGallery = [];
+  var mbDiscoverServiceById = {};
 
   function getToken() {
     return String(localStorage.getItem(TOKEN_KEY) || "").trim();
@@ -549,6 +552,10 @@
     var line = String(serviceLine || "").trim();
     return api("/api/public/bakery/services/discover?line=" + encodeURIComponent(line)).then(function (res) {
       var list = Array.isArray(res.services) ? res.services : [];
+      mbDiscoverServiceById = {};
+      list.forEach(function (s) {
+        if (s && s.id) mbDiscoverServiceById[Number(s.id)] = s;
+      });
       var pick = document.getElementById("mbCliProviderSelect");
       if (pick) {
         pick.innerHTML =
@@ -567,6 +574,7 @@
             })
             .join("");
       }
+      updateMbCliProviderPreview();
       return list;
     });
   }
@@ -1499,6 +1507,12 @@
         startBookingStripeCheckout("full");
       });
     }
+    var cliPick = document.getElementById("mbCliProviderSelect");
+    if (cliPick) {
+      cliPick.addEventListener("change", function () {
+        updateMbCliProviderPreview();
+      });
+    }
   }
 
   function renderKpis(listings, services, bookings) {
@@ -1513,12 +1527,177 @@
       '<article class="vc-biz-card"><span class="vc-pill">Booking requests</span><h3>' + Number((bookings || []).length) + '</h3><p class="note">Pending: ' + pendingBookings + "</p></article>";
   }
 
+  function isAllowedPublicMediaUrl(u) {
+    var s = String(u || "").trim();
+    if (!s) return false;
+    if (/^https?:\/\//i.test(s)) return true;
+    return /^\/api\/public\/bakery-media\/[a-f0-9]{32}$/i.test(s);
+  }
+
+  function uploadBakeryMediaFile(file) {
+    var token = getToken();
+    if (!token) return Promise.reject(new Error("Sign in to upload media."));
+    var headers = { "Content-Type": file.type || "application/octet-stream" };
+    headers =
+      window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
+        ? window.VibeCartSessionDevice.merge(token, headers)
+        : Object.assign({}, headers, { Authorization: "Bearer " + token });
+    return fetch("/api/public/bakery/services/media/upload", { method: "POST", headers: headers, body: file }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok || j.ok === false) {
+          throw new Error(String((j && (j.message || j.code)) || "HTTP_" + r.status));
+        }
+        return j;
+      });
+    });
+  }
+
+  function refreshMbWorkGalleryUi() {
+    var root = document.getElementById("bakeryGalleryEditor");
+    if (!root) return;
+    if (!mbWorkGallery.length) {
+      root.innerHTML = '<p class="note" style="margin:0">No gallery items yet — upload or add a link.</p>';
+      return;
+    }
+    root.innerHTML = mbWorkGallery
+      .map(function (item, idx) {
+        var u = escapeHtml(item.url);
+        var k = String(item.kind || "image") === "video" ? "video" : "image";
+        var inner =
+          k === "video"
+            ? '<video src="' + u + '" muted playsinline controls preload="metadata"></video>'
+            : '<img src="' + u + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />';
+        return (
+          '<div class="vc-mb-gallery-tile">' +
+          inner +
+          '<button type="button" class="btn btn-secondary vc-mb-gallery-remove" data-mb-gallery-remove="' +
+          idx +
+          '">Remove</button></div>'
+        );
+      })
+      .join("");
+  }
+
+  function clearMbWorkForm() {
+    var hid = document.getElementById("bakeryEditServiceId");
+    if (hid) hid.value = "0";
+    ["bakeryBusinessName", "bakeryWorkTitle", "bakeryStyleTheme", "bakeryBasePrice", "bakeryImageUrl", "bakeryRequirements", "bakeryExternalMediaUrl"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = "";
+    });
+    mbWorkGallery = [];
+    refreshMbWorkGalleryUi();
+    setStatus("Form cleared — add a new work card.");
+  }
+
+  function populateWorkCardFromService(s) {
+    if (!s) return;
+    var hid = document.getElementById("bakeryEditServiceId");
+    if (hid) hid.value = String(Number(s.id) || 0);
+    var bn = document.getElementById("bakeryBusinessName");
+    if (bn) bn.value = s.businessName || "";
+    var wt = document.getElementById("bakeryWorkTitle");
+    if (wt) wt.value = s.workTitle || "";
+    var th = document.getElementById("bakeryStyleTheme");
+    if (th) {
+      var st = String(s.styleTheme || "");
+      var parts = st.split("·");
+      th.value = parts.length > 1 ? parts.slice(1).join("·").trim() : "";
+    }
+    var bp = document.getElementById("bakeryBasePrice");
+    if (bp) bp.value = s.basePrice != null ? String(s.basePrice) : "";
+    var cur = document.getElementById("bakeryCurrency");
+    if (cur) cur.value = s.currency || "USD";
+    var img = document.getElementById("bakeryImageUrl");
+    if (img) img.value = s.imageUrl || "";
+    var req = document.getElementById("bakeryRequirements");
+    if (req) req.value = s.requirementsText || "";
+    mbWorkGallery = [];
+    if (Array.isArray(s.gallery) && s.gallery.length) {
+      s.gallery.forEach(function (g) {
+        if (g && g.url && isAllowedPublicMediaUrl(g.url)) {
+          mbWorkGallery.push({ kind: g.kind === "video" ? "video" : "image", url: String(g.url).trim() });
+        }
+      });
+    } else if (s.imageUrl && isAllowedPublicMediaUrl(s.imageUrl)) {
+      mbWorkGallery.push({ kind: "image", url: String(s.imageUrl).trim() });
+    }
+    refreshMbWorkGalleryUi();
+    var cat = document.getElementById("bakeryServiceCategory");
+    if (cat && s.styleTheme) {
+      var head = String(s.styleTheme).split("·")[0].trim();
+      var opts = Array.prototype.slice.call(cat.options || []);
+      var i;
+      for (i = 0; i < opts.length; i++) {
+        if (String(opts[i].value).trim() === head) {
+          cat.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    setStatus("Loaded work card into the form — adjust and save.");
+    var sec = document.getElementById("mbPortfolioHead");
+    if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderServiceCardMediaHtml(s) {
+    var items = [];
+    if (Array.isArray(s.gallery) && s.gallery.length) {
+      items = s.gallery.slice(0, 8);
+    } else if (s.imageUrl) {
+      items = [{ kind: "image", url: s.imageUrl }];
+    }
+    if (!items.length) return "";
+    return (
+      '<div class="vc-mb-gallery-editor" style="margin-top:0.45rem">' +
+      items
+        .map(function (it) {
+          if (!it || !it.url || !isAllowedPublicMediaUrl(it.url)) return "";
+          var u = escapeHtml(String(it.url).trim());
+          if (String(it.kind || "image") === "video") {
+            return '<div class="vc-mb-gallery-tile"><video src="' + u + '" muted playsinline controls preload="metadata"></video></div>';
+          }
+          return '<div class="vc-mb-gallery-tile"><img src="' + u + '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></div>';
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+
+  function updateMbCliProviderPreview() {
+    var pick = document.getElementById("mbCliProviderSelect");
+    var root = document.getElementById("mbCliProviderMediaPreview");
+    if (!root) return;
+    var id = Number((pick && pick.value) || 0);
+    if (!id) {
+      root.innerHTML = "";
+      root.hidden = true;
+      return;
+    }
+    var s = mbDiscoverServiceById[id];
+    if (!s) {
+      root.innerHTML = "";
+      root.hidden = true;
+      return;
+    }
+    var html = renderServiceCardMediaHtml(s);
+    if (!html) {
+      root.innerHTML = "";
+      root.hidden = true;
+      return;
+    }
+    root.innerHTML = "<p class='note' style='margin:0 0 0.35rem 0'>Preview</p>" + html;
+    root.hidden = false;
+  }
+
   function readBakeryForm() {
     var catEl = document.getElementById("bakeryServiceCategory");
     var line = catEl ? String(catEl.value || "").trim() : "Bakery / custom cakes";
     var theme = String(document.getElementById("bakeryStyleTheme").value || "").trim();
     var styleTheme = theme ? line + " · " + theme : line;
+    var editId = document.getElementById("bakeryEditServiceId");
     return {
+      serviceId: Number((editId && editId.value) || 0) || 0,
       businessName: document.getElementById("bakeryBusinessName").value,
       workTitle: document.getElementById("bakeryWorkTitle").value,
       styleTheme: styleTheme,
@@ -1623,20 +1802,48 @@
       return;
     }
     root.innerHTML = services.map(function (s) {
-      return '<article class="vc-work-item" data-service-id="' + Number(s.id) + '">' +
-        "<h3>" + escapeHtml(s.workTitle) + "</h3>" +
-        '<p class="note">' + escapeHtml(s.businessName) + " · " + escapeHtml(s.styleTheme || "No style yet") + "</p>" +
-        '<p class="note">Price: ' + Number(s.basePrice || 0).toFixed(2) + " " + escapeHtml(s.currency || "USD") + "</p>" +
-        '<p class="note">Requirements: ' + escapeHtml(s.requirementsText || "None") + "</p>" +
-        (s.imageUrl
+      var mediaBlock = renderServiceCardMediaHtml(s);
+      var thumbFallback =
+        !mediaBlock && s.imageUrl
           ? '<div class="vc-work-thumb"><img src="' +
             escapeHtml(s.imageUrl) +
             '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></div>'
-          : "") +
-        '<p class="hero-actions">' +
-        '<button class="btn btn-secondary" data-toggle="' + (s.isActive ? "0" : "1") + '">' + (s.isActive ? "Pause listing" : "Relist") + "</button>" +
+          : mediaBlock
+            ? '<div class="vc-work-thumb" style="max-height:none;height:auto">' + mediaBlock + "</div>"
+            : "";
+      return (
+        '<article class="vc-work-item" data-service-id="' +
+        Number(s.id) +
+        '">' +
+        "<h3>" +
+        escapeHtml(s.workTitle) +
+        "</h3>" +
+        '<p class="note">' +
+        escapeHtml(s.businessName) +
+        " · " +
+        escapeHtml(s.styleTheme || "No style yet") +
         "</p>" +
-      "</article>";
+        '<p class="note">Price: ' +
+        Number(s.basePrice || 0).toFixed(2) +
+        " " +
+        escapeHtml(s.currency || "USD") +
+        "</p>" +
+        '<p class="note">Requirements: ' +
+        escapeHtml(s.requirementsText || "None") +
+        "</p>" +
+        thumbFallback +
+        '<p class="hero-actions">' +
+        '<button type="button" class="btn btn-secondary" data-mb-edit-service="' +
+        Number(s.id) +
+        '">Edit in form</button> ' +
+        '<button class="btn btn-secondary" data-toggle="' +
+        (s.isActive ? "0" : "1") +
+        '">' +
+        (s.isActive ? "Pause listing" : "Relist") +
+        "</button>" +
+        "</p>" +
+        "</article>"
+      );
     }).join("");
   }
 
@@ -1755,12 +1962,22 @@
       return Promise.resolve();
     }
     var body = readBakeryForm();
+    body.gallery = mbWorkGallery.filter(function (x) {
+      return x && x.url && isAllowedPublicMediaUrl(x.url);
+    });
+    if (body.serviceId === 0) {
+      delete body.serviceId;
+    }
     return api("/api/public/bakery/services/upsert", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
-    }).then(function () {
+    }).then(function (res) {
       setStatus("Work card saved.");
+      var hid = document.getElementById("bakeryEditServiceId");
+      if (hid && res && res.serviceId) {
+        hid.value = String(Number(res.serviceId) || 0);
+      }
       return loadAll();
     }).catch(function (err) {
       var msg = String(err.message || "");
@@ -1786,6 +2003,25 @@
   }
 
   function onClick(e) {
+    var rmGal = e.target.closest && e.target.closest("[data-mb-gallery-remove]");
+    if (rmGal) {
+      var ix = Number(rmGal.getAttribute("data-mb-gallery-remove") || -1);
+      if (ix >= 0 && ix < mbWorkGallery.length) {
+        mbWorkGallery.splice(ix, 1);
+        refreshMbWorkGalleryUi();
+      }
+      return;
+    }
+    var editSvc = e.target.closest && e.target.closest("[data-mb-edit-service]");
+    if (editSvc) {
+      var sid = Number(editSvc.getAttribute("data-mb-edit-service") || 0);
+      var found = (mbLastProviderServices || []).filter(function (x) {
+        return Number(x.id) === sid;
+      })[0];
+      if (found) populateWorkCardFromService(found);
+      else setStatus("Could not load that card — refresh the dashboard.");
+      return;
+    }
     var toggle = e.target.closest && e.target.closest("[data-toggle]");
     if (toggle) {
       var serviceCard = toggle.closest("[data-service-id]");
@@ -1870,6 +2106,81 @@
     if (btnClientBookings) btnClientBookings.addEventListener("click", loadClientDashboard);
     if (btnSaveBakery) btnSaveBakery.addEventListener("click", saveBakeryService);
     if (btnPayout) btnPayout.addEventListener("click", savePayoutAccount);
+
+    refreshMbWorkGalleryUi();
+    var bakeryMediaPick = document.getElementById("bakeryMediaPick");
+    if (bakeryMediaPick) {
+      bakeryMediaPick.addEventListener("change", function () {
+        var files = bakeryMediaPick.files;
+        if (!files || !files.length) return;
+        if (mbWorkGallery.length >= 12) {
+          setStatus("Gallery is full (12 items). Remove one to add more.");
+          bakeryMediaPick.value = "";
+          return;
+        }
+        setStatus("Uploading…");
+        var i = 0;
+        function next() {
+          if (i >= files.length || mbWorkGallery.length >= 12) {
+            bakeryMediaPick.value = "";
+            setStatus("Upload finished.");
+            refreshMbWorkGalleryUi();
+            return;
+          }
+          var f = files[i];
+          i += 1;
+          uploadBakeryMediaFile(f)
+            .then(function (res) {
+              var kind = res.kind === "video" ? "video" : "image";
+              if (res.url) mbWorkGallery.push({ kind: kind, url: res.url });
+              next();
+            })
+            .catch(function (err) {
+              setStatus(err.message || "Upload failed");
+              next();
+            });
+        }
+        next();
+      });
+    }
+    var bakeryClear = document.getElementById("bakeryClearWorkForm");
+    if (bakeryClear) bakeryClear.addEventListener("click", clearMbWorkForm);
+    var bakeryExtAdd = document.getElementById("bakeryExternalMediaAdd");
+    if (bakeryExtAdd) {
+      bakeryExtAdd.addEventListener("click", function () {
+        var u = String((document.getElementById("bakeryExternalMediaUrl") || {}).value || "").trim();
+        var kd = document.getElementById("bakeryExternalMediaKind");
+        var kind = kd && String(kd.value) === "video" ? "video" : "image";
+        if (!u || !isAllowedPublicMediaUrl(u)) {
+          setStatus("Enter a valid https image or video URL.");
+          return;
+        }
+        if (mbWorkGallery.length >= 12) {
+          setStatus("Gallery is full (12 items).");
+          return;
+        }
+        mbWorkGallery.push({ kind: kind, url: u });
+        refreshMbWorkGalleryUi();
+        setStatus("Added linked media.");
+      });
+    }
+    var bakeryAddUrl = document.getElementById("bakeryAddMediaUrl");
+    if (bakeryAddUrl) {
+      bakeryAddUrl.addEventListener("click", function () {
+        var u = window.prompt("Paste a public https URL to an image or .mp4 video:", "https://");
+        if (!u || !isAllowedPublicMediaUrl(u.trim())) {
+          setStatus("Invalid URL.");
+          return;
+        }
+        if (mbWorkGallery.length >= 12) {
+          setStatus("Gallery is full (12 items).");
+          return;
+        }
+        var isVid = /\.(mp4|webm)(\?|$)/i.test(u) || /video/i.test(u);
+        mbWorkGallery.push({ kind: isVid ? "video" : "image", url: u.trim() });
+        refreshMbWorkGalleryUi();
+      });
+    }
     document.body.addEventListener("click", onClick);
     var beautySlotsBtn = document.getElementById("beautyShowBookingSlots");
     var beautySvc = document.getElementById("beautyBookingServiceType");
