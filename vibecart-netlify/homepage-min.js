@@ -2075,6 +2075,9 @@
       return;
     }
 
+    // Visible in the tab immediately; Chromium still may fire beforeinstallprompt later.
+    btn.classList.remove("hidden");
+
     function ensureHint() {
       var existing = document.getElementById("installAppHint");
       if (existing) return existing;
@@ -2124,7 +2127,6 @@
     var ua = String((window.navigator && window.navigator.userAgent) || "").toLowerCase();
     var isIos = ua.indexOf("iphone") >= 0 || ua.indexOf("ipad") >= 0;
     if (isIos) {
-      btn.classList.remove("hidden");
       btn.textContent = "How to install app";
       showManualHint();
       return;
@@ -2136,7 +2138,7 @@
         btn.textContent = "How to install app";
         showManualHint();
       }
-    }, 4500);
+    }, 1500);
   }
 
   function initPwaBootstrapLite() {
