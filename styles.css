@@ -8484,7 +8484,42 @@ html.vc-mobile-kinetic main .page-group {
 
 .vc-site-chrome-inbox {
   flex: 0 0 auto;
+  position: relative;
+}
+
+.vc-site-chrome-inbox summary.vc-site-chrome-inbox-sum {
+  list-style: none;
+  cursor: pointer;
   white-space: nowrap;
+}
+
+.vc-site-chrome-inbox summary.vc-site-chrome-inbox-sum::-webkit-details-marker {
+  display: none;
+}
+
+.vc-site-chrome-inbox-panel {
+  position: absolute;
+  z-index: 50;
+  left: 0;
+  top: calc(100% + 0.35rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: min(18rem, 92vw);
+  max-width: 22rem;
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(10, 12, 22, 0.96);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+.vc-site-chrome-inbox-link {
+  width: 100%;
+  text-align: left;
+  justify-content: flex-start;
+  white-space: normal;
+  line-height: 1.35;
 }
 
 .vc-site-chrome-luxe {

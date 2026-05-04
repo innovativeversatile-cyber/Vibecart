@@ -70,7 +70,35 @@
   wrap.id = "vcSiteChromeBar";
   wrap.className = "vc-site-chrome-bar";
   wrap.setAttribute("role", "toolbar");
-  wrap.setAttribute("aria-label", "Display preferences");
+  wrap.setAttribute("aria-label", "Inbox shortcuts and display preferences");
+
+  var inbox = document.createElement("details");
+  inbox.className = "vc-site-chrome-inbox";
+  var inboxSum = document.createElement("summary");
+  inboxSum.className = "btn btn-secondary vc-site-chrome-inbox-sum";
+  inboxSum.textContent = "✉ Inbox";
+  var inboxPanel = document.createElement("div");
+  inboxPanel.className = "vc-site-chrome-inbox-panel";
+  inboxPanel.setAttribute("role", "menu");
+  [
+    ["./account-hub.html#bookings", "Account · bookings & alerts"],
+    ["./my-business.html#mb-client-my-bookings", "My Business · your requests (buyer)"],
+    ["./my-business.html#mb-provider-bookings", "My Business · client requests & chat (seller)"],
+    ["./buyer-orders.html", "Buyer orders"],
+    ["./seller-orders.html", "Seller orders"],
+    ["./my-listings.html", "My listings"],
+    ["./orders-tracking.html", "Orders & tracking"],
+    ["./plan-workspace.html", "Plan workspace · coach & routines"]
+  ].forEach(function (pair) {
+    var a = document.createElement("a");
+    a.className = "btn btn-secondary vc-site-chrome-inbox-link";
+    a.href = pair[0];
+    a.textContent = pair[1];
+    a.setAttribute("role", "menuitem");
+    inboxPanel.appendChild(a);
+  });
+  inbox.appendChild(inboxSum);
+  inbox.appendChild(inboxPanel);
 
   var luxeBtn = document.createElement("button");
   luxeBtn.type = "button";
@@ -78,6 +106,7 @@
   luxeBtn.setAttribute("aria-pressed", "true");
   luxeBtn.textContent = "Luxury mode";
 
+  wrap.appendChild(inbox);
   wrap.appendChild(luxeBtn);
   header.appendChild(wrap);
 

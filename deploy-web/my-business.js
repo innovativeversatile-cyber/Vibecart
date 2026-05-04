@@ -2356,7 +2356,10 @@
         (s.isActive ? "0" : "1") +
         '">' +
         (s.isActive ? "Pause listing" : "Relist") +
-        "</button>" +
+        "</button> " +
+        '<button type="button" class="btn btn-secondary" data-mb-delete-service="' +
+        Number(s.id) +
+        '">Delete card</button>' +
         "</p>" +
         "</article>"
       );
@@ -2575,6 +2578,40 @@
       })[0];
       if (found) populateWorkCardFromService(found);
       else setStatus("Could not load that card — refresh the dashboard.");
+      return;
+    }
+    var delSvc = e.target.closest && e.target.closest("[data-mb-delete-service]");
+    if (delSvc) {
+      var delId = Number(delSvc.getAttribute("data-mb-delete-service") || 0);
+      if (!delId) return;
+      if (!getToken()) {
+        setStatus("Sign in with your seller account to delete a work card.");
+        return;
+      }
+      if (
+        !window.confirm(
+          "Delete this work card permanently? All published slots and every booking request (including chat history) linked to this card will be removed. This cannot be undone."
+        )
+      ) {
+        return;
+      }
+      setStatus("Deleting work card…");
+      api("/api/public/bakery/services/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId: delId })
+      })
+        .then(function () {
+          var hid = document.getElementById("bakeryEditServiceId");
+          if (hid && Number(hid.value || 0) === delId) {
+            clearMbWorkForm();
+          }
+          setStatus("Work card removed.");
+          return loadAll();
+        })
+        .catch(function (err) {
+          setStatus(err.message || "Delete failed.");
+        });
       return;
     }
     var toggle = e.target.closest && e.target.closest("[data-toggle]");

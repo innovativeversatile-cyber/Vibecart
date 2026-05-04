@@ -1582,6 +1582,48 @@ async function handlePublicBakeryServiceToggle(req, res) {
   return sendJson(res, 200, { ok: true, serviceId, isActive: Boolean(isActive) });
 }
 
+async function handlePublicBakeryServiceDelete(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  await ensureBakeryServicesTable();
+  await ensureBakeryScheduleSlotsTable();
+  await ensureBakeryBookingsTable();
+  await ensureBakeryBookingMessagesTable();
+  await ensureBakeryBookingEventsTable();
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const serviceId = Number(body.serviceId || 0);
+  if (!serviceId) {
+    return sendJson(res, 400, { ok: false, code: "SERVICE_ID_REQUIRED" });
+  }
+  const uid = Number(session.user_id);
+  const [svc] = await pool.execute(`SELECT id FROM bakery_services WHERE id = ? AND baker_user_id = ? LIMIT 1`, [
+    serviceId,
+    uid
+  ]);
+  if (!svc[0]) {
+    return sendJson(res, 403, { ok: false, code: "SERVICE_FORBIDDEN" });
+  }
+  const [bookingRows] = await pool.execute(`SELECT id FROM bakery_bookings WHERE service_id = ?`, [serviceId]);
+  const bookingIds = bookingRows.map((r) => Number(r.id)).filter((id) => id > 0);
+  if (bookingIds.length) {
+    const ph = bookingIds.map(() => "?").join(", ");
+    await pool.execute(`DELETE FROM bakery_booking_messages WHERE booking_id IN (${ph})`, bookingIds);
+    await pool.execute(`DELETE FROM bakery_booking_events WHERE booking_id IN (${ph})`, bookingIds);
+  }
+  await pool.execute(`DELETE FROM bakery_bookings WHERE service_id = ?`, [serviceId]);
+  await pool.execute(`DELETE FROM bakery_schedule_slots WHERE service_id = ?`, [serviceId]);
+  await pool.execute(`DELETE FROM bakery_services WHERE id = ? AND baker_user_id = ? LIMIT 1`, [serviceId, uid]);
+  return sendJson(res, 200, { ok: true, serviceId, removedBookings: bookingIds.length });
+}
+
 async function handlePublicBakeryBookingCreate(req, res) {
   const maybeToken = getBearerToken(req);
   if (!maybeToken) {
@@ -7517,6 +7559,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/services/toggle") {
       return await handlePublicBakeryServiceToggle(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/services/delete") {
+      return await handlePublicBakeryServiceDelete(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/create") {
       return await handlePublicBakeryBookingCreate(req, res);
