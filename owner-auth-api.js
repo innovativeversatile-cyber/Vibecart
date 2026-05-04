@@ -130,7 +130,12 @@ const {
 } = require("./payment-service");
 const { isAllowedBookingStatusTransition } = require("./booking-state-machine");
 const { ensureBakeryBookingStripeColumns } = require("./bakery-booking-payments");
-const { attachBakeryBookingChatWss, broadcastBookingChatRefresh } = require("./bakery-realtime");
+const {
+  attachBakeryBookingChatWss,
+  broadcastBookingChatRefresh,
+  attachBakeryProviderDeskWss,
+  broadcastProviderDesk
+} = require("./bakery-realtime");
 
 const PORT = Number(process.env.PORT || 8081);
 const _db = resolveMysqlConfig();
@@ -1180,6 +1185,74 @@ async function handlePublicBakeryScheduleSlotsUpsert(req, res) {
   return sendJson(res, 200, { ok: true, serviceId, slotDate, inserted });
 }
 
+async function handlePublicBakeryScheduleSlotsAdd(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  const body = await readJson(req);
+  const serviceId = Number(body.serviceId || 0);
+  const slotDate = String(body.slotDate || "").trim().slice(0, 10);
+  const slotTimes = Array.isArray(body.slotTimes) ? body.slotTimes : [];
+  if (!serviceId || !slotDate || !slotTimes.length) {
+    return sendJson(res, 400, { ok: false, code: "SLOT_FIELDS_REQUIRED" });
+  }
+  await ensureBakeryScheduleSlotsTable();
+  const [svc] = await pool.execute(
+    `SELECT id FROM bakery_services WHERE id = ? AND baker_user_id = ? LIMIT 1`,
+    [serviceId, Number(session.user_id)]
+  );
+  if (!svc[0]) {
+    return sendJson(res, 403, { ok: false, code: "SERVICE_FORBIDDEN" });
+  }
+  let inserted = 0;
+  for (const t of slotTimes) {
+    const st = String(t || "").trim().slice(0, 8);
+    if (!st) continue;
+    try {
+      await pool.execute(
+        `INSERT INTO bakery_schedule_slots (service_id, slot_date, slot_time) VALUES (?, ?, ?)`,
+        [serviceId, slotDate, st]
+      );
+      inserted += 1;
+    } catch {
+      /* ignore duplicate */
+    }
+  }
+  return sendJson(res, 200, { ok: true, serviceId, slotDate, inserted });
+}
+
+async function handlePublicBakeryScheduleSlotsRemove(req, res) {
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  if (!session) return;
+  const body = await readJson(req);
+  const serviceId = Number(body.serviceId || 0);
+  const slotDate = String(body.slotDate || "").trim().slice(0, 10);
+  const slotTimes = Array.isArray(body.slotTimes) ? body.slotTimes : [];
+  if (!serviceId || !slotDate || !slotTimes.length) {
+    return sendJson(res, 400, { ok: false, code: "SLOT_FIELDS_REQUIRED" });
+  }
+  await ensureBakeryScheduleSlotsTable();
+  const [svc] = await pool.execute(
+    `SELECT id FROM bakery_services WHERE id = ? AND baker_user_id = ? LIMIT 1`,
+    [serviceId, Number(session.user_id)]
+  );
+  if (!svc[0]) {
+    return sendJson(res, 403, { ok: false, code: "SERVICE_FORBIDDEN" });
+  }
+  const normalized = slotTimes
+    .map((t) => String(t || "").trim().slice(0, 8))
+    .filter(Boolean);
+  if (!normalized.length) {
+    return sendJson(res, 400, { ok: false, code: "SLOT_TIMES_EMPTY" });
+  }
+  const placeholders = normalized.map(() => "?").join(", ");
+  const [del] = await pool.execute(
+    `DELETE FROM bakery_schedule_slots
+     WHERE service_id = ? AND slot_date = ? AND slot_time IN (${placeholders})`,
+    [serviceId, slotDate, ...normalized]
+  );
+  return sendJson(res, 200, { ok: true, serviceId, slotDate, removed: Number(del.affectedRows || 0) });
+}
+
 async function handlePublicBakeryBookingCheckoutStart(req, res) {
   const token = getBearerToken(req);
   if (!token) {
@@ -1344,6 +1417,7 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   if (!session) return;
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
+  await ensureBakeryServiceSlotDurationColumn();
   const body = await readJson(req);
   const serviceId = Number(body.serviceId || 0);
   const businessName = String(body.businessName || "").trim().slice(0, 160);
@@ -1359,13 +1433,17 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   if (firstImg && firstImg.url) {
     imageUrl = String(firstImg.url).trim().slice(0, 500);
   }
+  const rawDur = Number(body.slotDurationMinutes);
+  const slotDurationMinutes = Number.isFinite(rawDur)
+    ? Math.min(480, Math.max(15, Math.round(rawDur)))
+    : 60;
   if (!businessName || !workTitle) {
     return sendJson(res, 400, { ok: false, code: "BUSINESS_AND_WORK_REQUIRED" });
   }
   if (serviceId > 0) {
     await pool.execute(
       `UPDATE bakery_services
-       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?, gallery_json = ?
+       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?, gallery_json = ?, slot_duration_minutes = ?
        WHERE id = ? AND baker_user_id = ?
        LIMIT 1`,
       [
@@ -1377,6 +1455,7 @@ async function handlePublicBakeryServiceUpsert(req, res) {
         requirementsText || null,
         imageUrl || null,
         galleryJson,
+        slotDurationMinutes,
         serviceId,
         Number(session.user_id)
       ]
@@ -1385,8 +1464,8 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   }
   const [inserted] = await pool.execute(
     `INSERT INTO bakery_services (
-      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, slot_duration_minutes, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
     [
       Number(session.user_id),
       businessName,
@@ -1396,7 +1475,8 @@ async function handlePublicBakeryServiceUpsert(req, res) {
       currency,
       requirementsText || null,
       imageUrl || null,
-      galleryJson
+      galleryJson,
+      slotDurationMinutes
     ]
   );
   return sendJson(res, 200, { ok: true, serviceId: Number(inserted.insertId || 0) });
@@ -1407,8 +1487,9 @@ async function handlePublicBakeryServicesMine(req, res) {
   if (!session) return;
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
+  await ensureBakeryServiceSlotDurationColumn();
   const [rows] = await pool.execute(
-    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, is_active, created_at, updated_at
+    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, slot_duration_minutes, is_active, created_at, updated_at
      FROM bakery_services
      WHERE baker_user_id = ?
      ORDER BY id DESC
@@ -1427,6 +1508,7 @@ async function handlePublicBakeryServicesMine(req, res) {
       requirementsText: String(row.requirements_text || ""),
       imageUrl: String(row.image_url || ""),
       gallery: galleryArrayForApi(row.gallery_json),
+      slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60,
       isActive: Boolean(Number(row.is_active || 0)),
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -1437,11 +1519,12 @@ async function handlePublicBakeryServicesMine(req, res) {
 async function handlePublicBakeryServicesDiscover(req, res) {
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
+  await ensureBakeryServiceSlotDurationColumn();
   const urlObj = new URL(req.url, "http://localhost");
   const q = String(urlObj.searchParams.get("q") || "").trim().toLowerCase();
   const line = String(urlObj.searchParams.get("line") || "").trim().toLowerCase();
   const [rows] = await pool.execute(
-    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json,
+    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.slot_duration_minutes,
             u.full_name
      FROM bakery_services bs
      JOIN users u ON u.id = bs.baker_user_id
@@ -1473,7 +1556,8 @@ async function handlePublicBakeryServicesDiscover(req, res) {
       currency: String(row.currency || "USD"),
       requirementsText: String(row.requirements_text || ""),
       imageUrl: String(row.image_url || ""),
-      gallery: galleryArrayForApi(row.gallery_json)
+      gallery: galleryArrayForApi(row.gallery_json),
+      slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60
     }))
   });
 }
@@ -1606,6 +1690,17 @@ async function handlePublicBakeryBookingCreate(req, res) {
         mbUrl
       ].join("\n")
     );
+  }
+  try {
+    broadcastProviderDesk(Number(svc.baker_user_id), {
+      reason: "booking_new",
+      bookingId,
+      serviceId,
+      customerName,
+      eventDate
+    });
+  } catch {
+    /* ignore realtime failures */
   }
   return sendJson(res, 200, { ok: true, bookingId });
 }
@@ -2750,6 +2845,24 @@ async function ensureBakeryServiceGalleryColumn() {
     }
   }
   bakeryGalleryColumnEnsured = true;
+}
+
+let bakerySlotDurationColumnEnsured = false;
+async function ensureBakeryServiceSlotDurationColumn() {
+  if (bakerySlotDurationColumnEnsured) {
+    return;
+  }
+  try {
+    await pool.execute(
+      "ALTER TABLE bakery_services ADD COLUMN slot_duration_minutes INT UNSIGNED NOT NULL DEFAULT 60 AFTER gallery_json"
+    );
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (!/Duplicate column name/i.test(m)) {
+      /* ignore only duplicate-column */
+    }
+  }
+  bakerySlotDurationColumnEnsured = true;
 }
 
 function detectBakeryMediaMime(buf) {
@@ -7430,6 +7543,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/bakery/schedule/slots/upsert") {
       return await handlePublicBakeryScheduleSlotsUpsert(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/public/bakery/schedule/slots/add") {
+      return await handlePublicBakeryScheduleSlotsAdd(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/schedule/slots/remove") {
+      return await handlePublicBakeryScheduleSlotsRemove(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/checkout/start") {
       return await handlePublicBakeryBookingCheckoutStart(req, res);
     }
@@ -7786,7 +7905,20 @@ async function validateBakeryChatWsToken(token, bookingId) {
   return Number(r.baker_user_id) === uid || Number(r.buyer_user_id || 0) === uid;
 }
 
+async function validateBakeryProviderDeskWsToken(token) {
+  const sess = await requirePublicSession(token, { headers: {} }, { skipDeviceBinding: true });
+  if (!sess || !Number(sess.user_id)) {
+    return null;
+  }
+  const role = String(sess.role || "").toLowerCase();
+  if (!new Set(["seller", "service_provider"]).has(role)) {
+    return null;
+  }
+  return { userId: Number(sess.user_id) };
+}
+
 attachBakeryBookingChatWss(server, { validate: validateBakeryChatWsToken });
+attachBakeryProviderDeskWss(server, { validate: validateBakeryProviderDeskWsToken });
 
 async function startOwnerAuthApiServer() {
   try {

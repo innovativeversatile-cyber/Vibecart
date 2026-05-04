@@ -54,6 +54,9 @@
   var mbSessionUserId = 0;
   var mbClientChatWs = null;
   var mbProvChatWs = null;
+  var mbProviderDeskWs = null;
+  var providerDeskPollTimer = null;
+  var mbLastPendingBookingCount = -1;
 
   var draftPersona = "";
   var draftService = "";
@@ -317,11 +320,14 @@
     document.title = (persona === "provider" ? "Provider" : "Client") + " · " + service + " · My Business · VibeCart";
 
     if (persona === "client") {
+      clearProviderDeskPoll();
+      disconnectMbProviderDeskWs();
       initClientServiceDesk(service);
     } else {
       clearClientPoll();
       disconnectMbClientChatWs();
       clientActiveBookingId = 0;
+      connectMbProviderDeskWs();
     }
   }
 
@@ -394,6 +400,8 @@
 
   function returnToServicePicker() {
     clearClientPoll();
+    clearProviderDeskPoll();
+    disconnectMbProviderDeskWs();
     disconnectMbClientChatWs();
     clientWizardStep = 0;
     clientSelectedSlot = "";
@@ -603,14 +611,16 @@
     }
   }
 
-  function defaultClientSlotTimes() {
-    return ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00"];
-  }
-
   function buildClientSlotButtonsFromArray(times) {
     var root = document.getElementById("mbCliSlots");
     if (!root) return;
-    var list = Array.isArray(times) && times.length ? times : defaultClientSlotTimes();
+    var list = Array.isArray(times) ? times.filter(Boolean) : [];
+    if (!list.length) {
+      root.innerHTML =
+        '<p class="note" data-mb-no-slots>No published times for this day yet. Pick another date or ask your provider to publish slots for this offer.</p>';
+      clientSelectedSlot = "";
+      return;
+    }
     root.innerHTML = list
       .map(function (t) {
         return '<button type="button" class="btn btn-secondary vc-mb-slot-btn" data-mb-slot="' + escapeHtml(t) + '">' + escapeHtml(t) + "</button>";
@@ -631,19 +641,24 @@
   }
 
   function loadClientSlotsForCurrentStep() {
+    var root = document.getElementById("mbCliSlots");
     var sid = Number((document.getElementById("mbCliProviderSelect") && document.getElementById("mbCliProviderSelect").value) || 0);
     var date = String((document.getElementById("mbCliDate") && document.getElementById("mbCliDate").value) || "").trim();
+    if (!root) return;
     if (!sid || !date) {
-      buildClientSlotButtonsFromArray(defaultClientSlotTimes());
+      root.innerHTML = '<p class="note">Select a provider and date to load published times.</p>';
+      clientSelectedSlot = "";
       return;
     }
+    root.innerHTML = '<p class="note">Loading published times…</p>';
     api("/api/public/bakery/schedule/slots?serviceId=" + encodeURIComponent(String(sid)) + "&date=" + encodeURIComponent(date))
       .then(function (res) {
         var slots = Array.isArray(res.slots) ? res.slots : [];
-        buildClientSlotButtonsFromArray(slots.length ? slots : defaultClientSlotTimes());
+        buildClientSlotButtonsFromArray(slots);
       })
       .catch(function () {
-        buildClientSlotButtonsFromArray(defaultClientSlotTimes());
+        root.innerHTML = '<p class="note">Could not load times. Try again or pick another date.</p>';
+        clientSelectedSlot = "";
       });
   }
 
@@ -667,6 +682,101 @@
       }
       mbProvChatWs = null;
     }
+  }
+
+  function clearProviderDeskPoll() {
+    if (providerDeskPollTimer) {
+      clearInterval(providerDeskPollTimer);
+      providerDeskPollTimer = null;
+    }
+  }
+
+  function disconnectMbProviderDeskWs() {
+    if (mbProviderDeskWs) {
+      try {
+        mbProviderDeskWs.close();
+      } catch (_) {
+        /* ignore */
+      }
+      mbProviderDeskWs = null;
+    }
+  }
+
+  function startProviderDeskPollFallback() {
+    clearProviderDeskPoll();
+    mbLastPendingBookingCount = -1;
+    providerDeskPollTimer = window.setInterval(function () {
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
+      if (!getToken()) return;
+      var cfg = loadMbConfig();
+      if (!cfg || cfg.persona !== "provider" || !isSessionUnlocked(cfg.persona, cfg.service)) return;
+      api("/api/public/bakery/bookings/mine")
+        .then(function (res) {
+          var bookings = Array.isArray(res.bookings) ? res.bookings : [];
+          var pending = bookings.filter(function (b) {
+            return String(b.bookingStatus || "").toLowerCase() === "pending";
+          }).length;
+          if (mbLastPendingBookingCount >= 0 && pending > mbLastPendingBookingCount) {
+            setStatus("New booking request — refreshing.");
+            loadAll();
+          }
+          mbLastPendingBookingCount = pending;
+        })
+        .catch(function () {});
+    }, 22000);
+  }
+
+  function connectMbProviderDeskWs() {
+    disconnectMbProviderDeskWs();
+    clearProviderDeskPoll();
+    if (!getToken()) return;
+    var cfg = loadMbConfig();
+    if (!cfg || cfg.persona !== "provider" || !isSessionUnlocked(cfg.persona, cfg.service)) return;
+    var proto = location.protocol === "https:" ? "wss" : "ws";
+    var url = proto + "://" + location.host + "/ws/bakery-provider-desk?token=" + encodeURIComponent(getToken());
+    var ws;
+    try {
+      ws = new WebSocket(url);
+    } catch (_) {
+      startProviderDeskPollFallback();
+      return;
+    }
+    mbProviderDeskWs = ws;
+    ws.onopen = function () {
+      clearProviderDeskPoll();
+      mbLastPendingBookingCount = -1;
+    };
+    ws.onmessage = function (ev) {
+      try {
+        var d = JSON.parse(String(ev.data || "{}"));
+        if (d && d.type === "bakery_provider_desk" && d.reason === "booking_new") {
+          setStatus("New booking request — refreshing.");
+          loadAll();
+          try {
+            if (typeof Notification !== "undefined" && document.hidden && Notification.permission === "granted") {
+              new Notification("VibeCart", { body: "New booking request on your provider desk." });
+            }
+          } catch (_) {
+            /* ignore */
+          }
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    };
+    ws.onclose = function () {
+      mbProviderDeskWs = null;
+      startProviderDeskPollFallback();
+    };
+    ws.onerror = function () {
+      try {
+        ws.close();
+      } catch (_) {
+        /* ignore */
+      }
+    };
   }
 
   function connectMbClientChatWs(bookingId) {
@@ -1581,10 +1691,21 @@
   function clearMbWorkForm() {
     var hid = document.getElementById("bakeryEditServiceId");
     if (hid) hid.value = "0";
-    ["bakeryBusinessName", "bakeryWorkTitle", "bakeryStyleTheme", "bakeryBasePrice", "bakeryImageUrl", "bakeryRequirements", "bakeryExternalMediaUrl"].forEach(function (id) {
+    [
+      "bakeryBusinessName",
+      "bakeryWorkTitle",
+      "bakeryStyleTheme",
+      "bakeryBasePrice",
+      "bakeryCurrency",
+      "bakeryImageUrl",
+      "bakeryRequirements",
+      "bakeryExternalMediaUrl"
+    ].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = "";
     });
+    var sdm = document.getElementById("bakerySlotDurationMinutes");
+    if (sdm) sdm.value = "60";
     mbWorkGallery = [];
     refreshMbWorkGalleryUi();
     setStatus("Form cleared — add a new work card.");
@@ -1612,6 +1733,11 @@
     if (img) img.value = s.imageUrl || "";
     var req = document.getElementById("bakeryRequirements");
     if (req) req.value = s.requirementsText || "";
+    var slotMin = document.getElementById("bakerySlotDurationMinutes");
+    if (slotMin) {
+      var dur = Number(s.slotDurationMinutes);
+      slotMin.value = String(Number.isFinite(dur) && dur > 0 ? dur : 60);
+    }
     mbWorkGallery = [];
     if (Array.isArray(s.gallery) && s.gallery.length) {
       s.gallery.forEach(function (g) {
@@ -1696,6 +1822,8 @@
     var theme = String(document.getElementById("bakeryStyleTheme").value || "").trim();
     var styleTheme = theme ? line + " · " + theme : line;
     var editId = document.getElementById("bakeryEditServiceId");
+    var durEl = document.getElementById("bakerySlotDurationMinutes");
+    var rawDur = durEl ? Number(durEl.value) : 60;
     return {
       serviceId: Number((editId && editId.value) || 0) || 0,
       businessName: document.getElementById("bakeryBusinessName").value,
@@ -1704,7 +1832,8 @@
       basePrice: Number(document.getElementById("bakeryBasePrice").value || 0),
       currency: document.getElementById("bakeryCurrency").value || "USD",
       imageUrl: document.getElementById("bakeryImageUrl").value,
-      requirementsText: document.getElementById("bakeryRequirements").value
+      requirementsText: document.getElementById("bakeryRequirements").value,
+      slotDurationMinutes: Number.isFinite(rawDur) ? rawDur : 60
     };
   }
 
@@ -1745,28 +1874,184 @@
     return Number(services[0].id) || 0;
   }
 
-  function saveProvScheduleSlots() {
-    if (!getToken()) {
-      setStatus("Sign in with your seller account to publish slots.");
-      return Promise.resolve();
+  function normalizeHHMM(raw) {
+    var m = String(raw || "")
+      .trim()
+      .match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return "";
+    var h = Number(m[1]);
+    var min = Number(m[2]);
+    if (!Number.isFinite(h) || !Number.isFinite(min) || h > 23 || min > 59) return "";
+    var hs = h < 10 ? "0" + h : String(h);
+    var ms = min < 10 ? "0" + min : String(min);
+    return hs + ":" + ms;
+  }
+
+  function hhmmToMinutes(s) {
+    var n = normalizeHHMM(s);
+    if (!n) return NaN;
+    var p = n.split(":");
+    return Number(p[0]) * 60 + Number(p[1]);
+  }
+
+  function minutesToHHMM(t) {
+    var h = Math.floor(t / 60);
+    var m = t % 60;
+    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+  }
+
+  function parseSlotTimesRaw(raw) {
+    return String(raw || "")
+      .trim()
+      .split(/[\s,;]+/)
+      .map(function (x) {
+        return normalizeHHMM(x);
+      })
+      .filter(Boolean);
+  }
+
+  function generateSlotsFromWindow(dayStart, dayEnd, durationMin) {
+    var a = hhmmToMinutes(dayStart);
+    var b = hhmmToMinutes(dayEnd);
+    if (!(Number.isFinite(a) && Number.isFinite(b)) || durationMin < 5) return [];
+    if (b <= a) return [];
+    var out = [];
+    var step = Math.round(durationMin);
+    for (var t = a; t + step <= b; t += step) {
+      out.push(minutesToHHMM(t));
     }
+    return out;
+  }
+
+  function getProvSlotPick(requireTimesText) {
     var sel = document.getElementById("mbProvSlotService");
     var dateEl = document.getElementById("mbProvSlotDate");
     var timesEl = document.getElementById("mbProvSlotTimes");
     var sid = Number((sel && sel.value) || 0);
     var slotDate = String((dateEl && dateEl.value) || "").trim().slice(0, 10);
-    var raw = String((timesEl && timesEl.value) || "").trim();
-    var slotTimes = raw
-      ? raw.split(/[\s,;]+/).map(function (x) { return x.trim(); }).filter(Boolean)
-      : [];
-    if (!sid || !slotDate || !slotTimes.length) {
-      setStatus("Choose a work card, date, and at least one time (e.g. 09:00, 14:30).");
-      return;
+    if (!sid || !slotDate) {
+      setStatus("Choose a work card and date first.");
+      return null;
     }
-    return api("/api/public/bakery/schedule/slots/upsert", {
+    var raw = String((timesEl && timesEl.value) || "").trim();
+    var slotTimes = parseSlotTimesRaw(raw);
+    if (requireTimesText && !slotTimes.length) {
+      setStatus("Add at least one valid time (24h, e.g. 09:00, 14:30).");
+      return null;
+    }
+    return { sid: sid, slotDate: slotDate, timesEl: timesEl, slotTimes: slotTimes };
+  }
+
+  function loadProvScheduleSlotsFromServer() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account.");
+      return Promise.resolve();
+    }
+    var pick = getProvSlotPick(false);
+    if (!pick) return Promise.resolve();
+    return api(
+      "/api/public/bakery/schedule/slots?serviceId=" +
+        encodeURIComponent(String(pick.sid)) +
+        "&date=" +
+        encodeURIComponent(pick.slotDate)
+    )
+      .then(function (res) {
+        var slots = Array.isArray(res.slots) ? res.slots : [];
+        if (pick.timesEl) pick.timesEl.value = slots.join(", ");
+        setStatus(slots.length ? "Loaded " + slots.length + " slot(s)." : "No slots for that day yet.");
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not load slots");
+      });
+  }
+
+  function appendProvScheduleSlots() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account.");
+      return Promise.resolve();
+    }
+    var pick = getProvSlotPick(true);
+    if (!pick) return Promise.resolve();
+    return api("/api/public/bakery/schedule/slots/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serviceId: pick.sid, slotDate: pick.slotDate, slotTimes: pick.slotTimes })
+    })
+      .then(function (res) {
+        setStatus("Added " + Number(res.inserted || 0) + " slot(s); other times on that day were kept.");
+        return loadAll();
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not append slots");
+      });
+  }
+
+  function removeProvScheduleSlots() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account.");
+      return Promise.resolve();
+    }
+    var sel = document.getElementById("mbProvSlotService");
+    var dateEl = document.getElementById("mbProvSlotDate");
+    var rmEl = document.getElementById("mbProvSlotRemoveTimes");
+    var sid = Number((sel && sel.value) || 0);
+    var slotDate = String((dateEl && dateEl.value) || "").trim().slice(0, 10);
+    var slotTimes = parseSlotTimesRaw(rmEl ? rmEl.value : "");
+    if (!sid || !slotDate || !slotTimes.length) {
+      setStatus("Choose work card, date, and times to remove (comma-separated).");
+      return Promise.resolve();
+    }
+    return api("/api/public/bakery/schedule/slots/remove", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ serviceId: sid, slotDate: slotDate, slotTimes: slotTimes })
+    })
+      .then(function (res) {
+        setStatus("Removed " + Number(res.removed || 0) + " slot(s).");
+        if (rmEl) rmEl.value = "";
+        return loadAll();
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not remove slots");
+      });
+  }
+
+  function fillProvSlotTimesFromDayWindow() {
+    var startEl = document.getElementById("mbProvSlotDayStart");
+    var endEl = document.getElementById("mbProvSlotDayEnd");
+    var durEl = document.getElementById("bakerySlotDurationMinutes");
+    var timesEl = document.getElementById("mbProvSlotTimes");
+    var ds = normalizeHHMM(startEl && startEl.value);
+    var de = normalizeHHMM(endEl && endEl.value);
+    var dur = durEl ? Number(durEl.value) : 60;
+    if (!ds || !de) {
+      setStatus("Enter day window as HH:MM (e.g. 09:00 and 17:00).");
+      return;
+    }
+    if (!Number.isFinite(dur) || dur < 15) {
+      setStatus("Set each appointment length to at least 15 minutes on the work card form.");
+      return;
+    }
+    var slots = generateSlotsFromWindow(ds, de, dur);
+    if (!slots.length) {
+      setStatus("No slots fit in that window with this appointment length.");
+      return;
+    }
+    if (timesEl) timesEl.value = slots.join(", ");
+    setStatus("Filled " + slots.length + " start times. Use Append or Replace entire day when ready.");
+  }
+
+  function saveProvScheduleSlots() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account to publish slots.");
+      return Promise.resolve();
+    }
+    var pick = getProvSlotPick(true);
+    if (!pick) return Promise.resolve();
+    return api("/api/public/bakery/schedule/slots/upsert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serviceId: pick.sid, slotDate: pick.slotDate, slotTimes: pick.slotTimes })
     })
       .then(function (res) {
         setStatus("Saved " + Number(res.inserted || 0) + " slot(s) for " + slotDate + ".");
@@ -2206,7 +2491,6 @@
         api("/api/public/bakery/schedule/slots?serviceId=" + encodeURIComponent(String(sid)) + "&date=" + encodeURIComponent(date))
           .then(function (res) {
             var slots = Array.isArray(res.slots) ? res.slots : [];
-            var shown = slots.length ? slots : ["09:00", "11:00", "13:30", "16:00"];
             var href =
               "./checkout-details.html?flow=service_booking&service=" +
               encodeURIComponent(line) +
@@ -2218,9 +2502,9 @@
               "</strong> · " +
               escapeHtml(date) +
               "</p><p class=\"note\">" +
-              (slots.length ? "Your published slots:" : "No slots published for that day yet — example times:") +
-              " " +
-              escapeHtml(shown.join(", ")) +
+              (slots.length
+                ? "Your published slots: " + escapeHtml(slots.join(", "))
+                : "No slots published for that day yet — add times under <em>Published time slots</em> before clients can book.") +
               '</p><p class="hero-actions"><a class="btn btn-primary" href="' +
               href +
               '">Prepay / reserve (checkout)</a></p>';
@@ -2237,6 +2521,30 @@
     if (mbProvSlotSave) {
       mbProvSlotSave.addEventListener("click", function () {
         saveProvScheduleSlots();
+      });
+    }
+    var mbProvSlotLoad = document.getElementById("mbProvSlotLoad");
+    if (mbProvSlotLoad) {
+      mbProvSlotLoad.addEventListener("click", function () {
+        loadProvScheduleSlotsFromServer();
+      });
+    }
+    var mbProvSlotAppend = document.getElementById("mbProvSlotAppend");
+    if (mbProvSlotAppend) {
+      mbProvSlotAppend.addEventListener("click", function () {
+        appendProvScheduleSlots();
+      });
+    }
+    var mbProvSlotRemoveBtn = document.getElementById("mbProvSlotRemoveBtn");
+    if (mbProvSlotRemoveBtn) {
+      mbProvSlotRemoveBtn.addEventListener("click", function () {
+        removeProvScheduleSlots();
+      });
+    }
+    var mbProvSlotGenDay = document.getElementById("mbProvSlotGenDay");
+    if (mbProvSlotGenDay) {
+      mbProvSlotGenDay.addEventListener("click", function () {
+        fillProvSlotTimesFromDayWindow();
       });
     }
     var mbPrivacyExport = document.getElementById("mbPrivacyExport");

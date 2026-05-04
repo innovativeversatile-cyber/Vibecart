@@ -173,6 +173,61 @@
       return;
     }
 
+    if (flow === "service_booking") {
+      var providerName = String(params.get("provider") || "").trim();
+      var svcName = String(params.get("service") || "").trim();
+      var deposit = String(params.get("deposit") || "0").trim();
+      var payUrl = String(params.get("payUrl") || "").trim();
+      var paymentMethod = String(params.get("paymentMethod") || "card").trim();
+      var bookDate = String(params.get("date") || "").trim();
+      var formMode = document.getElementById("checkoutUserMode");
+      var formGrid = formMode && formMode.closest ? formMode.closest(".admin-grid") : null;
+      if (formGrid) {
+        formGrid.hidden = true;
+      }
+      if (taxDisclosureEl) {
+        taxDisclosureEl.hidden = true;
+      }
+      if (title) {
+        title.textContent = "Service prepay / booking";
+      }
+      if (note) {
+        var bits = [];
+        if (providerName) bits.push(providerName);
+        if (svcName) bits.push(svcName);
+        if (bookDate) bits.push("date " + bookDate);
+        if (deposit && deposit !== "0") bits.push("deposit / amount note: " + deposit);
+        if (paymentMethod) bits.push("payment method: " + paymentMethod);
+        note.textContent =
+          bits.join(" · ") ||
+          "Your provider shared this route so clients can prepay or continue on VibeCart after the booking is accepted.";
+      }
+      if (back) {
+        back.href = "./my-business.html";
+        back.textContent = "Back to My Business";
+      }
+      var payOk = /^https:\/\//i.test(payUrl);
+      if (confirmBtn) {
+        if (payOk) {
+          confirmBtn.textContent = "Open provider payment page";
+          confirmBtn.addEventListener("click", function () {
+            window.open(payUrl, "_blank", "noopener,noreferrer");
+          });
+        } else {
+          confirmBtn.textContent = "Continue in My Business";
+          confirmBtn.addEventListener("click", function () {
+            window.location.assign("./my-business.html");
+          });
+        }
+      }
+      if (statusEl) {
+        statusEl.textContent = payOk
+          ? "Secure prepay opens in a new tab. If you do not have a booking yet, use My Business to send a reservation to this provider first."
+          : "No HTTPS prepay link was included. Sign in on My Business, pick this provider’s offer, choose a published time, and send a reservation — your provider can then accept and enable VibeCart checkout if they use it.";
+      }
+      return;
+    }
+
     if (flow !== "coach") {
       if (title) {
         title.textContent = "External checkout only";

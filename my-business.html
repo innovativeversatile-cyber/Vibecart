@@ -321,9 +321,12 @@
           <input id="bakeryWorkTitle" type="text" placeholder="Offer title (e.g. Wedding cake 3-tier, Bridal glam, Fade &amp; beard)" />
           <input id="bakeryStyleTheme" type="text" placeholder="Style / theme (minimal, floral, luxury…)" />
         </div>
+        <label for="bakerySlotDurationMinutes">Each appointment length (minutes)</label>
+        <p class="note" style="margin:0 0 0.35rem 0">Used when you use “Fill list from window” so start times do not overlap.</p>
         <div class="vc-biz-row">
           <input id="bakeryBasePrice" type="number" min="0" step="0.01" placeholder="Base price" />
           <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
+          <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
           <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
         </div>
         <input type="hidden" id="bakeryEditServiceId" value="0" />
@@ -354,7 +357,7 @@
       <div id="bakeryWorkList" class="vc-work-list"></div>
       <hr style="opacity:.2;margin:1rem 0;" />
       <h3 style="margin:.2rem 0;">Published time slots (what clients see)</h3>
-      <p class="note">Pick one of your saved work cards, a date, and comma-separated times (24h, e.g. <code>09:00, 14:30</code>). This replaces any previous slots for that day on that card.</p>
+      <p class="note">Pick a saved work card and date. Only times you publish here appear to clients (no placeholder times). <strong>Replace entire day</strong> overwrites every slot that day for that card. <strong>Append</strong> adds the listed times without removing others. <strong>Remove</strong> deletes only the times you list. Save your work card first so <em>Slot length</em> is correct for “Fill day”.</p>
       <div class="vc-biz-form">
         <div class="vc-biz-row">
           <label for="mbProvSlotService">Work card</label>
@@ -362,10 +365,22 @@
           <label for="mbProvSlotDate">Date</label>
           <input id="mbProvSlotDate" type="date" />
         </div>
-        <label for="mbProvSlotTimes">Times for that day</label>
+        <div class="vc-biz-row">
+          <label for="mbProvSlotDayStart">Day window start</label>
+          <input id="mbProvSlotDayStart" type="text" inputmode="numeric" placeholder="09:00" maxlength="5" autocomplete="off" />
+          <label for="mbProvSlotDayEnd">Day window end</label>
+          <input id="mbProvSlotDayEnd" type="text" inputmode="numeric" placeholder="17:00" maxlength="5" autocomplete="off" />
+          <button type="button" class="btn btn-secondary" id="mbProvSlotGenDay">Fill list from window</button>
+        </div>
+        <label for="mbProvSlotTimes">Times for that day (comma-separated, 24h)</label>
         <input id="mbProvSlotTimes" type="text" placeholder="09:00, 10:30, 14:00, 16:30" />
+        <label for="mbProvSlotRemoveTimes">Times to remove (comma-separated)</label>
+        <input id="mbProvSlotRemoveTimes" type="text" placeholder="14:00, 15:30" />
         <p class="hero-actions" style="margin-top:0.5rem">
-          <button type="button" class="btn btn-primary" id="mbProvSlotSave">Save slots for this day</button>
+          <button type="button" class="btn btn-secondary" id="mbProvSlotLoad">Load from server</button>
+          <button type="button" class="btn btn-secondary" id="mbProvSlotAppend">Append listed times</button>
+          <button type="button" class="btn btn-secondary" id="mbProvSlotRemoveBtn">Remove listed times</button>
+          <button type="button" class="btn btn-primary" id="mbProvSlotSave">Replace entire day with list</button>
         </p>
       </div>
       <hr style="opacity:.2;margin:1rem 0;" />
@@ -424,7 +439,7 @@
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
   <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-  <script src="./my-business.js?v=20260504mbmedia1" defer></script>
+  <script src="./my-business.js?v=20260504mbdesk1" defer></script>
   <script src="./site-chrome.js?v=20260509chromebrandon1" defer></script>
 </body>
 </html>
