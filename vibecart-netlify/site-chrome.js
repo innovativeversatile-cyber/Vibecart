@@ -66,46 +66,11 @@
     document.body.classList.add("vc-motion-" + mode);
   }
 
-  function isLoggedIn() {
-    try {
-      var token = localStorage.getItem("vibecart-public-auth-token");
-      var user = localStorage.getItem("vibecart-public-auth-user");
-      return Boolean(String(token || "").trim() && String(user || "").trim());
-    } catch {
-      return false;
-    }
-  }
-
   var wrap = document.createElement("div");
   wrap.id = "vcSiteChromeBar";
   wrap.className = "vc-site-chrome-bar";
-  wrap.setAttribute("role", "region");
-  wrap.setAttribute("aria-label", "Site search and inbox");
-
-  var form = document.createElement("form");
-  form.className = "vc-site-chrome-search";
-  form.setAttribute("role", "search");
-  form.setAttribute("aria-label", "Search VibeCart and web");
-
-  var inp = document.createElement("input");
-  inp.type = "search";
-  inp.className = "shop-search-input";
-  inp.placeholder = "Search site + web…";
-  inp.setAttribute("maxlength", "120");
-  inp.setAttribute("autocomplete", "off");
-
-  var btn = document.createElement("button");
-  btn.type = "submit";
-  btn.className = "btn btn-secondary";
-  btn.textContent = "Find";
-
-  form.appendChild(inp);
-  form.appendChild(btn);
-
-  var inbox = document.createElement("a");
-  inbox.className = "btn btn-secondary vc-site-chrome-inbox";
-  inbox.href = "./index.html#communication";
-  inbox.textContent = isLoggedIn() ? "✉ Inbox" : "✉ Inbox (sign in)";
+  wrap.setAttribute("role", "toolbar");
+  wrap.setAttribute("aria-label", "Display preferences");
 
   var luxeBtn = document.createElement("button");
   luxeBtn.type = "button";
@@ -113,19 +78,8 @@
   luxeBtn.setAttribute("aria-pressed", "true");
   luxeBtn.textContent = "Luxury mode";
 
-  wrap.appendChild(form);
-  wrap.appendChild(inbox);
   wrap.appendChild(luxeBtn);
   header.appendChild(wrap);
-
-  form.addEventListener("submit", function (event) {
-    event.preventDefault();
-    var q = String(inp.value || "").trim();
-    if (!q) {
-      return;
-    }
-    window.location.assign("./global-search.html?q=" + encodeURIComponent(q));
-  });
 
   function initLaneScrollRestore() {
     var key = "vibecart-scroll-y:" + String(window.location.pathname || "/");
@@ -334,7 +288,9 @@
       return;
     }
     var nodes = Array.prototype.slice.call(
-      document.querySelectorAll("main section, .hero-card, .card, .shop-folder-card, .pill-card, .settings-card, .command-card")
+      document.querySelectorAll(
+        "main section, main > .vc-biz-card, main > .vc-biz-hero, .hero-card, .card, .shop-folder-card, .pill-card, .settings-card, .command-card"
+      )
     );
     if (!nodes.length) {
       return;

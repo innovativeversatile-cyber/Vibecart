@@ -91,6 +91,13 @@
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.12);
     }
+    .vc-mb-chat-panel {
+      margin-top: 0.85rem;
+      padding: 0.75rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(8, 10, 20, 0.42);
+    }
   </style>
 </head>
 <body class="shops-lane-page vc-my-business-dashboard mb-boot-pending vc-no-brandon">
@@ -169,7 +176,7 @@
     <a class="btn btn-primary" id="mbTopProviderTemplate" href="./service-provider-hub.html">Provider template</a>
   </header>
 
-  <main id="mbMainDashboard" class="section alt shops-lane-main vc-biz-shell">
+  <main id="mbMainDashboard" class="shops-lane-main vc-biz-shell">
     <div id="mbDisclaimerClient" class="vc-mb-disclaimer" hidden data-mb-disclaimer="client">
       <strong>Client disclaimer.</strong> Bookings here are requests until a provider confirms availability and pricing. Prepayment routes are shown when a provider requires a deposit — always read totals before you pay. VibeCart is a marketplace layer, not the salon, bakery, or barbershop itself.
     </div>
@@ -185,14 +192,14 @@
       <span id="mbWebPushNote" class="note" style="display:inline-block;margin-left:0.5rem;max-width:100%;"></span>
     </p>
 
-    <section class="vc-biz-card" data-mb-show="provider" style="margin-top:0;">
+    <div class="vc-biz-card" data-mb-show="provider" style="margin-top:0;">
       <h2 style="margin-top:0;">Your service line</h2>
       <p class="note" id="mbProviderSessionLine">
         Lists and requests below filter to the line you chose at the gate. Use Provider booking template for prepayment copy and links.
       </p>
-    </section>
+    </div>
 
-    <section id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk" style="margin-top:0" tabindex="-1" data-mb-show="client">
+    <div id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk" style="margin-top:0" tabindex="-1" data-mb-show="client">
       <p class="note" style="margin-top:0">
         <button type="button" class="btn btn-secondary" id="mbClientChangeService">← Change service line</button>
       </p>
@@ -234,7 +241,7 @@
         <button type="button" class="btn btn-primary" id="mbClientSubmitReserve" hidden>Send reservation request</button>
       </p>
       <div id="mbClientWaitBanner" class="vc-mb-wait-banner" hidden role="status"></div>
-      <div id="mbClientChatPanel" class="vc-biz-card" style="margin-top:0.85rem; border:1px solid rgba(255,255,255,.12)" hidden>
+      <div id="mbClientChatPanel" class="vc-mb-chat-panel" hidden>
         <h3 style="margin-top:0">Messages with your provider</h3>
         <p class="note" id="mbClientChatHint">Chat opens after your provider accepts this booking.</p>
         <div id="mbClientChatList" class="vc-mb-chat-list"></div>
@@ -250,18 +257,18 @@
           </p>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section id="mb-client-my-bookings" class="vc-biz-card vc-mb-client-bookings" data-mb-show="client" style="margin-top:0.85rem;">
+    <div id="mb-client-my-bookings" class="vc-biz-card vc-mb-client-bookings" data-mb-show="client" style="margin-top:0.85rem;">
       <h2 style="margin-top:0;">Your requests</h2>
       <p class="note">Reservations you sent while signed in. Push and email (when enabled) notify you when the provider responds.</p>
       <p class="hero-actions" style="margin-top:0.35rem;">
         <button type="button" class="btn btn-secondary" id="mbClientBookingsRefresh">Refresh list</button>
       </p>
       <div id="mbClientBookingsList" class="vc-mb-client-bookings-list"></div>
-    </section>
+    </div>
 
-    <section id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
+    <div id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
       <h2 style="margin-top:0;" id="mbBeautySectionTitle">Slots preview</h2>
       <p class="note" id="mbBeautySectionLead">
         Load published times for a date, then open checkout when you are ready to require prepayment.
@@ -295,9 +302,9 @@
         <a id="beautyBookingPrepayRouteBtn" class="btn btn-primary" href="./account-hub.html#bookings">Require prepayment to confirm booking</a>
         <a class="btn btn-secondary" href="./service-provider-hub.html">Provider payment template</a>
       </p>
-    </section>
+    </div>
 
-    <section class="vc-biz-hero" style="margin-top:0.85rem;" data-mb-show="provider">
+    <div class="vc-biz-hero" style="margin-top:0.85rem;" data-mb-show="provider">
       <h1 class="shops-lane-title">Overview</h1>
       <p class="note">Listings, work cards for this service line, and booking requests. Refresh after you publish or change a request.</p>
       <p class="hero-actions">
@@ -305,9 +312,9 @@
         <span class="note" id="bizStatus" aria-live="polite"></span>
       </p>
       <div class="vc-biz-grid" id="bizKpis"></div>
-    </section>
+    </div>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+    <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;" id="mbPortfolioHead">Service portfolio</h2>
       <p class="note" id="mbPortfolioLead">
         Add a work card for the service line you selected at the gate. Clients discover it when it is published (active).
@@ -398,9 +405,9 @@
         <input id="sellerStripeAccountId" type="text" placeholder="acct_1234..." />
         <button class="btn btn-secondary" id="savePayoutAccountBtn" type="button">Save payout account</button>
       </div>
-    </section>
+    </div>
 
-    <section id="mb-provider-bookings" class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+    <div id="mb-provider-bookings" class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Client booking requests</h2>
       <p class="note">Open a request below to see full details, accept or decline, and message the client after you accept — all on this page.</p>
       <article id="mbProvFocusRoot" class="vc-mb-prov-focus" hidden data-booking-id="">
@@ -427,27 +434,27 @@
         </div>
       </article>
       <div id="bakeryBookingList" class="vc-booking-list"></div>
-    </section>
+    </div>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+    <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;">Calendar view (quick schedule)</h2>
       <div id="bakeryCalendarView" class="vc-booking-list"></div>
-    </section>
+    </div>
 
-    <section class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="client">
+    <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="client">
       <h2 style="margin-top:0;">Your data (privacy)</h2>
       <p class="note">Download a summary of booking data linked to your signed-in account, or log a deletion request for human review (we will confirm by email where possible).</p>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" id="mbPrivacyExport">Download data export</button>
         <button type="button" class="btn btn-secondary" id="mbPrivacyDeleteRequest">Request account deletion</button>
       </p>
-    </section>
+    </div>
 
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
   <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
   <script src="./my-business.js?v=20260504mbpush1" defer></script>
-  <script src="./site-chrome.js?v=20260509chromebrandon1" defer></script>
+  <script src="./site-chrome.js?v=20260510chrome2" defer></script>
 </body>
 </html>
