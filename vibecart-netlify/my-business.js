@@ -6,6 +6,16 @@
   var MB_SESS_KEY = "vibecart-mb-unlock-sess-v2";
   /** Provider desk uses VibeCart seller session instead of a device-only password. */
   var MB_VC_PROVIDER_MARKER = "__vc__";
+  /** Citizen desk: browse, book, and manage offers without choosing only client or provider. */
+  var MB_CITIZEN_MARKER = "__citizen__";
+
+  function isClientLikePersona(persona) {
+    return persona === "client" || persona === "citizen";
+  }
+
+  function isProviderDeskConfig(cfg) {
+    return cfg && (cfg.persona === "provider" || cfg.persona === "citizen");
+  }
 
   var SERVICES = [
     { value: "Hair Styling", label: "Hair / hairdresser" },
@@ -208,6 +218,9 @@
       if (o.persona === "client" && o.pwdHash === "__none__") {
         return o;
       }
+      if (o.persona === "citizen" && o.pwdHash === MB_CITIZEN_MARKER && o.salt === MB_CITIZEN_MARKER) {
+        return o;
+      }
       if (o.persona === "provider" && o.pwdHash === MB_VC_PROVIDER_MARKER) {
         return o;
       }
@@ -342,28 +355,35 @@
   function applyDashboard(cfg) {
     var persona = String(cfg.persona || "");
     var service = String(cfg.service || "");
-    document.body.classList.remove("mb-mode-client", "mb-mode-provider");
-    document.body.classList.add(persona === "provider" ? "mb-mode-provider" : "mb-mode-client");
+    document.body.classList.remove("mb-mode-client", "mb-mode-provider", "mb-mode-citizen");
+    if (persona === "provider") {
+      document.body.classList.add("mb-mode-provider");
+    } else if (persona === "citizen") {
+      document.body.classList.add("mb-mode-citizen");
+    } else {
+      document.body.classList.add("mb-mode-client");
+    }
 
     var discC = document.getElementById("mbDisclaimerClient");
     var discP = document.getElementById("mbDisclaimerProvider");
     if (discC) {
-      discC.hidden = persona !== "client";
+      discC.hidden = persona === "provider";
     }
     if (discP) {
-      discP.hidden = persona !== "provider";
+      discP.hidden = persona === "client";
     }
 
     var pill = document.getElementById("mbSessionPill");
     if (pill) {
-      pill.textContent =
-        (persona === "provider" ? "Provider desk" : "Client booking") + " · " + service;
+      var pillRole =
+        persona === "provider" ? "Provider desk" : persona === "citizen" ? "Citizen desk" : "Client booking";
+      pill.textContent = pillRole + " · " + service;
     }
 
     var tpl = document.getElementById("mbTopProviderTemplate");
     if (tpl) {
       tpl.hidden = persona === "client";
-      if (persona === "provider") {
+      if (persona === "provider" || persona === "citizen") {
         tpl.setAttribute("href", "./service-provider-hub.html?service=" + encodeURIComponent(service));
       }
     }
@@ -376,40 +396,71 @@
     }
     var beautyTitle = document.getElementById("mbBeautySectionTitle");
     var beautyLead = document.getElementById("mbBeautySectionLead");
-    if (persona === "provider" && beautyTitle) {
+    if ((persona === "provider" || persona === "citizen") && beautyTitle) {
       beautyTitle.textContent = "Slots · " + service;
     }
-    if (persona === "provider" && beautyLead) {
+    if ((persona === "provider" || persona === "citizen") && beautyLead) {
       beautyLead.textContent =
         "Preview published times for " + service + ". Add a matching work card below if nothing appears for your dates.";
     }
 
     var provLine = document.getElementById("mbProviderSessionLine");
-    if (provLine && persona === "provider") {
+    if (provLine && (persona === "provider" || persona === "citizen")) {
       provLine.textContent =
         "Dashboard lists are filtered to " + service + ". Save payout settings once; publish work cards to go live.";
     }
     var portHead = document.getElementById("mbPortfolioHead");
     var portLead = document.getElementById("mbPortfolioLead");
-    if (persona === "provider" && portHead) {
+    if ((persona === "provider" || persona === "citizen") && portHead) {
       portHead.textContent = "Service portfolio · " + service;
     }
-    if (persona === "provider" && portLead) {
+    if ((persona === "provider" || persona === "citizen") && portLead) {
       portLead.textContent =
         "Create or edit offers tagged for this line. Use Pause / Relist on a card to control whether clients can book it.";
     }
 
-    document.title = (persona === "provider" ? "Provider" : "Client") + " · " + service + " · My Business · VibeCart";
+    document.title =
+      (persona === "provider" ? "Provider" : persona === "citizen" ? "Citizen" : "Client") +
+      " · " +
+      service +
+      " · My Business · VibeCart";
 
     var pushRow = document.getElementById("mbWebPushRow");
     if (pushRow) {
       pushRow.hidden = !getToken();
     }
 
+    var signHint = document.getElementById("mbClientSigninHint");
+    if (signHint && persona === "citizen") {
+      signHint.textContent =
+        "Sign in to book, message providers, or publish offers. Buyer-only accounts still use the booking desk; seller tools appear when your account has the seller role.";
+    } else if (signHint && persona === "client") {
+      signHint.textContent =
+        "Reservations require a signed-in VibeCart account so we can notify you, show your requests below, and unlock chat after acceptance.";
+    }
+
     if (persona === "client") {
       clearProviderDeskPoll();
       disconnectMbProviderDeskWs();
       initClientServiceDesk(service);
+    } else if (persona === "citizen") {
+      initClientServiceDesk(service);
+      refreshMbSessionUser()
+        .then(function () {
+          return api("/api/public/auth/session");
+        })
+        .then(function (res) {
+          if (isSellerSessionPayload(res)) {
+            connectMbProviderDeskWs();
+          } else {
+            disconnectMbProviderDeskWs();
+            clearProviderDeskPoll();
+          }
+        })
+        .catch(function () {
+          disconnectMbProviderDeskWs();
+          clearProviderDeskPoll();
+        });
     } else {
       clearClientPoll();
       disconnectMbClientChatWs();
@@ -462,7 +513,7 @@
   function scrollToBeautyHashIfAllowed(cfg) {
     var raw = String(location.hash || "").replace(/\/$/, "");
     if (raw !== "#beauty-services" && raw !== "#mb-client-service-desk") return;
-    if (cfg && cfg.persona !== "client") return;
+    if (cfg && !isClientLikePersona(cfg.persona)) return;
     var el =
       raw === "#mb-client-service-desk"
         ? document.getElementById("mb-client-service-desk")
@@ -493,9 +544,12 @@
     clientWizardStep = 0;
     clientSelectedSlot = "";
     clientActiveBookingId = 0;
+    var prevCfg = loadMbConfig();
+    var prevPersona = prevCfg && prevCfg.persona ? String(prevCfg.persona) : "client";
     clearMbConfig();
     clearSessionUnlock();
-    draftPersona = "client";
+    draftPersona =
+      prevPersona === "provider" ? "provider" : prevPersona === "citizen" ? "citizen" : "client";
     draftService = "";
     document.body.classList.add("mb-boot-pending");
     var main = document.getElementById("mbMainDashboard");
@@ -587,7 +641,7 @@
 
   function loadClientDashboard() {
     var cfg = loadMbConfig();
-    if (!cfg || cfg.persona !== "client" || !isSessionUnlocked(cfg.persona, cfg.service)) {
+    if (!cfg || !isClientLikePersona(cfg.persona) || !isSessionUnlocked(cfg.persona, cfg.service)) {
       return Promise.resolve();
     }
     return Promise.all([
@@ -798,7 +852,7 @@
       }
       if (!getToken()) return;
       var cfg = loadMbConfig();
-      if (!cfg || cfg.persona !== "provider" || !isSessionUnlocked(cfg.persona, cfg.service)) return;
+      if (!cfg || !isProviderDeskConfig(cfg) || !isSessionUnlocked(cfg.persona, cfg.service)) return;
       api("/api/public/bakery/bookings/mine")
         .then(function (res) {
           var bookings = Array.isArray(res.bookings) ? res.bookings : [];
@@ -820,7 +874,7 @@
     clearProviderDeskPoll();
     if (!getToken()) return;
     var cfg = loadMbConfig();
-    if (!cfg || cfg.persona !== "provider" || !isSessionUnlocked(cfg.persona, cfg.service)) return;
+    if (!cfg || !isProviderDeskConfig(cfg) || !isSessionUnlocked(cfg.persona, cfg.service)) return;
     var proto = location.protocol === "https:" ? "wss" : "ws";
     var url = proto + "://" + location.host + "/ws/bakery-provider-desk?token=" + encodeURIComponent(getToken());
     var ws;
@@ -1166,7 +1220,12 @@
     if (s) s.hidden = false;
     var echo = document.getElementById("mbPersonaEcho");
     if (echo) {
-      echo.textContent = draftPersona === "provider" ? "Service provider" : "Client";
+      echo.textContent =
+        draftPersona === "provider"
+          ? "Service provider"
+          : draftPersona === "citizen"
+          ? "Citizen"
+          : "Client";
     }
     var svcLab = document.getElementById("mbStepServiceLabel");
     if (svcLab) {
@@ -1197,12 +1256,18 @@
     if (s) s.hidden = false;
     var echo = document.getElementById("mbUnlockEcho");
     var clientNoPwd = cfg && cfg.persona === "client" && cfg.pwdHash === "__none__";
+    var citizenNoPwd = cfg && cfg.persona === "citizen" && cfg.pwdHash === MB_CITIZEN_MARKER;
     var vcProvider = cfg && cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER;
+    var skipPwdUnlock = !!clientNoPwd || !!citizenNoPwd;
     if (echo) {
       if (clientNoPwd) {
         echo.textContent = getToken()
           ? "You're signed in — tap Continue once to open your client desk for " + cfg.service + "."
           : "Continue to your client booking tools for " + cfg.service + ".";
+      } else if (citizenNoPwd) {
+        echo.textContent = getToken()
+          ? "You're signed in — tap Continue once to open your citizen desk for " + cfg.service + "."
+          : "Continue to browse, book, or manage offers for " + cfg.service + ".";
       } else if (vcProvider) {
         echo.textContent = getToken()
           ? "You're signed in — tap Continue to confirm your seller account for " + cfg.service + "."
@@ -1210,7 +1275,7 @@
       } else {
         echo.textContent =
           "Enter the password for your " +
-          (cfg.persona === "provider" ? "provider" : "client") +
+          (cfg.persona === "provider" ? "provider" : cfg.persona === "citizen" ? "citizen" : "client") +
           " dashboard · " +
           cfg.service +
           ".";
@@ -1221,9 +1286,9 @@
     var pwRow = document.getElementById("mbUnlockPwRow");
     var quick = document.getElementById("mbUnlockQuick");
     var unlockSubmit = document.getElementById("mbUnlockSubmit");
-    if (pwRow) pwRow.hidden = !!clientNoPwd || !!vcProvider;
-    if (quick) quick.hidden = !clientNoPwd;
-    if (unlockSubmit) unlockSubmit.hidden = !!clientNoPwd;
+    if (pwRow) pwRow.hidden = !!skipPwdUnlock || !!vcProvider;
+    if (quick) quick.hidden = !skipPwdUnlock;
+    if (unlockSubmit) unlockSubmit.hidden = !!skipPwdUnlock;
     if (unlockSubmit) {
       unlockSubmit.textContent = vcProvider ? "Continue" : "Enter dashboard";
     }
@@ -1239,6 +1304,10 @@
       .then(function (res) {
         if (!res || !res.user) return false;
         if (cfg.persona === "client" && cfg.pwdHash === "__none__") {
+          setSessionUnlocked(cfg.persona, cfg.service);
+          return true;
+        }
+        if (cfg.persona === "citizen" && cfg.pwdHash === MB_CITIZEN_MARKER) {
           setSessionUnlocked(cfg.persona, cfg.service);
           return true;
         }
@@ -1310,6 +1379,11 @@
         draftPersona = "provider";
         showServiceStep();
       });
+    document.getElementById("mbPickCitizen") &&
+      document.getElementById("mbPickCitizen").addEventListener("click", function () {
+        draftPersona = "citizen";
+        showServiceStep();
+      });
 
     document.getElementById("mbBackToPersona") &&
       document.getElementById("mbBackToPersona").addEventListener("click", function () {
@@ -1326,6 +1400,18 @@
           saveMbConfig(cfgClient);
           setSessionUnlocked(cfgClient.persona, cfgClient.service);
           revealMainAndLoad(cfgClient);
+          return;
+        }
+        if (draftPersona === "citizen") {
+          var cfgCit = {
+            persona: "citizen",
+            service: draftService,
+            pwdHash: MB_CITIZEN_MARKER,
+            salt: MB_CITIZEN_MARKER
+          };
+          saveMbConfig(cfgCit);
+          setSessionUnlocked(cfgCit.persona, cfgCit.service);
+          revealMainAndLoad(cfgCit);
           return;
         }
         showVcAuthStep();
@@ -1378,7 +1464,11 @@
     document.getElementById("mbUnlockQuick") &&
       document.getElementById("mbUnlockQuick").addEventListener("click", function () {
         var cfg = loadMbConfig();
-        if (!cfg || cfg.persona !== "client" || cfg.pwdHash !== "__none__") return;
+        var okQuick =
+          cfg &&
+          ((cfg.persona === "client" && cfg.pwdHash === "__none__") ||
+            (cfg.persona === "citizen" && cfg.pwdHash === MB_CITIZEN_MARKER));
+        if (!okQuick) return;
         setSessionUnlocked(cfg.persona, cfg.service);
         setGateStatus("mbGateStatusUnlock", "Opening…", true);
         revealMainAndLoad(cfg);
@@ -1394,6 +1484,12 @@
         }
         if (cfg.persona === "client" && cfg.pwdHash === "__none__") {
           setSessionUnlocked(cfg.persona, cfg.service);
+          revealMainAndLoad(cfg);
+          return;
+        }
+        if (cfg.persona === "citizen" && cfg.pwdHash === MB_CITIZEN_MARKER) {
+          setSessionUnlocked(cfg.persona, cfg.service);
+          setGateStatus("mbGateStatusUnlock", "Welcome back.", true);
           revealMainAndLoad(cfg);
           return;
         }
@@ -2347,6 +2443,45 @@
       return loadClientDashboard().catch(function (err) {
         setStatus("Could not refresh: " + err.message);
       });
+    }
+    if (cfg.persona === "citizen") {
+      setStatus("");
+      var lineCit = String(cfg.service || "").trim();
+      return Promise.all([
+        loadDiscoverForClientLine(lineCit),
+        api("/api/public/bakery/bookings/as-buyer").catch(function () {
+          return { bookings: [] };
+        }),
+        api("/api/public/seller/listings").catch(function () {
+          return { listings: [] };
+        }),
+        api("/api/public/bakery/services/mine").catch(function () {
+          return { services: [] };
+        }),
+        api("/api/public/bakery/bookings/mine").catch(function () {
+          return { bookings: [] };
+        })
+      ])
+        .then(function (results) {
+          renderClientMyBookings(results[1].bookings || []);
+          var svcAll = Array.isArray(results[3].services) ? results[3].services : [];
+          var bookAll = Array.isArray(results[4].bookings) ? results[4].bookings : [];
+          var svcFiltered = filterServicesForLine(svcAll, lineCit);
+          var bookFiltered = filterBookingsForLine(bookAll, lineCit, svcFiltered);
+          mbLastProviderServices = svcFiltered;
+          renderKpis(results[2].listings || [], svcFiltered, bookFiltered);
+          renderServices(svcFiltered);
+          renderProvSlotServiceSelect(mbLastProviderServices);
+          renderBookings(bookFiltered);
+          renderCalendar(bookFiltered);
+          if (providerFocusBookingId) {
+            loadProviderFocus(providerFocusBookingId);
+          }
+          setStatus("Citizen desk updated · " + lineCit);
+        })
+        .catch(function (err) {
+          setStatus("Could not refresh: " + err.message);
+        });
     }
     setStatus("Loading My Business…");
     var line = String(cfg.service || "").trim();
