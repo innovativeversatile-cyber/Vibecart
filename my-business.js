@@ -119,7 +119,9 @@
         return;
       }
       if (!vapidPublicKey) {
-        setNote("Web Push is not configured on this server.");
+        setNote(
+          "Web Push is off until the API has VAPID keys. On Railway (Node service), set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY from `npx web-push generate-vapid-keys`, redeploy the API, then hard-refresh this page."
+        );
         return;
       }
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {

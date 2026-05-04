@@ -221,7 +221,9 @@
         if (enableBtn && token) {
           enableBtn.addEventListener("click", function () {
             if (!vapidPublicKey) {
-              setPushStatus("Web Push is not configured on this server yet.");
+              setPushStatus(
+                "Web Push needs VAPID keys on the API. Railway → Node service → add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY (npx web-push generate-vapid-keys), redeploy, then refresh."
+              );
               return;
             }
             setPushStatus("Working…");
