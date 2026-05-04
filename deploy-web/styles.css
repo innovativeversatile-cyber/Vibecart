@@ -6646,6 +6646,11 @@ body.mb-mode-provider [data-mb-show="client"] {
   display: none !important;
 }
 
+/* Citizen desk: hide provider tools until session is seller/service_provider (see my-business.js). */
+body.mb-mode-citizen:not(.mb-citizen-seller-surface) [data-mb-show="provider"] {
+  display: none !important;
+}
+
 body.vc-my-business-dashboard #beauty-services,
 body.vc-my-business-dashboard #mb-client-service-desk {
   scroll-margin-top: 5.5rem;

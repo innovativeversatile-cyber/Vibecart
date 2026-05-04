@@ -357,7 +357,7 @@
   function applyDashboard(cfg) {
     var persona = String(cfg.persona || "");
     var service = String(cfg.service || "");
-    document.body.classList.remove("mb-mode-client", "mb-mode-provider", "mb-mode-citizen");
+    document.body.classList.remove("mb-mode-client", "mb-mode-provider", "mb-mode-citizen", "mb-citizen-seller-surface");
     if (persona === "provider") {
       document.body.classList.add("mb-mode-provider");
     } else if (persona === "citizen") {
@@ -384,9 +384,13 @@
 
     var tpl = document.getElementById("mbTopProviderTemplate");
     if (tpl) {
-      tpl.hidden = persona === "client";
-      if (persona === "provider" || persona === "citizen") {
-        tpl.setAttribute("href", "./service-provider-hub.html?service=" + encodeURIComponent(service));
+      tpl.setAttribute("href", "./service-provider-hub.html?service=" + encodeURIComponent(service));
+      if (persona === "provider") {
+        tpl.hidden = false;
+      } else if (persona === "citizen") {
+        tpl.hidden = true;
+      } else {
+        tpl.hidden = true;
       }
     }
 
@@ -452,14 +456,22 @@
           return api("/api/public/auth/session");
         })
         .then(function (res) {
+          var tpl2 = document.getElementById("mbTopProviderTemplate");
           if (isSellerSessionPayload(res)) {
+            document.body.classList.add("mb-citizen-seller-surface");
+            if (tpl2) tpl2.hidden = false;
             connectMbProviderDeskWs();
           } else {
+            document.body.classList.remove("mb-citizen-seller-surface");
+            if (tpl2) tpl2.hidden = true;
             disconnectMbProviderDeskWs();
             clearProviderDeskPoll();
           }
         })
         .catch(function () {
+          document.body.classList.remove("mb-citizen-seller-surface");
+          var tpl2 = document.getElementById("mbTopProviderTemplate");
+          if (tpl2) tpl2.hidden = true;
           disconnectMbProviderDeskWs();
           clearProviderDeskPoll();
         });
@@ -2285,11 +2297,18 @@
       body: JSON.stringify({ serviceId: pick.sid, slotDate: pick.slotDate, slotTimes: pick.slotTimes })
     })
       .then(function (res) {
-        setStatus("Saved " + Number(res.inserted || 0) + " slot(s) for " + slotDate + ".");
+        setStatus("Saved " + Number(res.inserted || 0) + " slot(s) for " + pick.slotDate + ".");
         return loadAll();
       })
       .catch(function (err) {
-        setStatus(err.message || "Could not save slots");
+        var m = String((err && err.message) || err || "");
+        if (m === "ROLE_FORBIDDEN" || m.indexOf("ROLE_FORBIDDEN") >= 0) {
+          setStatus(
+            "Publishing slots requires a seller or service provider account. Sign in with seller access (lane passport), not buyer-only."
+          );
+        } else {
+          setStatus(m || "Could not save slots");
+        }
       });
   }
 
