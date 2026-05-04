@@ -3406,6 +3406,50 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   margin-bottom: 1rem;
 }
 
+/* Lane tools (everywhere except the homepage layout): one strong frame on <main>,
+   inner <section> blocks read as simple rows — no second “hero” gradient stack. */
+body.shops-lane-page main.shops-lane-main {
+  padding: 1rem 1.05rem 1.35rem;
+  border-radius: 16px;
+}
+
+body.shops-lane-page main.shops-lane-main > section {
+  background: rgba(10, 12, 26, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+  margin-top: 0.75rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  background-image: none;
+  animation: none;
+}
+
+body.shops-lane-page main.shops-lane-main > section:nth-of-type(even) {
+  background: rgba(12, 10, 28, 0.74);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+body.shops-lane-page main.shops-lane-main > .shop-bubble-grid,
+body.shops-lane-page main.shops-lane-main > .hero-actions,
+body.shops-lane-page main.shops-lane-main > .note,
+body.shops-lane-page main.shops-lane-main > .admin-grid,
+body.shops-lane-page main.shops-lane-main > .vc-biz-shell {
+  margin-top: 0.65rem;
+}
+
+/* Deeper nesting: never stack the full lane gradient twice. */
+body.shops-lane-page main.shops-lane-main section section,
+body.shops-lane-page main.shops-lane-main .section .section,
+body.shops-lane-page main.shops-lane-main .section .section.alt {
+  background: rgba(8, 10, 18, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.55rem;
+  background-image: none;
+  animation: none;
+}
+
 .vc-fashion-assist {
   margin: 0 0 1rem;
   padding: 0.9rem 1rem;
