@@ -129,12 +129,71 @@
     try {
       var raw = localStorage.getItem("vibecart-public-auth-user");
       var parsed = raw ? JSON.parse(raw) : null;
-      if (parsed && parsed.fullName) return String(parsed.fullName).trim();
-      if (parsed && parsed.email) return String(parsed.email).split("@")[0];
+      if (parsed && parsed.fullName) {
+        var n = String(parsed.fullName).trim();
+        if (n) {
+          localStorage.setItem("vibecart-last-display-name", n);
+          return n;
+        }
+      }
+      if (parsed && parsed.email) {
+        var localPart = String(parsed.email).split("@")[0];
+        if (localPart) {
+          localStorage.setItem("vibecart-last-display-name", localPart);
+          return localPart;
+        }
+      }
+      var cached = String(localStorage.getItem("vibecart-last-display-name") || "").trim();
+      if (cached) return cached;
     } catch {
       /* ignore */
     }
     return "friend";
+  }
+
+  function backfillDisplayNameFromSession() {
+    try {
+      var token = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+      if (!token) {
+        return Promise.resolve("");
+      }
+      var headers = { Authorization: "Bearer " + token };
+      if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+        headers = window.VibeCartSessionDevice.authHeaders(token);
+      }
+      return fetch("/api/public/auth/session", { headers: headers })
+        .then(function (res) {
+          return res.json().catch(function () {
+            return {};
+          });
+        })
+        .then(function (body) {
+          if (!body || !body.ok || !body.user) {
+            return "";
+          }
+          try {
+            localStorage.setItem("vibecart-public-auth-user", JSON.stringify(body.user));
+          } catch {
+            /* ignore */
+          }
+          var refreshed = String(body.user.fullName || body.user.email || "")
+            .split("@")[0]
+            .trim();
+          if (refreshed) {
+            try {
+              localStorage.setItem("vibecart-last-display-name", refreshed);
+            } catch {
+              /* ignore */
+            }
+          }
+          return refreshed;
+        })
+        .catch(function () {
+          return "";
+        });
+    } catch {
+      return Promise.resolve("");
+    }
   }
 
   function hardPressVibrate() {
@@ -1343,6 +1402,14 @@
     (function introOnce() {
       try {
         var returningName = getUserDisplayName();
+        if (returningName === "friend") {
+          backfillDisplayNameFromSession().then(function (name) {
+            if (!name) return;
+            setMicro("Welcome back " + name + ". Brandon is ready to help. What are we looking for today?");
+            forceMicroVisibleUntil = Date.now() + 12000;
+            refreshMicroVisibility();
+          });
+        }
         var seenBefore = localStorage.getItem("vibecart-mobile-first-seen-v1");
         function firstPromptStillActive() {
           try {

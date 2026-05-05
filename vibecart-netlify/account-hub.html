@@ -343,7 +343,8 @@
       }
       try {
         var params = new URLSearchParams(window.location.search || "");
-        if (params.get("plan_locked") !== "1") {
+        var shouldHydrateOnLoad = params.get("plan_locked") === "1" || readPaidPlansHub().length === 0;
+        if (!shouldHydrateOnLoad) {
           return;
         }
         var token = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
