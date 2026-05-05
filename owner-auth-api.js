@@ -7122,7 +7122,12 @@ async function handlePublicCheckoutRecover(req, res) {
     });
   }
   const metadata = checkoutSession.metadata || {};
-  const flow = String(metadata.flow || "").trim().toLowerCase();
+  const normalizedPlan = String(metadata.plan || "").trim().toLowerCase();
+  const normalizedAddonPlan = String(metadata.addonPlan || "").trim().toLowerCase();
+  const hasCoachPlanHint = new Set(["starter", "plus", "pro", "ai-home"]).has(normalizedPlan)
+    || new Set(["starter", "plus", "pro", "ai-home"]).has(normalizedAddonPlan);
+  const metadataFlow = String(metadata.flow || "").trim().toLowerCase();
+  const flow = metadataFlow === "coach" || (!metadataFlow && hasCoachPlanHint) ? "coach" : metadataFlow;
   if (flow !== "coach") {
     return sendJson(res, 400, {
       ok: false,
@@ -7141,11 +7146,14 @@ async function handlePublicCheckoutRecover(req, res) {
     .toLowerCase();
   const ownUserId = Number(acct.user_id);
   if (metaUser && metaUser !== ownUserId) {
-    return sendJson(res, 403, {
-      ok: false,
-      code: "NOT_YOUR_PURCHASE",
-      message: "This payment is tied to a different VibeCart account."
-    });
+    const canTrustEmailMatch = stripeEmail && acctEmail && stripeEmail === acctEmail;
+    if (!canTrustEmailMatch) {
+      return sendJson(res, 403, {
+        ok: false,
+        code: "NOT_YOUR_PURCHASE",
+        message: "This payment is tied to a different VibeCart account."
+      });
+    }
   }
   if (!metaUser) {
     if (!stripeEmail || stripeEmail !== acctEmail) {
