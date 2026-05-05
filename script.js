@@ -3646,7 +3646,13 @@ function initPublicAccountAuth() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password }))
       });
-      const body = await response.json().catch(() => ({}));
+      const raw = await response.text();
+      let body = {};
+      try {
+        body = raw ? JSON.parse(raw) : {};
+      } catch {
+        body = {};
+      }
       if (response.status === 401) {
         const cur = getStoredPublicAuth();
         const curEmail = cur && cur.user && cur.user.email ? String(cur.user.email).toLowerCase() : "";
@@ -3654,15 +3660,28 @@ function initPublicAccountAuth() {
           isPassportUiLoggedIn() && curEmail && curEmail !== email
             ? " Another account is already active on this device — tap Sign out, then sign in with this email."
             : "";
-        setAuthStatus((authT("accountPassport.err401") || "Sign in failed.") + hint);
+        const msg401 = String((body && body.message) || "").trim();
+        setAuthStatus(((msg401 || authT("accountPassport.err401")) || "Sign in failed.") + hint);
         return;
       }
       if (response.status === 403) {
-        setAuthStatus(authT("accountPassport.err403"));
+        setAuthStatus(String((body && body.message) || "").trim() || authT("accountPassport.err403"));
         return;
       }
       if (!response.ok || !body.ok || !body.token) {
-        setAuthStatus(authT("accountPassport.errGeneric"));
+        if (!body || Object.keys(body).length === 0) {
+          if (/^\s*</.test(String(raw || ""))) {
+            setAuthStatus(
+              "Could not reach sign-in API (received a web page). Open the real VibeCart domain and retry."
+            );
+            return;
+          }
+          setAuthStatus("No response from sign-in API. Check your connection and try again.");
+          return;
+        }
+        var detailMsg = String((body && body.message) || "").trim();
+        var detailCode = String((body && body.code) || "").trim();
+        setAuthStatus(detailMsg || detailCode || authT("accountPassport.errGeneric"));
         return;
       }
       persistPublicAuth(body.token, body.user);
