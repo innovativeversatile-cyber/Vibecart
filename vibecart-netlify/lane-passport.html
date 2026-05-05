@@ -74,14 +74,15 @@
 
             <div class="vc-passport-role-inline">
               <span data-i18n="accountPassport.signingUpAs">Signing up as</span>
-              <strong id="vcAuthRoleLabel">Buyer</strong>
+              <strong id="vcAuthRoleLabel">Citizen</strong>
               <div class="vc-passport-role-switch" role="group" aria-label="Account role switch">
-                <button type="button" class="btn btn-secondary vc-passport-role-option is-active" id="vcAuthRoleBuyer">Buyer</button>
+                <button type="button" class="btn btn-secondary vc-passport-role-option is-active" id="vcAuthRoleCitizen">Citizen</button>
+                <button type="button" class="btn btn-secondary vc-passport-role-option" id="vcAuthRoleBuyer">Buyer</button>
                 <button type="button" class="btn btn-secondary vc-passport-role-option" id="vcAuthRoleSeller">Seller</button>
               </div>
             </div>
             <p id="vcAuthSellerNote" class="note hidden" data-i18n="accountPassport.sellerNote"></p>
-            <input type="hidden" id="vcAuthRole" value="buyer" />
+            <input type="hidden" id="vcAuthRole" value="citizen" />
 
             <form id="vcAuthFormCreate" class="vc-passport-form" autocomplete="on" novalidate>
               <div class="ai-grid vc-passport-fields">
@@ -129,6 +130,12 @@
             <p class="note" data-i18n="accountPassport.loginLead">Use the email and password from your passport.</p>
             <form id="vcAuthFormLogin" class="vc-passport-form" autocomplete="on" novalidate>
               <div class="ai-grid vc-passport-fields">
+                <label for="vcAuthLoginRole">Sign in as</label>
+                <select id="vcAuthLoginRole" name="loginRole" autocomplete="off">
+                  <option value="citizen">Citizen</option>
+                  <option value="buyer">Buyer</option>
+                  <option value="seller">Seller</option>
+                </select>
                 <label for="vcAuthLoginEmail" data-i18n="accountPassport.email">Email</label>
                 <input id="vcAuthLoginEmail" name="email" type="email" autocomplete="email" required />
 

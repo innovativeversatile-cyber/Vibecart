@@ -669,6 +669,41 @@
     });
   }
 
+  function autoRecoverCheckoutSessionFromUrl(params) {
+    if (!params || !params.sessionId || String(params.flow || "").toLowerCase() !== "coach") {
+      return Promise.resolve(false);
+    }
+    var sid = String(params.sessionId || "").trim();
+    if (!/^cs_[a-zA-Z0-9_]+$/.test(sid)) {
+      return Promise.resolve(false);
+    }
+    var token = getPublicAuthToken();
+    var headers = { Accept: "application/json" };
+    if (token) {
+      headers =
+        window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function"
+          ? window.VibeCartSessionDevice.authHeaders(token)
+          : { Authorization: "Bearer " + token };
+      headers.Accept = "application/json";
+    }
+    return fetch("/api/public/payments/checkout/recover?session_id=" + encodeURIComponent(sid), {
+      method: "GET",
+      credentials: "same-origin",
+      headers: headers
+    })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return {};
+        });
+      })
+      .then(function (body) {
+        return Boolean(body && body.ok);
+      })
+      .catch(function () {
+        return false;
+      });
+  }
+
   function runWorkspaceInit(
     params,
     title,
@@ -911,14 +946,16 @@
       }
       go(merged);
     }
-    if (getPublicAuthToken()) {
-      hydrateCoachFulfillmentFromServer().finally(function () {
-        finishFromStoredPlans();
-      });
-      return;
-    }
-    mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
-    finishFromStoredPlans();
+    autoRecoverCheckoutSessionFromUrl(params).finally(function () {
+      if (getPublicAuthToken()) {
+        hydrateCoachFulfillmentFromServer().finally(function () {
+          finishFromStoredPlans();
+        });
+        return;
+      }
+      mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
+      finishFromStoredPlans();
+    });
   }
 
   if (document.readyState === "loading") {

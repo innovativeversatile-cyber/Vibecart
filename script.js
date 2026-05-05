@@ -3398,22 +3398,27 @@ async function refreshPublicSessionOnLoad() {
 
 function refreshAccountPassportLabels() {
   const roleInput = document.getElementById("vcAuthRole");
-  const seller = String(roleInput?.value || "buyer") === "seller";
+  const roleNow = String(roleInput?.value || "citizen");
+  const seller = roleNow === "seller";
   const roleLabel = document.getElementById("vcAuthRoleLabel");
   const sellerNote = document.getElementById("vcAuthSellerNote");
-  const toggleRoleBtn = document.getElementById("vcAuthToggleRole");
+  const roleCitizenBtn = document.getElementById("vcAuthRoleCitizen");
+  const roleBuyerBtn = document.getElementById("vcAuthRoleBuyer");
+  const roleSellerBtn = document.getElementById("vcAuthRoleSeller");
   const countryNote = document.getElementById("vcAuthCountryNote");
   if (roleLabel) {
-    roleLabel.textContent = seller ? authT("accountPassport.roleSellerShort") : authT("accountPassport.roleBuyerShort");
+    roleLabel.textContent = seller
+      ? "Seller"
+      : roleNow === "buyer"
+        ? "Buyer"
+        : "Citizen";
   }
   if (sellerNote) {
     sellerNote.classList.toggle("hidden", !seller);
   }
-  if (toggleRoleBtn) {
-    toggleRoleBtn.textContent = seller
-      ? authT("accountPassport.switchToBuyer")
-      : authT("accountPassport.switchToSeller");
-  }
+  roleCitizenBtn?.classList.toggle("is-active", roleNow === "citizen");
+  roleBuyerBtn?.classList.toggle("is-active", roleNow === "buyer");
+  roleSellerBtn?.classList.toggle("is-active", roleNow === "seller");
   if (countryNote) {
     countryNote.textContent = authT("accountPassport.countryAuto");
   }
@@ -3438,7 +3443,10 @@ function initPublicAccountAuth() {
   const btnCreate = document.getElementById("vcAuthSubmitCreate");
   const btnLogin = document.getElementById("vcAuthSubmitLogin");
   const btnLogout = document.getElementById("vcAuthLogout");
-  const toggleRoleBtn = document.getElementById("vcAuthToggleRole");
+  const roleCitizenBtn = document.getElementById("vcAuthRoleCitizen");
+  const roleBuyerBtn = document.getElementById("vcAuthRoleBuyer");
+  const roleSellerBtn = document.getElementById("vcAuthRoleSeller");
+  const loginRoleSelect = document.getElementById("vcAuthLoginRole");
   const journeyInput = document.getElementById("vcAuthJourney");
   const journeyPassportBtn = document.getElementById("vcAuthJourneyPassport");
   const journeyAccountBtn = document.getElementById("vcAuthJourneyAccount");
@@ -3514,11 +3522,16 @@ function initPublicAccountAuth() {
     refreshJourneyUi();
   });
 
-  toggleRoleBtn?.addEventListener("click", () => {
-    const nowSeller = String(roleInput?.value || "buyer") === "seller";
-    if (roleInput) {
-      roleInput.value = nowSeller ? "buyer" : "seller";
-    }
+  roleCitizenBtn?.addEventListener("click", () => {
+    if (roleInput) roleInput.value = "citizen";
+    refreshAccountPassportLabels();
+  });
+  roleBuyerBtn?.addEventListener("click", () => {
+    if (roleInput) roleInput.value = "buyer";
+    refreshAccountPassportLabels();
+  });
+  roleSellerBtn?.addEventListener("click", () => {
+    if (roleInput) roleInput.value = "seller";
     refreshAccountPassportLabels();
   });
 
@@ -3529,7 +3542,7 @@ function initPublicAccountAuth() {
     }
   }
   if (roleInput) {
-    roleInput.value = "buyer";
+    roleInput.value = "citizen";
   }
   if (journeyInput && !journeyInput.value) {
     journeyInput.value = "passport";
@@ -3563,7 +3576,8 @@ function initPublicAccountAuth() {
     const fullName = String(document.getElementById("vcAuthFullName")?.value || "").trim();
     const email = String(document.getElementById("vcAuthEmail")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("vcAuthPassword")?.value || "");
-    const role = String(roleInput?.value || "buyer");
+    const roleChoice = String(roleInput?.value || "citizen").toLowerCase();
+    const role = roleChoice === "seller" ? "seller" : "buyer";
     const journey = String(journeyInput?.value || "passport").toLowerCase() === "account" ? "account" : "passport";
     const countryCode = String(country?.value || "ZA").toUpperCase();
     if (fullName.length < 2 || !email || password.length < 8 || countryCode.length !== 2) {
@@ -3635,6 +3649,8 @@ function initPublicAccountAuth() {
     setAuthStatus("");
     const email = String(document.getElementById("vcAuthLoginEmail")?.value || "").trim().toLowerCase();
     const password = String(document.getElementById("vcAuthLoginPassword")?.value || "");
+    const loginRoleChoice = String(loginRoleSelect?.value || "citizen").toLowerCase();
+    const loginRole = loginRoleChoice === "seller" ? "seller" : loginRoleChoice === "buyer" ? "buyer" : "";
     if (!email || !password) {
       setAuthStatus(authT("accountPassport.errGeneric"));
       return;
@@ -3646,7 +3662,7 @@ function initPublicAccountAuth() {
       const response = await fetch("/api/public/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password }))
+        body: JSON.stringify(attachPublicRegisterDevicePayload({ email, password, role: loginRole }))
       });
       const raw = await response.text();
       let body = {};
