@@ -2,9 +2,11 @@
   "name": "VibeCart",
   "short_name": "VibeCart",
   "description": "VibeCart — secure Africa–Europe–Asia marketplace for buyers and sellers: cross-border shopping, trusted lanes, and account tools.",
+  "id": "/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#120a1a",
   "theme_color": "#120a1a",
   "icons": [
@@ -12,19 +14,19 @@
       "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
+      "src": "./icon-180.png",
+      "sizes": "180x180",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any"
     },
     {
       "src": "./icon.svg",

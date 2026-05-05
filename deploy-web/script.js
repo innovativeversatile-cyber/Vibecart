@@ -6433,7 +6433,8 @@ autoDebugRunBtn?.addEventListener("click", runAutonomousDebugSweep);
   window.addEventListener("load", () => {
     const inAppShell = document.documentElement.classList.contains("vc-mobile-app");
     if (inAppShell) {
-      // Do not wipe storage inside app WebView; it can break app boot/session restore.
+      // Keep storage for installed app mode, but still re-register SW so updates land.
+      navigator.serviceWorker.register("./service-worker.js?v=20260505pwafix1").catch(() => {});
       return;
     }
     navigator.serviceWorker

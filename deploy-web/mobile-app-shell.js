@@ -13,12 +13,24 @@
     }
   }
 
+  function isStandaloneLikeApp() {
+    try {
+      var standaloneMedia = typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches;
+      var iosStandalone = typeof navigator !== "undefined" && navigator.standalone === true;
+      var ref = String((document && document.referrer) || "").toLowerCase();
+      var webviewRef = ref.indexOf("android-app://") === 0;
+      return standaloneMedia || iosStandalone || webviewRef;
+    } catch {
+      return false;
+    }
+  }
+
   function applyPhoneDocumentClasses() {
     try {
       var root = document.documentElement;
       if (detectPhoneLikeContext()) {
         root.classList.add("vc-phone");
-        if (!root.classList.contains("vc-mobile-app")) {
+        if (isStandaloneLikeApp() && !root.classList.contains("vc-mobile-app")) {
           root.classList.add("vc-mobile-app");
         }
       }

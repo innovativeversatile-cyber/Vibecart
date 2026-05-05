@@ -1,6 +1,33 @@
 "use strict";
 
 (function () {
+  function ensurePwaHeadLinks() {
+    try {
+      var head = document.head;
+      if (!head) return;
+      function ensureLink(rel, href, sizes, type) {
+        var selector = 'link[rel="' + rel + '"]' + (sizes ? '[sizes="' + sizes + '"]' : "");
+        var el = head.querySelector(selector);
+        if (!el) {
+          el = document.createElement("link");
+          el.setAttribute("rel", rel);
+          if (sizes) el.setAttribute("sizes", sizes);
+          if (type) el.setAttribute("type", type);
+          head.appendChild(el);
+        }
+        if (!el.getAttribute("href")) {
+          el.setAttribute("href", href);
+        }
+      }
+      ensureLink("manifest", "./manifest.json");
+      ensureLink("apple-touch-icon", "./icon-180.png", "180x180");
+      ensureLink("icon", "./icon-192.png", "192x192", "image/png");
+    } catch {
+      /* ignore */
+    }
+  }
+  ensurePwaHeadLinks();
+
   var LUXE_MODE_KEY = "vibecart-luxe-mode-v1";
   var LUXE_SCORE_KEY = "vibecart-luxe-score-v1";
   var LUXE_VISIT_KEY = "vibecart-luxe-visited-v1";
