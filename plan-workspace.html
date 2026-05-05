@@ -16,6 +16,21 @@
     <p class="note" id="workspaceStatus">Payment confirmed. Your plan is now active.</p>
     <p class="note" id="workspaceMeta">Reference and session details will appear here.</p>
     <p class="note">Unlocked package(s): <strong id="workspaceOwnedPlans">Starter Coach</strong></p>
+    <section id="workspaceOnboarding" class="section alt" style="margin-top:0.85rem" hidden>
+      <h2 id="onboardingTitle">Welcome to your package</h2>
+      <p class="note" id="onboardingLead">
+        You made it. Let us set your first intelligent routine in under 20 seconds.
+      </p>
+      <div id="onboardingStepStart" class="hero-actions" style="margin-top:0.65rem">
+        <button class="btn btn-primary" type="button" id="onboardingStartNowBtn">Start now</button>
+        <button class="btn btn-secondary" type="button" id="onboardingStartTomorrowBtn">Start tomorrow</button>
+      </div>
+      <div id="onboardingStepGoal" class="hero-actions" style="margin-top:0.65rem" hidden>
+        <button class="btn btn-primary" type="button" id="onboardingGoalLoseBtn">Lose</button>
+        <button class="btn btn-secondary" type="button" id="onboardingGoalGainBtn">Gain</button>
+      </div>
+      <p class="note" id="onboardingStatus" aria-live="polite"></p>
+    </section>
 
     <div class="hero-actions" style="margin-top:0.75rem">
       <a class="btn btn-primary" href="./wellbeing.html">Open Health Coach</a>
@@ -60,6 +75,13 @@
     <section style="margin-top:1.25rem">
       <h2>Today's routine and updates</h2>
       <div class="ai-result" id="planOutput">Your routine, meals, and update guidance will appear here.</div>
+    </section>
+
+    <section style="margin-top:1.25rem">
+      <h2>Package dashboard visuals</h2>
+      <div id="planVisuals" class="admin-grid" style="max-width:48rem">
+        <p class="note">Your purchased package visuals will appear here.</p>
+      </div>
     </section>
 
     <section style="margin-top:1.25rem">

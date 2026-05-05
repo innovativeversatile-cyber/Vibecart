@@ -556,6 +556,79 @@
     }
   }
 
+  function readDisplayName() {
+    try {
+      var raw = localStorage.getItem("vibecart-public-auth-user");
+      var parsed = raw ? JSON.parse(raw) : null;
+      if (parsed && parsed.fullName) {
+        return String(parsed.fullName).trim();
+      }
+      if (parsed && parsed.email) {
+        return String(parsed.email).split("@")[0];
+      }
+    } catch {
+      /* ignore */
+    }
+    return "there";
+  }
+
+  function renderPlanVisuals(flow, ownedPlans) {
+    var wrap = byId("planVisuals");
+    if (!wrap) return;
+    var plans = Array.isArray(ownedPlans) ? ownedPlans.slice() : [ownedPlans];
+    var cards = [];
+    if (flow === "coach") {
+      cards.push({
+        title: "Workout lane",
+        img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80",
+        note: "Gym-aligned training visuals for your active package only."
+      });
+      if (plans.indexOf("plus") >= 0 || plans.indexOf("pro") >= 0) {
+        cards.push({
+          title: "Meal lane",
+          img: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80",
+          note: "Health meal guidance is active for Plus/Pro package holders."
+        });
+      }
+      if (plans.indexOf("ai-home") >= 0) {
+        cards.push({
+          title: "Home workout lane",
+          img: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80",
+          note: "No-equipment visuals for your AI Home package."
+        });
+      }
+    } else if (flow === "insurance") {
+      cards.push({
+        title: "Wellness compliance lane",
+        img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
+        note: "Insurance wellness dashboard for your paid package."
+      });
+    }
+    if (!cards.length) {
+      wrap.innerHTML = "<p class=\"note\">No purchased package visuals available yet.</p>";
+      return;
+    }
+    wrap.innerHTML = cards
+      .map(function (card) {
+        return (
+          "<article class=\"section alt\" style=\"padding:0.75rem\">" +
+          "<img src=\"" +
+          card.img +
+          "\" alt=\"" +
+          card.title +
+          "\" style=\"width:100%;border-radius:0.8rem;display:block;max-height:220px;object-fit:cover\"/>" +
+          "<h3 style=\"margin-top:0.55rem\">" +
+          card.title +
+          "</h3>" +
+          "<p class=\"note\">" +
+          card.note +
+          "</p>" +
+          "</article>"
+        );
+      })
+      .join("");
+  }
+
   function mergeUrlParamsIntoPaidPlans(params, paidPlans) {
     var plans = Array.isArray(paidPlans) ? paidPlans.slice() : [];
     if (!params.sessionId) {
@@ -823,13 +896,89 @@
         (params.sessionId ? " | Session ID: " + params.sessionId : " | Session ID pending");
     }
 
-    // Auto-activate paid benefits immediately after payment return.
     var autoProfile = defaultProfileFromCheckout();
     var currentOwnedPlans = ownedPlans.slice();
     if (planViewModeEl && String(planViewModeEl.value || "merged") !== "merged") {
       currentOwnedPlans = [normalizePlan(planViewModeEl.value)];
     }
-    renderAutoPlan(params, autoProfile, out, list, planStatus, currentOwnedPlans);
+    renderPlanVisuals(params.flow, currentOwnedPlans);
+
+    var onboardingWrap = byId("workspaceOnboarding");
+    var onboardingTitle = byId("onboardingTitle");
+    var onboardingLead = byId("onboardingLead");
+    var onboardingStatus = byId("onboardingStatus");
+    var stepStart = byId("onboardingStepStart");
+    var stepGoal = byId("onboardingStepGoal");
+    var startNowBtn = byId("onboardingStartNowBtn");
+    var startTomorrowBtn = byId("onboardingStartTomorrowBtn");
+    var goalLoseBtn = byId("onboardingGoalLoseBtn");
+    var goalGainBtn = byId("onboardingGoalGainBtn");
+    var onboardingKey = "vibecart-onboarding-complete:" + String(params.sessionId || params.plan || "default");
+
+    function applyProfileAndRender(profile) {
+      renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans);
+      renderPlanVisuals(params.flow, currentOwnedPlans);
+      try {
+        localStorage.setItem(onboardingKey, "1");
+      } catch {
+        /* ignore */
+      }
+      if (onboardingWrap) onboardingWrap.hidden = true;
+      var tok = getPublicAuthToken();
+      if (tok && Array.isArray(currentOwnedPlans) && currentOwnedPlans.length) {
+        sendCoachEncouragePush(
+          tok,
+          "You are in. Your " + packageLabel(params.flow, currentOwnedPlans[0]) + " package is active.",
+          "Keep going — your plan auto-adapts with every check-in."
+        );
+        window.setTimeout(function () {
+          sendCoachEncouragePush(tok, "Quick check-in", "Small daily progress beats perfect weeks. You are doing well.");
+        }, 45000);
+      }
+    }
+
+    var onboardingDone = false;
+    try {
+      onboardingDone = localStorage.getItem(onboardingKey) === "1";
+    } catch {
+      onboardingDone = false;
+    }
+    if (onboardingWrap && !onboardingDone) {
+      onboardingWrap.hidden = false;
+      if (onboardingTitle) onboardingTitle.textContent = "Welcome " + readDisplayName() + " - your package is live";
+      if (onboardingLead) {
+        onboardingLead.textContent =
+          "Beautiful work. Let us configure your first adaptive routine and notifications in two quick choices.";
+      }
+      var startPref = "now";
+      if (stepGoal) stepGoal.hidden = true;
+      function chooseStart(pref) {
+        startPref = pref;
+        if (stepStart) stepStart.hidden = true;
+        if (stepGoal) stepGoal.hidden = false;
+        if (onboardingStatus) onboardingStatus.textContent = "Great. Final step: choose your primary direction.";
+      }
+      startNowBtn && startNowBtn.addEventListener("click", function () { chooseStart("now"); });
+      startTomorrowBtn && startTomorrowBtn.addEventListener("click", function () { chooseStart("tomorrow"); });
+      function finalizeGoal(direction) {
+        var p = {
+          goal:
+            direction === "lose"
+              ? "Fat loss with healthy energy and consistency"
+              : "Lean muscle gain and strength progression",
+          diet: direction === "lose" ? "High-protein balanced cut" : "High-protein balanced gain",
+          activity: autoProfile.activity || "medium",
+          wake: startPref === "tomorrow" ? "Morning (start tomorrow)" : "Start now",
+          notes: autoProfile.notes || ""
+        };
+        if (onboardingStatus) onboardingStatus.textContent = "Generating your intelligent package plan...";
+        applyProfileAndRender(p);
+      }
+      goalLoseBtn && goalLoseBtn.addEventListener("click", function () { finalizeGoal("lose"); });
+      goalGainBtn && goalGainBtn.addEventListener("click", function () { finalizeGoal("gain"); });
+    } else {
+      applyProfileAndRender(autoProfile);
+    }
 
     if (!buildBtn) {
       return;
@@ -861,6 +1010,7 @@
           wake: String((wakeEl && wakeEl.value) || "").trim() || autoProfile.wake,
           notes: String((notesEl && notesEl.value) || "").trim()
         }, out, list, planStatus, currentOwnedPlans);
+        renderPlanVisuals(params.flow, currentOwnedPlans);
       });
     }
 
@@ -873,6 +1023,7 @@
         notes: String((notesEl && notesEl.value) || "").trim()
       };
       renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans);
+      renderPlanVisuals(params.flow, currentOwnedPlans);
     });
   }
 
