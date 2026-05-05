@@ -5234,6 +5234,176 @@ async function handleHealthDailyCron(req, res) {
   return sendJson(res, 200, result);
 }
 
+async function ensureCoachFollowupJobsTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS coach_followup_jobs (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      user_id BIGINT UNSIGNED NOT NULL,
+      stripe_checkout_session_id VARCHAR(255) NOT NULL,
+      flow VARCHAR(40) NOT NULL DEFAULT 'coach',
+      plan_slug VARCHAR(40) NOT NULL,
+      stage_day INT NOT NULL,
+      due_at DATETIME NOT NULL,
+      status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+      sent_at DATETIME NULL,
+      fail_reason VARCHAR(255) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_coach_followup_stage (user_id, stripe_checkout_session_id, stage_day),
+      KEY idx_coach_followup_due (status, due_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+  );
+}
+
+function coachFollowupMessage(planSlug, stageDay) {
+  const plan = String(planSlug || "starter").toLowerCase();
+  const planTitle =
+    plan === "pro" ? "Coach Pro" : plan === "plus" ? "Coach Plus" : plan === "ai-home" ? "AI Home Workout" : "Starter Coach";
+  if (stageDay <= 1) {
+    return {
+      title: `${planTitle}: day 1 momentum`,
+      body: "Welcome in. Keep it simple today: one routine block and one quick check-in. You are building the streak."
+    };
+  }
+  if (stageDay <= 3) {
+    return {
+      title: `${planTitle}: day 3 check-in`,
+      body: "Great consistency so far. Reply with your energy level and we will adapt your routine smartly."
+    };
+  }
+  if (stageDay <= 7) {
+    return {
+      title: `${planTitle}: week 1 unlocked`,
+      body: "Week one matters most. Stay with the plan and we will tune intensity and meals around your progress."
+    };
+  }
+  return {
+    title: `${planTitle}: week 2 push`,
+    body: "You are in the compounding phase now. Keep showing up, and let your coach AI handle the adjustments."
+  };
+}
+
+async function handleCoachFollowupsCron(req, res) {
+  const cronHeader = String(req.headers["x-cron-token"] || "");
+  if (!CRON_SECRET || cronHeader !== CRON_SECRET) {
+    return sendJson(res, 401, { ok: false, code: "INVALID_CRON_TOKEN" });
+  }
+  await ensureCoachFollowupJobsTable();
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    body = {};
+  }
+  const limit = Math.min(Math.max(Number(body.limit || 200), 1), 2000);
+  const [rows] = await pool.execute(
+    `SELECT id, user_id, stripe_checkout_session_id, plan_slug, stage_day
+     FROM coach_followup_jobs
+     WHERE status = 'pending' AND due_at <= NOW()
+     ORDER BY due_at ASC
+     LIMIT ?`,
+    [limit]
+  );
+  let sent = 0;
+  let emailFallback = 0;
+  let failed = 0;
+  for (const row of rows) {
+    const jobId = Number(row.id);
+    const userId = Number(row.user_id);
+    const msg = coachFollowupMessage(row.plan_slug, Number(row.stage_day || 0));
+    const deep = `${resolvePublicWebBaseUrl(req).replace(/\/$/, "")}/plan-workspace.html?flow=coach&plan=${encodeURIComponent(String(row.plan_slug || "starter"))}`;
+    try {
+      const pushResult = await sendPushToUser(pool, {
+        userId,
+        title: msg.title,
+        message: msg.body,
+        deepLink: deep,
+        eventType: "coach_followup"
+      });
+      if (pushResult && pushResult.ok && !pushResult.skipped) {
+        await pool.execute(`UPDATE coach_followup_jobs SET status='sent', sent_at=NOW(), fail_reason=NULL WHERE id=? LIMIT 1`, [jobId]);
+        sent += 1;
+        continue;
+      }
+      const toEmail = await getUserEmailById(userId);
+      if (toEmail) {
+        queueUserTransactionalEmail(
+          toEmail,
+          msg.title,
+          `${msg.body}\n\nOpen your package dashboard: ${deep}\n\nVibeCart Coach`
+        );
+        await pool.execute(
+          `UPDATE coach_followup_jobs SET status='sent', sent_at=NOW(), fail_reason='email_fallback' WHERE id=? LIMIT 1`,
+          [jobId]
+        );
+        emailFallback += 1;
+      } else {
+        await pool.execute(
+          `UPDATE coach_followup_jobs SET status='failed', fail_reason='no_push_tokens_and_no_email' WHERE id=? LIMIT 1`,
+          [jobId]
+        );
+        failed += 1;
+      }
+    } catch (err) {
+      await pool.execute(
+        `UPDATE coach_followup_jobs SET status='failed', fail_reason=? WHERE id=? LIMIT 1`,
+        [String(err && err.message ? err.message : err).slice(0, 250), jobId]
+      );
+      failed += 1;
+    }
+  }
+  return sendJson(res, 200, { ok: true, scanned: rows.length, sent, emailFallback, failed });
+}
+
+async function handleOwnerNotificationReliability(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const days = Math.min(Math.max(Number(data.body?.days || 14), 1), 90);
+  const [summaryRows] = await pool.execute(
+    `SELECT
+       COUNT(*) AS total,
+       SUM(CASE WHEN delivery_status = 'sent' THEN 1 ELSE 0 END) AS sent_count,
+       SUM(CASE WHEN delivery_status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+       SUM(CASE WHEN delivery_status = 'queued' THEN 1 ELSE 0 END) AS queued_count
+     FROM notification_events
+     WHERE created_at >= (NOW() - INTERVAL ? DAY)`,
+    [days]
+  );
+  const [eventRows] = await pool.execute(
+    `SELECT event_type, COUNT(*) AS n
+     FROM notification_events
+     WHERE created_at >= (NOW() - INTERVAL ? DAY)
+     GROUP BY event_type
+     ORDER BY n DESC
+     LIMIT 20`,
+    [days]
+  );
+  const [platformRows] = await pool.execute(
+    `SELECT platform, COUNT(*) AS n
+     FROM device_push_tokens
+     WHERE active = 1
+     GROUP BY platform
+     ORDER BY n DESC`
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    days,
+    summary: {
+      total: Number(summaryRows[0]?.total || 0),
+      sent: Number(summaryRows[0]?.sent_count || 0),
+      failed: Number(summaryRows[0]?.failed_count || 0),
+      queued: Number(summaryRows[0]?.queued_count || 0)
+    },
+    byEventType: (eventRows || []).map((r) => ({ eventType: String(r.event_type || ""), count: Number(r.n || 0) })),
+    activeDeviceTokensByPlatform: (platformRows || []).map((r) => ({
+      platform: String(r.platform || ""),
+      count: Number(r.n || 0)
+    }))
+  });
+}
+
 async function handlePublicPlatformRiskScoreboard(req, res) {
   const [trustRows] = await pool.execute(
     `SELECT AVG(trust_score) AS avg_trust_score FROM trust_profiles`
@@ -7789,6 +7959,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/health/cron/daily-reminders") {
       return await handleHealthDailyCron(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/health/cron/coach-followups") {
+      return await handleCoachFollowupsCron(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/owner/auth/login") {
       return await handleLogin(req, res, ip);
     }
@@ -7812,6 +7985,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/analytics/overview") {
       return await handleOwnerAnalyticsOverview(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/notifications/reliability") {
+      return await handleOwnerNotificationReliability(req, res);
     }
     if (req.method === "POST" && pathname === "/api/owner/messages/list") {
       return await handleOwnerMessageCenterList(req, res);

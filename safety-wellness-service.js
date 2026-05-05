@@ -143,6 +143,25 @@ async function ensureCoachMonetizationTables(db) {
     )`
   );
   await db.execute(
+    `CREATE TABLE IF NOT EXISTS coach_followup_jobs (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      user_id BIGINT UNSIGNED NOT NULL,
+      stripe_checkout_session_id VARCHAR(255) NOT NULL,
+      flow VARCHAR(40) NOT NULL DEFAULT 'coach',
+      plan_slug VARCHAR(40) NOT NULL,
+      stage_day INT NOT NULL,
+      due_at DATETIME NOT NULL,
+      status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+      sent_at DATETIME NULL,
+      fail_reason VARCHAR(255) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_coach_followup_stage (user_id, stripe_checkout_session_id, stage_day),
+      KEY idx_coach_followup_due (status, due_at),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )`
+  );
+  await db.execute(
     `INSERT INTO health_subscription_plans (plan_code, plan_name, monthly_price, currency, interval_days, features_json, active)
      VALUES
       ('FREE', 'VibeFit Free', 0.00, 'EUR', 30, JSON_ARRAY('coach_profile_basic','coach_dashboard','checkin_basic','wearable_basic'), 1),
@@ -159,6 +178,7 @@ async function ensureCoachMonetizationTables(db) {
 }
 
 const COACH_STRIPE_PROMO_DAYS = 365;
+const COACH_FOLLOWUP_STAGE_DAYS = Object.freeze([1, 3, 7, 14]);
 
 function coachCheckoutPublicPlanUrl(planSlug) {
   const base = String(process.env.PUBLIC_WEB_ORIGIN || process.env.VIBECART_WEB_URL || "https://vibe-cart.com")
@@ -269,6 +289,20 @@ async function fulfillStripeCoachCheckoutSession(db, session) {
     throw err;
   } finally {
     conn.release();
+  }
+
+  const now = Date.now();
+  for (const stageDay of COACH_FOLLOWUP_STAGE_DAYS) {
+    const dueAt = new Date(now + stageDay * 24 * 60 * 60 * 1000);
+    await db.execute(
+      `INSERT INTO coach_followup_jobs (user_id, stripe_checkout_session_id, flow, plan_slug, stage_day, due_at, status)
+       VALUES (?, ?, 'coach', ?, ?, ?, 'pending')
+       ON DUPLICATE KEY UPDATE
+         plan_slug = VALUES(plan_slug),
+         due_at = VALUES(due_at),
+         updated_at = CURRENT_TIMESTAMP`,
+      [userId, sessionId, plan, stageDay, dueAt]
+    );
   }
 
   void sendPushToUser(db, {
