@@ -30,6 +30,34 @@
     }
   }
 
+  function recoverTokenFromServerSession() {
+    return fetch("/api/public/auth/session", { credentials: "same-origin" })
+      .then(function (res) {
+        return res.json().catch(function () {
+          return {};
+        });
+      })
+      .then(function (body) {
+        if (!body || !body.ok || !body.user || !body.token) {
+          return "";
+        }
+        var t = String(body.token || "").trim();
+        if (!t) {
+          return "";
+        }
+        try {
+          localStorage.setItem(PUBLIC_AUTH_TOKEN_KEY, t);
+          localStorage.setItem("vibecart-public-auth-user", JSON.stringify(body.user));
+        } catch {
+          /* ignore */
+        }
+        return t;
+      })
+      .catch(function () {
+        return "";
+      });
+  }
+
   function urlBase64ToUint8Array(base64String) {
     var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
     var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -556,14 +584,12 @@
 
   function hydrateCoachFulfillmentFromServer() {
     var token = getPublicAuthToken();
-    if (!token) {
-      return Promise.resolve(false);
-    }
-    var headers =
-      window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
-        ? window.VibeCartSessionDevice.merge(token, { Accept: "application/json" })
-        : { Authorization: "Bearer " + token, Accept: "application/json" };
-    return fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
+    function runFetch(tok) {
+      var headers =
+        window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
+          ? window.VibeCartSessionDevice.merge(tok, { Accept: "application/json" })
+          : { Authorization: "Bearer " + tok, Accept: "application/json" };
+      return fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
       .then(function (r) {
         var st = r.status;
         return r
@@ -631,6 +657,16 @@
         }
         return false;
       });
+    }
+    if (token) {
+      return runFetch(token);
+    }
+    return recoverTokenFromServerSession().then(function (tok) {
+      if (!tok) {
+        return false;
+      }
+      return runFetch(tok);
+    });
   }
 
   function runWorkspaceInit(

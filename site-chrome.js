@@ -19,9 +19,11 @@
           el.setAttribute("href", href);
         }
       }
-      ensureLink("manifest", "./manifest.json");
-      ensureLink("apple-touch-icon", "./icon-180.png", "180x180");
-      ensureLink("icon", "./icon-192.png", "192x192", "image/png");
+      ensureLink("manifest", "/manifest.json");
+      ensureLink("apple-touch-icon", "/icon-180.png", "180x180");
+      ensureLink("apple-touch-icon-precomposed", "/icon-180.png");
+      ensureLink("icon", "/icon-192.png", "192x192", "image/png");
+      ensureLink("icon", "/icon-512.png", "512x512", "image/png");
     } catch {
       /* ignore */
     }

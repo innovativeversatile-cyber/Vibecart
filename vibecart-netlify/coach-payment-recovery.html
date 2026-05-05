@@ -115,10 +115,6 @@
           return;
         }
         var tok = token();
-        if (!tok) {
-          if (status) status.textContent = "Sign in from Account hub first, then return here.";
-          return;
-        }
         if (status) status.textContent = "Verifying with Stripe…";
         btn.disabled = true;
         var ctl = new AbortController();
@@ -126,14 +122,15 @@
           ctl.abort();
         }, 55000);
         var recoverUrl = "/api/public/payments/checkout/recover?session_id=" + encodeURIComponent(sid);
+        var headers = { Accept: "application/json" };
+        if (tok) {
+          headers.Authorization = "Bearer " + tok;
+        }
         fetch(recoverUrl, {
           method: "GET",
           credentials: "same-origin",
           signal: ctl.signal,
-          headers: {
-            Authorization: "Bearer " + tok,
-            Accept: "application/json"
-          }
+          headers: headers
         })
           .then(function (r) {
             return r.text().then(function (t) {

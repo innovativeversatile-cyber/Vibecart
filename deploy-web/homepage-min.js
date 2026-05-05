@@ -2147,7 +2147,7 @@
   function initPwaBootstrapLite() {
     if (!("serviceWorker" in navigator)) return;
     // Register for installability + offline shell. Bump ?v= when service-worker.js CACHE_NAME changes.
-    navigator.serviceWorker.register("./service-worker.js?v=20260504mbflow1").catch(function () {
+    navigator.serviceWorker.register("./service-worker.js?v=20260505ioshard1").catch(function () {
       /* ignore */
     });
   }
