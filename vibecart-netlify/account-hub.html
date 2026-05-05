@@ -348,15 +348,47 @@
           return;
         }
         var token = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
-        if (!token) {
-          return;
+        function resolveToken() {
+          if (token) {
+            return Promise.resolve(token);
+          }
+          return fetch("/api/public/auth/session", { credentials: "same-origin" })
+            .then(function (r) {
+              return r.json().catch(function () {
+                return {};
+              });
+            })
+            .then(function (body) {
+              if (!body || !body.ok || !body.user) {
+                return "";
+              }
+              var t = String(body.token || "").trim();
+              if (!t) {
+                return "";
+              }
+              try {
+                localStorage.setItem("vibecart-public-auth-token", t);
+                localStorage.setItem("vibecart-public-auth-user", JSON.stringify(body.user));
+              } catch {
+                /* ignore */
+              }
+              token = t;
+              return t;
+            })
+            .catch(function () {
+              return "";
+            });
         }
-        var headers = { Authorization: "Bearer " + token, Accept: "application/json" };
-        if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
-          headers = window.VibeCartSessionDevice.authHeaders(token);
-          headers.Accept = "application/json";
-        }
-        fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
+        resolveToken().then(function (resolvedToken) {
+          if (!resolvedToken) {
+            return;
+          }
+          var headers = { Authorization: "Bearer " + resolvedToken, Accept: "application/json" };
+          if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+            headers = window.VibeCartSessionDevice.authHeaders(resolvedToken);
+            headers.Accept = "application/json";
+          }
+          return fetch("/api/public/payments/coach-checkout-sessions", { credentials: "same-origin", headers: headers })
           .then(function (r) {
             return r.json().catch(function () {
               return null;
@@ -430,6 +462,7 @@
             }
           })
           .catch(function () {});
+        });
       } catch (e) {}
     })();
   </script>

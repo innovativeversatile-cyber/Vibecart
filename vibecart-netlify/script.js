@@ -3371,13 +3371,10 @@ function setAuthStatus(message) {
 
 async function refreshPublicSessionOnLoad() {
   const auth = getStoredPublicAuth();
-  if (!auth || !auth.token) {
-    paintAuthLoggedOut();
-    return;
-  }
+  const hasToken = Boolean(auth && auth.token);
   try {
     const response = await fetch("/api/public/auth/session", {
-      headers: buildPublicAuthBearerHeaders(auth.token)
+      headers: hasToken ? buildPublicAuthBearerHeaders(auth.token) : undefined
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.ok || !body.user) {
@@ -3385,7 +3382,12 @@ async function refreshPublicSessionOnLoad() {
       paintAuthLoggedOut();
       return;
     }
-    const nextTok = body.token ? String(body.token) : auth.token;
+    const nextTok = body.token ? String(body.token) : hasToken ? auth.token : "";
+    if (!nextTok) {
+      clearPublicAuth();
+      paintAuthLoggedOut();
+      return;
+    }
     persistPublicAuth(nextTok, body.user);
     paintAuthLoggedIn(body.user);
   } catch {

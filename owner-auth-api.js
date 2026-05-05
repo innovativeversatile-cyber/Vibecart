@@ -412,6 +412,72 @@ function sendJson(res, statusCode, body) {
   res.end(JSON.stringify(body));
 }
 
+function appendSetCookie(res, cookieValue) {
+  const existing = res.getHeader("Set-Cookie");
+  if (!existing) {
+    res.setHeader("Set-Cookie", [cookieValue]);
+    return;
+  }
+  if (Array.isArray(existing)) {
+    res.setHeader("Set-Cookie", existing.concat(cookieValue));
+    return;
+  }
+  res.setHeader("Set-Cookie", [String(existing), cookieValue]);
+}
+
+function shouldUseSecureCookie(req) {
+  try {
+    const xfProto = String((req && req.headers && req.headers["x-forwarded-proto"]) || "")
+      .split(",")[0]
+      .trim()
+      .toLowerCase();
+    if (xfProto === "https") return true;
+    const host = String((req && req.headers && req.headers.host) || "").toLowerCase();
+    return host && host.indexOf("localhost") !== 0 && host.indexOf("127.0.0.1") !== 0;
+  } catch {
+    return true;
+  }
+}
+
+function setPublicAuthCookie(res, token, expiresAt) {
+  const t = String(token || "").trim();
+  if (!t) return;
+  const exp =
+    expiresAt instanceof Date && Number.isFinite(expiresAt.getTime()) ? expiresAt : new Date(Date.now() + PUBLIC_SESSION_TTL_MS);
+  const secure = shouldUseSecureCookie(res && res.req);
+  const cookie =
+    `vibecart_public_auth=${encodeURIComponent(t)}; Path=/; Expires=${exp.toUTCString()}; SameSite=Lax; HttpOnly` +
+    (secure ? "; Secure" : "");
+  appendSetCookie(res, cookie);
+}
+
+function clearPublicAuthCookie(res) {
+  const secure = shouldUseSecureCookie(res && res.req);
+  const cookie =
+    "vibecart_public_auth=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax; HttpOnly" +
+    (secure ? "; Secure" : "");
+  appendSetCookie(res, cookie);
+}
+
+function readCookieToken(req, key) {
+  try {
+    const raw = String((req && req.headers && req.headers.cookie) || "");
+    if (!raw) return "";
+    const parts = raw.split(";");
+    for (const p of parts) {
+      const seg = String(p || "").trim();
+      const eq = seg.indexOf("=");
+      if (eq <= 0) continue;
+      const k = seg.slice(0, eq).trim();
+      if (k !== key) continue;
+      return decodeURIComponent(seg.slice(eq + 1).trim());
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
 function getIp(req) {
   const xff = req.headers["x-forwarded-for"];
   if (typeof xff === "string" && xff.length > 0) {
@@ -712,10 +778,10 @@ async function maybeRotatePublicSessionToken(sessionRow) {
 
 function getBearerToken(req) {
   const auth = String(req.headers.authorization || "");
-  if (!auth.toLowerCase().startsWith("bearer ")) {
-    return "";
+  if (auth.toLowerCase().startsWith("bearer ")) {
+    return auth.slice(7).trim();
   }
-  return auth.slice(7).trim();
+  return String(readCookieToken(req, "vibecart_public_auth") || "").trim();
 }
 
 async function requirePublicSessionRole(req, res, allowedRoles) {
@@ -2427,6 +2493,7 @@ async function handlePublicAuthRegister(req, res) {
     String(req.headers["user-agent"] || ""),
     deviceBinding
   );
+  setPublicAuthCookie(res, session.token, session.expiresAt);
   return sendJson(res, 200, {
     ok: true,
     token: session.token,
@@ -2478,6 +2545,7 @@ async function handlePublicAuthLogin(req, res) {
     String(req.headers["user-agent"] || ""),
     deviceBinding
   );
+  setPublicAuthCookie(res, session.token, session.expiresAt);
   return sendJson(res, 200, {
     ok: true,
     token: session.token,
@@ -2615,6 +2683,7 @@ async function handlePublicAuthMagicLinkConsume(req, res) {
     String(req.headers["user-agent"] || ""),
     deviceBinding
   );
+  setPublicAuthCookie(res, session.token, session.expiresAt);
   return sendJson(res, 200, {
     ok: true,
     token: session.token,
@@ -2633,10 +2702,12 @@ async function handlePublicAuthMagicLinkConsume(req, res) {
 async function handlePublicAuthSession(req, res) {
   const token = getBearerToken(req);
   if (!token) {
+    clearPublicAuthCookie(res);
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
   const session = await requirePublicSession(token, req);
   if (!session) {
+    clearPublicAuthCookie(res);
     return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
   }
   const rotated = await maybeRotatePublicSessionToken(session);
@@ -2654,6 +2725,7 @@ async function handlePublicAuthSession(req, res) {
   if (rotated && rotated.token) {
     payload.token = rotated.token;
     payload.expiresAt = rotated.expiresAt;
+    setPublicAuthCookie(res, rotated.token, rotated.expiresAt);
   }
   return sendJson(res, 200, payload);
 }
@@ -2661,10 +2733,12 @@ async function handlePublicAuthSession(req, res) {
 async function handlePublicAuthLogout(req, res) {
   const token = getBearerToken(req);
   if (!token) {
+    clearPublicAuthCookie(res);
     return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
   }
   const session = await requirePublicSession(token, req);
   if (!session) {
+    clearPublicAuthCookie(res);
     return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
   }
   await pool.execute(
@@ -2674,6 +2748,7 @@ async function handlePublicAuthLogout(req, res) {
      LIMIT 1`,
     [Number(session.id)]
   );
+  clearPublicAuthCookie(res);
   return sendJson(res, 200, { ok: true });
 }
 
