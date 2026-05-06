@@ -2231,6 +2231,55 @@ async function handlePublicBakeryBookingsClearMine(req, res) {
   return sendJson(res, 200, { ok: true, cleared: Number((result && result.affectedRows) || 0) });
 }
 
+async function handlePublicBakeryBookingsPurgeCalendarClosed(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
+  if (!session) return;
+  await ensureBakeryBookingsTable();
+  await ensureBakeryBookingEventsTable();
+  await ensureBakeryBookingMessagesTable();
+  const body = await readJson(req).catch(() => ({}));
+  const eventDate = String((body && body.eventDate) || "").trim().slice(0, 10);
+  const serviceLine = String((body && body.serviceLine) || "").trim().toLowerCase();
+  const bakerId = Number(session.user_id);
+  let sql = `SELECT b.id
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.baker_user_id = ?
+       AND LOWER(TRIM(b.booking_status)) IN ('declined','completed','cancelled')`;
+  const params = [bakerId];
+  if (eventDate && /^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+    sql += " AND b.event_date = ?";
+    params.push(eventDate);
+  }
+  if (serviceLine) {
+    sql += " AND LOWER(COALESCE(b.service_line, s.style_theme, '')) LIKE ?";
+    params.push(`${serviceLine}%`);
+  }
+  const [idRows] = await pool.execute(sql, params);
+  const ids = (Array.isArray(idRows) ? idRows : [])
+    .map((r) => Number(r.id))
+    .filter((id) => id > 0);
+  if (!ids.length) {
+    return sendJson(res, 200, { ok: true, removed: 0 });
+  }
+  const ph = ids.map(() => "?").join(",");
+  try {
+    await pool.execute(`DELETE FROM bakery_booking_messages WHERE booking_id IN (${ph})`, ids);
+  } catch {
+    /* ignore */
+  }
+  try {
+    await pool.execute(`DELETE FROM bakery_booking_events WHERE booking_id IN (${ph})`, ids);
+  } catch {
+    /* ignore */
+  }
+  const [del] = await pool.execute(`DELETE FROM bakery_bookings WHERE id IN (${ph})`, ids);
+  return sendJson(res, 200, { ok: true, removed: Number((del && del.affectedRows) || ids.length) });
+}
+
 async function handlePublicBakeryBookingStatusUpdate(req, res) {
   const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
@@ -8438,6 +8487,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/clear-mine") {
       return await handlePublicBakeryBookingsClearMine(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/bakery/bookings/purge-calendar-closed") {
+      return await handlePublicBakeryBookingsPurgeCalendarClosed(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/status/update") {
       return await handlePublicBakeryBookingStatusUpdate(req, res);

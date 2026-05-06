@@ -3030,20 +3030,36 @@
     });
   }
 
+  function normalizeMbEventDateKey(raw) {
+    var s = String(raw == null ? "" : raw).trim();
+    if (!s || s === "No date") return s || "No date";
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    return s;
+  }
+
+  function mbCalendarHasClosedBookings(bookingsForDate) {
+    if (!Array.isArray(bookingsForDate)) return false;
+    return bookingsForDate.some(function (b) {
+      var st = String((b && b.bookingStatus) || "").toLowerCase();
+      return st === "declined" || st === "completed" || st === "cancelled";
+    });
+  }
+
   function renderCalendar(bookings, slotDateCounts) {
     var root = document.getElementById("bakeryCalendarView");
     if (!root) return;
     root.innerHTML = "";
     var byDate = {};
     (Array.isArray(bookings) ? bookings : []).forEach(function (b) {
-      var key = String(b.eventDate || "No date");
+      var raw = b.eventDate == null ? "" : String(b.eventDate);
+      var key = raw ? normalizeMbEventDateKey(raw) : "No date";
       if (!byDate[key]) byDate[key] = [];
       byDate[key].push(b);
     });
     var slotMap = slotDateCounts && typeof slotDateCounts === "object" ? slotDateCounts : {};
     var allKeys = {};
     Object.keys(byDate).forEach(function (k) { allKeys[k] = true; });
-    Object.keys(slotMap).forEach(function (k) { allKeys[k] = true; });
+    Object.keys(slotMap).forEach(function (k) { allKeys[normalizeMbEventDateKey(k)] = true; });
     var dates = Object.keys(allKeys).filter(Boolean).sort();
     if (!dates.length) {
       root.innerHTML = '<p class="note">No slot dates or bookings yet.</p>';
@@ -3052,19 +3068,41 @@
     dates.forEach(function (date) {
       var card = document.createElement("article");
       card.className = "vc-booking-item";
-      var slotCount = Number(slotMap[date] || 0);
+      var normDate = normalizeMbEventDateKey(date);
+      var slotCount = Number(slotMap[normDate] || slotMap[date] || 0);
       if (slotCount > 0) {
         card.style.borderColor = "rgba(46, 204, 113, 0.75)";
         card.style.boxShadow = "0 0 0 1px rgba(46, 204, 113, 0.35) inset";
       }
+      var rows = byDate[date] || byDate[normDate] || [];
+      var purgeBtn = "";
+      if (mbCalendarHasClosedBookings(rows) && /^\d{4}-\d{2}-\d{2}$/.test(normDate)) {
+        purgeBtn =
+          '<button type="button" class="btn btn-secondary" style="margin-left:0.35rem;font-size:0.85em;padding:0.2rem 0.55rem" data-mb-purge-calendar-date="' +
+          escapeHtml(normDate) +
+          '">Clear closed</button>';
+      }
       card.innerHTML =
-        "<h3>" +
-        escapeHtml(date) +
+        "<h3 style=\"display:flex;flex-wrap:wrap;align-items:center;gap:0.25rem\">" +
+        "<span>" +
+        escapeHtml(normDate) +
+        "</span>" +
         (slotCount > 0 ? " <span class='vc-pill' style='background:rgba(46,204,113,.18)'>" + slotCount + " slot(s)</span>" : "") +
+        purgeBtn +
         "</h3>" +
-        ((byDate[date] || []).map(function (b) {
-          return "<p class='note'>" + escapeHtml(b.customerName || "Customer") + " · " + escapeHtml(b.workTitle || "Service") + " · " + escapeHtml(b.bookingStatus || "pending") + "</p>";
-        }).join("") || "<p class='note'>No bookings yet for this date.</p>");
+        (rows
+          .map(function (b) {
+            return (
+              "<p class='note'>" +
+              escapeHtml(b.customerName || "Customer") +
+              " · " +
+              escapeHtml(b.workTitle || "Service") +
+              " · " +
+              escapeHtml(b.bookingStatus || "pending") +
+              "</p>"
+            );
+          })
+          .join("") || "<p class='note'>No bookings yet for this date.</p>");
       root.appendChild(card);
     });
   }
@@ -3300,6 +3338,36 @@
       }
       return;
     }
+    var purgeCal = e.target.closest && e.target.closest("[data-mb-purge-calendar-date]");
+    if (purgeCal) {
+      var dk = String(purgeCal.getAttribute("data-mb-purge-calendar-date") || "").trim().slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dk)) return;
+      if (
+        !window.confirm(
+          "Permanently remove declined, completed, and cancelled rows for " + dk + " from this calendar? Active requests stay."
+        )
+      ) {
+        return;
+      }
+      var cfgPurge = loadMbConfig();
+      setStatus("Clearing calendar…");
+      api("/api/public/bakery/bookings/purge-calendar-closed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventDate: dk,
+          serviceLine: cfgPurge && cfgPurge.service ? String(cfgPurge.service).trim() : ""
+        })
+      })
+        .then(function (res) {
+          setStatus("Removed " + Number((res && res.removed) || 0) + " closed booking(s) for " + dk + ".");
+          return loadAll();
+        })
+        .catch(function (err) {
+          setStatus(err.message || "Could not clear that date.");
+        });
+      return;
+    }
     var statusBtn = e.target.closest && e.target.closest("[data-booking-status]");
     if (statusBtn) {
       var bookingCard = statusBtn.closest("[data-booking-id]");
@@ -3414,6 +3482,36 @@
     if (btnRefresh) btnRefresh.addEventListener("click", loadAll);
     var btnClientBookings = document.getElementById("mbClientBookingsRefresh");
     if (btnClientBookings) btnClientBookings.addEventListener("click", loadClientDashboard);
+    var calPurgeAll = document.getElementById("mbCalendarPurgeAllClosed");
+    if (calPurgeAll) {
+      calPurgeAll.addEventListener("click", function () {
+        var cfgCal = loadMbConfig();
+        if (!cfgCal || !getToken()) {
+          setStatus("Sign in and open your provider desk first.");
+          return;
+        }
+        if (
+          !window.confirm(
+            "Permanently remove all declined, completed, and cancelled bookings from this calendar for your current service line? Pending and accepted bookings stay."
+          )
+        ) {
+          return;
+        }
+        setStatus("Clearing closed bookings…");
+        api("/api/public/bakery/bookings/purge-calendar-closed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ serviceLine: String(cfgCal.service || "").trim() })
+        })
+          .then(function (res) {
+            setStatus("Removed " + Number((res && res.removed) || 0) + " closed booking(s).");
+            return loadAll();
+          })
+          .catch(function (err) {
+            setStatus(err.message || "Could not clear calendar.");
+          });
+      });
+    }
     if (btnSaveBakery) btnSaveBakery.addEventListener("click", saveBakeryService);
     if (btnSavePublishBakery) {
       btnSavePublishBakery.addEventListener("click", function () {
