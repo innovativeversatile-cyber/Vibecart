@@ -803,6 +803,9 @@ async function requirePublicSessionRole(req, res, allowedRoles) {
   return session;
 }
 
+/** Bakery desk: many providers sign in as `buyer` but still own listings; ownership is enforced per row. */
+const VC_BAKERY_PROVIDER_ROLES = new Set(["seller", "service_provider", "buyer"]);
+
 function sendHighValueAccountRequired(res) {
   return sendJson(res, 401, {
     ok: false,
@@ -1116,6 +1119,148 @@ async function ensureBakeryBookingsTable() {
       /* ignore */
     }
   }
+  try {
+    await pool.execute("ALTER TABLE bakery_bookings MODIFY COLUMN occasion_type VARCHAR(600) NULL");
+  } catch {
+    /* ignore */
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_bookings ADD COLUMN requested_start_time VARCHAR(16) NULL");
+  } catch (e) {
+    if (!String(e.message || e).includes("Duplicate column name")) {
+      /* ignore */
+    }
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_bookings ADD COLUMN confirmed_start_time VARCHAR(16) NULL");
+  } catch (e) {
+    if (!String(e.message || e).includes("Duplicate column name")) {
+      /* ignore */
+    }
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_bookings ADD COLUMN confirmed_duration_minutes INT NULL");
+  } catch (e) {
+    if (!String(e.message || e).includes("Duplicate column name")) {
+      /* ignore */
+    }
+  }
+}
+
+function normalizeBakerySlotHHMM(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return "";
+  const h = Number(m[1]);
+  const mm = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(mm) || h < 0 || h > 23 || mm < 0 || mm > 59) return "";
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function bakeryHhmmToMinutes(hhmm) {
+  const x = normalizeBakerySlotHHMM(hhmm);
+  if (!x) return null;
+  const [h, m] = x.split(":").map((n) => Number(n));
+  return h * 60 + m;
+}
+
+function extractTimePreferenceFromOccasion(occasionType) {
+  const occ = String(occasionType || "");
+  const m = occ.match(/Time preference:\s*(\d{1,2}:\d{2})/i);
+  if (m) return normalizeBakerySlotHHMM(m[1]);
+  return "";
+}
+
+function buildBakeryOccasionTypeStored(paymentPreference, preferredSlotNormalized) {
+  const pay = paymentPreference ? `Payment: ${String(paymentPreference).trim()}` : "";
+  const slot = normalizeBakerySlotHHMM(preferredSlotNormalized) || "";
+  const timeLine = slot ? `Time preference: ${slot}` : "Time preference: flexible";
+  const out = [pay, timeLine].filter(Boolean).join(" · ");
+  return out.slice(0, 600);
+}
+
+async function loadBookingBlocksForPublicSlots(poolRef, serviceId, slotDate) {
+  const sid = Number(serviceId || 0);
+  const dk = String(slotDate || "").slice(0, 10);
+  if (!sid || !dk) return [];
+  const [bRows] = await poolRef.execute(
+    `SELECT b.booking_status, b.occasion_type, b.requested_start_time, b.confirmed_start_time, b.confirmed_duration_minutes,
+            s.slot_duration_minutes
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.service_id = ? AND b.event_date = ?
+       AND b.booking_status IN ('pending','confirmed')`,
+    [sid, dk]
+  );
+  const blocks = [];
+  const fallbackDur = (row) => {
+    const n = Number(row.slot_duration_minutes || 0);
+    return Number.isFinite(n) && n >= 15 ? n : 60;
+  };
+  for (const row of bRows || []) {
+    const st = String(row.booking_status || "").toLowerCase();
+    let start =
+      normalizeBakerySlotHHMM(row.confirmed_start_time) ||
+      normalizeBakerySlotHHMM(row.requested_start_time) ||
+      extractTimePreferenceFromOccasion(row.occasion_type);
+    if (!start) continue;
+    let dur = Number(row.confirmed_duration_minutes || 0);
+    if (st === "confirmed") {
+      if (!Number.isFinite(dur) || dur < 15) dur = fallbackDur(row);
+    } else {
+      dur = fallbackDur(row);
+    }
+    if (!Number.isFinite(dur) || dur < 15) dur = 60;
+    blocks.push({ start, durationMinutes: dur });
+  }
+  return blocks;
+}
+
+function filterSlotTimesByConfirmedBlocks(slotTimes, blocks) {
+  const list = Array.isArray(slotTimes) ? slotTimes : [];
+  const bs = Array.isArray(blocks) ? blocks : [];
+  if (!bs.length) return list;
+  return list.filter((raw) => {
+    const sm = bakeryHhmmToMinutes(raw);
+    if (sm == null) return true;
+    for (const b of bs) {
+      const st = bakeryHhmmToMinutes(b.start);
+      if (st == null) continue;
+      const end = st + (Number(b.durationMinutes) || 60);
+      if (sm >= st && sm < end) return false;
+    }
+    return true;
+  });
+}
+
+async function deleteBakerySlotsInRange(poolRef, serviceId, slotDate, startHHMM, durationMinutes) {
+  const sid = Number(serviceId || 0);
+  const dk = String(slotDate || "").slice(0, 10);
+  const start = normalizeBakerySlotHHMM(startHHMM);
+  const dur = Number(durationMinutes || 0);
+  if (!sid || !dk || !start || !Number.isFinite(dur) || dur < 5) return 0;
+  const startMin = bakeryHhmmToMinutes(start);
+  if (startMin == null) return 0;
+  const endMin = startMin + dur;
+  const [slotRows] = await poolRef.execute(
+    `SELECT slot_time FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ?`,
+    [sid, dk]
+  );
+  const toDelete = [];
+  for (const row of slotRows || []) {
+    const st = normalizeBakerySlotHHMM(row.slot_time);
+    const sm = bakeryHhmmToMinutes(st);
+    if (sm == null) continue;
+    if (sm >= startMin && sm < endMin) toDelete.push(st);
+  }
+  if (!toDelete.length) return 0;
+  const ph = toDelete.map(() => "?").join(",");
+  const [del] = await poolRef.execute(
+    `DELETE FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ? AND slot_time IN (${ph})`,
+    [sid, dk, ...toDelete]
+  );
+  return Number((del && del.affectedRows) || 0);
 }
 
 let bakeryBookingEventsTableEnsured = false;
@@ -1175,6 +1320,28 @@ async function ensureBakeryScheduleSlotsTable() {
   bakeryScheduleSlotsTableEnsured = true;
 }
 
+let clientEventLogsTableEnsured = false;
+async function ensureClientEventLogsTable() {
+  if (clientEventLogsTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS client_event_logs (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      event_type VARCHAR(120) NOT NULL,
+      severity VARCHAR(20) NOT NULL DEFAULT 'info',
+      page_path VARCHAR(255) NULL,
+      event_message VARCHAR(500) NULL,
+      payload_json JSON NULL,
+      user_agent VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_client_event_logs_type (event_type, created_at),
+      KEY idx_client_event_logs_sev (severity, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  clientEventLogsTableEnsured = true;
+}
+
 let gdprPrivacyRequestTableEnsured = false;
 async function ensureGdprPrivacyRequestTable() {
   if (gdprPrivacyRequestTableEnsured) {
@@ -1196,29 +1363,83 @@ async function ensureGdprPrivacyRequestTable() {
 async function handlePublicBakeryScheduleSlotsList(req, res) {
   let serviceId = 0;
   let slotDate = "";
+  let monthKey = "";
   try {
     const u = new URL(req.url, "http://localhost");
     serviceId = Number(u.searchParams.get("serviceId") || 0);
     slotDate = String(u.searchParams.get("date") || "").trim().slice(0, 10);
+    monthKey = String(u.searchParams.get("month") || "").trim().slice(0, 7);
   } catch {
     serviceId = 0;
   }
-  if (!serviceId || !slotDate) {
+  if (!serviceId || (!slotDate && !monthKey)) {
     return sendJson(res, 400, { ok: false, code: "SERVICE_DATE_REQUIRED" });
   }
   await ensureBakeryScheduleSlotsTable();
+  if (monthKey) {
+    const [rowsByDay] = await pool.execute(
+      `SELECT slot_date, COUNT(*) AS n
+       FROM bakery_schedule_slots
+       WHERE service_id = ?
+         AND slot_date >= CONCAT(?, '-01')
+         AND slot_date < DATE_ADD(CONCAT(?, '-01'), INTERVAL 1 MONTH)
+       GROUP BY slot_date
+       ORDER BY slot_date ASC`,
+      [serviceId, monthKey, monthKey]
+    );
+    return sendJson(res, 200, {
+      ok: true,
+      month: monthKey,
+      availableDates: (Array.isArray(rowsByDay) ? rowsByDay : []).map((r) => ({
+        date: String(r.slot_date || "").slice(0, 10),
+        slots: Number(r.n || 0)
+      }))
+    });
+  }
   const [rows] = await pool.execute(
     `SELECT slot_time FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ? ORDER BY slot_time ASC`,
     [serviceId, slotDate]
   );
+  let slots = rows.map((r) => normalizeBakerySlotHHMM(r.slot_time) || String(r.slot_time || "").trim()).filter(Boolean);
+  try {
+    const blocks = await loadBookingBlocksForPublicSlots(pool, serviceId, slotDate);
+    slots = filterSlotTimesByConfirmedBlocks(slots, blocks);
+  } catch {
+    /* ignore filter errors */
+  }
   return sendJson(res, 200, {
     ok: true,
-    slots: rows.map((r) => String(r.slot_time || "").trim()).filter(Boolean)
+    slots
   });
 }
 
+async function handlePublicClientEventLog(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    body = {};
+  }
+  const eventType = String(body.eventType || "").trim().slice(0, 120) || "client_event";
+  const severity = String(body.severity || "info").trim().toLowerCase().slice(0, 20);
+  const pagePath = String(body.pagePath || "").trim().slice(0, 255);
+  const eventMessage = String(body.message || "").trim().slice(0, 500);
+  const payload = body && typeof body.payload === "object" ? body.payload : null;
+  const userAgent = String((req.headers && req.headers["user-agent"]) || "").trim().slice(0, 255);
+  await ensureClientEventLogsTable();
+  await pool.execute(
+    `INSERT INTO client_event_logs (event_type, severity, page_path, event_message, payload_json, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [eventType, severity || "info", pagePath || null, eventMessage || null, payload ? JSON.stringify(payload) : null, userAgent || null]
+  );
+  return sendJson(res, 200, { ok: true });
+}
+
 async function handlePublicBakeryScheduleSlotsUpsert(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   const body = await readJson(req);
   const serviceId = Number(body.serviceId || 0);
@@ -1254,7 +1475,7 @@ async function handlePublicBakeryScheduleSlotsUpsert(req, res) {
 }
 
 async function handlePublicBakeryScheduleSlotsAdd(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   const body = await readJson(req);
   const serviceId = Number(body.serviceId || 0);
@@ -1289,7 +1510,7 @@ async function handlePublicBakeryScheduleSlotsAdd(req, res) {
 }
 
 async function handlePublicBakeryScheduleSlotsRemove(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   const body = await readJson(req);
   const serviceId = Number(body.serviceId || 0);
@@ -1481,7 +1702,7 @@ async function handlePublicUserPrivacyDeleteRequest(req, res) {
 }
 
 async function handlePublicBakeryServiceUpsert(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
@@ -1551,7 +1772,7 @@ async function handlePublicBakeryServiceUpsert(req, res) {
 }
 
 async function handlePublicBakeryServicesMine(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
@@ -1588,19 +1809,37 @@ async function handlePublicBakeryServicesDiscover(req, res) {
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
   await ensureBakeryServiceSlotDurationColumn();
+  await ensureBakeryScheduleSlotsTable();
   const urlObj = new URL(req.url, "http://localhost");
   const q = String(urlObj.searchParams.get("q") || "").trim().toLowerCase();
   const line = String(urlObj.searchParams.get("line") || "").trim().toLowerCase();
   const [rows] = await pool.execute(
-    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.slot_duration_minutes,
-            u.full_name
+    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.slot_duration_minutes, bs.is_active,
+            u.full_name,
+            COUNT(CASE WHEN bss.slot_date >= CURDATE() THEN 1 END) AS future_slot_count
      FROM bakery_services bs
      JOIN users u ON u.id = bs.baker_user_id
-     WHERE bs.is_active = 1
+     LEFT JOIN bakery_schedule_slots bss ON bss.service_id = bs.id
+     GROUP BY bs.id
+     HAVING MAX(bs.is_active) = 1 OR future_slot_count > 0
      ORDER BY bs.id DESC
      LIMIT 150`
   );
   const filtered = rows.filter((row) => {
+    const bizName = String(row.business_name || "").toLowerCase();
+    const workTitle = String(row.work_title || "").toLowerCase();
+    const reqText = String(row.requirements_text || "").toLowerCase();
+    const style = String(row.style_theme || "").toLowerCase();
+    // Hide system hardpass/smoke fixtures from real client discovery.
+    if (
+      bizName.indexOf("hardpass") >= 0 ||
+      workTitle.indexOf("hardpass") >= 0 ||
+      reqText.indexOf("hardpass") >= 0 ||
+      style.indexOf("hardpass") >= 0 ||
+      bizName.indexOf("ui studio") >= 0
+    ) {
+      return false;
+    }
     const text = `${row.business_name || ""} ${row.work_title || ""} ${row.style_theme || ""} ${row.full_name || ""}`.toLowerCase();
     if (line) {
       const words = line.split(/[^a-z0-9]+/).filter(Boolean);
@@ -1625,13 +1864,14 @@ async function handlePublicBakeryServicesDiscover(req, res) {
       requirementsText: String(row.requirements_text || ""),
       imageUrl: String(row.image_url || ""),
       gallery: galleryArrayForApi(row.gallery_json),
-      slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60
+      slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60,
+      hasFutureSlots: Number(row.future_slot_count || 0) > 0
     }))
   });
 }
 
 async function handlePublicBakeryServiceToggle(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   await ensureBakeryServicesTable();
   const body = await readJson(req);
@@ -1651,7 +1891,7 @@ async function handlePublicBakeryServiceToggle(req, res) {
 }
 
 async function handlePublicBakeryServiceDelete(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   if (req.method !== "POST") {
     return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
@@ -1713,19 +1953,57 @@ async function handlePublicBakeryBookingCreate(req, res) {
   const customerName = String(body.customerName || "").trim().slice(0, 140);
   const customerPhone = String(body.customerPhone || "").trim().slice(0, 60);
   const eventDate = String(body.eventDate || "").trim().slice(0, 10);
-  const occasionType = String(body.occasionType || "").trim().slice(0, 120);
+  const occasionTypeRaw = String(body.occasionType || "").trim();
   const styleTheme = String(body.styleTheme || "").trim().slice(0, 180);
   const requestDetails = String(body.requestDetails || "").trim().slice(0, 4000);
+  let preferredSlot = normalizeBakerySlotHHMM(String(body.preferredSlot || "").trim()) || "";
+  const prefRawLower = String(body.preferredSlot || "").trim().toLowerCase();
+  const wantsTimeFlexible =
+    prefRawLower === "flexible" || /\btime preference:\s*flexible\b/i.test(occasionTypeRaw);
   const budgetAmount = Number.isFinite(Number(body.budgetAmount)) ? Number(Number(body.budgetAmount).toFixed(2)) : null;
   const paymentPreference = String(body.paymentPreference || "").trim().slice(0, 32) || null;
   const serviceLine = String(body.serviceLine || "").trim().slice(0, 120) || null;
   if (!serviceId || !customerName || !eventDate || !requestDetails) {
     return sendJson(res, 400, { ok: false, code: "BOOKING_FIELDS_REQUIRED" });
   }
+  if (!preferredSlot) {
+    preferredSlot = extractTimePreferenceFromOccasion(occasionTypeRaw) || "";
+  }
+  if (!wantsTimeFlexible && (!preferredSlot || !/^[0-2]\d:[0-5]\d$/.test(preferredSlot))) {
+    try {
+      await ensureBakeryScheduleSlotsTable();
+      const [firstSlotRows] = await pool.execute(
+        `SELECT slot_time
+         FROM bakery_schedule_slots
+         WHERE service_id = ? AND slot_date = ?
+         ORDER BY slot_time ASC
+         LIMIT 1`,
+        [serviceId, eventDate]
+      );
+      preferredSlot = normalizeBakerySlotHHMM(firstSlotRows[0] ? String(firstSlotRows[0].slot_time || "").trim() : "") || "";
+    } catch {
+      preferredSlot = "";
+    }
+  }
+  if (!preferredSlot || !/^[0-2]\d:[0-5]\d$/.test(preferredSlot)) {
+    preferredSlot = "";
+  }
+  const occasionTypeStored = buildBakeryOccasionTypeStored(paymentPreference, preferredSlot);
+  const requestedStartForRow = preferredSlot || null;
   const [services] = await pool.execute(
     `SELECT id, baker_user_id, work_title
      FROM bakery_services
-     WHERE id = ? AND is_active = 1
+     WHERE id = ?
+       AND (
+         is_active = 1
+         OR EXISTS (
+           SELECT 1
+           FROM bakery_schedule_slots bss
+           WHERE bss.service_id = bakery_services.id
+             AND bss.slot_date >= CURDATE()
+           LIMIT 1
+         )
+       )
      LIMIT 1`,
     [serviceId]
   );
@@ -1733,11 +2011,22 @@ async function handlePublicBakeryBookingCreate(req, res) {
   if (!svc) {
     return sendJson(res, 404, { ok: false, code: "BAKERY_SERVICE_NOT_FOUND" });
   }
+  await ensureBakeryScheduleSlotsTable();
+  if (preferredSlot) {
+    const [slotRows] = await pool.execute(
+      `SELECT slot_time FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ?`,
+      [serviceId, eventDate]
+    );
+    const hasSlot = (slotRows || []).some((r) => normalizeBakerySlotHHMM(r.slot_time) === preferredSlot);
+    if (!hasSlot) {
+      return sendJson(res, 409, { ok: false, code: "SLOT_UNAVAILABLE", message: "That slot is no longer available." });
+    }
+  }
   const buyerId = Number(session.user_id);
   const [inserted] = await pool.execute(
     `INSERT INTO bakery_bookings (
-      service_id, baker_user_id, buyer_user_id, customer_name, customer_phone, event_date, occasion_type, style_theme, request_details, budget_amount, payment_preference, service_line, booking_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      service_id, baker_user_id, buyer_user_id, customer_name, customer_phone, event_date, occasion_type, style_theme, request_details, budget_amount, payment_preference, service_line, booking_status, requested_start_time
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
     [
       serviceId,
       Number(svc.baker_user_id),
@@ -1745,22 +2034,25 @@ async function handlePublicBakeryBookingCreate(req, res) {
       customerName,
       customerPhone || null,
       eventDate,
-      occasionType || null,
+      occasionTypeStored || null,
       styleTheme || null,
       requestDetails,
       budgetAmount,
       paymentPreference,
-      serviceLine
+      serviceLine,
+      requestedStartForRow
     ]
   );
   const bookingId = Number(inserted.insertId || 0);
   const mbUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
-  const mbProviderDeep = `${mbUrl}#mb-provider-bookings`;
+  const mbProviderDeep = `${mbUrl}?mbBookingId=${bookingId}#mb-provider-bookings`;
+  let providerPushResult = { ok: true, skipped: true, reason: "unknown" };
+  const timeHint = preferredSlot ? ` at ${preferredSlot}` : " (time flexible)";
   try {
-    await sendPushToUser(pool, {
+    providerPushResult = await sendPushToUser(pool, {
       userId: Number(svc.baker_user_id),
       title: "New booking request",
-      message: `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}. Open My Business to accept or decline.`,
+      message: `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}${timeHint}. Open My Business to accept or decline.`,
       deepLink: mbProviderDeep,
       eventType: "bakery_booking_new"
     });
@@ -1781,7 +2073,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
       bakerEmail,
       "New booking request",
       [
-        `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}.`,
+        `${customerName} requested "${String(svc.work_title || "your service")}" for ${eventDate}${timeHint}.`,
         `Booking #${bookingId}.`,
         "Open My Business (provider) to accept or decline.",
         mbProviderDeep,
@@ -1808,20 +2100,29 @@ async function handlePublicBakeryBookingCreate(req, res) {
       bookingId,
       serviceId,
       customerName,
-      eventDate
+      eventDate,
+      preferredTime: preferredSlot || null
     });
   } catch {
     /* ignore realtime failures */
   }
-  return sendJson(res, 200, { ok: true, bookingId });
+  return sendJson(res, 200, {
+    ok: true,
+    bookingId,
+    providerPush:
+      providerPushResult && providerPushResult.skipped && providerPushResult.reason === "no_device_tokens"
+        ? "no_device_tokens"
+        : "queued"
+  });
 }
 
 async function handlePublicBakeryBookingsMine(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   await ensureBakeryBookingsTable();
   const [rows] = await pool.execute(
     `SELECT b.id, b.service_id, b.customer_name, b.customer_phone, b.event_date, b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.booking_status, b.created_at,
+            b.requested_start_time, b.confirmed_start_time, b.confirmed_duration_minutes,
             s.work_title, s.business_name
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
@@ -1841,6 +2142,14 @@ async function handlePublicBakeryBookingsMine(req, res) {
       customerPhone: String(row.customer_phone || ""),
       eventDate: row.event_date,
       occasionType: String(row.occasion_type || ""),
+      requestedStartTime: row.requested_start_time == null ? null : String(row.requested_start_time || ""),
+      confirmedStartTime: row.confirmed_start_time == null ? null : String(row.confirmed_start_time || ""),
+      confirmedDurationMinutes:
+        row.confirmed_duration_minutes == null ? null : Number(row.confirmed_duration_minutes),
+      preferredTime:
+        normalizeBakerySlotHHMM(row.requested_start_time) ||
+        extractTimePreferenceFromOccasion(row.occasion_type) ||
+        null,
       styleTheme: String(row.style_theme || ""),
       requestDetails: String(row.request_details || ""),
       budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
@@ -1862,6 +2171,7 @@ async function handlePublicBakeryBookingsAsBuyer(req, res) {
   await ensureBakeryBookingsTable();
   const [rows] = await pool.execute(
     `SELECT b.id, b.service_id, b.customer_name, b.customer_phone, b.event_date, b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.booking_status, b.created_at, b.service_line, b.payment_preference,
+            b.requested_start_time, b.confirmed_start_time, b.confirmed_duration_minutes,
             s.work_title, s.business_name
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
@@ -1881,6 +2191,14 @@ async function handlePublicBakeryBookingsAsBuyer(req, res) {
       customerPhone: String(row.customer_phone || ""),
       eventDate: row.event_date,
       occasionType: String(row.occasion_type || ""),
+      requestedStartTime: row.requested_start_time == null ? null : String(row.requested_start_time || ""),
+      confirmedStartTime: row.confirmed_start_time == null ? null : String(row.confirmed_start_time || ""),
+      confirmedDurationMinutes:
+        row.confirmed_duration_minutes == null ? null : Number(row.confirmed_duration_minutes),
+      preferredTime:
+        normalizeBakerySlotHHMM(row.requested_start_time) ||
+        extractTimePreferenceFromOccasion(row.occasion_type) ||
+        null,
       styleTheme: String(row.style_theme || ""),
       requestDetails: String(row.request_details || ""),
       budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
@@ -1892,8 +2210,29 @@ async function handlePublicBakeryBookingsAsBuyer(req, res) {
   });
 }
 
+async function handlePublicBakeryBookingsClearMine(req, res) {
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
+  if (!session) return;
+  await ensureBakeryBookingsTable();
+  const body = await readJson(req).catch(() => ({}));
+  const serviceLine = String((body && body.serviceLine) || "").trim().toLowerCase();
+  let sql =
+    `UPDATE bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     SET b.booking_status = 'declined'
+     WHERE b.baker_user_id = ?
+       AND b.booking_status IN ('pending','confirmed')`;
+  const params = [Number(session.user_id)];
+  if (serviceLine) {
+    sql += " AND LOWER(COALESCE(b.service_line, s.style_theme, '')) LIKE ?";
+    params.push(serviceLine + "%");
+  }
+  const [result] = await pool.execute(sql, params);
+  return sendJson(res, 200, { ok: true, cleared: Number((result && result.affectedRows) || 0) });
+}
+
 async function handlePublicBakeryBookingStatusUpdate(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   await ensureBakeryBookingsTable();
   await ensureBakeryBookingEventsTable();
@@ -1905,7 +2244,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     return sendJson(res, 400, { ok: false, code: "INVALID_BOOKING_STATUS" });
   }
   const [beforeRows] = await pool.execute(
-    `SELECT b.id, b.buyer_user_id, b.booking_status, s.work_title
+    `SELECT b.id, b.service_id, b.event_date, b.occasion_type, b.requested_start_time, b.buyer_user_id, b.booking_status, s.work_title, s.slot_duration_minutes
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
      WHERE b.id = ? AND b.baker_user_id = ?
@@ -1935,6 +2274,34 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
      LIMIT 1`,
     [status, bookingId, Number(session.user_id)]
   );
+  if (status === "confirmed") {
+    const rawDur = Number(body.durationMinutes || 0);
+    const fallbackDur = Number(before.slot_duration_minutes || 60) || 60;
+    const durationMinutes = Number.isFinite(rawDur) && rawDur >= 15 && rawDur <= 480 ? Math.round(rawDur) : fallbackDur;
+    const dateKey = String(before.event_date || "").slice(0, 10);
+    let start =
+      normalizeBakerySlotHHMM(before.requested_start_time) ||
+      extractTimePreferenceFromOccasion(before.occasion_type) ||
+      "";
+    if (dateKey && Number(before.service_id || 0) > 0 && start) {
+      try {
+        await deleteBakerySlotsInRange(pool, Number(before.service_id), dateKey, start, durationMinutes);
+      } catch {
+        /* do not fail accept if slot cleanup fails */
+      }
+      try {
+        await pool.execute(
+          `UPDATE bakery_bookings
+           SET confirmed_start_time = ?, confirmed_duration_minutes = ?
+           WHERE id = ? AND baker_user_id = ?
+           LIMIT 1`,
+          [start, durationMinutes, bookingId, Number(session.user_id)]
+        );
+      } catch {
+        /* ignore persist failures on older schemas */
+      }
+    }
+  }
   try {
     await pool.execute(
       `INSERT INTO bakery_booking_events (booking_id, actor_user_id, from_status, to_status, note) VALUES (?, ?, ?, ?, NULL)`,
@@ -2034,6 +2401,7 @@ async function handlePublicBakeryBookingDetail(req, res) {
     `SELECT b.id, b.service_id, b.baker_user_id, b.buyer_user_id, b.customer_name, b.customer_phone, b.event_date, b.booking_status,
             b.occasion_type, b.style_theme, b.request_details, b.budget_amount, b.payment_preference, b.service_line,
             b.stripe_payment_status, b.stripe_paid_amount,
+            b.requested_start_time, b.confirmed_start_time, b.confirmed_duration_minutes,
             s.work_title, s.business_name
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
@@ -2061,6 +2429,14 @@ async function handlePublicBakeryBookingDetail(req, res) {
       eventDate: row.event_date,
       bookingStatus: String(row.booking_status || "pending"),
       occasionType: String(row.occasion_type || ""),
+      requestedStartTime: row.requested_start_time == null ? null : String(row.requested_start_time || ""),
+      confirmedStartTime: row.confirmed_start_time == null ? null : String(row.confirmed_start_time || ""),
+      confirmedDurationMinutes:
+        row.confirmed_duration_minutes == null ? null : Number(row.confirmed_duration_minutes),
+      preferredTime:
+        normalizeBakerySlotHHMM(row.requested_start_time) ||
+        extractTimePreferenceFromOccasion(row.occasion_type) ||
+        null,
       styleTheme: String(row.style_theme || ""),
       requestDetails: String(row.request_details || ""),
       budgetAmount: row.budget_amount == null ? null : Number(row.budget_amount),
@@ -3034,7 +3410,7 @@ function galleryArrayForApi(text) {
 }
 
 async function handlePublicBakeryServiceMediaUpload(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   await ensureBakeryMediaTable();
   let buf;
@@ -3476,9 +3852,70 @@ async function handlePublicUserPreferencesUpsert(req, res) {
   if (!incoming) {
     return sendJson(res, 400, { ok: false, code: "PREFERENCES_REQUIRED" });
   }
+  try {
+    await ensurePublicUserPreferencesTable();
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "PREFERENCES_DB_UNAVAILABLE",
+      message: String(error.message || error)
+    });
+  }
+  let existingPrefs = {};
+  try {
+    const [existingRows] = await pool.execute(
+      `SELECT preferences_json
+       FROM user_preferences
+       WHERE user_id = ?
+       LIMIT 1`,
+      [Number(session.user_id)]
+    );
+    const ex = existingRows[0];
+    if (ex && ex.preferences_json) {
+      existingPrefs = typeof ex.preferences_json === "string" ? JSON.parse(ex.preferences_json) : ex.preferences_json;
+    }
+  } catch {
+    existingPrefs = {};
+  }
+  if (!existingPrefs || typeof existingPrefs !== "object") {
+    existingPrefs = {};
+  }
   const safePrefs = {
-    planViewMode: String(incoming.planViewMode || "merged").trim().toLowerCase().slice(0, 32)
+    ...existingPrefs,
+    planViewMode:
+      incoming.planViewMode != null
+        ? String(incoming.planViewMode || "merged").trim().toLowerCase().slice(0, 32)
+        : String(existingPrefs.planViewMode || "merged").trim().toLowerCase().slice(0, 32)
   };
+  if (incoming.providerAiDashboards && typeof incoming.providerAiDashboards === "object") {
+    const nextDash = {};
+    Object.keys(incoming.providerAiDashboards)
+      .slice(0, 40)
+      .forEach((k) => {
+        const key = String(k || "").trim().toLowerCase().slice(0, 120);
+        if (!key) return;
+        const entry = incoming.providerAiDashboards[k];
+        if (!entry || typeof entry !== "object") return;
+        const sections = Array.isArray(entry.sections)
+          ? entry.sections
+              .map((s) => ({
+                title: String((s && s.title) || "").trim().slice(0, 120),
+                intent: String((s && s.intent) || "").trim().slice(0, 280),
+                automation: String((s && s.automation) || "").trim().slice(0, 280)
+              }))
+              .filter((s) => s.title && s.intent)
+              .slice(0, 12)
+          : [];
+        nextDash[key] = {
+          requirements: String(entry.requirements || "").trim().slice(0, 1600),
+          sections,
+          updatedAt: String(entry.updatedAt || new Date().toISOString()).slice(0, 40)
+        };
+      });
+    safePrefs.providerAiDashboards = nextDash;
+  } else if (existingPrefs.providerAiDashboards && typeof existingPrefs.providerAiDashboards === "object") {
+    safePrefs.providerAiDashboards = existingPrefs.providerAiDashboards;
+  }
   try {
     await ensurePublicUserPreferencesTable();
     await pool.execute(
@@ -4004,7 +4441,36 @@ async function handlePublicMobilePushRegister(req, res) {
   try {
     const body = await readJson(req);
     const result = await registerMobileInstallPush(pool, body);
-    return sendJson(res, 200, result);
+
+    // If caller is signed in, also bind this token to user_id so sendPushToUser can deliver
+    // even when provider is offline (not on website).
+    const token = getBearerToken(req) || String(body.authToken || body.token || "").trim();
+    if (token) {
+      try {
+        const session = await requirePublicSession(token, req);
+        if (session && Number(session.user_id) > 0) {
+          const tokenRaw = String(body.pushToken || "").trim();
+          const platformRaw = String(body.platform || "").trim().toLowerCase();
+          const inferredPlatform =
+            platformRaw === "android" || platformRaw === "ios" || platformRaw === "web"
+              ? platformRaw
+              : /^(ExponentPushToken|ExpoPushToken)\[.+\]$/i.test(tokenRaw)
+                ? "ios"
+                : "android";
+          await registerDeviceToken(pool, {
+            userId: Number(session.user_id),
+            platform: inferredPlatform,
+            pushToken: tokenRaw,
+            appVersion: body.appVersion ? String(body.appVersion) : null,
+            locale: body.locale ? String(body.locale) : null
+          });
+        }
+      } catch {
+        /* keep endpoint resilient for anonymous install registration */
+      }
+    }
+
+    return sendJson(res, 200, Object.assign({ linkedToUser: Boolean(token) }, result));
   } catch (error) {
     return sendJson(res, 400, { ok: false, code: "MOBILE_PUSH_REGISTER_FAILED", message: String(error.message || error) });
   }
@@ -4838,7 +5304,8 @@ async function handlePublicAiGenerate(req, res) {
     "vibecoach_tip",
     "hot_picks_trends",
     "brandon_guide",
-    "mb_studio_suite"
+    "mb_studio_suite",
+    "provider_dashboard_sections"
   ]);
   if (!allowed.has(agent)) {
     return sendJson(res, 400, { ok: false, code: "INVALID_AGENT" });
@@ -5401,6 +5868,53 @@ async function handleOwnerNotificationReliability(req, res) {
       platform: String(r.platform || ""),
       count: Number(r.n || 0)
     }))
+  });
+}
+
+async function handleOwnerClientEventHotspots(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  await ensureClientEventLogsTable();
+  const days = Math.min(Math.max(Number(data.body?.days || 14), 1), 90);
+  const limit = Math.min(Math.max(Number(data.body?.limit || 20), 5), 100);
+  const [summaryRows] = await pool.execute(
+    `SELECT
+       COUNT(*) AS total,
+       SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) AS error_count,
+       SUM(CASE WHEN severity = 'warn' THEN 1 ELSE 0 END) AS warn_count
+     FROM client_event_logs
+     WHERE created_at >= (NOW() - INTERVAL ? DAY)`,
+    [days]
+  );
+  const [byEventRows] = await pool.execute(
+    `SELECT event_type, COUNT(*) AS n
+     FROM client_event_logs
+     WHERE created_at >= (NOW() - INTERVAL ? DAY)
+     GROUP BY event_type
+     ORDER BY n DESC
+     LIMIT ?`,
+    [days, limit]
+  );
+  const [byPathRows] = await pool.execute(
+    `SELECT
+       COALESCE(NULLIF(page_path, ''), 'unknown') AS page_path,
+       COUNT(*) AS n,
+       SUM(CASE WHEN severity = 'error' THEN 1 ELSE 0 END) AS errors
+     FROM client_event_logs
+     WHERE created_at >= (NOW() - INTERVAL ? DAY)
+     GROUP BY COALESCE(NULLIF(page_path, ''), 'unknown')
+     ORDER BY n DESC, errors DESC
+     LIMIT ?`,
+    [days, limit]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    days,
+    summary: summaryRows[0] || { total: 0, error_count: 0, warn_count: 0 },
+    topEvents: Array.isArray(byEventRows) ? byEventRows : [],
+    topPages: Array.isArray(byPathRows) ? byPathRows : []
   });
 }
 
@@ -6790,7 +7304,7 @@ async function handlePublicOrderDisputeCreate(req, res) {
 }
 
 async function handlePublicSellerPayoutAccountUpsert(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller", "service_provider"]));
+  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
   if (!session) return;
   const body = await readJson(req);
   const stripeAccountId = String(body.stripeAccountId || "").trim();
@@ -6953,9 +7467,9 @@ async function handlePublicCreatePaymentIntent(req, res) {
 
 function coachPlanMeta(plan) {
   const p = String(plan || "").trim().toLowerCase();
-  if (p === "pro") return { plan: "pro", amount: 30, currency: "EUR", label: "Coach Pro" };
-  if (p === "plus") return { plan: "plus", amount: 18.5, currency: "EUR", label: "Coach Plus" };
-  if (p === "ai-home") return { plan: "ai-home", amount: 12.5, currency: "EUR", label: "AI Home Workout" };
+  if (p === "pro") return { plan: "pro", amount: 30, currency: "EUR", label: "Coach Pro Elite" };
+  if (p === "plus") return { plan: "plus", amount: 18.5, currency: "EUR", label: "Coach Plus Gym" };
+  if (p === "ai-home") return { plan: "ai-home", amount: 12.5, currency: "EUR", label: "AI Home + Meals" };
   return { plan: "starter", amount: 10.5, currency: "EUR", label: "Coach Starter" };
 }
 
@@ -7213,6 +7727,7 @@ async function handlePublicCheckoutStart(req, res) {
   const flow = String(body.flow || "").trim().toLowerCase();
   const plan = String(body.plan || "").trim().toLowerCase();
   const addonPlan = String(body.addonPlan || "").trim().toLowerCase();
+  const autoRenew = String(body.autoRenew || "0").trim() === "1";
   const amountMeta = resolveCheckoutAmount(flow, plan, addonPlan);
   const money = resolveStripeCheckoutMoney(amountMeta, method);
   const paymentTypes = resolveStripePaymentTypes(method);
@@ -7246,8 +7761,21 @@ async function handlePublicCheckoutStart(req, res) {
     postalCode: body.customerPostalCode,
     country: body.customerCountry
   });
+  const isCoachAutoRenew = autoRenew && flow === "coach";
+  const checkoutMode = isCoachAutoRenew ? "subscription" : "payment";
+  const lineItemPriceData = {
+    currency: money.currency.toLowerCase(),
+    unit_amount: Math.round(money.amount * 100),
+    product_data: {
+      name: amountMeta.label,
+      description: `Customer selected method: ${method || "card"}`
+    }
+  };
+  if (checkoutMode === "subscription") {
+    lineItemPriceData.recurring = { interval: "month" };
+  }
   const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "payment",
+    mode: checkoutMode,
     success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
     billing_address_collection: "required",
@@ -7263,21 +7791,28 @@ async function handlePublicCheckoutStart(req, res) {
     line_items: [
       {
         quantity: 1,
-        price_data: {
-          currency: money.currency.toLowerCase(),
-          unit_amount: Math.round(money.amount * 100),
-          product_data: {
-            name: amountMeta.label,
-            description: `Customer selected method: ${method || "card"}`
-          }
-        }
+        price_data: lineItemPriceData
       }
     ],
+    subscription_data: checkoutMode === "subscription"
+      ? {
+          metadata: {
+            flow,
+            plan,
+            addonPlan: addonPlan || "",
+            selectedMethod: method || "card",
+            autoRenew: "1",
+            vibecart_user_id: String(Number(session.user_id) || ""),
+            userId: String(Number(session.user_id) || "")
+          }
+        }
+      : undefined,
     metadata: {
       flow,
       plan,
       addonPlan: addonPlan || "",
       selectedMethod: method || "card",
+      autoRenew: isCoachAutoRenew ? "1" : "0",
       route: "all-methods-to-stripe",
       vibecart_user_id: String(Number(session.user_id) || ""),
       userId: String(Number(session.user_id) || "")
@@ -7455,6 +7990,28 @@ async function handlePublicCoachCheckoutSessionsList(req, res) {
        LIMIT 25`,
       [uid]
     );
+    const [subRows] = await pool.execute(
+      `SELECT s.status, s.auto_renew, s.end_at, p.plan_code
+       FROM health_user_subscriptions s
+       JOIN health_subscription_plans p ON p.id = s.plan_id
+       WHERE s.user_id = ?
+       ORDER BY s.id DESC
+       LIMIT 1`,
+      [uid]
+    );
+    const sub = Array.isArray(subRows) && subRows[0] ? subRows[0] : null;
+    const planCode = String((sub && sub.plan_code) || "").trim().toUpperCase();
+    const subscriptionPlan =
+      planCode === "PRO" ? "pro" : planCode === "PLUS" ? "plus" : planCode === "FREE" ? "starter" : "";
+    const subscriptionStatus = String((sub && sub.status) || "").trim().toLowerCase();
+    const renewal = {
+      hasSubscription: Boolean(sub),
+      subscriptionPlan: subscriptionPlan || "",
+      subscriptionStatus,
+      autoRenew: Boolean(sub && Number(sub.auto_renew) === 1),
+      endAt: (sub && sub.end_at) || null,
+      locked: subscriptionStatus === "paused"
+    };
     const sessions = (Array.isArray(rows) ? rows : [])
       .map((r) => ({
         sessionId: String(r.sessionId || "").trim(),
@@ -7464,9 +8021,9 @@ async function handlePublicCoachCheckoutSessionsList(req, res) {
         fulfilledAt: r.fulfilledAt || null
       }))
       .filter((s) => /^cs_[a-zA-Z0-9_]+$/.test(s.sessionId));
-    return sendJson(res, 200, { ok: true, sessions });
+    return sendJson(res, 200, { ok: true, sessions, renewal });
   } catch {
-    return sendJson(res, 200, { ok: true, sessions: [] });
+    return sendJson(res, 200, { ok: true, sessions: [], renewal: { hasSubscription: false, locked: false } });
   }
 }
 
@@ -7486,6 +8043,7 @@ async function handlePublicCheckoutRedirect(req, res) {
   const customerAddress = String(urlObj.searchParams.get("customerAddress") || "").trim();
   const customerCity = String(urlObj.searchParams.get("customerCity") || "").trim();
   const customerPostalCode = String(urlObj.searchParams.get("customerPostalCode") || "").trim();
+  const autoRenew = String(urlObj.searchParams.get("autoRenew") || "0").trim() === "1";
   let customerCountry = String(urlObj.searchParams.get("customerCountry") || "").trim().toUpperCase();
   if (!customerCountry || customerCountry.length !== 2) {
     customerCountry = String(session.country_code || "").trim().toUpperCase() || "PL";
@@ -7521,8 +8079,21 @@ async function handlePublicCheckoutRedirect(req, res) {
     flow === "top_class"
       ? `${baseUrl}/top-class-checkout.html?flow=top_class&plan=${encodeURIComponent(plan || "prestige")}&cancelled=1`
       : `${baseUrl}/checkout-details.html?flow=${encodeURIComponent(flow)}&plan=${encodeURIComponent(plan)}`;
+  const isCoachAutoRenew = autoRenew && flow === "coach";
+  const checkoutMode = isCoachAutoRenew ? "subscription" : "payment";
+  const lineItemPriceData = {
+    currency: money.currency.toLowerCase(),
+    unit_amount: Math.round(money.amount * 100),
+    product_data: {
+      name: amountMeta.label,
+      description: `Customer selected method: ${method || "card"}`
+    }
+  };
+  if (checkoutMode === "subscription") {
+    lineItemPriceData.recurring = { interval: "month" };
+  }
   const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "payment",
+    mode: checkoutMode,
     success_url: `${returnUrl}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl,
     billing_address_collection: "required",
@@ -7538,21 +8109,28 @@ async function handlePublicCheckoutRedirect(req, res) {
     line_items: [
       {
         quantity: 1,
-        price_data: {
-          currency: money.currency.toLowerCase(),
-          unit_amount: Math.round(money.amount * 100),
-          product_data: {
-            name: amountMeta.label,
-            description: `Customer selected method: ${method || "card"}`
-          }
-        }
+        price_data: lineItemPriceData
       }
     ],
+    subscription_data: checkoutMode === "subscription"
+      ? {
+          metadata: {
+            flow,
+            plan,
+            addonPlan: addonPlan || "",
+            selectedMethod: method || "card",
+            autoRenew: "1",
+            vibecart_user_id: String(Number(session.user_id) || ""),
+            userId: String(Number(session.user_id) || "")
+          }
+        }
+      : undefined,
     metadata: {
       flow,
       plan,
       addonPlan: addonPlan || "",
       selectedMethod: method || "card",
+      autoRenew: isCoachAutoRenew ? "1" : "0",
       route: "all-methods-to-stripe",
       vibecart_user_id: String(Number(session.user_id) || ""),
       userId: String(Number(session.user_id) || "")
@@ -7593,6 +8171,31 @@ async function handleStripeWebhook(req, res) {
   }
 
   const processed = await processStripeWebhookEvent(pool, event);
+  if (processed && processed.ok && Number(processed.userId) > 0 && event && event.type === "invoice.payment_failed") {
+    const userId = Number(processed.userId);
+    await sendPushToUser(pool, {
+      userId,
+      eventType: "coach_renewal_payment_failed",
+      title: "Renewal payment failed",
+      body: "Your package renewal did not go through. Renew now to restore dashboard access."
+    });
+    const toEmail = await getUserEmailById(userId);
+    if (toEmail) {
+      queueUserTransactionalEmail(
+        toEmail,
+        "VibeCart renewal payment failed",
+        "Your automatic package renewal payment failed. Please renew now to restore access to your dashboard."
+      );
+    }
+  }
+  if (processed && processed.ok && Number(processed.userId) > 0 && event && event.type === "invoice.paid") {
+    await sendPushToUser(pool, {
+      userId: Number(processed.userId),
+      eventType: "coach_renewal_payment_success",
+      title: "Renewal successful",
+      body: "Your package renewed successfully. Your dashboard is active."
+    });
+  }
   if (processed.ok && !processed.skipped) {
     await sendAdminNotificationEmail("Payment webhook processed", [
       `Event: ${event.type}`,
@@ -7833,6 +8436,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/api/public/bakery/bookings/as-buyer") {
       return await handlePublicBakeryBookingsAsBuyer(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/public/bakery/bookings/clear-mine") {
+      return await handlePublicBakeryBookingsClearMine(req, res);
+    }
     if (req.method === "POST" && pathname === "/api/public/bakery/bookings/status/update") {
       return await handlePublicBakeryBookingStatusUpdate(req, res);
     }
@@ -7847,6 +8453,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/bakery/schedule/slots")) {
       return await handlePublicBakeryScheduleSlotsList(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/telemetry/client-event") {
+      return await handlePublicClientEventLog(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/schedule/slots/upsert") {
       return await handlePublicBakeryScheduleSlotsUpsert(req, res);
@@ -7988,6 +8597,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/notifications/reliability") {
       return await handleOwnerNotificationReliability(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/client-events/hotspots") {
+      return await handleOwnerClientEventHotspots(req, res);
     }
     if (req.method === "POST" && pathname === "/api/owner/messages/list") {
       return await handleOwnerMessageCenterList(req, res);
@@ -8225,7 +8837,7 @@ async function validateBakeryProviderDeskWsToken(token) {
     return null;
   }
   const role = String(sess.role || "").toLowerCase();
-  if (!new Set(["seller", "service_provider"]).has(role)) {
+  if (!VC_BAKERY_PROVIDER_ROLES.has(role)) {
     return null;
   }
   return { userId: Number(sess.user_id) };

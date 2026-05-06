@@ -67,6 +67,7 @@
   var mbProviderDeskWs = null;
   var providerDeskPollTimer = null;
   var mbLastPendingBookingCount = -1;
+  var pendingProviderDeepLinkBookingId = 0;
 
   var draftPersona = "";
   var draftService = "";
@@ -74,14 +75,37 @@
   /** Work-card gallery { kind: "image"|"video", url } for save + client preview */
   var mbWorkGallery = [];
   var mbDiscoverServiceById = {};
+  var mbSlotChipTimes = [];
 
   function getToken() {
     return String(localStorage.getItem(TOKEN_KEY) || "").trim();
   }
 
   function setStatus(text) {
+    var t = String(text || "");
     var node = document.getElementById("bizStatus");
-    if (node) node.textContent = String(text || "");
+    if (node) node.textContent = t;
+    var cliDesk = document.getElementById("mbClientDeskStatus");
+    if (cliDesk) cliDesk.textContent = t;
+    var signHint = document.getElementById("mbClientSigninHint");
+    if (signHint && t) signHint.textContent = t;
+    if (!t) return;
+    if (!node && !cliDesk && !signHint) {
+      try {
+        window.alert(t);
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+
+  /** Restore slot from visible selection if the in-memory value was cleared (e.g. async slot reload). */
+  function syncClientSelectedSlotFromDom() {
+    if (clientSelectedSlot) return clientSelectedSlot;
+    var sel = document.querySelector("#mbCliSlots .vc-mb-slot-btn.is-selected");
+    if (!sel) return "";
+    clientSelectedSlot = String(sel.getAttribute("data-mb-slot") || "").trim();
+    return clientSelectedSlot;
   }
 
   function urlBase64ToUint8Array(base64String) {
@@ -100,6 +124,16 @@
     var note = document.getElementById("mbWebPushNote");
     if (!btn || btn.getAttribute("data-mb-wired") === "1") return;
     btn.setAttribute("data-mb-wired", "1");
+    var PUSH_ONCE_KEY = "vibecart-webpush-enabled-v1";
+    try {
+      if (localStorage.getItem(PUSH_ONCE_KEY) === "1") {
+        btn.disabled = true;
+        btn.textContent = "Phone alerts enabled";
+        if (note) note.textContent = "Already enabled on this device.";
+      }
+    } catch (_) {
+      /* ignore */
+    }
     var vapidPublicKey = null;
     function setNote(t) {
       if (note) note.textContent = String(t || "");
@@ -157,6 +191,13 @@
         })
         .then(function (x) {
           if (x && x.ok && x.j && x.j.ok) {
+            try {
+              localStorage.setItem(PUSH_ONCE_KEY, "1");
+            } catch (_) {
+              /* ignore */
+            }
+            btn.disabled = true;
+            btn.textContent = "Phone alerts enabled";
             setNote("Booking alerts enabled for this browser. Allow notifications in phone settings if prompted.");
           } else {
             setNote((x && x.j && (x.j.message || x.j.code)) || "Could not save subscription.");
@@ -197,6 +238,11 @@
           } catch (_) {
             /* ignore */
           }
+        }
+        try {
+          ensureProviderPushAutoLink();
+        } catch (_) {
+          /* ignore push auto-link failures */
         }
         return res;
       })
@@ -344,6 +390,52 @@
   function hideGate() {
     var root = document.getElementById("mbGateRoot");
     if (root) root.setAttribute("hidden", "hidden");
+  }
+
+  var mbProviderPushAutoAttempted = false;
+  function ensureProviderPushAutoLink() {
+    if (mbProviderPushAutoAttempted) return;
+    var cfg = loadMbConfig();
+    if (!cfg || String(cfg.persona || "") !== "provider") return;
+    var token = getToken();
+    if (!token) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    mbProviderPushAutoAttempted = true;
+    fetch("/api/public/web-push/config")
+      .then(function (r) {
+        return r.json().catch(function () {
+          return {};
+        });
+      })
+      .then(function (j) {
+        var publicKey = String((j && j.publicKey) || "").trim();
+        if (!publicKey) return null;
+        return navigator.serviceWorker.register("./service-worker.js").then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (existing) {
+            if (existing) return existing;
+            return reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+          });
+        });
+      })
+      .then(function (sub) {
+        if (!sub) return;
+        var headers = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+        if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+          headers = window.VibeCartSessionDevice.merge(token, headers);
+        }
+        return fetch("/api/public/account/web-push/register", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({ subscription: sub.toJSON() })
+        });
+      })
+      .catch(function () {
+        /* keep dashboard resilient if push subscription fails */
+      });
   }
 
   function applyServiceSelects(service) {
@@ -511,17 +603,51 @@
     }
   }
 
+  function parseProviderBookingIdFromUrl() {
+    try {
+      var u = new URL(location.href);
+      var fromSearch = Number(u.searchParams.get("mbBookingId") || u.searchParams.get("bookingId") || 0);
+      if (fromSearch > 0) return fromSearch;
+      var rawHash = String(u.hash || "");
+      var qIndex = rawHash.indexOf("?");
+      if (qIndex >= 0) {
+        var qs = rawHash.slice(qIndex + 1);
+        var hp = new URLSearchParams(qs);
+        var fromHash = Number(hp.get("mbBookingId") || hp.get("bookingId") || 0);
+        if (fromHash > 0) return fromHash;
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    return 0;
+  }
+
+  function openProviderBookingFromDeepLinkIfAny(cfg) {
+    if (!cfg || !isProviderDeskConfig(cfg)) return;
+    if (providerFocusBookingId > 0) return;
+    if (pendingProviderDeepLinkBookingId > 0) {
+      loadProviderFocus(pendingProviderDeepLinkBookingId);
+      setStatus("Opened booking #" + pendingProviderDeepLinkBookingId + " from notification.");
+      pendingProviderDeepLinkBookingId = 0;
+    }
+  }
+
   function revealMainAndLoad(cfg) {
     checkMbBookingPaidFromUrl();
+    pendingProviderDeepLinkBookingId = parseProviderBookingIdFromUrl();
     hideGate();
     document.body.classList.remove("mb-boot-pending");
     var mainEl = document.getElementById("mbMainDashboard");
     if (mainEl) mainEl.removeAttribute("aria-hidden");
     applyDashboard(cfg);
     scrollToBeautyHashIfAllowed(cfg);
-    refreshMbSessionUser().then(function () {
-      return loadAll();
-    });
+    refreshMbSessionUser()
+      .then(function () {
+        return loadAll();
+      })
+      .then(function () {
+        openProviderBookingFromDeepLinkIfAny(cfg);
+      });
   }
 
   function scrollToBeautyHashIfAllowed(cfg) {
@@ -655,12 +781,19 @@
 
   function loadClientDashboard() {
     var cfg = loadMbConfig();
-    if (!cfg || !isClientLikePersona(cfg.persona) || !isSessionUnlocked(cfg.persona, cfg.service)) {
+    if (!cfg || !isClientLikePersona(cfg.persona)) {
+      setStatus("Open the client desk from the gate to refresh your bookings.");
+      return Promise.resolve();
+    }
+    if (!isSessionUnlocked(cfg.persona, cfg.service)) {
+      setStatus("Unlock this service desk first, then tap Refresh list again.");
       return Promise.resolve();
     }
     return Promise.all([
-      loadDiscoverForClientLine(cfg.service),
-      api("/api/public/bakery/bookings/as-buyer").catch(function () {
+      loadDiscoverForClientLine(cfg.service).catch(function () {
+        return [];
+      }),
+      api("/api/public/bakery/bookings/as-buyer?_=" + String(Date.now())).catch(function () {
         return { bookings: [] };
       })
     ]).then(function (results) {
@@ -723,7 +856,7 @@
       if (pick) {
         pick.innerHTML =
           '<option value="">' +
-          (list.length ? "Choose a live offer" : "No live offers yet — ask a provider to publish") +
+          (list.length ? "Choose a provider service" : "No provider services yet — ask provider to publish slots") +
           "</option>" +
           list
             .map(function (s) {
@@ -731,24 +864,20 @@
                 '<option value="' +
                 Number(s.id) +
                 '">' +
-                escapeHtml(s.businessName + " · " + s.workTitle + " · " + Number(s.basePrice || 0).toFixed(2) + " " + (s.currency || "USD")) +
+                escapeHtml(s.businessName + " · " + s.workTitle) +
                 "</option>"
               );
             })
             .join("");
-      }
-      try {
-        var sp = new URLSearchParams(String((typeof location !== "undefined" && location.search) || ""));
-        var wantSid = Number(sp.get("vcServiceId") || sp.get("serviceId") || 0);
-        if (wantSid > 0 && pick) {
-          var opt = pick.querySelector('option[value="' + wantSid + '"]');
-          if (opt) {
-            pick.value = String(wantSid);
-            updateMbCliProviderPreview();
+        try {
+          var qs = new URLSearchParams(window.location.search || "");
+          var preferredId = Number(qs.get("providerServiceId") || 0);
+          if (preferredId && list.some(function (s) { return Number(s.id) === preferredId; })) {
+            pick.value = String(preferredId);
           }
+        } catch (_) {
+          /* ignore */
         }
-      } catch (_) {
-        /* ignore */
       }
       updateMbCliProviderPreview();
       return list;
@@ -783,10 +912,6 @@
     var root = document.getElementById("mbCliSlots");
     if (!root) return;
     var list = Array.isArray(times) ? times.filter(Boolean) : [];
-    var dateEl = document.getElementById("mbCliDate");
-    if (dateEl) {
-      dateEl.setAttribute("data-vc-slots", list.length ? "1" : "0");
-    }
     if (!list.length) {
       root.innerHTML =
         '<p class="note" data-mb-no-slots>No published times for this day yet. Pick another date or ask your provider to publish slots for this offer.</p>';
@@ -820,12 +945,17 @@
     if (!sid || !date) {
       root.innerHTML = '<p class="note">Select a provider and date to load published times.</p>';
       clientSelectedSlot = "";
-      var d0 = document.getElementById("mbCliDate");
-      if (d0) d0.removeAttribute("data-vc-slots");
       return;
     }
     root.innerHTML = '<p class="note">Loading published times…</p>';
-    api("/api/public/bakery/schedule/slots?serviceId=" + encodeURIComponent(String(sid)) + "&date=" + encodeURIComponent(date))
+    api(
+      "/api/public/bakery/schedule/slots?serviceId=" +
+        encodeURIComponent(String(sid)) +
+        "&date=" +
+        encodeURIComponent(date) +
+        "&_=" +
+        String(Date.now())
+    )
       .then(function (res) {
         var slots = Array.isArray(res.slots) ? res.slots : [];
         buildClientSlotButtonsFromArray(slots);
@@ -833,8 +963,6 @@
       .catch(function () {
         root.innerHTML = '<p class="note">Could not load times. Try again or pick another date.</p>';
         clientSelectedSlot = "";
-        var de = document.getElementById("mbCliDate");
-        if (de) de.removeAttribute("data-vc-slots");
       });
   }
 
@@ -928,11 +1056,14 @@
       try {
         var d = JSON.parse(String(ev.data || "{}"));
         if (d && d.type === "bakery_provider_desk" && d.reason === "booking_new") {
-          setStatus("New booking request — refreshing.");
+          var tPref = d.preferredTime ? " · " + String(d.preferredTime) : "";
+          setStatus("New booking request" + tPref + " — refreshing.");
           loadAll();
           try {
             if (typeof Notification !== "undefined" && document.hidden && Notification.permission === "granted") {
-              new Notification("VibeCart", { body: "New booking request on your provider desk." });
+              new Notification("VibeCart", {
+                body: "New booking request" + (d.preferredTime ? " at " + String(d.preferredTime) : "") + "."
+              });
             }
           } catch (_) {
             /* ignore */
@@ -1073,6 +1204,13 @@
   }
 
   function submitClientReservation() {
+    try {
+      document.body.classList.remove("mb-boot-pending");
+      hideGate();
+    } catch (_) {
+      /* ignore */
+    }
+    setStatus("Send clicked. Validating...");
     if (!getToken()) {
       setStatus("Sign in with your VibeCart account (Account / passport) to send a reservation.");
       return Promise.resolve();
@@ -1083,8 +1221,9 @@
     var phone = String(document.getElementById("mbCliCustPhone") && document.getElementById("mbCliCustPhone").value || "").trim();
     var date = String(document.getElementById("mbCliDate") && document.getElementById("mbCliDate").value || "").trim();
     var details = String(document.getElementById("mbCliDetails") && document.getElementById("mbCliDetails").value || "").trim();
+    var slotPref = syncClientSelectedSlotFromDom();
     if (!sid) {
-      setStatus("Choose a provider offer.");
+      setStatus("Choose a provider service.");
       return Promise.resolve();
     }
     if (name.length < 2) {
@@ -1095,9 +1234,8 @@
       setStatus("Pick a preferred date.");
       return Promise.resolve();
     }
-    if (!clientSelectedSlot) {
-      setStatus("Pick a preferred time slot.");
-      return Promise.resolve();
+    if (!slotPref) {
+      slotPref = "flexible";
     }
     if (details.length < 8) {
       setStatus("Add a short description of what you need (8+ characters).");
@@ -1105,12 +1243,13 @@
     }
     var pay = getClientPaymentPref();
     var line = cfg && cfg.service ? String(cfg.service) : "";
-    var occasion = "Payment: " + pay + " · Time preference: " + clientSelectedSlot;
+    var occasion = "Payment: " + pay + " · Time preference: " + slotPref;
     var body = {
       serviceId: sid,
       customerName: name,
       customerPhone: phone,
       eventDate: date,
+      preferredSlot: slotPref,
       occasionType: occasion,
       styleTheme: line,
       budgetAmount: 0,
@@ -1118,20 +1257,38 @@
       paymentPreference: pay,
       serviceLine: line
     };
-    setStatus("Sending reservation…");
+    setStatus("Validated. Checking session...");
     return refreshMbSessionUser().then(function () {
       if (!mbSessionUserId) {
         setStatus("Sign in with your VibeCart account to send a reservation.");
         return;
       }
-      return api("/api/public/bakery/bookings/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      setStatus("Session OK. Posting reservation...");
+      return api(
+        "/api/public/bakery/schedule/slots?serviceId=" +
+          encodeURIComponent(String(sid)) +
+          "&date=" +
+          encodeURIComponent(date) +
+          "&_=" +
+          String(Date.now())
+      )
+        .then(function (slotRes) {
+          var live = Array.isArray(slotRes && slotRes.slots) ? slotRes.slots : [];
+          if (slotPref !== "flexible" && live.indexOf(slotPref) < 0) {
+            throw new Error("That time is no longer available. Pick another slot and try again.");
+          }
+          return api("/api/public/bakery/bookings/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+        });
     })
       .then(function (res) {
-        if (!res || !res.bookingId) return;
+        if (!res || !res.bookingId) {
+          setStatus("Could not send: no booking confirmation from the server. Try again.");
+          return;
+        }
         clientActiveBookingId = Number(res.bookingId || 0);
         try {
           sessionStorage.setItem("vibecart-mb-last-booking", String(clientActiveBookingId));
@@ -1140,16 +1297,18 @@
         }
         var wait = document.getElementById("mbClientWaitBanner");
         if (wait) {
+          var pushHint =
+            res && res.providerPush === "no_device_tokens"
+              ? " Provider phone alerts are not enabled yet, but the request is visible on the provider desk now."
+              : "";
           wait.hidden = false;
           wait.textContent =
-            "Request sent. Waiting for your provider to accept — we will notify you here and by push when they respond. You can change service line in a moment.";
+            "Request sent. Waiting for your provider to accept — we will notify you here and by push when they respond." +
+            pushHint;
         }
         setStatus("Reservation sent.");
         startClientBookingPoll();
         loadClientDashboard().catch(function () {});
-        window.setTimeout(function () {
-          returnToServicePicker();
-        }, 4200);
       })
       .catch(function (err) {
         setStatus("Could not send: " + err.message);
@@ -1175,6 +1334,9 @@
             connectMbClientChatWs(clientActiveBookingId);
             maybeShowClientPayRow(res.booking || {});
             clearClientPoll();
+            if (clientWizardStep === 1) {
+              loadClientSlotsForCurrentStep();
+            }
           }
         })
         .catch(function () {});
@@ -1319,13 +1481,11 @@
     var inp = document.getElementById("mbUnlockPw");
     if (inp) inp.value = "";
     var pwRow = document.getElementById("mbUnlockPwRow");
-    var quick = document.getElementById("mbUnlockQuick");
     var unlockSubmit = document.getElementById("mbUnlockSubmit");
-    if (pwRow) pwRow.hidden = !!skipPwdUnlock || !!vcProvider;
-    if (quick) quick.hidden = !skipPwdUnlock;
-    if (unlockSubmit) unlockSubmit.hidden = !!skipPwdUnlock;
+    if (pwRow) pwRow.hidden = !!skipPwdUnlock;
+    if (unlockSubmit) unlockSubmit.hidden = false;
     if (unlockSubmit) {
-      unlockSubmit.textContent = vcProvider ? "Continue" : "Enter dashboard";
+      unlockSubmit.textContent = vcProvider ? "Unlock provider dashboard" : "Enter dashboard";
     }
     setGateStatus("mbGateStatusUnlock", "", false);
   }
@@ -1346,9 +1506,8 @@
           setSessionUnlocked(cfg.persona, cfg.service);
           return true;
         }
-        if (cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER && isSellerSessionPayload(res)) {
-          setSessionUnlocked(cfg.persona, cfg.service);
-          return true;
+        if (cfg.persona === "provider") {
+          return false;
         }
         return false;
       })
@@ -1359,36 +1518,52 @@
 
   function bootGate() {
     var cfg = loadMbConfig();
+    if (cfg && cfg.persona === "provider") {
+      clearSessionUnlock();
+    }
+
+    var qs = null;
+    var flow = "";
+    var forcedLine = "";
     try {
-      var sp = new URLSearchParams(String((typeof location !== "undefined" && location.search) || ""));
-      var flowBook = String(sp.get("flow") || "").toLowerCase() === "book";
-      var lineQ = String(sp.get("line") || "").trim();
-      if (!cfg && flowBook && lineQ) {
-        var decoded = decodeURIComponent(lineQ.replace(/\+/g, " ")).trim();
-        var known = SERVICES.some(function (s) {
-          return s.value === decoded;
-        });
-        if (known) {
-          var autoCfg = { persona: "client", service: decoded, pwdHash: "__none__", salt: "" };
-          saveMbConfig(autoCfg);
-          setSessionUnlocked(autoCfg.persona, autoCfg.service);
-          document.body.classList.remove("mb-boot-pending");
-          hideGate();
-          applyDashboard(autoCfg);
-          refreshMbSessionUser().then(function () {
-            loadAll();
-          });
-          window.setTimeout(function () {
-            var desk = document.getElementById("mb-client-service-desk");
-            if (desk && desk.scrollIntoView) {
-              desk.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-          }, 380);
-          return;
-        }
-      }
-    } catch (_) {
-      /* ignore */
+      qs = new URLSearchParams(window.location.search || "");
+      flow = String(qs.get("flow") || "").trim().toLowerCase();
+      forcedLine = String(qs.get("line") || qs.get("service") || "").trim();
+    } catch (e) {
+      flow = "";
+      forcedLine = "";
+    }
+
+    /* "I want to book" must never drop into provider unlock.
+       Open client booking flow with service-line chooser directly. */
+    if (flow === "book") {
+      var cfgBook = {
+        persona: "client",
+        service: forcedLine || "Hair Styling",
+        pwdHash: "__none__",
+        salt: ""
+      };
+      saveMbConfig(cfgBook);
+      setSessionUnlocked(cfgBook.persona, cfgBook.service);
+      document.body.classList.remove("mb-boot-pending");
+      hideGate();
+      applyDashboard(cfgBook);
+      refreshMbSessionUser().then(function () {
+        loadAll();
+      });
+      return;
+    }
+
+    /* Opening "My Business" should start from role selection,
+       not a leftover password prompt from previous sessions. */
+    if (!flow) {
+      clearSessionUnlock();
+      document.body.classList.add("mb-boot-pending");
+      showGate();
+      draftPersona = "";
+      draftService = "";
+      showPersonaStep();
+      return;
     }
 
     if (cfg && isSessionUnlocked(cfg.persona, cfg.service)) {
@@ -1434,6 +1609,10 @@
     showPersonaStep();
   }
 
+  function stripLegacyPublishedSlotsSection() {
+    return;
+  }
+
   function wireGateUi() {
     document.getElementById("mbPickClient") &&
       document.getElementById("mbPickClient").addEventListener("click", function () {
@@ -1460,11 +1639,6 @@
         if (!draftService) {
           setGateStatus("mbGateStatusService", "Pick a service line to continue.", false);
           return;
-        }
-        try {
-          localStorage.setItem("vibecart-mb-last-persona-v1", String(draftPersona || ""));
-        } catch (_) {
-          /* ignore */
         }
         if (draftPersona === "client") {
           var cfgClient = { persona: "client", service: draftService, pwdHash: "__none__", salt: "" };
@@ -1522,27 +1696,14 @@
               salt: MB_VC_PROVIDER_MARKER
             };
             saveMbConfig(cfg);
-            setSessionUnlocked(cfg.persona, cfg.service);
-            setGateStatus("mbGateStatusVc", "Opening dashboard…", true);
-            revealMainAndLoad(cfg);
+            clearSessionUnlock();
+            setGateStatus("mbGateStatusVc", "Set dashboard password to continue…", true);
+            showUnlockStep(cfg);
           })
           .catch(function () {
             gateBusy = false;
             setGateStatus("mbGateStatusVc", "Could not verify session. Sign in from Account, then try again.", false);
           });
-      });
-
-    document.getElementById("mbUnlockQuick") &&
-      document.getElementById("mbUnlockQuick").addEventListener("click", function () {
-        var cfg = loadMbConfig();
-        var okQuick =
-          cfg &&
-          ((cfg.persona === "client" && cfg.pwdHash === "__none__") ||
-            (cfg.persona === "citizen" && cfg.pwdHash === MB_CITIZEN_MARKER));
-        if (!okQuick) return;
-        setSessionUnlocked(cfg.persona, cfg.service);
-        setGateStatus("mbGateStatusUnlock", "Opening…", true);
-        revealMainAndLoad(cfg);
       });
 
     document.getElementById("mbUnlockSubmit") &&
@@ -1565,6 +1726,12 @@
           return;
         }
         if (cfg.persona === "provider" && cfg.pwdHash === MB_VC_PROVIDER_MARKER) {
+          var providerPwInput = document.getElementById("mbUnlockPw");
+          var providerPw = providerPwInput ? String(providerPwInput.value || "").trim() : "";
+          if (!providerPw) {
+            setGateStatus("mbGateStatusUnlock", "Enter your provider dashboard password to continue.", false);
+            return;
+          }
           gateBusy = true;
           setGateStatus("mbGateStatusUnlock", "Checking your account…", false);
           refreshMbSessionUser()
@@ -1581,9 +1748,19 @@
                 setGateStatus("mbGateStatusUnlock", "Seller role required for this desk.", false);
                 return;
               }
-              setSessionUnlocked(cfg.persona, cfg.service);
-              setGateStatus("mbGateStatusUnlock", "Welcome back.", true);
-              revealMainAndLoad(cfg);
+              var newSalt = cfg.salt === MB_VC_PROVIDER_MARKER ? String(Date.now()) : String(cfg.salt || Date.now());
+              return hashPassword(providerPw, newSalt)
+                .then(function (hex) {
+                  saveMbConfig({
+                    persona: "provider",
+                    service: cfg.service,
+                    pwdHash: hex,
+                    salt: newSalt
+                  });
+                  setSessionUnlocked(cfg.persona, cfg.service);
+                  setGateStatus("mbGateStatusUnlock", "Welcome back.", true);
+                  revealMainAndLoad(loadMbConfig() || cfg);
+                });
             })
             .catch(function () {
               gateBusy = false;
@@ -1678,11 +1855,18 @@
 
   function fillProviderFocusFromBooking(b) {
     var st = String(b.bookingStatus || "").toLowerCase();
+    var prefTime = String(b.preferredTime || b.requestedStartTime || "").trim();
+    if (!prefTime && b.occasionType) {
+      var pm = String(b.occasionType).match(/Time preference:\s*(\d{1,2}:\d{2})/i);
+      if (pm) prefTime = pm[1];
+    }
     var title = document.getElementById("mbProvFocusTitle");
     if (title) title.textContent = "#" + Number(b.id || 0) + " · " + (b.customerName || "Customer");
     var sum = document.getElementById("mbProvFocusSummary");
     if (sum) {
-      sum.textContent = [b.businessName, b.workTitle, b.eventDate, st].filter(Boolean).join(" · ");
+      sum.textContent = [b.businessName, b.workTitle, b.eventDate, prefTime ? "Time " + prefTime : "", st]
+        .filter(Boolean)
+        .join(" · ");
     }
     var closedBanner = document.getElementById("mbProvFocusClosedBanner");
     if (closedBanner) {
@@ -1700,6 +1884,9 @@
     var det = document.getElementById("mbProvFocusDetails");
     if (det) {
       var parts = [];
+      if (prefTime) {
+        parts.push("<p><strong>Client time</strong> · " + escapeHtml(prefTime) + "</p>");
+      }
       if (b.customerPhone) {
         parts.push("<p><strong>Phone</strong> · " + escapeHtml(String(b.customerPhone)) + "</p>");
       }
@@ -1838,7 +2025,7 @@
             (document.getElementById("mbCliCustName") && document.getElementById("mbCliCustName").value) || ""
           ).trim();
           if (!sid) {
-            setStatus("Choose a provider offer.");
+            setStatus("Choose a provider service.");
             return;
           }
           if (name.length < 2) {
@@ -1858,7 +2045,7 @@
             setStatus("Pick a preferred date.");
             return;
           }
-          if (!clientSelectedSlot) {
+          if (!syncClientSelectedSlotFromDom()) {
             setStatus("Pick a preferred time slot.");
             return;
           }
@@ -1870,9 +2057,20 @@
     }
     var sub = document.getElementById("mbClientSubmitReserve");
     if (sub) {
-      sub.addEventListener("click", function () {
+      sub.addEventListener("click", function (ev) {
+        if (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
         submitClientReservation();
-      });
+      }, true);
+      sub.addEventListener("touchend", function (ev) {
+        if (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+        }
+        submitClientReservation();
+      }, { capture: true, passive: false });
     }
     var send = document.getElementById("mbClientChatSend");
     if (send) {
@@ -1917,10 +2115,25 @@
         startBookingStripeCheckout("full");
       });
     }
+    bindMbClientImageLightboxEvents();
     var cliPick = document.getElementById("mbCliProviderSelect");
     if (cliPick) {
       cliPick.addEventListener("change", function () {
         updateMbCliProviderPreview();
+      });
+    }
+    var provPick = document.getElementById("mbProvSlotService");
+    if (provPick) {
+      provPick.addEventListener("change", function () {
+        var hid = document.getElementById("bakeryEditServiceId");
+        if (hid) hid.value = String(provPick.value || "");
+        loadProvScheduleSlotsFromServer();
+      });
+    }
+    var provDate = document.getElementById("mbProvSlotDate");
+    if (provDate) {
+      provDate.addEventListener("change", function () {
+        loadProvScheduleSlotsFromServer();
       });
     }
   }
@@ -2094,40 +2307,74 @@
     var pick = document.getElementById("mbCliProviderSelect");
     var root = document.getElementById("mbCliProviderMediaPreview");
     if (!root) return;
-    var id = Number((pick && pick.value) || 0);
-    if (!id) {
-      root.innerHTML = "";
-      root.hidden = true;
-      return;
-    }
-    var s = mbDiscoverServiceById[id];
-    if (!s) {
-      root.innerHTML = "";
-      root.hidden = true;
-      return;
-    }
-    var html = renderServiceCardMediaHtml(s);
-    if (!html) {
-      root.innerHTML = "";
-      root.hidden = true;
-      return;
-    }
-    root.innerHTML = "<p class='note' style='margin:0 0 0.35rem 0'>Preview</p>" + html;
+    // Requested: remove UI offers/preview block from provider offer area.
+    root.innerHTML = "";
     root.hidden = false;
+    root.hidden = true;
+    if (pick) pick.setAttribute("data-offer-ui-hidden", "1");
+  }
+
+  function openMbClientImageLightbox(src) {
+    var safeSrc = String(src || "").trim();
+    if (!safeSrc) return;
+    var dlg = document.getElementById("mbClientImageLightbox");
+    var img = document.getElementById("mbClientImageLightboxImg");
+    if (!dlg || !img) {
+      try {
+        window.open(safeSrc, "_blank", "noopener");
+      } catch (_) {
+        /* ignore */
+      }
+      return;
+    }
+    img.setAttribute("src", safeSrc);
+    if (typeof dlg.showModal === "function") {
+      try {
+        if (!dlg.open) dlg.showModal();
+        return;
+      } catch (_) {
+        /* fall through to new tab fallback */
+      }
+    }
+    try {
+      window.open(safeSrc, "_blank", "noopener");
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function bindMbClientImageLightboxEvents() {
+    var dlg = document.getElementById("mbClientImageLightbox");
+    var closeBtn = document.getElementById("mbClientImageLightboxClose");
+    if (!dlg) return;
+    dlg.addEventListener("click", function (ev) {
+      if (ev.target === dlg && typeof dlg.close === "function") dlg.close();
+    });
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        if (typeof dlg.close === "function") dlg.close();
+      });
+    }
   }
 
   function readBakeryForm() {
-    var catEl = document.getElementById("bakeryServiceCategory");
-    var line = catEl ? String(catEl.value || "").trim() : "Bakery / custom cakes";
+    var cfg = loadMbConfig() || {};
+    var line = String(cfg.service || "Hair Styling").trim();
     var theme = String(document.getElementById("bakeryStyleTheme").value || "").trim();
     var styleTheme = theme ? line + " · " + theme : line;
     var editId = document.getElementById("bakeryEditServiceId");
     var durEl = document.getElementById("bakerySlotDurationMinutes");
     var rawDur = durEl ? Number(durEl.value) : 60;
+    var workTitleEl = document.getElementById("bakeryWorkTitle");
+    var workTitleRaw = workTitleEl ? String(workTitleEl.value || "").trim() : "";
+    var workTitle = workTitleRaw || (theme ? theme : line);
+    if (workTitleEl && !workTitleEl.value) {
+      workTitleEl.value = workTitle;
+    }
     return {
       serviceId: Number((editId && editId.value) || 0) || 0,
       businessName: document.getElementById("bakeryBusinessName").value,
-      workTitle: document.getElementById("bakeryWorkTitle").value,
+      workTitle: workTitle,
       styleTheme: styleTheme,
       basePrice: Number(document.getElementById("bakeryBasePrice").value || 0),
       currency: document.getElementById("bakeryCurrency").value || "USD",
@@ -2145,6 +2392,20 @@
       sel.innerHTML = '<option value="">Save a work card first</option>';
       return;
     }
+    var prev = Number((sel && sel.value) || 0);
+    var editId = Number((document.getElementById("bakeryEditServiceId") || {}).value || 0);
+    var cfg = loadMbConfig() || {};
+    var line = String(cfg.service || "").trim();
+    var preferred = 0;
+    var lineTitle = String(line || "Service").trim() + " Availability (Main Card)";
+    var i;
+    for (i = 0; i < list.length; i++) {
+      var wt = String((list[i] && list[i].workTitle) || "").trim();
+      if (wt === lineTitle) {
+        preferred = Number(list[i].id) || 0;
+        break;
+      }
+    }
     sel.innerHTML =
       '<option value="">Choose a saved work card…</option>' +
       list
@@ -2158,6 +2419,16 @@
           );
         })
         .join("");
+    var ids = {};
+    list.forEach(function (s) {
+      ids[Number(s.id) || 0] = true;
+    });
+    var chosen = prev && ids[prev] ? prev : editId && ids[editId] ? editId : preferred && ids[preferred] ? preferred : Number(list[0].id) || 0;
+    if (chosen) {
+      sel.value = String(chosen);
+      var hid = document.getElementById("bakeryEditServiceId");
+      if (hid) hid.value = String(chosen);
+    }
   }
 
   function pickServiceIdForProviderLine(services, line) {
@@ -2210,6 +2481,61 @@
       .filter(Boolean);
   }
 
+  function sortUniqueTimes(list) {
+    var map = {};
+    (Array.isArray(list) ? list : []).forEach(function (t) {
+      var n = normalizeHHMM(t);
+      if (n) map[n] = true;
+    });
+    return Object.keys(map).sort(function (a, b) {
+      return hhmmToMinutes(a) - hhmmToMinutes(b);
+    });
+  }
+
+  function syncSlotTimesInputFromChips() {
+    var timesEl = document.getElementById("mbProvSlotTimes");
+    if (timesEl) {
+      timesEl.value = mbSlotChipTimes.join(", ");
+    }
+  }
+
+  function renderSlotChips() {
+    var root = document.getElementById("mbProvSlotChips");
+    if (!root) return;
+    if (!mbSlotChipTimes.length) {
+      root.innerHTML = "<span class='note'>No times added yet.</span>";
+      syncSlotTimesInputFromChips();
+      return;
+    }
+    root.innerHTML = mbSlotChipTimes
+      .map(function (t, i) {
+        return (
+          "<button type='button' class='btn btn-secondary' data-slot-chip-remove='" +
+          i +
+          "'>" +
+          escapeHtml(t) +
+          " ✕</button>"
+        );
+      })
+      .join("");
+    syncSlotTimesInputFromChips();
+  }
+
+  function addSlotChipTime(raw) {
+    var t = normalizeHHMM(raw);
+    if (!t) {
+      setStatus("Use valid time HH:MM.");
+      return;
+    }
+    mbSlotChipTimes = sortUniqueTimes(mbSlotChipTimes.concat([t]));
+    renderSlotChips();
+  }
+
+  function setSlotChipTimes(list) {
+    mbSlotChipTimes = sortUniqueTimes(list);
+    renderSlotChips();
+  }
+
   function generateSlotsFromWindow(dayStart, dayEnd, durationMin) {
     var a = hhmmToMinutes(dayStart);
     var b = hhmmToMinutes(dayEnd);
@@ -2224,17 +2550,21 @@
   }
 
   function getProvSlotPick(requireTimesText) {
-    var sel = document.getElementById("mbProvSlotService");
     var dateEl = document.getElementById("mbProvSlotDate");
     var timesEl = document.getElementById("mbProvSlotTimes");
+    var sel = document.getElementById("mbProvSlotService");
     var sid = Number((sel && sel.value) || 0);
+    if (!sid) sid = Number((document.getElementById("bakeryEditServiceId") || {}).value || 0);
+    if (!sid && Array.isArray(mbLastProviderServices) && mbLastProviderServices.length) {
+      sid = Number(mbLastProviderServices[0].id) || 0;
+    }
     var slotDate = String((dateEl && dateEl.value) || "").trim().slice(0, 10);
     if (!sid || !slotDate) {
-      setStatus("Choose a work card and date first.");
+      setStatus("Save a service card first, then choose a date.");
       return null;
     }
     var raw = String((timesEl && timesEl.value) || "").trim();
-    var slotTimes = parseSlotTimesRaw(raw);
+    var slotTimes = sortUniqueTimes((mbSlotChipTimes || []).concat(parseSlotTimesRaw(raw)));
     if (requireTimesText && !slotTimes.length) {
       setStatus("Add at least one valid time (24h, e.g. 09:00, 14:30).");
       return null;
@@ -2257,11 +2587,33 @@
     )
       .then(function (res) {
         var slots = Array.isArray(res.slots) ? res.slots : [];
-        if (pick.timesEl) pick.timesEl.value = slots.join(", ");
+        setSlotChipTimes(slots);
         setStatus(slots.length ? "Loaded " + slots.length + " slot(s)." : "No slots for that day yet.");
       })
       .catch(function (err) {
         setStatus(err.message || "Could not load slots");
+      });
+  }
+
+  function cancelProvScheduleSlotsForDate() {
+    if (!getToken()) {
+      setStatus("Sign in with your seller account.");
+      return Promise.resolve();
+    }
+    var pick = getProvSlotPick(false);
+    if (!pick) return Promise.resolve();
+    return api("/api/public/bakery/schedule/slots/upsert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ serviceId: pick.sid, slotDate: pick.slotDate, slotTimes: [] })
+    })
+      .then(function () {
+        setStatus("Cancelled all slots for " + pick.slotDate + ".");
+        setSlotChipTimes([]);
+        return loadAll();
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Could not cancel slots");
       });
   }
 
@@ -2341,31 +2693,158 @@
     setStatus("Filled " + slots.length + " start times. Use Append or Replace entire day when ready.");
   }
 
+  function ensureProviderSlotDateDefault() {
+    var dateEl = document.getElementById("mbProvSlotDate");
+    if (!dateEl || String(dateEl.value || "").trim()) return;
+    var now = new Date();
+    var m = String(now.getMonth() + 1).padStart(2, "0");
+    var d = String(now.getDate()).padStart(2, "0");
+    dateEl.value = String(now.getFullYear()) + "-" + m + "-" + d;
+  }
+
   function saveProvScheduleSlots() {
     if (!getToken()) {
       setStatus("Sign in with your seller account to publish slots.");
       return Promise.resolve();
     }
-    var pick = getProvSlotPick(true);
-    if (!pick) return Promise.resolve();
-    return api("/api/public/bakery/schedule/slots/upsert", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ serviceId: pick.sid, slotDate: pick.slotDate, slotTimes: pick.slotTimes })
-    })
-      .then(function (res) {
-        setStatus("Saved " + Number(res.inserted || 0) + " slot(s) for " + pick.slotDate + ".");
-        return loadAll();
+    setStatus("Publishing slots…");
+    var dateEl = document.getElementById("mbProvSlotDate");
+    var timesEl = document.getElementById("mbProvSlotTimes");
+    var slotDate = String((dateEl && dateEl.value) || "").trim().slice(0, 10);
+    var slotTimes = sortUniqueTimes(
+      (mbSlotChipTimes || []).concat(parseSlotTimesRaw(timesEl ? timesEl.value : ""))
+    );
+    if (!slotDate || !slotTimes.length) {
+      setStatus("Choose date and add at least one time.");
+      return Promise.resolve();
+    }
+    function lineNow() {
+      var cfgNow = loadMbConfig() || {};
+      return String(cfgNow.service || "Hair Styling").trim() || "Hair Styling";
+    }
+    function mainCardTitle(line) {
+      return String(line || "Service").trim() + " Availability (Main Card)";
+    }
+    function matchesLineService(line, svc) {
+      var needle = String(line || "").trim().toLowerCase();
+      var style = String((svc && svc.styleTheme) || "").trim().toLowerCase();
+      var head = style.split("·")[0].trim();
+      if (needle && (head === needle || style.indexOf(needle) === 0)) return true;
+      var wt = String((svc && svc.workTitle) || "").trim().toLowerCase();
+      return wt === mainCardTitle(line).toLowerCase();
+    }
+    function ensureActive(sid) {
+      return api("/api/public/bakery/services/toggle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId: Number(sid) || 0, isActive: true })
+      });
+    }
+    function getOrCreatePersistentCard() {
+      var hid = document.getElementById("bakeryEditServiceId");
+      var forced = Number((hid && hid.value) || 0);
+      var line = lineNow();
+      if (forced) {
+        return ensureActive(forced).then(function () {
+          return forced;
+        });
+      }
+      return api("/api/public/bakery/services/mine")
+        .then(function (res) {
+          var arr = Array.isArray(res && res.services) ? res.services : [];
+          var pick = null;
+          var i;
+          for (i = 0; i < arr.length; i++) {
+            if (matchesLineService(line, arr[i])) {
+              pick = arr[i];
+              break;
+            }
+          }
+          if (pick && Number(pick.id || 0) > 0) {
+            var sid = Number(pick.id) || 0;
+            if (hid) hid.value = String(sid);
+            var targetTitle = mainCardTitle(line);
+            var upkeep = Promise.resolve();
+            if (String(pick.workTitle || "").trim() !== targetTitle) {
+              upkeep = api("/api/public/bakery/services/upsert", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  serviceId: sid,
+                  businessName: String(pick.businessName || "Provider"),
+                  workTitle: targetTitle,
+                  styleTheme: String(pick.styleTheme || (line + " · Availability board")),
+                  basePrice: Number(pick.basePrice || 0) || 0,
+                  currency: String(pick.currency || "USD"),
+                  imageUrl: String(pick.imageUrl || ""),
+                  requirementsText:
+                    String(pick.requirementsText || "").trim() ||
+                    "Main availability card for this service line.",
+                  slotDurationMinutes: Number(pick.slotDurationMinutes || 60) || 60
+                })
+              }).catch(function () {
+                return { ok: false };
+              });
+            }
+            return upkeep.then(function () {
+              return ensureActive(sid).then(function () {
+                return sid;
+              });
+            });
+          }
+          var frm = readBakeryForm();
+          return api("/api/public/bakery/services/upsert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              businessName: String(frm.businessName || "Provider"),
+              workTitle: mainCardTitle(line),
+              styleTheme: line + " · Availability board",
+              basePrice: Number(frm.basePrice || 0) || 0,
+              currency: String(frm.currency || "USD"),
+              imageUrl: String(frm.imageUrl || ""),
+              requirementsText: String(frm.requirementsText || "").trim() || "Main availability card for this service line.",
+              slotDurationMinutes: Number(frm.slotDurationMinutes || 60) || 60
+            })
+          }).then(function (created) {
+            var sidNew = Number((created && created.serviceId) || 0);
+            if (!sidNew) throw new Error("NO_SAVED_CARD");
+            if (hid) hid.value = String(sidNew);
+            return ensureActive(sidNew).then(function () {
+              return sidNew;
+            });
+          });
+        });
+    }
+    function doPublish(serviceId) {
+      return api("/api/public/bakery/schedule/slots/upsert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId: serviceId, slotDate: slotDate, slotTimes: slotTimes })
+      })
+        .then(function (res) {
+          setStatus("Saved " + Number(res.inserted || 0) + " slot(s) for " + slotDate + ".");
+          return loadAll();
+        })
+        .catch(function (err) {
+          var m = String((err && err.message) || err || "");
+          if (m === "ROLE_FORBIDDEN" || m.indexOf("ROLE_FORBIDDEN") >= 0) {
+            setStatus("Publishing slots requires a signed-in provider account. Open Account hub and use seller or service-provider access.");
+          } else if (m.indexOf("SERVICE_FORBIDDEN") >= 0 || m.indexOf("INVALID_SESSION") >= 0) {
+            setStatus(
+              "Could not publish slots for this card. Refresh the dashboard, select your work card, or sign in again from Account hub."
+            );
+          } else {
+            setStatus(m || "Could not save slots");
+          }
+        });
+    }
+    return getOrCreatePersistentCard()
+      .then(function (sidReady) {
+        return doPublish(Number(sidReady) || 0);
       })
       .catch(function (err) {
-        var m = String((err && err.message) || err || "");
-        if (m === "ROLE_FORBIDDEN" || m.indexOf("ROLE_FORBIDDEN") >= 0) {
-          setStatus(
-            "Publishing slots requires a seller or service provider account. Sign in with seller access (lane passport), not buyer-only."
-          );
-        } else {
-          setStatus(m || "Could not save slots");
-        }
+        setStatus(String((err && err.message) || err || "Could not prepare availability card."));
       });
   }
 
@@ -2445,7 +2924,10 @@
   function renderBookings(bookings) {
     var root = document.getElementById("bakeryBookingList");
     if (!root) return;
-    providerBookingsCache = Array.isArray(bookings) ? bookings : [];
+    providerBookingsCache = (Array.isArray(bookings) ? bookings : []).filter(function (b) {
+      var st = String((b && b.bookingStatus) || "").toLowerCase();
+      return st === "pending" || st === "confirmed";
+    });
     if (!providerBookingsCache.length) {
       root.innerHTML = '<p class="note">No booking requests for this service line yet.</p>';
       return;
@@ -2459,6 +2941,21 @@
           encodeURIComponent("Hi " + (b.customerName || "") + ", about your VibeCart booking #" + Number(b.id || 0))
         : "";
       var st = escapeHtml(b.bookingStatus || "pending");
+      var stRaw = String(b.bookingStatus || "pending").toLowerCase();
+      var prefTime = String(b.preferredTime || b.requestedStartTime || "").trim();
+      if (!prefTime && b.occasionType) {
+        var om = String(b.occasionType).match(/Time preference:\s*(\d{1,2}:\d{2})/i);
+        if (om) prefTime = om[1];
+      }
+      var timeLine = prefTime ? " · " + escapeHtml(prefTime) : "";
+      var actionsHtml = "";
+      if (stRaw === "pending") {
+        actionsHtml =
+          '<button type="button" class="btn btn-primary" data-booking-status="confirmed">Accept</button>' +
+          '<button type="button" class="btn btn-secondary" data-booking-status="declined">Decline</button>';
+      } else if (stRaw === "confirmed") {
+        actionsHtml = '<button type="button" class="btn btn-primary" data-booking-status="completed">Complete</button>';
+      }
       return (
         '<article class="vc-booking-item vc-mb-booking-row" data-booking-id="' +
         Number(b.id) +
@@ -2472,6 +2969,7 @@
         "</span></h3>" +
         '<p class="note">' +
         escapeHtml(String(b.eventDate || "")) +
+        timeLine +
         " · " +
         escapeHtml(b.businessName || "") +
         "</p>" +
@@ -2483,33 +2981,90 @@
           : "") +
         '<button type="button" class="btn btn-primary" data-mb-focus-booking="' +
         Number(b.id) +
-        '">Open &amp; act</button>' +
+        '">Open</button>' +
+        actionsHtml +
         "</p>" +
         "</article>"
       );
     }).join("");
   }
 
-  function renderCalendar(bookings) {
+  function fetchProviderSlotDateCounts(services) {
+    var list = Array.isArray(services) ? services.filter(function (s) { return Number(s.id) > 0; }) : [];
+    if (!list.length) return Promise.resolve({});
+    var month = new Date().toISOString().slice(0, 7);
+    return Promise.all(
+      list.map(function (s) {
+        return api(
+          "/api/public/bakery/schedule/slots?serviceId=" +
+            encodeURIComponent(String(Number(s.id))) +
+            "&month=" +
+            encodeURIComponent(month)
+        ).catch(function () {
+          return {};
+        });
+      })
+    ).then(function (results) {
+      var counts = {};
+      results.forEach(function (res) {
+        if (Array.isArray(res && res.availableDates)) {
+          res.availableDates.forEach(function (d) {
+            var dateKey = String((d && d.date) || "").slice(0, 10);
+            var c = Number((d && d.slots) || 0) || 0;
+            if (dateKey && c > 0) counts[dateKey] = (counts[dateKey] || 0) + c;
+          });
+          return;
+        }
+        var bucket = res && (res.availableByDate || res.byDate || res.days || res.summary || {});
+        if (!bucket || typeof bucket !== "object") return;
+        Object.keys(bucket).forEach(function (dateKey) {
+          var val = bucket[dateKey];
+          var c = 0;
+          if (typeof val === "number") c = Number(val) || 0;
+          else if (Array.isArray(val)) c = val.length;
+          else if (val && typeof val === "object") c = Number(val.count || val.slots || 0) || 0;
+          if (c > 0) counts[dateKey] = (counts[dateKey] || 0) + c;
+        });
+      });
+      return counts;
+    });
+  }
+
+  function renderCalendar(bookings, slotDateCounts) {
     var root = document.getElementById("bakeryCalendarView");
     if (!root) return;
     root.innerHTML = "";
-    if (!Array.isArray(bookings) || !bookings.length) {
-      root.innerHTML = '<p class="note">No bookings on calendar yet.</p>';
-      return;
-    }
     var byDate = {};
-    bookings.forEach(function (b) {
+    (Array.isArray(bookings) ? bookings : []).forEach(function (b) {
       var key = String(b.eventDate || "No date");
       if (!byDate[key]) byDate[key] = [];
       byDate[key].push(b);
     });
-    Object.keys(byDate).sort().forEach(function (date) {
+    var slotMap = slotDateCounts && typeof slotDateCounts === "object" ? slotDateCounts : {};
+    var allKeys = {};
+    Object.keys(byDate).forEach(function (k) { allKeys[k] = true; });
+    Object.keys(slotMap).forEach(function (k) { allKeys[k] = true; });
+    var dates = Object.keys(allKeys).filter(Boolean).sort();
+    if (!dates.length) {
+      root.innerHTML = '<p class="note">No slot dates or bookings yet.</p>';
+      return;
+    }
+    dates.forEach(function (date) {
       var card = document.createElement("article");
       card.className = "vc-booking-item";
-      card.innerHTML = "<h3>" + escapeHtml(date) + "</h3>" + byDate[date].map(function (b) {
-        return "<p class='note'>" + escapeHtml(b.customerName || "Customer") + " · " + escapeHtml(b.workTitle || "Service") + " · " + escapeHtml(b.bookingStatus || "pending") + "</p>";
-      }).join("");
+      var slotCount = Number(slotMap[date] || 0);
+      if (slotCount > 0) {
+        card.style.borderColor = "rgba(46, 204, 113, 0.75)";
+        card.style.boxShadow = "0 0 0 1px rgba(46, 204, 113, 0.35) inset";
+      }
+      card.innerHTML =
+        "<h3>" +
+        escapeHtml(date) +
+        (slotCount > 0 ? " <span class='vc-pill' style='background:rgba(46,204,113,.18)'>" + slotCount + " slot(s)</span>" : "") +
+        "</h3>" +
+        ((byDate[date] || []).map(function (b) {
+          return "<p class='note'>" + escapeHtml(b.customerName || "Customer") + " · " + escapeHtml(b.workTitle || "Service") + " · " + escapeHtml(b.bookingStatus || "pending") + "</p>";
+        }).join("") || "<p class='note'>No bookings yet for this date.</p>");
       root.appendChild(card);
     });
   }
@@ -2553,12 +3108,17 @@
           renderKpis(results[2].listings || [], svcFiltered, bookFiltered);
           renderServices(svcFiltered);
           renderProvSlotServiceSelect(mbLastProviderServices);
+          ensureProviderSlotDateDefault();
           renderBookings(bookFiltered);
-          renderCalendar(bookFiltered);
-          if (providerFocusBookingId) {
-            loadProviderFocus(providerFocusBookingId);
-          }
-          setStatus("Citizen desk updated · " + lineCit);
+          return fetchProviderSlotDateCounts(svcFiltered).then(function (slotCounts) {
+            renderCalendar(bookFiltered, slotCounts);
+            return loadProvScheduleSlotsFromServer().catch(function () {});
+          }).then(function () {
+            if (providerFocusBookingId) {
+              loadProviderFocus(providerFocusBookingId);
+            }
+            setStatus("Citizen desk updated · " + lineCit);
+          });
         })
         .catch(function (err) {
           setStatus("Could not refresh: " + err.message);
@@ -2579,12 +3139,17 @@
       renderKpis(results[0].listings || [], svcFiltered, bookFiltered);
       renderServices(svcFiltered);
       renderProvSlotServiceSelect(mbLastProviderServices);
+      ensureProviderSlotDateDefault();
       renderBookings(bookFiltered);
-      renderCalendar(bookFiltered);
-      if (providerFocusBookingId) {
-        loadProviderFocus(providerFocusBookingId);
-      }
-      setStatus("Dashboard updated");
+      return fetchProviderSlotDateCounts(svcFiltered).then(function (slotCounts) {
+        renderCalendar(bookFiltered, slotCounts);
+        return loadProvScheduleSlotsFromServer().catch(function () {});
+      }).then(function () {
+        if (providerFocusBookingId) {
+          loadProviderFocus(providerFocusBookingId);
+        }
+        setStatus("Dashboard updated");
+      });
     }).catch(function (err) {
       setStatus("Could not load dashboard: " + err.message);
     });
@@ -2609,10 +3174,13 @@
     }).then(function (res) {
       setStatus("Work card saved.");
       var hid = document.getElementById("bakeryEditServiceId");
+      var savedId = Number((res && res.serviceId) || body.serviceId || 0);
       if (hid && res && res.serviceId) {
         hid.value = String(Number(res.serviceId) || 0);
       }
-      return loadAll();
+      return loadAll().then(function () {
+        return savedId;
+      });
     }).catch(function (err) {
       var msg = String(err.message || "");
       if (msg.indexOf("ROLE_FORBIDDEN") >= 0 || msg.indexOf("403") >= 0) {
@@ -2736,11 +3304,29 @@
     if (statusBtn) {
       var bookingCard = statusBtn.closest("[data-booking-id]");
       var bookingId = Number((bookingCard && bookingCard.dataset && bookingCard.dataset.bookingId) || 0);
+      if (!bookingId) {
+        var focusRoot = document.getElementById("mbProvFocusRoot");
+        bookingId = Number(
+          (focusRoot && focusRoot.dataset && focusRoot.dataset.bookingId) || providerFocusBookingId || 0
+        );
+      }
       var status = String(statusBtn.getAttribute("data-booking-status") || "");
+      if (!bookingId) {
+        setStatus("Could not determine booking id. Refresh and try again.");
+        return;
+      }
+      var payload = { bookingId: bookingId, status: status };
+      if (status === "confirmed") {
+        var rawDur = window.prompt("Accepted. Enter booking duration in minutes (e.g. 60):", "60");
+        var dur = Number(rawDur || 0);
+        if (Number.isFinite(dur) && dur >= 15 && dur <= 480) {
+          payload.durationMinutes = Math.round(dur);
+        }
+      }
       api("/api/public/bakery/bookings/status/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId: bookingId, status: status })
+        body: JSON.stringify(payload)
       })
         .then(loadAll)
         .then(function () {
@@ -2756,9 +3342,63 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    try {
+      document.body.classList.remove(
+        "vc-warp-out",
+        "vc-intro-blocking",
+        "vc-auto-calm",
+        "vc-heartbeat-lock",
+        "vc-lane-aura-shift"
+      );
+      document.body.style.filter = "";
+      document.body.style.opacity = "";
+      document.documentElement.style.filter = "";
+      document.documentElement.style.opacity = "";
+    } catch (_) {
+      /* ignore visual reset issues */
+    }
+    stripLegacyPublishedSlotsSection();
     wireGateUi();
     wireMbWebPushControls();
     bootGate();
+
+    // Hard-bind slot publish/cancel so taps always respond.
+    document.addEventListener(
+      "click",
+      function (ev) {
+        var t = ev && ev.target ? ev.target : null;
+        if (!t || !t.closest) return;
+        var sendReqBtn = t.closest("#mbClientSubmitReserve");
+        if (sendReqBtn) {
+          try {
+            ev.preventDefault();
+            ev.stopPropagation();
+            submitClientReservation();
+          } catch (_) {
+            setStatus("Could not send reservation. Refresh and try again.");
+          }
+          return;
+        }
+        var saveBtn = t.closest("#mbProvSlotSave");
+        if (saveBtn) {
+          try {
+            saveProvScheduleSlots();
+          } catch (_) {
+            setStatus("Publish slots failed to start. Refresh and try again.");
+          }
+          return;
+        }
+        var cancelBtn = t.closest("#mbProvSlotCancel");
+        if (cancelBtn) {
+          try {
+            cancelProvScheduleSlotsForDate();
+          } catch (_) {
+            setStatus("Cancel slots failed to start. Refresh and try again.");
+          }
+        }
+      },
+      true
+    );
 
     window.addEventListener("pageshow", function () {
       var cfg = loadMbConfig();
@@ -2769,11 +3409,35 @@
 
     var btnRefresh = document.getElementById("bizRefreshBtn");
     var btnSaveBakery = document.getElementById("bakerySaveBtn");
+    var btnSavePublishBakery = document.getElementById("bakerySavePublishBtn");
     var btnPayout = document.getElementById("savePayoutAccountBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", loadAll);
     var btnClientBookings = document.getElementById("mbClientBookingsRefresh");
     if (btnClientBookings) btnClientBookings.addEventListener("click", loadClientDashboard);
     if (btnSaveBakery) btnSaveBakery.addEventListener("click", saveBakeryService);
+    if (btnSavePublishBakery) {
+      btnSavePublishBakery.addEventListener("click", function () {
+        saveBakeryService().then(function (savedId) {
+          var sid = Number(savedId || (document.getElementById("bakeryEditServiceId") || {}).value || 0);
+          if (!sid) {
+            setStatus("Work card saved. Open/edit card once, then publish.");
+            return;
+          }
+          return api("/api/public/bakery/services/toggle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ serviceId: sid, isActive: true })
+          })
+            .then(function () {
+              setStatus("Saved and published.");
+              return loadAll();
+            })
+            .catch(function (err) {
+              setStatus(err.message || "Saved but publish failed");
+            });
+        });
+      });
+    }
     if (btnPayout) btnPayout.addEventListener("click", savePayoutAccount);
 
     refreshMbWorkGalleryUi();
@@ -2907,30 +3571,176 @@
         saveProvScheduleSlots();
       });
     }
-    var mbProvSlotLoad = document.getElementById("mbProvSlotLoad");
-    if (mbProvSlotLoad) {
-      mbProvSlotLoad.addEventListener("click", function () {
-        loadProvScheduleSlotsFromServer();
+    var mbProvSlotCancel = document.getElementById("mbProvSlotCancel");
+    if (mbProvSlotCancel) {
+      mbProvSlotCancel.addEventListener("click", function () {
+        cancelProvScheduleSlotsForDate();
       });
     }
-    var mbProvSlotAppend = document.getElementById("mbProvSlotAppend");
-    if (mbProvSlotAppend) {
-      mbProvSlotAppend.addEventListener("click", function () {
-        appendProvScheduleSlots();
+    var mbProvSlotAddTime = document.getElementById("mbProvSlotAddTime");
+    var mbProvSlotTimeInput = document.getElementById("mbProvSlotTimeInput");
+    if (mbProvSlotAddTime && mbProvSlotTimeInput) {
+      mbProvSlotAddTime.addEventListener("click", function () {
+        addSlotChipTime(String(mbProvSlotTimeInput.value || ""));
+        mbProvSlotTimeInput.value = "";
+      });
+      mbProvSlotTimeInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          addSlotChipTime(String(mbProvSlotTimeInput.value || ""));
+          mbProvSlotTimeInput.value = "";
+        }
       });
     }
-    var mbProvSlotRemoveBtn = document.getElementById("mbProvSlotRemoveBtn");
-    if (mbProvSlotRemoveBtn) {
-      mbProvSlotRemoveBtn.addEventListener("click", function () {
-        removeProvScheduleSlots();
+    var mbProvSlotTimes = document.getElementById("mbProvSlotTimes");
+    if (mbProvSlotTimes) {
+      mbProvSlotTimes.addEventListener("blur", function () {
+        var parsed = parseSlotTimesRaw(mbProvSlotTimes.value);
+        if (parsed.length) setSlotChipTimes(parsed);
       });
     }
-    var mbProvSlotGenDay = document.getElementById("mbProvSlotGenDay");
-    if (mbProvSlotGenDay) {
-      mbProvSlotGenDay.addEventListener("click", function () {
-        fillProvSlotTimesFromDayWindow();
+    var mbProvSlotPresets = document.getElementById("mbProvSlotPresets");
+    if (mbProvSlotPresets) {
+      mbProvSlotPresets.addEventListener("click", function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest("[data-slot-preset]") : null;
+        if (!btn) return;
+        addSlotChipTime(String(btn.getAttribute("data-slot-preset") || ""));
       });
     }
+    var mbProvSlotChips = document.getElementById("mbProvSlotChips");
+    if (mbProvSlotChips) {
+      mbProvSlotChips.addEventListener("click", function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest("[data-slot-chip-remove]") : null;
+        if (!btn) return;
+        var ix = Number(btn.getAttribute("data-slot-chip-remove") || -1);
+        if (ix < 0 || ix >= mbSlotChipTimes.length) return;
+        mbSlotChipTimes.splice(ix, 1);
+        renderSlotChips();
+      });
+    }
+    renderSlotChips();
+    var mbPublishCurrentCard = document.getElementById("mbPublishCurrentCard");
+    if (mbPublishCurrentCard) {
+      mbPublishCurrentCard.addEventListener("click", function () {
+        var editId = Number((document.getElementById("bakeryEditServiceId") || {}).value || 0);
+        if (!editId) {
+          setStatus("Open an existing work card first, then publish it.");
+          return;
+        }
+        api("/api/public/bakery/services/toggle", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ serviceId: editId, isActive: true })
+        })
+          .then(function () {
+            setStatus("Current work card published.");
+            return loadAll();
+          })
+          .catch(function (err) {
+            setStatus(err.message || "Could not publish current card");
+          });
+      });
+    }
+    var mbProviderClearRequests = document.getElementById("mbProviderClearRequests");
+    if (mbProviderClearRequests) {
+      mbProviderClearRequests.addEventListener("click", function () {
+        if (!getToken()) {
+          setStatus("Sign in with your seller account.");
+          return;
+        }
+        api("/api/public/bakery/bookings/clear-mine", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ serviceLine: String((loadMbConfig() || {}).service || "").trim() })
+        })
+          .then(function (res) {
+            setStatus("Cleared " + Number((res && res.cleared) || 0) + " request(s).");
+            providerFocusBookingId = 0;
+            closeProviderBookingFocus();
+            return loadAll();
+          })
+          .catch(function (err) {
+            setStatus(err.message || "Could not clear requests");
+          });
+      });
+    }
+    var mbAiGenBtn = document.getElementById("mbAiGenerateBtn");
+    var mbAiReq = document.getElementById("mbAiRequirements");
+    var mbAiOut = document.getElementById("mbAiSectionsOut");
+    if (mbAiGenBtn && mbAiReq && mbAiOut) {
+      mbAiGenBtn.addEventListener("click", function () {
+        var cfgNow = loadMbConfig() || { service: "Hair Styling" };
+        var requirements = String(mbAiReq.value || "").trim();
+        if (requirements.length < 10) {
+          requirements = "Create provider dashboard sections for bookings, retention, service operations, and growth.";
+        }
+        function render(sections, source) {
+          mbAiOut.innerHTML =
+            "<p class='note'>AI sections (" +
+            escapeHtml(source) +
+            "):</p><ul>" +
+            (sections || [])
+              .map(function (s) {
+                return "<li><strong>" + escapeHtml(s.title || "Section") + ":</strong> " + escapeHtml(s.intent || "") + "</li>";
+              })
+              .join("") +
+            "</ul>";
+        }
+        if (typeof window.vibecartAiGenerate === "function") {
+          window
+            .vibecartAiGenerate("provider_dashboard_sections", {
+              requirements: requirements,
+              mode: "autonomous",
+              service: String(cfgNow.service || "Hair Styling")
+            })
+            .then(function (res) {
+              var sections = Array.isArray(res && res.sections) ? res.sections.slice(0, 8) : [];
+              if (!sections.length) {
+                sections = [
+                  { title: "VIP Queue", intent: "Prioritize high-value clients." },
+                  { title: "No-Show Recovery", intent: "Auto fill empty slots quickly." },
+                  { title: "Retention Engine", intent: "Trigger repeat-booking nudges." }
+                ];
+              }
+              render(sections, "AI");
+              setStatus("AI provider sections generated.");
+            })
+            .catch(function () {
+              render(
+                [
+                  { title: "VIP Queue", intent: "Prioritize high-value clients." },
+                  { title: "No-Show Recovery", intent: "Auto fill empty slots quickly." },
+                  { title: "Retention Engine", intent: "Trigger repeat-booking nudges." }
+                ],
+                "fallback"
+              );
+            });
+          return;
+        }
+        render(
+          [
+            { title: "VIP Queue", intent: "Prioritize high-value clients." },
+            { title: "No-Show Recovery", intent: "Auto fill empty slots quickly." },
+            { title: "Retention Engine", intent: "Trigger repeat-booking nudges." }
+          ],
+          "fallback"
+        );
+      });
+    }
+    document.addEventListener("click", function (ev) {
+      var tplBtn = ev.target && ev.target.closest ? ev.target.closest("[data-ai-template]") : null;
+      if (!tplBtn || !mbAiReq) return;
+      var kind = String(tplBtn.getAttribute("data-ai-template") || "");
+      var templates = {
+        retention: "Build retention flow: 7-day check-in, 21-day reminder, rebooking incentives, loyalty trigger.",
+        no_show: "Build no-show recovery flow: auto reminder, standby list fill, reactivation outreach, fee policy handling.",
+        vip: "Build VIP experience flow: priority queue, premium slot windows, concierge follow-up, personalized offers.",
+        growth: "Build growth + upsell flow: package bundles, cross-sell services, monthly targets, conversion nudges."
+      };
+      if (templates[kind]) {
+        mbAiReq.value = templates[kind];
+      }
+    });
     var mbPrivacyExport = document.getElementById("mbPrivacyExport");
     if (mbPrivacyExport) {
       mbPrivacyExport.addEventListener("click", function () {
@@ -2974,4 +3784,26 @@
       });
     }
   });
+
+  window.addEventListener(
+    "pageshow",
+    function () {
+      try {
+        document.body.classList.remove(
+          "vc-warp-out",
+          "vc-intro-blocking",
+          "vc-auto-calm",
+          "vc-heartbeat-lock",
+          "vc-lane-aura-shift"
+        );
+        document.body.style.filter = "";
+        document.body.style.opacity = "";
+        document.documentElement.style.filter = "";
+        document.documentElement.style.opacity = "";
+      } catch (_) {
+        /* ignore visual reset issues */
+      }
+    },
+    { passive: true }
+  );
 })();
