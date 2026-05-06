@@ -76,6 +76,24 @@
         "<p class='note'>Offline template — live AI needs OPENAI_API_KEY on the API host.</p>";
     }
 
+    function withTimeout(promise, ms) {
+      return new Promise(function (resolve, reject) {
+        var t = window.setTimeout(function () {
+          reject(new Error("timeout"));
+        }, Number(ms || 14000));
+        promise.then(
+          function (v) {
+            window.clearTimeout(t);
+            resolve(v);
+          },
+          function (e) {
+            window.clearTimeout(t);
+            reject(e);
+          }
+        );
+      });
+    }
+
     runBtn.addEventListener("click", function () {
       var sellerAck = document.getElementById("sellerFlowDisclaimerAck");
       if (sellerAck && !sellerAck.checked) {
@@ -86,14 +104,17 @@
       var r = String((region && region.value) || "core region").trim();
       var c = String((channel && channel.value) || "mixed").trim();
       var o = String((owner && owner.value) || "Owner").trim();
+      out.textContent = "Generating plan…";
       if (typeof window.vibecartAiGenerate === "function") {
-        window
-          .vibecartAiGenerate("seller_growth_plan", {
+        withTimeout(
+          window.vibecartAiGenerate("seller_growth_plan", {
             niche: n,
             region: r,
             channel: c,
             ownerName: o
-          })
+          }),
+          14000
+        )
           .then(function (res) {
             if (!out) return;
             if (res && Array.isArray(res.steps) && res.steps.length) {

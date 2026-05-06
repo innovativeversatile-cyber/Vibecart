@@ -1,8 +1,33 @@
 (function () {
+  var SHOP_READY_KEY = "vibecart-sell-shop-ready-v1";
+
+  try {
+    sessionStorage.removeItem("vibecart-flow-sell");
+  } catch {
+    /* ignore — stale 2-step flow key; sell journey now uses data-vc-flow-root sell-v3 */
+  }
+
   function setStatus(id, text) {
     var el = document.getElementById(id);
     if (el) {
       el.textContent = text || "";
+    }
+  }
+
+  function setShopReady(ok) {
+    try {
+      if (ok) sessionStorage.setItem(SHOP_READY_KEY, "1");
+      else sessionStorage.removeItem(SHOP_READY_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function isShopReady() {
+    try {
+      return sessionStorage.getItem(SHOP_READY_KEY) === "1";
+    } catch {
+      return false;
     }
   }
 
@@ -142,6 +167,97 @@
     };
   }
 
+  var sellShopStepContinue = document.getElementById("sellShopStepContinue");
+  if (sellShopStepContinue) {
+    sellShopStepContinue.addEventListener(
+      "click",
+      function (event) {
+        if (!isShopReady()) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (typeof event.stopImmediatePropagation === "function") {
+            event.stopImmediatePropagation();
+          }
+          setStatus("vcSellShopStatus", "Create or confirm your shop first, then continue.");
+        }
+      },
+      true
+    );
+  }
+
+  var ensureShopBtn = document.getElementById("vcSellEnsureShop");
+  if (ensureShopBtn) {
+    ensureShopBtn.addEventListener("click", function () {
+      var nameInput = document.getElementById("vcSellShopName");
+      var shopName = String((nameInput && nameInput.value) || "").trim() || "My VibeCart shop";
+      var token = getAuthToken();
+      if (!token) {
+        setStatus("vcSellShopStatus", "Sign in first (lane passport), then create your shop.");
+        return;
+      }
+      ensureShopBtn.disabled = true;
+      setStatus("vcSellShopStatus", "Saving shop…");
+      var headers = { "Content-Type": "application/json" };
+      if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+        headers = window.VibeCartSessionDevice.merge(token, headers);
+      } else {
+        headers.Authorization = "Bearer " + token;
+      }
+      fetch("/api/public/seller/shop/ensure", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: headers,
+        body: JSON.stringify({ shopName: shopName })
+      })
+        .then(function (res) {
+          return res.text().then(function (text) {
+            var json = {};
+            try {
+              json = text ? JSON.parse(text) : {};
+            } catch {
+              json = { ok: false };
+            }
+            return { res: res, json: json };
+          });
+        })
+        .then(function (pair) {
+          var j = pair.json || {};
+          if (!pair.res.ok || !j.ok) {
+            var code = String(j.code || "");
+            var hint = String(j.message || j.code || "SHOP_SAVE_FAILED");
+            if (code === "ROLE_FORBIDDEN" || pair.res.status === 403) {
+              hint =
+                "This account cannot create a shop with the current role. Open Account hub → Active lane → choose Seller or Buyer, then try again.";
+            } else if (code === "TOKEN_REQUIRED" || pair.res.status === 401) {
+              hint = "Sign in on Lane passport first (saved session), then create your shop.";
+            } else if (!pair.res.ok && pair.res.status >= 500) {
+              hint = "Server error saving shop — try again in a minute. If it persists, confirm the API is deployed.";
+            }
+            throw new Error(hint);
+          }
+          setShopReady(true);
+          setStatus(
+            "vcSellShopStatus",
+            j.already
+              ? "Shop already active — you can continue."
+              : "Shop ready — continue to listing details."
+          );
+        })
+        .catch(function (err) {
+          setShopReady(false);
+          var msg = String((err && err.message) || err || "Could not save shop.");
+          if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+            msg =
+              "Could not reach the VibeCart API from this page. Use the HTTPS site (not file://), sign in, and ensure the backend is running.";
+          }
+          setStatus("vcSellShopStatus", msg);
+        })
+        .finally(function () {
+          ensureShopBtn.disabled = false;
+        });
+    });
+  }
+
   var step2Continue = document.getElementById("sellStep2Continue");
   if (step2Continue) {
     step2Continue.addEventListener(
@@ -222,6 +338,7 @@
       }
       fetch("/api/public/products/publish", {
         method: "POST",
+        credentials: "same-origin",
         headers: headers,
         body: JSON.stringify(body)
       })
@@ -259,6 +376,8 @@
           );
           try {
             sessionStorage.removeItem("vibecart-flow-sell");
+            sessionStorage.removeItem("vibecart-flow-sell-v3");
+            sessionStorage.removeItem(SHOP_READY_KEY);
           } catch {
             /* ignore */
           }

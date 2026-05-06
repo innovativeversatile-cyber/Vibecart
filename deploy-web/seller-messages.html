@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-secondary" href="./account-hub.html">Account hub</a>
+    <a class="btn btn-primary" href="./sell-journey.html">Selling checklist</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Buyer–seller messages</h1>
+    <p class="note shops-lane-intro">
+      Same lightweight thread box as on the marketplace home — for product questions and delivery updates. Nothing here routes to My Business.
+    </p>
+    <section id="communication" class="section" aria-label="Communication hub">
+      <h2 style="font-size:1.1rem">Your threads</h2>
+      <p id="chatPrivateHint" class="note"></p>
+      <div class="alt">
+        <div class="chat-input-row">
+          <label for="chatShopInput">Shop</label>
+          <input id="chatShopInput" list="chatShopSuggestions" type="text" placeholder="Type any shop name..." />
+          <datalist id="chatShopSuggestions"></datalist>
+        </div>
+        <div id="messagesBox" class="messages-box" aria-live="polite"></div>
+        <div class="chat-input-row">
+          <input id="chatInput" type="text" placeholder="Type your message…" />
+          <button id="chatSend" type="button" class="btn btn-primary">Send</button>
+        </div>
+        <p id="chatDispatchStatus" class="note" aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./script-safe.js?v=20260506sellerboost1"></script>
+  <script src="./site-chrome.js?v=20260514nav1" defer></script>
+</body>
+</html>

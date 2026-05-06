@@ -8645,6 +8645,23 @@ html.vc-mobile-kinetic main .page-group {
   display: none;
 }
 
+.vc-site-chrome-inbox summary.vc-site-chrome-inbox-more {
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vc-site-chrome-inbox summary.vc-site-chrome-inbox-more::-webkit-details-marker {
+  display: none;
+}
+
+a.vc-site-chrome-inbox-sum {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .vc-site-chrome-inbox-panel {
   position: absolute;
   z-index: 50;

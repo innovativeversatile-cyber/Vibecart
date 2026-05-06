@@ -88,7 +88,7 @@ function copyRootHtmlAndStatics() {
 }
 
 /** Root client bundles allowed to appear in deploy-web even before a first manual copy exists there. */
-const ROOT_JS_ALWAYS_DEPLOY = new Set(["seller-growth-workspace.js"]);
+const ROOT_JS_ALWAYS_DEPLOY = new Set(["seller-growth-workspace.js", "seller-bridge-toolkit.js"]);
 
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */
 function syncExistingRootJs() {

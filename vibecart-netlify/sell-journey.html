@@ -12,14 +12,38 @@
     <a class="btn btn-primary" href="./seller-boost.html">Seller Boost</a>
     <a class="btn btn-secondary" href="./seller-bridge-toolkit.html">Seller bridge toolkit</a>
     <a class="btn btn-secondary" href="./my-listings.html">My listings</a>
-    <a class="btn btn-secondary" href="./my-business.html">MyBusiness</a>
+    <a class="btn btn-secondary" href="./seller-messages.html">Messages</a>
+    <a class="btn btn-secondary" href="./seller-payments.html">Seller payments</a>
   </header>
-  <main class="section alt shops-lane-main vc-flow-shell" data-vc-flow-root="sell">
+  <main
+    class="section alt shops-lane-main vc-flow-shell"
+    data-vc-flow-root="sell-v3"
+    data-flow-layout-version="20260514-shop0"
+  >
     <h1 class="shops-lane-title">List without losing your place</h1>
-    <p class="note" data-flow-step-label style="margin-top: 0">Step 1 of 2</p>
+    <p class="note" data-flow-step-label style="margin-top: 0">Step 1 of 3</p>
     <div class="vc-flow-progress-wrap" aria-hidden="true"><div class="vc-flow-progress-bar" data-flow-progress></div></div>
 
     <div class="vc-flow-step-box" data-flow-step>
+      <h2>0 · Shop onboarding</h2>
+      <p class="note">
+        Publishing needs an <strong>active shop</strong> on your account. Name it once here, then continue to listing details. Payouts and fees:
+        <a href="./seller-payments.html">Seller payments</a>.
+      </p>
+      <div class="ai-grid" style="margin-top: 0.75rem">
+        <label for="vcSellShopName">Shop display name</label>
+        <input id="vcSellShopName" type="text" maxlength="120" placeholder="e.g. Kuda braided styles" />
+        <p class="hero-actions" style="margin: 0">
+          <button type="button" class="btn btn-primary" id="vcSellEnsureShop">Create or confirm shop</button>
+        </p>
+        <p class="note" id="vcSellShopStatus" aria-live="polite"></p>
+      </div>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-primary" id="sellShopStepContinue" data-flow-next>Continue to listing</button>
+      </p>
+    </div>
+
+    <div class="vc-flow-step-box" data-flow-step hidden>
       <h2>1 · Listing details</h2>
       <p class="note">Hero shots, condition notes, and “photo = this unit” build first-order trust.</p>
       <div class="ai-grid" style="margin-top: 0.75rem">
@@ -51,6 +75,7 @@
         <textarea id="vcSellDescription" rows="3" placeholder="Material, size, condition, what buyer gets."></textarea>
       </div>
       <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
         <button type="button" class="btn btn-primary" id="sellStep2Continue" data-flow-next>Continue</button>
       </p>
       <p class="note" id="sellStep2Status" aria-live="polite"></p>
@@ -124,8 +149,8 @@
     </div>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
-  <script src="./flow-shell.js?v=20260419haptic1" defer></script>
-  <script src="./sell-journey.js?v=20260506publish1" defer></script>
-  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
+  <script src="./flow-shell.js?v=20260514layoutver1" defer></script>
+  <script src="./sell-journey.js?v=20260514sellflow1" defer></script>
+  <script src="./site-chrome.js?v=20260514nav1" defer></script>
 </body>
 </html>

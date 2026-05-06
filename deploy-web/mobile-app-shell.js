@@ -2749,7 +2749,7 @@
         /* ignore */
       }
       paint();
-      window.location.assign("./index.html#communication");
+      window.location.assign("./seller-messages.html");
     });
     window.addEventListener("storage", paint);
     paint();
@@ -3615,7 +3615,7 @@
       ["Global search", "./global-search.html"],
       ["Browse categories", "./browse-categories.html"],
       ["Buy journey", "./buy-journey.html"],
-      ["My Business", "./my-business.html"],
+      ["Messages", "./seller-messages.html"],
       ["Service providers", "./service-provider-hub.html"],
       ["Sell journey", "./sell-journey.html"],
       ["Wellbeing", "./wellbeing.html"],
@@ -3780,7 +3780,21 @@
         forcePlacePrompt();
         window.requestAnimationFrame(forcePlacePrompt);
       });
-      hideFrom(rail);
+      var navEntries =
+        window.performance && typeof performance.getEntriesByType === "function"
+          ? performance.getEntriesByType("navigation")
+          : [];
+      var navType = navEntries && navEntries[0] ? String(navEntries[0].type || "") : "";
+      if (navType === "reload" || navType === "back_forward") {
+        revealFrom(rail);
+        try {
+          window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        } catch {
+          /* ignore */
+        }
+      } else {
+        hideFrom(rail);
+      }
       if (trigger && panel) {
         trigger.addEventListener("click", function () {
           revealFrom(rail);
@@ -3801,7 +3815,7 @@
     rail.className = "vc-cinematic-concierge-rail";
     rail.innerHTML =
       "<a href='./live-market-shops.html?cat=All&view=global' class='btn btn-secondary'>Live market</a>" +
-      "<a href='./my-business.html?flow=book' class='btn btn-secondary'>Book now</a>" +
+      "<a href='./seller-messages.html' class='btn btn-secondary'>Messages</a>" +
       "<a href='./sell-journey.html' class='btn btn-secondary'>Sell lane</a>" +
       "<a href='./wellbeing.html' class='btn btn-secondary'>Wellbeing</a>" +
       "<a href='./account-hub.html' class='btn btn-secondary'>Account</a>";

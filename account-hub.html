@@ -67,6 +67,19 @@
     <p class="note" id="activePlanBadge" hidden>
       <span data-page-i18n="account.planActive">Plan active:</span> <strong id="activePlanBadgeText" data-page-i18n="account.none">No active plan</strong>
     </p>
+    <section class="section alt" style="margin-top: 1rem">
+      <h2 class="shops-lane-title" style="font-size: 1.1rem">Active lane</h2>
+      <p class="note">
+        Switch how you show up in the marketplace. Citizen is the everyday browse-and-buy lane (same secure account as buyer). Seller turns on
+        listing, orders, and payout tools. You can switch any time after signing in.
+      </p>
+      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem">
+        <button type="button" class="btn btn-secondary" id="vcHubRoleCitizen">Citizen</button>
+        <button type="button" class="btn btn-secondary" id="vcHubRoleBuyer">Buyer</button>
+        <button type="button" class="btn btn-primary" id="vcHubRoleSeller">Seller</button>
+      </p>
+      <p class="note" id="vcHubRoleStatus" aria-live="polite"></p>
+    </section>
     <div class="shop-bubble-grid">
       <a class="shop" href="./lane-passport.html"><h3 data-page-i18n="account.signin">Sign in / register</h3><p data-page-i18n="account.signin.desc">Open the Lane passport page to create an account or sign in.</p></a>
       <a class="shop" href="./insurance.html"><h3>Insurance</h3><p data-page-i18n="account.insurance.desc">Plans and partner offers.</p></a>
@@ -485,6 +498,96 @@
       } catch (e) {}
     })();
   </script>
-  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
+  <script>
+    (function () {
+      function setRoleStatus(text) {
+        var el = document.getElementById("vcHubRoleStatus");
+        if (el) {
+          el.textContent = text || "";
+        }
+      }
+      function readToken() {
+        try {
+          return String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+        } catch {
+          return "";
+        }
+      }
+      function mergeAuthHeaders(token, headers) {
+        var h = headers || {};
+        if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+          return window.VibeCartSessionDevice.merge(token, h);
+        }
+        h.Authorization = "Bearer " + token;
+        return h;
+      }
+      function applyRole(role) {
+        var want = String(role || "").toLowerCase();
+        if (want !== "citizen" && want !== "buyer" && want !== "seller") {
+          return;
+        }
+        var token = readToken();
+        if (!token) {
+          setRoleStatus("Sign in on Lane passport first, then pick a lane.");
+          return;
+        }
+        setRoleStatus("Updating lane…");
+        var headers = mergeAuthHeaders(token, { "Content-Type": "application/json", Accept: "application/json" });
+        fetch("/api/public/auth/session/role", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: headers,
+          body: JSON.stringify({ role: want })
+        })
+          .then(function (res) {
+            return res.text().then(function (text) {
+              var json = {};
+              try {
+                json = text ? JSON.parse(text) : {};
+              } catch {
+                json = { ok: false };
+              }
+              return { res: res, json: json };
+            });
+          })
+          .then(function (pair) {
+            if (!pair.res.ok || !pair.json.ok) {
+              throw new Error(String((pair.json && pair.json.message) || pair.json.code || "ROLE_UPDATE_FAILED"));
+            }
+            var u = pair.json.user || {};
+            try {
+              var merged = Object.assign({}, u, { passportMode: pair.json.passportMode || want });
+              localStorage.setItem("vibecart-public-auth-user", JSON.stringify(merged));
+            } catch {
+              /* ignore */
+            }
+            var label = String(pair.json.passportMode || want);
+            setRoleStatus("Lane set to " + label + ". Reload a page if menus look stale.");
+          })
+          .catch(function (err) {
+            setRoleStatus(String((err && err.message) || "Could not switch lane."));
+          });
+      }
+      var bCit = document.getElementById("vcHubRoleCitizen");
+      var bBuy = document.getElementById("vcHubRoleBuyer");
+      var bSel = document.getElementById("vcHubRoleSeller");
+      if (bCit) {
+        bCit.addEventListener("click", function () {
+          applyRole("citizen");
+        });
+      }
+      if (bBuy) {
+        bBuy.addEventListener("click", function () {
+          applyRole("buyer");
+        });
+      }
+      if (bSel) {
+        bSel.addEventListener("click", function () {
+          applyRole("seller");
+        });
+      }
+    })();
+  </script>
+  <script src="./site-chrome.js?v=20260512role1" defer></script>
 </body>
 </html>

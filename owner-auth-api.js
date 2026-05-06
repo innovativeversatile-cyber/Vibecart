@@ -2763,6 +2763,55 @@ async function tryReleaseOrderSettlement(orderId) {
   return { ok: true, released: true, payoutStatus, payoutReference };
 }
 
+function normalizePublicShopSlugPart(input) {
+  const raw = String(input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return raw || "shop";
+}
+
+async function handlePublicSellerShopEnsure(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "buyer", "service_provider"]));
+  if (!session) {
+    return;
+  }
+  let body = {};
+  try {
+    body = await readJson(req);
+  } catch {
+    body = {};
+  }
+  const uid = Number(session.user_id);
+  const [haveRows] = await pool.execute(
+    `SELECT id, name FROM shops WHERE owner_user_id = ? AND active = 1 ORDER BY id ASC LIMIT 1`,
+    [uid]
+  );
+  const have = haveRows[0];
+  if (have && Number(have.id || 0) > 0) {
+    return sendJson(res, 200, {
+      ok: true,
+      already: true,
+      shop: { id: Number(have.id), name: String(have.name || "") }
+    });
+  }
+  const brand = String(body.shopName || body.name || "My VibeCart shop").trim().slice(0, 120) || "My VibeCart shop";
+  const slug = `${normalizePublicShopSlugPart(brand)}-${uid}-${crypto.randomBytes(2).toString("hex")}`;
+  const desc = String(body.description || "Shop created from guided selling.").trim().slice(0, 500);
+  const [ins] = await pool.execute(
+    `INSERT INTO shops (owner_user_id, name, slug, description, active) VALUES (?, ?, ?, ?, 1)`,
+    [uid, brand, slug, desc || null]
+  );
+  return sendJson(res, 200, {
+    ok: true,
+    shop: { id: Number(ins.insertId), name: brand, slug }
+  });
+}
+
 async function handlePublicProductPublish(req, res) {
   /** Same shop ownership gate as listings; buyers/providers with an active shop can publish. */
   const session = await requirePublicSessionRole(req, res, new Set(["seller", "buyer", "service_provider"]));
@@ -2960,7 +3009,12 @@ async function handlePublicAuthLogin(req, res) {
   if (!user || !verifyPublicPassword(password, user.password_hash)) {
     return sendJson(res, 401, { ok: false, code: "INVALID_CREDENTIALS" });
   }
-  if (role && (role === "buyer" || role === "seller") && user.role !== role) {
+  if (
+    role &&
+    role !== "citizen" &&
+    (role === "buyer" || role === "seller") &&
+    String(user.role || "").toLowerCase() !== role
+  ) {
     return sendJson(res, 403, { ok: false, code: "ROLE_MISMATCH" });
   }
 
@@ -3154,6 +3208,54 @@ async function handlePublicAuthSession(req, res) {
     setPublicAuthCookie(res, rotated.token, rotated.expiresAt);
   }
   return sendJson(res, 200, payload);
+}
+
+async function handlePublicAuthSessionRoleUpdate(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const token = getBearerToken(req);
+  if (!token) {
+    return sendJson(res, 401, { ok: false, code: "TOKEN_REQUIRED" });
+  }
+  const session = await requirePublicSession(token, req);
+  if (!session) {
+    clearPublicAuthCookie(res);
+    return sendJson(res, 401, { ok: false, code: "INVALID_SESSION" });
+  }
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const want = String(body.role || "").trim().toLowerCase();
+  if (want !== "buyer" && want !== "seller" && want !== "citizen") {
+    return sendJson(res, 400, { ok: false, code: "INVALID_ROLE" });
+  }
+  const dbRole = want === "citizen" ? "buyer" : want;
+  const uid = Number(session.user_id);
+  await pool.execute(`UPDATE users SET role = ? WHERE id = ? LIMIT 1`, [dbRole, uid]);
+  const [urows] = await pool.execute(
+    `SELECT id, email, full_name, role, country_code, is_verified FROM users WHERE id = ? LIMIT 1`,
+    [uid]
+  );
+  const u = urows[0];
+  if (!u) {
+    return sendJson(res, 500, { ok: false, code: "USER_MISSING" });
+  }
+  return sendJson(res, 200, {
+    ok: true,
+    passportMode: want,
+    user: {
+      id: Number(u.id),
+      email: String(u.email),
+      fullName: String(u.full_name),
+      role: String(u.role),
+      countryCode: String(u.country_code),
+      isVerified: Boolean(u.is_verified)
+    }
+  });
 }
 
 async function handlePublicAuthLogout(req, res) {
@@ -8349,6 +8451,12 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && pathname === "/api/public/auth/session") {
       return await handlePublicAuthSession(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/auth/session/role") {
+      return await handlePublicAuthSessionRoleUpdate(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/seller/shop/ensure") {
+      return await handlePublicSellerShopEnsure(req, res);
     }
     if (req.method === "GET" && pathname === "/api/public/user/preferences") {
       return await handlePublicUserPreferencesGet(req, res);

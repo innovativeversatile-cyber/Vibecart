@@ -101,18 +101,23 @@
   wrap.setAttribute("role", "toolbar");
   wrap.setAttribute("aria-label", "Inbox shortcuts and display preferences");
 
+  var msgLink = document.createElement("a");
+  msgLink.className = "btn btn-secondary vc-site-chrome-inbox-sum";
+  msgLink.href = "./seller-messages.html";
+  msgLink.textContent = "✉ Messages";
+  msgLink.setAttribute("aria-label", "Open buyer-seller messages");
+
   var inbox = document.createElement("details");
   inbox.className = "vc-site-chrome-inbox";
   var inboxSum = document.createElement("summary");
-  inboxSum.className = "btn btn-secondary vc-site-chrome-inbox-sum";
-  inboxSum.textContent = "✉ Inbox";
+  inboxSum.className = "btn btn-secondary vc-site-chrome-inbox-more";
+  inboxSum.textContent = "More";
   var inboxPanel = document.createElement("div");
   inboxPanel.className = "vc-site-chrome-inbox-panel";
   inboxPanel.setAttribute("role", "menu");
   [
-    ["./account-hub.html#bookings", "Account · bookings & alerts"],
-    ["./my-business.html#mb-client-my-bookings", "My Business · your requests (buyer)"],
-    ["./my-business.html#mb-provider-bookings", "My Business · client requests & chat (seller)"],
+    ["./seller-messages.html", "Messages hub (chat)"],
+    ["./account-hub.html", "Account hub"],
     ["./buyer-orders.html", "Buyer orders"],
     ["./seller-orders.html", "Seller orders"],
     ["./my-listings.html", "My listings"],
@@ -135,17 +140,25 @@
   luxeBtn.setAttribute("aria-pressed", "true");
   luxeBtn.textContent = "Luxury mode";
 
+  wrap.appendChild(msgLink);
   wrap.appendChild(inbox);
   wrap.appendChild(luxeBtn);
   header.appendChild(wrap);
 
   function initLaneScrollRestore() {
+    var path = String(window.location.pathname || "").replace(/\\/g, "/");
+    var base = path.split("/").pop() || path;
+    var isHome =
+      base === "" ||
+      base === "/" ||
+      /^index\.html$/i.test(base);
     var key = "vibecart-scroll-y:" + String(window.location.pathname || "/");
     var navFlag = "vibecart-restore-next";
     try {
       var navEntries = window.performance && performance.getEntriesByType ? performance.getEntriesByType("navigation") : [];
       var navType = navEntries && navEntries[0] ? String(navEntries[0].type || "") : "";
-      var shouldRestore = navType === "back_forward" || sessionStorage.getItem(navFlag) === "1";
+      /** Only restore on real back/forward — not reload; never jump the marketplace home to a deep scroll. */
+      var shouldRestore = navType === "back_forward" && !isHome;
       if (shouldRestore) {
         var raw = sessionStorage.getItem(key);
         var y = Number(raw || "0");

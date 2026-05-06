@@ -26,7 +26,16 @@
     var bar = root.querySelector("[data-flow-progress]");
     var label = root.querySelector("[data-flow-step-label]");
     var cur = 0;
+    var layoutVersion = String(root.getAttribute("data-flow-layout-version") || "").trim();
     try {
+      if (layoutVersion) {
+        var verKey = key + ":layout";
+        var prevVer = sessionStorage.getItem(verKey);
+        if (prevVer !== layoutVersion) {
+          sessionStorage.setItem(verKey, layoutVersion);
+          sessionStorage.removeItem(key);
+        }
+      }
       var saved = sessionStorage.getItem(key);
       if (saved != null && saved !== "") {
         cur = Math.max(0, Math.min(steps.length - 1, parseInt(saved, 10) || 0));
