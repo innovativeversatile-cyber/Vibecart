@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VibeCart — chat with an insurer</title>
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --card: #151a22;
+      --text: #e8ecf1;
+      --muted: #9aa7b8;
+      --accent: #c9a227;
+      --accent2: #3d9e78;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+    .deck {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(1rem, 4vw, 3rem);
+    }
+    .slide {
+      display: none;
+      width: min(920px, 100%);
+      min-height: min(520px, 85vh);
+      background: linear-gradient(145deg, var(--card) 0%, #0f1318 100%);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(1.5rem, 4vw, 2.75rem);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      flex-direction: column;
+      justify-content: center;
+    }
+    .slide.active { display: flex; }
+    .slide h1 {
+      font-family: Georgia, serif;
+      font-size: clamp(1.65rem, 3.8vw, 2.35rem);
+      font-weight: 600;
+      margin: 0 0 1rem;
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+    }
+    .slide h2 {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+      font-weight: 500;
+      color: var(--accent);
+      margin: 0 0 1rem;
+      letter-spacing: 0.01em;
+      font-style: italic;
+      opacity: 0.95;
+    }
+    .slide p {
+      font-size: clamp(1.05rem, 1.9vw, 1.22rem);
+      line-height: 1.65;
+      color: var(--muted);
+      margin: 0 0 1rem;
+      max-width: 52ch;
+    }
+    .slide p:last-child { margin-bottom: 0; }
+    .slide strong { color: var(--text); font-weight: 600; }
+    .tagline {
+      font-size: clamp(1.1rem, 2vw, 1.28rem);
+      line-height: 1.6;
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .logo {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: grid;
+      place-items: center;
+      font-family: system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+      color: #0c0f14;
+    }
+    .pill {
+      font-family: system-ui, sans-serif;
+      display: inline-block;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      background: rgba(201, 162, 39, 0.12);
+      color: var(--accent);
+    }
+    .contact-block {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: clamp(1rem, 1.7vw, 1.12rem);
+      line-height: 1.7;
+      color: var(--muted);
+    }
+    .contact-block a {
+      color: var(--accent2);
+      text-decoration: none;
+    }
+    .contact-block a:hover { text-decoration: underline; }
+    .footer-hint {
+      position: fixed;
+      bottom: 0.75rem;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-family: system-ui, sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+      opacity: 0.65;
+    }
+    @media print {
+      body { overflow: visible; background: #fff; }
+      .slide {
+        display: flex !important;
+        page-break-after: always;
+        min-height: auto;
+        box-shadow: none;
+        border: 1px solid #ccc;
+        color: #111;
+        background: #fff;
+      }
+      .slide h2 { color: #5c4d15; }
+      .slide p { color: #333; }
+      .slide strong { color: #000; }
+      .contact-block a { color: #0d5c3f; }
+      .footer-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <section class="slide active" data-slide="0">
+      <div class="logo-row">
+        <div class="logo">VC</div>
+        <span class="pill">A short note for your team</span>
+      </div>
+      <h1>Hi — from the VibeCart team.</h1>
+      <p class="tagline">We built VibeCart as a living marketplace: people discover products, book services, and pay in a way that feels modern and calm. We’re not here to replace your actuaries or your licences — we’re asking whether we can <strong>send you the right people, at the right moment</strong>, in a way your compliance team can live with.</p>
+      <p>This deck is about <strong>partnership shapes that already exist in the real world</strong>: affiliate links, referrals, or a careful middle layer — whatever fits your rules where you operate.</p>
+    </section>
+
+    <section class="slide" data-slide="1">
+      <h2>Why we’re talking to insurers at all</h2>
+      <h1>You’re not looking for “more internet.” You’re looking for signal.</h1>
+      <p>Most acquisition is loud. Someone scrolls past an ad and forgets it. What’s different is when someone has <strong>already decided to do something</strong> — book a trip, buy something that matters, lock in a service — and cover is a sensible next question, not a cold pitch.</p>
+      <p>VibeCart sits in that quieter space: intent, baskets, bookings, messages between real humans. If your products belong in that conversation, we’d rather <strong>hand people to your journey</strong> than pretend we’re selling policies off the side of a webpage.</p>
+    </section>
+
+    <section class="slide" data-slide="2">
+      <h2>What you’d actually be looking at</h2>
+      <h1>VibeCart today — in plain words</h1>
+      <p>There’s a storefront side: categories, sellers, checkout, the boring-but-important stuff like <strong>Stripe</strong> so money moves cleanly. There’s also a <strong>“My Business”</strong> lane where stylists and similar providers list offers, publish times, and handle booking requests with clients.</p>
+      <p>Behind that is the usual grown-up layer: policies, user acknowledgements where it matters, hosting that doesn’t embarrass you in an IT review. Nothing magic — just <strong>intentional product work</strong> with room to wire in offers and reminders the day you say yes.</p>
+    </section>
+
+    <section class="slide" data-slide="3">
+      <h2>Ways we could actually work together</h2>
+      <h1>Pick the shape that matches your risk appetite</h1>
+      <p><strong>Affiliate or marketing</strong> — You treat us like a channel. We send traffic or tracked outcomes; your team owns wording, pricing, and the sale.</p>
+      <p><strong>Referral / “middleman” in the honest sense</strong> — We show education or a soft prompt and send interested users into <strong>your</strong> quote or sales flow. Labels stay honest: you’re the insurer; we’re the front door.</p>
+      <p><strong>Deeper integration later</strong> — If the law and your comfort allow, we can talk APIs and embedded journeys. That’s a second chapter, not a first conversation.</p>
+    </section>
+
+    <section class="slide" data-slide="4">
+      <h2>What’s in it for you</h2>
+      <h1>We’re biased, but here’s the honest pitch</h1>
+      <p>You get <strong>reach without shouting</strong>: people who are already doing something on the site, in a context where insurance can feel relevant instead of random.</p>
+      <p>You keep <strong>control</strong> — product rules, disclosures, who is allowed to say what. We’re asking for a partnership, not a takeover.</p>
+      <p>And if we do this properly, we both get <strong>something we can measure</strong>, with data handled the way your privacy people expect. No hand-wavy “trust us.”</p>
+    </section>
+
+    <section class="slide" data-slide="5">
+      <h2>Trust — we know that word gets overused</h2>
+      <h1>So here’s what we mean by it</h1>
+      <p>We care that the site doesn’t feel like a sketchy corner of the web. There are policy pages, payment paths that don’t wander off into random links, and a production setup we’re willing to put in front of someone who wears a risk hat.</p>
+      <p>Anything that touches <strong>insurance for real</strong> should go through <strong>your</strong> legal and compliance sign-off. We’re building the rails; you’re the regulated part. That division matters to us too.</p>
+    </section>
+
+    <section class="slide" data-slide="6">
+      <h2>Money and pace</h2>
+      <h1>Let’s not pretend we have a term sheet yet</h1>
+      <p>Commercials can be simple: affiliate-style fees, a fixed sponsorship, or a mix. What we care about is that customers aren’t squeezed for gimmicks, and that your economics still make sense.</p>
+      <p>We’re happy to start <strong>small</strong> — one product, one geography, one funnel — and look at numbers after a few months like adults.</p>
+    </section>
+
+    <section class="slide" data-slide="7">
+      <h2>If this is worth another hour</h2>
+      <h1>Here’s how to reach us — and the live site</h1>
+      <p>We’d love your partnership, marketing, or innovation folks to take a look at the product itself. If your IT policy blocks external sites, we can do a screen share instead — no ego on that.</p>
+      <div class="contact-block">
+        <strong>Primary contact — Kudakwashe Mabunu</strong><br />
+        Email: <a href="mailto:1vibe.cart@gmail.com">1vibe.cart@gmail.com</a><br />
+        WhatsApp / phone: <a href="https://wa.me/48579139164">+48&nbsp;579&nbsp;139&nbsp;164</a><br /><br />
+        Live site: <a href="https://vibe-cart.com" target="_blank" rel="noopener noreferrer">https://vibe-cart.com</a>
+      </div>
+    </section>
+  </div>
+  <p class="footer-hint">Tap the slide or press space / → to continue · ← to go back</p>
+  <script>
+    (function () {
+      var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+      var i = 0;
+      function show(n) {
+        i = Math.max(0, Math.min(slides.length - 1, n));
+        slides.forEach(function (s, j) {
+          s.classList.toggle("active", j === i);
+        });
+      }
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault();
+          show(i + 1);
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          show(i - 1);
+        } else if (e.key === "Home") show(0);
+        else if (e.key === "End") show(slides.length - 1);
+      });
+      document.getElementById("deck").addEventListener("click", function (e) {
+        if (e.target.closest(".slide")) show(i + 1);
+      });
+    })();
+  </script>
+</body>
+</html>

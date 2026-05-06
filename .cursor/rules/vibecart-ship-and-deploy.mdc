@@ -1,0 +1,17 @@
+---
+description: After VibeCart edits, sync deploy mirrors, commit, and push so Netlify/Railway stay current.
+alwaysApply: true
+---
+
+# VibeCart — ship after material changes
+
+When you finish a **user-visible or deployable** change under this repo (HTML, CSS, client JS, `mobile-app-shell.js`, `deploy-web/`, `vibecart-netlify/`, static assets, or anything that should be live on production):
+
+1. From repo root, run **`npm run deploy:sync`** so `deploy-web/` and `vibecart-netlify/` match sources (or use **`npm run ship -- "clear message"`** to sync + commit + push in one step).
+2. **`git add`** all intended paths (including sync outputs if they changed).
+3. **`git commit`** with a short, accurate message (not a vague “updates”).
+4. **`git push origin`** to the current default branch (usually `main`) so CI/Netlify can deploy.
+
+Do **not** leave the tree dirty with production-bound fixes. Do **not** `git push --force` unless the user explicitly asks.
+
+If the change is **exploratory only** or the user said **not** to push yet, skip push and say so.
