@@ -126,7 +126,7 @@
       '<p class="hero-actions" style="margin:0"><button type="button" class="btn btn-primary" data-action="saveText">Save text</button></p>' +
       "</details>" +
       '<div class="vc-actions">' +
-      '<a class="btn btn-secondary" href="./live-market-shops.html?cat=All">Live market</a>' +
+      '<a class="btn btn-secondary" href="./live-market-shops.html?cat=All&view=global&deal=best">Live market</a>' +
       '<a class="btn btn-secondary" href="./seller-payments.html">How payouts work</a>' +
       '<input class="vc-inline-input" type="number" min="0" step="0.01" placeholder="Price" data-update-price />' +
       '<button type="button" class="btn btn-secondary" data-action="price">Update price</button>' +

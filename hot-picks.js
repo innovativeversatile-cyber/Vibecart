@@ -463,7 +463,7 @@
           '<a class="btn btn-primary" href="' +
           escapeHtml(listingHref) +
           '">Open exact listing (shareable)</a>' +
-          '<a class="btn btn-secondary" href="./live-market-shops.html">Live marketplace grid</a>' +
+          '<a class="btn btn-secondary" href="./live-market-shops.html?cat=All&view=global&deal=best">Live marketplace grid</a>' +
           '<a class="btn btn-secondary" href="./index.html#account-access">' +
           escapeHtml(joinLabel) +
           "</a></p>" +

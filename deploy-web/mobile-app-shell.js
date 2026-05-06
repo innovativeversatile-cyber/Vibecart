@@ -711,7 +711,7 @@
       },
       {
         keys: "jewelry jewellery watches rings gold silver gems",
-        href: "./live-market-shops.html?cat=Fashion&view=global",
+        href: "./live-market-shops.html?cat=Fashion&view=global&deal=fashion",
         label: "Fashion / jewellery grid",
         blurb: "Live shop grid for style and jewellery picks."
       },
@@ -1054,7 +1054,7 @@
         return {
           reply: "Ireland lane: open the IE live grid (region locked) or the Ireland regional card.",
           actions: [
-            { label: "Ireland live shops", href: "./live-market-shops.html?cat=All&region=ie" },
+            { label: "Ireland live shops", href: "./live-market-shops.html?cat=All&region=ie&view=global&deal=best" },
             { label: "Regional shops (IE card)", href: "./regional-shops.html" }
           ]
         };
@@ -1063,7 +1063,7 @@
         return {
           reply: "Electronics lane: verify seller trust, then open external checkout only on the real retailer domain.",
           actions: [
-            { label: "Electronics live grid", href: "./live-market-shops.html?cat=Electronics&view=global" },
+            { label: "Electronics live grid", href: "./live-market-shops.html?cat=Electronics&view=global&deal=electronics" },
             { label: "Security overview", href: "./security-overview.html" }
           ]
         };
@@ -1072,7 +1072,7 @@
         return {
           reply: "Books lane: compare delivery to your country before you commit.",
           actions: [
-            { label: "Books live grid", href: "./live-market-shops.html?cat=Books&view=global" },
+            { label: "Books live grid", href: "./live-market-shops.html?cat=Books&view=global&deal=books" },
             { label: "Browse categories", href: "./browse-categories.html" }
           ]
         };
@@ -1081,7 +1081,7 @@
         return {
           reply: "Gaming lane: watch for region-locked keys and official store fronts.",
           actions: [
-            { label: "Gaming live grid", href: "./live-market-shops.html?cat=Gaming&view=global" },
+            { label: "Gaming live grid", href: "./live-market-shops.html?cat=Gaming&view=global&deal=gaming" },
             { label: "Hot picks", href: "./hot-picks.html" }
           ]
         };
@@ -1092,7 +1092,7 @@
           actions: [
             { label: "Buy journey", href: "./buy-journey.html" },
             { label: "Hot picks", href: "./hot-picks.html" },
-            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global" }
+            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global&deal=best" }
           ]
         };
       }
@@ -1100,7 +1100,7 @@
         return {
           reply: "Live market: pick a category tab (All shops shows every category), acknowledge the disclaimer, then tap a trusted retailer card.",
           actions: [
-            { label: "Live market shops", href: "./live-market-shops.html?cat=All&view=global" },
+            { label: "Live market shops", href: "./live-market-shops.html?cat=All&view=global&deal=best" },
             { label: "Live market folders", href: "./live-market.html" }
           ]
         };
@@ -1128,7 +1128,7 @@
             "Great choice. Start with Hot picks, then compare two listings using delivery speed and seller trust.",
           actions: [
             { label: "Hot picks", href: "./hot-picks.html" },
-            { label: "Fashion live grid", href: "./live-market-shops.html?cat=Fashion&view=global" }
+            { label: "Fashion live grid", href: "./live-market-shops.html?cat=Fashion&view=global&deal=fashion" }
           ]
         };
       }
@@ -1267,7 +1267,7 @@
           .toLowerCase();
         if (only === "./hot-picks.html" || only.indexOf("./hot-picks.html?") === 0) {
           list = list.concat([
-            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global" },
+            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global&deal=best" },
             { label: "Global search", href: "./global-search.html" }
           ]);
           list = dedupe(list);
@@ -3626,7 +3626,7 @@
       "</div>";
     var links = [
       ["Home", "./index.html"],
-      ["Live market", "./live-market-shops.html?cat=All&view=global"],
+      ["Live market", "./live-market-shops.html?cat=All&view=global&deal=best"],
       ["Hot picks", "./hot-picks.html"],
       ["Global search", "./global-search.html"],
       ["Browse categories", "./browse-categories.html"],
@@ -3830,7 +3830,7 @@
     rail.id = "vcCinematicConciergeRail";
     rail.className = "vc-cinematic-concierge-rail";
     rail.innerHTML =
-      "<a href='./live-market-shops.html?cat=All&view=global' class='btn btn-secondary'>Live market</a>" +
+      "<a href='./live-market-shops.html?cat=All&view=global&deal=best' class='btn btn-secondary'>Live market</a>" +
       "<a href='./seller-messages.html' class='btn btn-secondary'>Messages</a>" +
       "<a href='./sell-journey.html' class='btn btn-secondary'>Sell lane</a>" +
       "<a href='./wellbeing.html' class='btn btn-secondary'>Wellbeing</a>" +

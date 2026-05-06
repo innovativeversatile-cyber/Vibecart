@@ -2395,7 +2395,7 @@
       }
       if (persona === "curious") {
         conciergeLine.textContent = "Discovery route: start with visual lanes, then compare two promo regions.";
-        conciergeGo.href = "./live-market-shops.html?cat=All&view=global";
+        conciergeGo.href = "./live-market-shops.html?cat=All&view=global&deal=best";
         return;
       }
       conciergeLine.textContent = "Buyer route: open top live promotions first, then lock best-value offer.";

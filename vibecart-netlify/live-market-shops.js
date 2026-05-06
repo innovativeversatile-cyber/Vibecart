@@ -506,6 +506,28 @@
       title: "Fnac books FR"
     }
   ];
+  var gamingDealRail = [
+    {
+      src: "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://store.steampowered.com/specials",
+      title: "Steam specials"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.xbox.com/promotions/sales/sales-and-specials",
+      title: "Xbox deals"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.playstation.com/en-us/ps-store/last-chance-to-play/",
+      title: "PlayStation store"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.nintendo.com/store/sales-and-deals/",
+      title: "Nintendo deals"
+    }
+  ];
   if (!grid) {
     return;
   }
@@ -731,6 +753,8 @@
         intro.textContent = base + " Electronics lane adds deal-focused storefront shortcuts with imagery.";
       } else if (dealTone === "books") {
         intro.textContent = base + " Books lane highlights study-friendly portals.";
+      } else if (dealTone === "gaming") {
+        intro.textContent = base + " Gaming lane highlights keys, consoles, and trusted game storefronts.";
       } else {
         intro.textContent = base;
       }
@@ -738,14 +762,14 @@
     if (topCta) {
       try {
         if (String(window.location.pathname || "").toLowerCase().indexOf("live-market-shops") >= 0) {
-          topCta.setAttribute("href", "#liveMarketShopGrid");
-          topCta.textContent = "Jump to shops list";
+          topCta.setAttribute("href", "#liveMarketExternalWrap");
+          topCta.textContent = "Jump to external shop grid";
         } else {
-          topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global");
+          topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global&deal=best");
           topCta.textContent = "Open full live marketplace";
         }
       } catch (_) {
-        topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global");
+        topCta.setAttribute("href", "./live-market-shops.html?cat=All&view=global&deal=best");
         topCta.textContent = "Open full live marketplace";
       }
     }
@@ -813,6 +837,8 @@
       pack = { label: "Electronics deal shelf — storefront entry points (disclaimer applies)", items: electronicsDealRail };
     } else if (dealTone === "books" || cat === "Books") {
       pack = { label: "Books & study portals (disclaimer applies)", items: booksDealRail };
+    } else if (dealTone === "gaming" || cat === "Gaming") {
+      pack = { label: "Gaming deal shelf — official storefronts (disclaimer applies)", items: gamingDealRail };
     }
     if (!pack || !pack.items || !pack.items.length) {
       dealContextRailWrap.hidden = true;
@@ -963,6 +989,8 @@
           return;
         }
         cat = next;
+        var dealByCat = { Electronics: "electronics", Fashion: "fashion", Books: "books", Gaming: "gaming" };
+        dealTone = cat === "All" ? "" : dealByCat[cat] || dealTone;
         if (searchInput) {
           searchInput.value = "";
         }
@@ -977,6 +1005,11 @@
         try {
           var url = new URL(window.location.href);
           url.searchParams.set("cat", cat);
+          if (dealTone) {
+            url.searchParams.set("deal", dealTone);
+          } else {
+            url.searchParams.delete("deal");
+          }
           var br = bridgeRefForLinks();
           if (br) url.searchParams.set("ref", br);
           history.replaceState(null, "", url.pathname + "?" + url.searchParams.toString());
