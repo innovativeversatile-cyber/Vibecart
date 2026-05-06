@@ -1962,9 +1962,10 @@
     var heroCopy = document.querySelector(".hero-copy");
     if (!heroCopy) return;
     try {
-      var cineDone = sessionStorage.getItem("vibecart-cinematic-done-v1") === "1";
+      // Only block on the cinematic close event when the opener actually mounted.
+      // Otherwise WOW-off / skipped opener / stale session keys would wait forever and strand first‑5 + intro UI.
       var cineActive = !!document.getElementById("vcThreeSecondCinematic");
-      if (!cineDone || cineActive) {
+      if (cineActive) {
         var runAfterCine = function () {
           window.removeEventListener("vibecart-cinematic-done", runAfterCine);
           try {
@@ -3278,7 +3279,10 @@
       // Allow query override for testing.
       if (/[?&]simpleWow=0(?:&|$)/i.test(q)) return false;
       if (/[?&]simpleWow=1(?:&|$)/i.test(q)) return true;
-      // Nuclear mode: keep simple wow ON by default on mobile.
+      var stored = String(localStorage.getItem("vibecart-mobile-simple-wow-v1") || "").trim();
+      if (stored === "0") return false;
+      if (stored === "1") return true;
+      // Default: simple wow ON when the user has never chosen (sticker persists "0"/"1").
       return true;
     } catch {
       return true;
@@ -3329,6 +3333,7 @@
       "<p>" + note + "</p>" +
       "<div class='vc-simple-wow-entry__actions'>" +
       "<a class='btn btn-primary' data-vc-wow-intent='buy' href='./live-market-shops.html?cat=All&view=global&deal=best'>Shop now</a>" +
+      "<a class='btn btn-secondary' data-vc-wow-intent='fast' href='./hot-picks.html'>Hot picks</a>" +
       "<a class='btn btn-secondary' data-vc-wow-intent='book' href='./my-business.html?flow=book'>Book services</a>" +
       "<a class='btn btn-secondary' data-vc-wow-intent='sell' href='./sell-journey.html'>Start selling</a>" +
       "</div>" +
@@ -3407,8 +3412,7 @@
     if (document.getElementById("vcThreeSecondCinematic")) return;
     try {
       if (sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1") return;
-      if (sessionStorage.getItem("vibecart-mobile-cinematic-opened-v2") === "1") return;
-      sessionStorage.setItem("vibecart-mobile-cinematic-opened-v2", "1");
+      if (sessionStorage.getItem("vibecart-cinematic-done-v1") === "1") return;
     } catch {
       /* ignore */
     }
@@ -4111,6 +4115,9 @@
     if (isSimpleWowModeEnabled()) {
       document.body.classList.add("vc-simple-wow-on");
       document.body.classList.add("vc-v3-wow");
+    } else {
+      document.body.classList.remove("vc-simple-wow-on");
+      document.body.classList.remove("vc-v3-wow");
     }
     initMobileFocusMode();
     initThumbFlowBoost();
@@ -4219,6 +4226,9 @@
         if (isSimpleWowModeEnabled()) {
           document.body.classList.add("vc-simple-wow-on");
           document.body.classList.add("vc-v3-wow");
+        } else {
+          document.body.classList.remove("vc-simple-wow-on");
+          document.body.classList.remove("vc-v3-wow");
         }
         initMainSectionRevealForApp();
         ensureAppShopHubLink();
@@ -4230,6 +4240,9 @@
       if (isSimpleWowModeEnabled()) {
         document.body.classList.add("vc-simple-wow-on");
         document.body.classList.add("vc-v3-wow");
+      } else {
+        document.body.classList.remove("vc-simple-wow-on");
+        document.body.classList.remove("vc-v3-wow");
       }
       initMainSectionRevealForApp();
       ensureAppShopHubLink();
@@ -4280,6 +4293,9 @@
             if (isSimpleWowModeEnabled()) {
               document.body.classList.add("vc-simple-wow-on");
               document.body.classList.add("vc-v3-wow");
+            } else {
+              document.body.classList.remove("vc-simple-wow-on");
+              document.body.classList.remove("vc-v3-wow");
             }
             initMainSectionRevealForApp();
             ensureAppShopHubLink();
@@ -4291,6 +4307,9 @@
           if (isSimpleWowModeEnabled()) {
             document.body.classList.add("vc-simple-wow-on");
             document.body.classList.add("vc-v3-wow");
+          } else {
+            document.body.classList.remove("vc-simple-wow-on");
+            document.body.classList.remove("vc-v3-wow");
           }
           initMainSectionRevealForApp();
           ensureAppShopHubLink();
@@ -4321,6 +4340,13 @@
       if (document.body && document.body.classList.contains("health-coach-page")) {
         if (root.classList.contains("vc-mobile-app")) {
           document.body.classList.add("vc-mobile-shell");
+          if (isSimpleWowModeEnabled()) {
+            document.body.classList.add("vc-simple-wow-on");
+            document.body.classList.add("vc-v3-wow");
+          } else {
+            document.body.classList.remove("vc-simple-wow-on");
+            document.body.classList.remove("vc-v3-wow");
+          }
           initMainSectionRevealForApp();
           ensureAppShopHubLink();
         }
@@ -4328,6 +4354,13 @@
       }
       if (root.classList.contains("vc-mobile-app")) {
         document.body.classList.add("vc-mobile-shell");
+        if (isSimpleWowModeEnabled()) {
+          document.body.classList.add("vc-simple-wow-on");
+          document.body.classList.add("vc-v3-wow");
+        } else {
+          document.body.classList.remove("vc-simple-wow-on");
+          document.body.classList.remove("vc-v3-wow");
+        }
         initMainSectionRevealForApp();
         ensureAppShopHubLink();
       }
