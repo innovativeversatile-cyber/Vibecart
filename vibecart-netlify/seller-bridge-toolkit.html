@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seller bridge toolkit · VibeCart</title>
+  <meta name="description" content="Five pillars for diaspora-first sellers: your corridor link, community growth, status on VibeCart, WhatsApp-friendly tools, and reputation protection." />
+  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+  <style>
+    .vc-sbt-wrap { max-width: 46rem; margin: 0 auto; }
+    .vc-sbt-card {
+      background: linear-gradient(155deg, rgba(21, 26, 34, 0.95), rgba(12, 15, 20, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 1.35rem 1.5rem;
+      margin: 1rem 0 1.5rem;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+    .vc-sbt-card h3 { margin: 0 0 0.35rem; font-size: 1.35rem; }
+    .vc-sbt-card .vc-sbt-meta { font-size: 0.9rem; opacity: 0.85; margin-bottom: 0.75rem; }
+    .vc-sbt-pill {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(61, 158, 120, 0.2);
+      color: #7dccb0;
+      margin-bottom: 0.65rem;
+    }
+    .vc-sbt-grid {
+      display: grid;
+      gap: 0.65rem 1rem;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 0.75rem;
+    }
+    @media (max-width: 640px) {
+      .vc-sbt-grid { grid-template-columns: 1fr; }
+    }
+    .vc-sbt-grid label { font-size: 0.82rem; display: block; margin-bottom: 0.2rem; opacity: 0.9; }
+    .vc-sbt-grid input,
+    .vc-sbt-grid select,
+    .vc-sbt-grid textarea {
+      width: 100%;
+      padding: 0.45rem 0.55rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.25);
+      color: inherit;
+      font: inherit;
+    }
+    .vc-sbt-grid textarea { min-height: 4.5rem; resize: vertical; }
+    .vc-sbt-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.85rem; }
+    .vc-sbt-out {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      font-size: 0.82rem;
+      word-break: break-all;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .vc-sbt-section {
+      margin: 2rem 0;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .vc-sbt-section h2 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+    .vc-sbt-section > p.note { margin-bottom: 0.65rem; }
+    .vc-sbt-badge-box {
+      font-family: ui-monospace, monospace;
+      font-size: 0.78rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      white-space: pre-wrap;
+      margin: 0.5rem 0;
+    }
+    body.vc-sbt-card-only .shops-lane-topbar,
+    body.vc-sbt-card-only .vc-sbt-toolkit-body { display: none !important; }
+    body.vc-sbt-card-only .vc-sbt-card-only-view {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    body.vc-sbt-card-only .vc-sbt-card { max-width: 26rem; margin: 0; }
+  </style>
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-secondary" href="./sell-journey.html">Sell journey</a>
+    <a class="btn btn-secondary" href="./seller-boost.html">Seller Boost</a>
+    <a class="btn btn-primary" href="./my-business.html?flow=book">My Business · book</a>
+  </header>
+
+  <div class="vc-sbt-card-only-view" hidden id="vcSbtCardOnly"></div>
+
+  <main class="section alt shops-lane-main vc-sbt-toolkit-body">
+    <div class="vc-sbt-wrap">
+      <h1 class="shops-lane-title">Seller bridge toolkit</h1>
+      <p class="note shops-lane-intro">
+        One <strong>bridge link</strong> for bio, Stories, and WhatsApp — opens a tiny trust card, then sends buyers into Hot picks or Live market with your <code>ref</code> attached. Fill the card, hit one button, you are live.
+      </p>
+
+      <section class="vc-sbt-section" id="corridor" style="border-top: none; padding-top: 0">
+        <div class="vc-sbt-card">
+          <span class="vc-sbt-pill">Bridge in one flow</span>
+          <h3 style="margin:0 0 0.5rem;font-size:1.1rem">Your corridor card</h3>
+          <div class="vc-sbt-grid">
+            <div style="grid-column: 1 / -1">
+              <label for="vcSbtSellerName">Brand or how buyers know you</label>
+              <input id="vcSbtSellerName" type="text" maxlength="80" placeholder="e.g. Kuda · braided styles · Dublin" autocomplete="organization" />
+            </div>
+            <div style="grid-column: 1 / -1">
+              <label for="vcSbtPitch">What buyers read on the card (corridor + promise in plain words)</label>
+              <textarea id="vcSbtPitch" maxlength="220" placeholder="e.g. Ireland &amp; UK · EU supply · honest ship windows · reply same day on WhatsApp."></textarea>
+            </div>
+            <div>
+              <label for="vcSbtRef">Ref code (traffic tag — letters, numbers, hyphen)</label>
+              <input id="vcSbtRef" type="text" maxlength="32" placeholder="auto from your brand" pattern="[a-zA-Z0-9-]+" title="Letters, numbers, hyphen" />
+            </div>
+            <div>
+              <label for="vcSbtWa">WhatsApp (digits only, country code first)</label>
+              <input id="vcSbtWa" type="tel" inputmode="numeric" placeholder="353851234567" autocomplete="tel" />
+            </div>
+            <div style="grid-column: 1 / -1">
+              <label for="vcSbtCta">After the card — open</label>
+              <select id="vcSbtCta">
+                <option value="./hot-picks.html">Hot picks</option>
+                <option value="./live-market-shops.html?cat=All&amp;view=global">Live marketplace</option>
+                <option value="./my-business.html?flow=book">My Business · book</option>
+                <option value="./sell-journey.html">Sell journey</option>
+              </select>
+            </div>
+          </div>
+          <div class="vc-sbt-actions">
+            <button type="button" class="btn btn-primary" id="vcSbtCopyAndPreview">Copy link &amp; preview card</button>
+            <button type="button" class="btn btn-secondary" id="vcSbtCopyLink">Copy link only</button>
+          </div>
+          <p class="note" style="margin-top: 0.65rem">Keep the same ref so Hot picks and Live market can attribute visits you drive.</p>
+          <div class="vc-sbt-out" id="vcSbtLinkOut" hidden></div>
+        </div>
+      </section>
+
+      <details class="vc-sbt-section" id="vcSbtMore" style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 1rem">
+        <summary class="shops-lane-title" style="cursor: pointer; font-size: 1.05rem; list-style: none">More copy &amp; playbook ▾</summary>
+        <div style="margin-top: 1rem">
+          <p class="note">Community: proof beats logo — pin your bridge in groups where you already show up; tag complementary sellers you trust.</p>
+          <h3 class="note" style="margin: 1rem 0 0.35rem; font-size: 0.95rem">Status lines</h3>
+          <div class="vc-sbt-badge-box" id="vcSbtStatusCopy">First [your niche] lane live on VibeCart · [your city] — bridge cart, not bulk cart.
+
+Proud to be early on @VibeCart — diaspora-first checkout &amp; honest shipping notes.
+
+Shop the bridge: [paste your link]</div>
+          <button type="button" class="btn btn-secondary" id="vcSbtCopyStatus" style="margin-top: 0.5rem">Copy status lines</button>
+          <h3 class="note" style="margin: 1rem 0 0.35rem; font-size: 0.95rem">WhatsApp</h3>
+          <div class="vc-sbt-badge-box" id="vcSbtWaTemplate">Hey — here is my VibeCart bridge link for [this week’s drop / booking]:
+[PASTE LINK]
+Questions? Reply here. Ref: [your ref]</div>
+          <div class="vc-sbt-actions">
+            <button type="button" class="btn btn-secondary" id="vcSbtCopyWa">Copy WhatsApp blurb</button>
+            <button type="button" class="btn btn-primary" id="vcSbtOpenWa" disabled>Open WhatsApp</button>
+          </div>
+          <h3 class="note" style="margin: 1rem 0 0.35rem; font-size: 0.95rem">Reputation</h3>
+          <ul class="note" style="margin: 0; padding-left: 1.2rem">
+            <li><a href="./policy.html">Policy &amp; lawful-use</a> — same text buyers see.</li>
+            <li>Real photos and honest delivery windows reduce disputes.</li>
+            <li>Report bad actors through your seller channel.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search || "");
+      if (String(params.get("card") || "") === "1") {
+        document.body.classList.add("vc-sbt-card-only");
+        var only = document.getElementById("vcSbtCardOnly");
+        var name = String(params.get("name") || params.get("seller") || "VibeCart seller").trim() || "VibeCart seller";
+        var corridor = String(params.get("corridor") || "Your corridor").trim();
+        var tagline = String(params.get("tagline") || "Shop the bridge — curated lane on VibeCart.").trim();
+        var wa = String(params.get("wa") || "").replace(/\D/g, "");
+        var cta = String(params.get("cta") || "./hot-picks.html").trim() || "./hot-picks.html";
+        var ref = String(params.get("ref") || "").trim();
+        var ctaHref = cta + (cta.indexOf("?") >= 0 ? "&" : "?") + "ref=" + encodeURIComponent(ref || "bridge");
+
+        only.hidden = false;
+        only.innerHTML =
+          '<article class="vc-sbt-card">' +
+          '<span class="vc-sbt-pill">VibeCart · bridge lane</span>' +
+          "<h3>" +
+          escapeHtml(name) +
+          "</h3>" +
+          '<p class="vc-sbt-meta">' +
+          escapeHtml(corridor) +
+          "</p>" +
+          "<p class=\"note\" style=\"margin:0 0 1rem\">" +
+          escapeHtml(tagline) +
+          "</p>" +
+          '<p class="hero-actions" style="margin:0">' +
+          '<a class="btn btn-primary" href="' +
+          escapeAttr(ctaHref) +
+          '">Enter shop lane</a>' +
+          (wa
+            ? '<a class="btn btn-secondary" href="' +
+              escapeAttr("https://wa.me/" + wa + "?text=" + encodeURIComponent("Hi — I'm messaging from your VibeCart bridge card.")) +
+              '">WhatsApp</a>'
+            : "") +
+          "</p>" +
+          (ref ? '<p class="note" style="margin-top:0.85rem;margin-bottom:0">Ref · <strong>' + escapeHtml(ref) + "</strong></p>" : "") +
+          "</article>";
+
+        var link = document.createElement("link");
+        link.rel = "canonical";
+        link.href = window.location.href.split("#")[0];
+        document.head.appendChild(link);
+        return;
+      }
+
+      function escapeHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+      function escapeAttr(s) {
+        return escapeHtml(s).replace(/'/g, "&#39;");
+      }
+
+      var nameEl = document.getElementById("vcSbtSellerName");
+      var pitchEl = document.getElementById("vcSbtPitch");
+      var refEl = document.getElementById("vcSbtRef");
+      var waEl = document.getElementById("vcSbtWa");
+      var ctaEl = document.getElementById("vcSbtCta");
+      var outEl = document.getElementById("vcSbtLinkOut");
+      var refTouched = false;
+
+      function slugRef(s) {
+        var t = String(s || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 28);
+        return t || "seller";
+      }
+
+      nameEl.addEventListener("input", function () {
+        if (refTouched) return;
+        refEl.value = slugRef(nameEl.value);
+      });
+      refEl.addEventListener("input", function () {
+        refTouched = true;
+      });
+
+      function baseUrl() {
+        return window.location.origin + window.location.pathname;
+      }
+
+      function buildParams() {
+        var q = new URLSearchParams();
+        q.set("card", "1");
+        q.set("name", String(nameEl.value || "").trim() || "VibeCart seller");
+        var pitch = String(pitchEl.value || "").trim() || "Shop the bridge on VibeCart.";
+        q.set("corridor", pitch);
+        q.set("tagline", pitch);
+        var ref = String(refEl.value || "").trim().replace(/[^a-zA-Z0-9-]/g, "") || "seller";
+        q.set("ref", ref);
+        var wa = String(waEl.value || "").replace(/\D/g, "");
+        if (wa) q.set("wa", wa);
+        q.set("cta", String(ctaEl.value || "./hot-picks.html").trim());
+        return q;
+      }
+
+      function fullLink() {
+        return baseUrl() + "?" + buildParams().toString();
+      }
+
+      function revealOut(url) {
+        outEl.textContent = url;
+        outEl.hidden = false;
+        document.getElementById("vcSbtOpenWa").disabled = !String(waEl.value || "").replace(/\D/g, "");
+      }
+
+      document.getElementById("vcSbtCopyAndPreview").addEventListener("click", function () {
+        var url = fullLink();
+        revealOut(url);
+        navigator.clipboard.writeText(url).then(
+          function () {
+            window.open(url, "_blank", "noopener,noreferrer");
+          },
+          function () {
+            window.open(url, "_blank", "noopener,noreferrer");
+            window.prompt("Copy this link:", url);
+          }
+        );
+      });
+
+      document.getElementById("vcSbtCopyLink").addEventListener("click", function () {
+        var url = outEl.hidden ? fullLink() : String(outEl.textContent || "").trim().split("\n")[0];
+        navigator.clipboard.writeText(url).then(
+          function () {
+            revealOut(url + "\n\n(copied)");
+          },
+          function () {
+            window.prompt("Copy this link:", url);
+          }
+        );
+      });
+
+      document.getElementById("vcSbtCopyStatus").addEventListener("click", function () {
+        var t = document.getElementById("vcSbtStatusCopy").textContent;
+        navigator.clipboard.writeText(t).catch(function () {
+          window.prompt("Copy:", t);
+        });
+      });
+
+      document.getElementById("vcSbtCopyWa").addEventListener("click", function () {
+        var link = outEl.hidden ? fullLink() : outEl.textContent.trim().split("\n")[0];
+        var ref = String(refEl.value || "").trim() || "your ref";
+        var body =
+          "Hey — here is my VibeCart bridge link for this week's drop / booking:\n" +
+          link +
+          "\n\nQuestions? Reply here. Ref: " +
+          ref;
+        navigator.clipboard.writeText(body).catch(function () {
+          window.prompt("Copy:", body);
+        });
+      });
+
+      document.getElementById("vcSbtOpenWa").addEventListener("click", function () {
+        var wa = String(waEl.value || "").replace(/\D/g, "");
+        if (!wa) return;
+        var link = outEl.hidden ? fullLink() : outEl.textContent.trim().split("\n")[0];
+        var ref = String(refEl.value || "").trim() || "your ref";
+        var body =
+          "Hey — here is my VibeCart bridge link for this week's drop / booking:\n" +
+          link +
+          "\n\nQuestions? Reply here. Ref: " +
+          ref;
+        window.open("https://wa.me/" + wa + "?text=" + encodeURIComponent(body), "_blank", "noopener,noreferrer");
+      });
+
+      if (params.get("name")) nameEl.value = params.get("name");
+      if (params.get("tagline")) pitchEl.value = params.get("tagline");
+      else if (params.get("corridor")) pitchEl.value = params.get("corridor");
+      if (params.get("ref")) {
+        refEl.value = params.get("ref");
+        refTouched = true;
+      }
+      if (params.get("wa")) waEl.value = params.get("wa");
+      if (params.get("cta")) ctaEl.value = params.get("cta");
+      if (String(waEl.value || "").replace(/\D/g, "")) {
+        document.getElementById("vcSbtOpenWa").disabled = false;
+      }
+    })();
+  </script>
+</body>
+</html>

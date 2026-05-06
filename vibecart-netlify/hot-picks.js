@@ -1,5 +1,33 @@
 (function () {
   var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+  var BRIDGE_REF_SESSION_KEY = "vibecart-bridge-ref-v1";
+
+  function captureBridgeRefFromUrl() {
+    try {
+      var sp = new URLSearchParams(window.location.search || "");
+      var r = String(sp.get("ref") || "").trim().slice(0, 80);
+      if (r) sessionStorage.setItem(BRIDGE_REF_SESSION_KEY, r);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function bridgeRefForLinks() {
+    try {
+      var sp = new URLSearchParams(window.location.search || "");
+      var r = String(sp.get("ref") || "").trim().slice(0, 80);
+      if (r) return r;
+    } catch {
+      /* ignore */
+    }
+    try {
+      return String(sessionStorage.getItem(BRIDGE_REF_SESSION_KEY) || "").trim().slice(0, 80);
+    } catch {
+      return "";
+    }
+  }
+
+  captureBridgeRefFromUrl();
   var TREND_REFRESH_MS = 12 * 60 * 1000;
   var CAROUSEL_STEP_MS = 5200;
   var FALLBACK_SLIDES = [
@@ -335,7 +363,8 @@
     var cat = productCategory(p) || "All";
     var target = pickTargetUrl(p);
     if (target) {
-      return (
+      var ref = bridgeRefForLinks();
+      var base =
         "/api/public/shop/redirect?shop=" +
         encodeURIComponent(item) +
         "&cat=" +
@@ -343,8 +372,8 @@
         "&partner=" +
         encodeURIComponent(item) +
         "&target=" +
-        encodeURIComponent(target)
-      );
+        encodeURIComponent(target);
+      return ref ? base + "&ref=" + encodeURIComponent(ref) : base;
     }
     return "";
   }
@@ -436,6 +465,17 @@
 
   async function boot() {
     var lane = laneFromQuery().toLowerCase();
+    var br = bridgeRefForLinks();
+    if (br && status && status.parentNode) {
+      var note = document.createElement("p");
+      note.className = "note";
+      note.style.cssText = "margin:0.5rem 0 0;padding:0.55rem 0.75rem;border-radius:10px;border:1px solid rgba(61,158,120,0.35);background:rgba(61,158,120,0.12)";
+      note.innerHTML =
+        "Bridge visit · ref <strong>" +
+        escapeHtml(br) +
+        "</strong> — we attach this to outbound shop links for your traffic.";
+      status.parentNode.insertBefore(note, status);
+    }
     scheduleTrendEngine();
     try {
       var fromCountry = inferCountryCode();

@@ -1,5 +1,33 @@
 (function () {
   var AFFILIATE_LAST_CLICK_KEY = "vibecart-affiliate-last-click-v1";
+  var BRIDGE_REF_SESSION_KEY = "vibecart-bridge-ref-v1";
+
+  function captureBridgeRefFromUrl() {
+    try {
+      var sp = new URLSearchParams(window.location.search || "");
+      var r = String(sp.get("ref") || "").trim().slice(0, 80);
+      if (r) sessionStorage.setItem(BRIDGE_REF_SESSION_KEY, r);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function bridgeRefForLinks() {
+    try {
+      var sp = new URLSearchParams(window.location.search || "");
+      var r = String(sp.get("ref") || "").trim().slice(0, 80);
+      if (r) return r;
+    } catch {
+      /* ignore */
+    }
+    try {
+      return String(sessionStorage.getItem(BRIDGE_REF_SESSION_KEY) || "").trim().slice(0, 80);
+    } catch {
+      return "";
+    }
+  }
+
+  captureBridgeRefFromUrl();
   var params = new URLSearchParams(window.location.search || "");
   var requested = String(params.get("cat") || "").trim();
   var topCta = document.getElementById("openFullMarketplaceTop");
@@ -393,6 +421,25 @@
   if (!grid) {
     return;
   }
+
+  (function injectBridgeRefBanner() {
+    var br = bridgeRefForLinks();
+    if (!br || !searchStatus || !searchStatus.parentNode) return;
+    if (document.getElementById("liveMarketBridgeRefBanner")) return;
+    var note = document.createElement("p");
+    note.id = "liveMarketBridgeRefBanner";
+    note.className = "note";
+    note.style.cssText =
+      "margin:0.35rem 0 0.75rem;padding:0.55rem 0.75rem;border-radius:10px;border:1px solid rgba(61,158,120,0.35);background:rgba(61,158,120,0.12)";
+    note.appendChild(document.createTextNode("Bridge visit · ref "));
+    var strong = document.createElement("strong");
+    strong.textContent = br;
+    note.appendChild(strong);
+    note.appendChild(
+      document.createTextNode(" — outbound shop taps use the tracked redirect with your ref.")
+    );
+    searchStatus.parentNode.insertBefore(note, searchStatus.nextSibling);
+  })();
   function extractHost(url) {
     try {
       return String(new URL(url).hostname || "").toLowerCase();
@@ -438,7 +485,18 @@
     var trusted = isTrustedShopUrl(shop.url);
     var commissionEnabled = isCommissionTrackedUrl(shop.url);
     if (trusted) {
-      a.href = String(shop.url || "").trim();
+      var targetUrl = String(shop.url || "").trim();
+      var ref = bridgeRefForLinks();
+      var redir =
+        "/api/public/shop/redirect?shop=" +
+        encodeURIComponent(String(shop.name || "shop")) +
+        "&cat=" +
+        encodeURIComponent(String(category || "All")) +
+        "&partner=" +
+        encodeURIComponent(String(shop.name || "shop")) +
+        "&target=" +
+        encodeURIComponent(targetUrl);
+      a.href = ref ? redir + "&ref=" + encodeURIComponent(ref) : redir;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
     } else {
@@ -788,6 +846,8 @@
         try {
           var url = new URL(window.location.href);
           url.searchParams.set("cat", cat);
+          var br = bridgeRefForLinks();
+          if (br) url.searchParams.set("ref", br);
           history.replaceState(null, "", url.pathname + "?" + url.searchParams.toString());
         } catch {
           /* ignore */

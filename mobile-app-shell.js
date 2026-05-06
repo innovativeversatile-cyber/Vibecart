@@ -39,6 +39,55 @@
     }
   }
 
+  function isVibeCartHomePath() {
+    try {
+      var p = String(location.pathname || "").replace(/\\/g, "/");
+      return p === "/" || p === "" || /index\.html$/i.test(p);
+    } catch {
+      return false;
+    }
+  }
+
+  function resetWowLaneVisualArtifacts() {
+    if (!isVibeCartHomePath()) return;
+    var b = document.body;
+    if (!b) return;
+    [
+      "vc-warp-out",
+      "vc-auto-calm",
+      "vc-one-moment-flow",
+      "vc-intro-blocking",
+      "vc-intro-pulse-bridge",
+      "vc-cine-active",
+      "vc-cine-beat",
+      "vc-cine-lane-buy",
+      "vc-cine-lane-book",
+      "vc-cine-lane-sell",
+      "vc-cine-lane-fast",
+      "vc-heartbeat-lock",
+      "vc-lane-aura-shift",
+      "vc-motion-lite"
+    ].forEach(function (c) {
+      b.classList.remove(c);
+    });
+    b.style.filter = "";
+    b.style.opacity = "";
+    try {
+      document.documentElement.style.filter = "";
+      document.documentElement.style.opacity = "";
+    } catch {
+      /* ignore */
+    }
+  }
+
+  window.addEventListener(
+    "pageshow",
+    function () {
+      resetWowLaneVisualArtifacts();
+    },
+    { passive: true }
+  );
+
   function isDocumentHidden() {
     try {
       return typeof document !== "undefined" && document.hidden === true;
@@ -3989,6 +4038,7 @@
   }
 
   function runMobileHudPack() {
+    resetWowLaneVisualArtifacts();
     var onboardingBtn = document.getElementById("openOnboarding");
     if (onboardingBtn && onboardingBtn.getAttribute("data-vc-shell-nav") !== "1") {
       onboardingBtn.setAttribute("data-vc-shell-nav", "1");
