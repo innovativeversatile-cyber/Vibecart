@@ -91,7 +91,8 @@ function copyRootHtmlAndStatics() {
 const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "seller-growth-workspace.js",
   "seller-bridge-toolkit.js",
-  "seller-messages.js"
+  "seller-messages.js",
+  "seller-payments.js"
 ]);
 
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */

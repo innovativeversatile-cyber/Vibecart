@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Seller payouts &amp; payments · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260515seller1" />
+  <link rel="stylesheet" href="./styles.css?v=20260516payout1" />
 </head>
 <body class="shops-lane-page vc-seller-skin">
   <header class="shops-lane-topbar vc-seller-rail" aria-label="Seller navigation">
@@ -22,6 +22,29 @@
       Buyers pay into the order flow first. Your balance moves toward a payout after the order is in a “released” state — usually when
       <strong>both you and the buyer confirm</strong> delivery/hand‑off in <a href="./seller-orders.html">Seller orders</a> (escrow-style path on the API).
     </p>
+
+    <section class="vc-info-card" style="max-width: 40rem; margin: 1rem auto 1.25rem; padding: 1rem 1.1rem">
+      <h2 style="margin: 0 0 0.5rem; font-size: 1.05rem">Where your money is sent (Stripe Connect)</h2>
+      <p id="vcPayoutFormHint" class="note" style="margin-top: 0">Loading…</p>
+      <p class="note" style="margin-top: 0.5rem">
+        VibeCart pays the <strong>seller share</strong> to a <a href="https://stripe.com/connect" target="_blank" rel="noopener">Stripe Connect</a> connected account
+        you control (that account holds your bank details in Stripe). Paste the Connect account ID from Stripe Dashboard → Connect → Accounts
+        (it always starts with <code>acct_</code>).
+      </p>
+      <label for="vcStripeConnectAccountId" class="note" style="display: block; margin-top: 0.65rem">Stripe Connect account ID</label>
+      <input
+        id="vcStripeConnectAccountId"
+        type="text"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="acct_1AbCdEfGhIjKlMn"
+        style="width: 100%; max-width: 28rem; margin-top: 0.25rem; padding: 0.45rem 0.55rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: rgba(0,0,0,0.28); color: inherit; font: inherit"
+      />
+      <p class="hero-actions" style="margin-top: 0.75rem; flex-wrap: wrap">
+        <button type="button" class="btn btn-primary" id="vcPayoutSaveBtn">Save payout destination</button>
+      </p>
+      <p id="vcPayoutSaveStatus" class="note" aria-live="polite" style="margin-top: 0.35rem"></p>
+    </section>
 
     <div class="ai-grid" style="max-width: 48rem">
       <article class="vc-info-card">
@@ -56,6 +79,8 @@
       <a class="btn btn-secondary" href="./policy.html">Policy</a>
     </p>
   </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./seller-payments.js?v=20260516payout1" defer></script>
   <script src="./site-chrome.js?v=20260514nav1" defer></script>
 </body>
 </html>

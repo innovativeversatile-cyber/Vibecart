@@ -65,14 +65,17 @@
   }
 
   function cardForListing(item) {
+    var st = String(item.status || "").toLowerCase();
     var statusBadge =
-      item.status === "archived"
-        ? "Removed"
-        : item.status === "paused"
+      st === "draft"
+        ? "Removed from shop"
+        : st === "suspended"
           ? "Paused"
-          : Number(item.stock || 0) < 1
-            ? "Out of stock"
-            : "Active";
+          : st === "sold_out"
+            ? "Sold out"
+            : Number(item.stock || 0) < 1
+              ? "Out of stock"
+              : "Active";
     var wrapper = document.createElement("article");
     wrapper.className = "vc-listing-card";
     wrapper.dataset.productId = String(item.id);

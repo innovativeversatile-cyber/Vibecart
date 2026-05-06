@@ -1011,8 +1011,9 @@ async function handlePublicSellerListingUpdate(req, res) {
     return sendJson(res, 403, { ok: false, code: "LISTING_FORBIDDEN" });
   }
   if (remove) {
-    await pool.execute(`UPDATE products SET status = 'archived', stock = 0 WHERE id = ? LIMIT 1`, [productId]);
-    return sendJson(res, 200, { ok: true, archived: true });
+    /* Schema ENUM is draft|active|suspended|sold_out — use draft for seller-hidden listings */
+    await pool.execute(`UPDATE products SET status = 'draft', stock = 0 WHERE id = ? LIMIT 1`, [productId]);
+    return sendJson(res, 200, { ok: true, removed: true });
   }
   const updates = [];
   const params = [];
@@ -1027,9 +1028,9 @@ async function handlePublicSellerListingUpdate(req, res) {
   if (nextStatusRaw) {
     let nextStatus = "active";
     if (nextStatusRaw === "paused") {
-      nextStatus = "paused";
+      nextStatus = "suspended";
     } else if (nextStatusRaw === "archived" || nextStatusRaw === "removed" || nextStatusRaw === "deleted") {
-      nextStatus = "archived";
+      nextStatus = "draft";
     } else {
       nextStatus = "active";
     }
@@ -7481,8 +7482,30 @@ async function handlePublicOrderDisputeCreate(req, res) {
   return sendJson(res, 200, { ok: true, orderId, status: "disputed" });
 }
 
+async function handlePublicSellerPayoutAccountGet(req, res) {
+  if (req.method !== "GET") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
+  if (!session) return;
+  await ensureSellerPayoutAccountsTable();
+  const [rows] = await pool.execute(
+    `SELECT stripe_account_id
+     FROM seller_payout_accounts
+     WHERE seller_user_id = ?
+     LIMIT 1`,
+    [Number(session.user_id)]
+  );
+  const raw = rows[0] ? String(rows[0].stripe_account_id || "").trim() : "";
+  return sendJson(res, 200, {
+    ok: true,
+    hasAccount: Boolean(raw),
+    stripeAccountId: raw
+  });
+}
+
 async function handlePublicSellerPayoutAccountUpsert(req, res) {
-  const session = await requirePublicSessionRole(req, res, VC_BAKERY_PROVIDER_ROLES);
+  const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
   if (!session) return;
   const body = await readJson(req);
   const stripeAccountId = String(body.stripeAccountId || "").trim();
@@ -8709,6 +8732,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/orders/dispute/create") {
       return await handlePublicOrderDisputeCreate(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/seller/payout-account") {
+      return await handlePublicSellerPayoutAccountGet(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/seller/payout-account/upsert") {
       return await handlePublicSellerPayoutAccountUpsert(req, res);
