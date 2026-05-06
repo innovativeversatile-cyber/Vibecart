@@ -106,19 +106,55 @@
     return "en";
   }
 
-  function flickrImageUrl(tags, idx) {
+  function trendPlaceholderImageUrl(tags, idx) {
     var clean = (Array.isArray(tags) ? tags : [])
       .map(function (t) {
         return String(t || "")
           .trim()
           .toLowerCase()
-          .replace(/[^a-z]/g, "");
+          .replace(/[^a-z0-9]+/g, "-");
       })
       .filter(Boolean)
-      .slice(0, 3);
-    var path = clean.length ? clean.join(",") : "fashion,streetwear,style";
-    var lock = typeof idx === "number" ? idx : 0;
-    return "https://loremflickr.com/900/1200/" + path + "?lock=" + lock;
+      .slice(0, 4);
+    var seed = (clean.length ? clean.join("-") : "fashion-streetwear-style") + "-slide-" + (typeof idx === "number" ? idx : 0);
+    return "https://picsum.photos/seed/" + encodeURIComponent(seed) + "/900/1200";
+  }
+
+  function formatHotPicksDateTime(value) {
+    try {
+      var d;
+      if (value instanceof Date) {
+        d = value;
+      } else if (typeof value === "number" && Number.isFinite(value)) {
+        d = new Date(value);
+      } else {
+        var s = String(value == null ? "" : value).trim();
+        if (!s) return "—";
+        if (/^\d+$/.test(s)) {
+          d = new Date(Number(s));
+        } else {
+          d = new Date(s);
+        }
+      }
+      if (Number.isNaN(d.getTime())) return String(value);
+      return new Intl.DateTimeFormat(pageLocale(), {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      }).format(d);
+    } catch {
+      return String(value == null ? "—" : value);
+    }
+  }
+
+  function formatAiTrendStampLabel(label) {
+    var raw = String(label == null ? "" : label).trim();
+    if (!raw) return formatHotPicksDateTime(Date.now());
+    var parsed = Date.parse(raw);
+    if (Number.isFinite(parsed)) return formatHotPicksDateTime(parsed);
+    return raw;
   }
 
   function callHotTrendsAi() {
@@ -144,7 +180,7 @@
         var title = String(slide.title || "Trend").trim();
         var caption = String(slide.caption || slide.trend || "").trim();
         var tags = Array.isArray(slide.tags) ? slide.tags : [];
-        var img = flickrImageUrl(tags, idx);
+        var img = trendPlaceholderImageUrl(tags, idx);
         var cta = safeTarget(slide.ctaUrl || slide.shopUrl || "");
         var ctaLabel = String(slide.ctaLabel || slide.shopLabel || "Shop").trim() || "Shop";
         var ctaHtml = cta
@@ -218,7 +254,7 @@
       }
       renderTrendSlides(slides);
       if (trendStamp) {
-        trendStamp.textContent = payload.generatedLabel || new Date().toISOString();
+        trendStamp.textContent = formatAiTrendStampLabel(payload.generatedLabel || new Date().toISOString());
       }
       if (trendStatus) {
         trendStatus.textContent =
@@ -229,7 +265,7 @@
     } catch (error) {
       renderTrendSlides(FALLBACK_SLIDES);
       if (trendStamp) {
-        trendStamp.textContent = "Fallback deck";
+        trendStamp.textContent = formatHotPicksDateTime(Date.now()) + " · fallback deck";
       }
       if (trendStatus) {
         trendStatus.textContent =
@@ -300,13 +336,35 @@
   }
 
   function productCategory(p) {
-    return String(p.category || p.productCategory || p.kind || "All").trim();
+    return String(p.category || p.categoryName || p.productCategory || p.kind || "All").trim();
+  }
+
+  function absoluteMediaUrl(u) {
+    var raw = String(u || "").trim();
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.indexOf("//") === 0) {
+      try {
+        return String(window.location && window.location.protocol ? window.location.protocol : "https:") + raw;
+      } catch {
+        return "https:" + raw.slice(2);
+      }
+    }
+    if (raw.charAt(0) === "/") {
+      try {
+        var origin = String(window.location && window.location.origin ? window.location.origin : "").replace(/\/$/, "");
+        if (origin) return origin + raw;
+      } catch {
+        /* ignore */
+      }
+    }
+    return raw;
   }
 
   function pickImage(p) {
     var direct = p.imageUrl || p.image_url || p.thumbnailUrl || p.thumbnail_url;
     if (direct) {
-      return direct;
+      return absoluteMediaUrl(direct);
     }
     var seed = String(p.id || p.productId || p.name || p.title || p.category || "vibecart-hot").replace(/[^a-z0-9]+/gi, "-");
     return "https://picsum.photos/seed/" + encodeURIComponent(seed) + "/900/600";
@@ -588,6 +646,8 @@
               basePrice: row.basePrice,
               currency: row.currency,
               categoryId: row.categoryId,
+              categoryName: row.categoryName,
+              imageUrl: row.imageUrl,
               stock: row.stock
             });
           }

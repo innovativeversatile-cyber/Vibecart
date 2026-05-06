@@ -7582,9 +7582,11 @@ async function handlePublicProductsLive(req, res) {
     params.push(...africaOriginCodes);
   }
   const whereClause = filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "";
-  const sql = `SELECT p.id, p.shop_id, s.name AS shop_name, p.category_id, p.title, p.base_price, p.currency, p.stock, p.origin_country
+  const sql = `SELECT p.id, p.shop_id, s.name AS shop_name, p.category_id, c.name AS category_name, p.title, p.base_price, p.currency, p.stock, p.origin_country,
+     (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC, pi.id ASC LIMIT 1) AS image_url
      FROM products p
      JOIN shops s ON s.id = p.shop_id
+     JOIN categories c ON c.id = p.category_id
      WHERE p.status = 'active'
        AND p.stock > 0
        ${whereClause}
@@ -7615,11 +7617,13 @@ async function handlePublicProductsLive(req, res) {
       shopId: Number(row.shop_id),
       shopName: String(row.shop_name),
       categoryId: Number(row.category_id),
+      categoryName: String(row.category_name || "").trim(),
       title: String(row.title),
       basePrice: Number(row.base_price),
       currency: String(row.currency || "EUR"),
       stock: Number(row.stock),
-      originCountry: String(row.origin_country || "").toUpperCase()
+      originCountry: String(row.origin_country || "").toUpperCase(),
+      imageUrl: String(row.image_url || "").trim()
     }))
   });
 }
@@ -7633,9 +7637,11 @@ async function handlePublicProductById(req, res) {
   }
   try {
     const [rows] = await pool.execute(
-      `SELECT p.id, p.shop_id, s.name AS shop_name, p.category_id, p.title, p.base_price, p.currency, p.stock, p.origin_country
+      `SELECT p.id, p.shop_id, s.name AS shop_name, p.category_id, c.name AS category_name, p.title, p.base_price, p.currency, p.stock, p.origin_country,
+       (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC, pi.id ASC LIMIT 1) AS image_url
        FROM products p
        JOIN shops s ON s.id = p.shop_id
+       JOIN categories c ON c.id = p.category_id
        WHERE p.id = ?
          AND p.status = 'active'
          AND p.stock > 0
@@ -7653,11 +7659,13 @@ async function handlePublicProductById(req, res) {
         shopId: Number(row.shop_id),
         shopName: String(row.shop_name),
         categoryId: Number(row.category_id),
+        categoryName: String(row.category_name || "").trim(),
         title: String(row.title),
         basePrice: Number(row.base_price),
         currency: String(row.currency || "EUR"),
         stock: Number(row.stock),
-        originCountry: String(row.origin_country || "").toUpperCase()
+        originCountry: String(row.origin_country || "").toUpperCase(),
+        imageUrl: String(row.image_url || "").trim()
       }
     });
   } catch {
