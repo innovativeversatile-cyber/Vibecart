@@ -1,5 +1,5 @@
 // Bump CACHE_NAME whenever you need all clients to drop old cached assets.
-const CACHE_NAME = "vibecart-pwa-v20260516listingdraft1";
+const CACHE_NAME = "vibecart-pwa-v20260507swforce1";
 // Precache small static assets. Avoid index.html / main CSS+JS here so deploy updates still win on next load.
 const OFFLINE_URLS = [
   "./manifest.json",
@@ -31,6 +31,7 @@ const OFFLINE_URLS = [
   "./security-overview.html",
   "./bridge-hub.html",
   "./orders-tracking.html",
+  "./orders-tracking.js",
   "./buyer-orders.html",
   "./buyer-orders.js",
   "./seller-orders.html",
@@ -111,8 +112,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const path = url.pathname.toLowerCase();
+  const bustCache =
+    path.endsWith(".html") ||
+    path.endsWith(".js") ||
+    path.endsWith(".css") ||
+    path.endsWith("/service-worker.js");
+  const fetchOpts = bustCache ? { cache: "no-store" } : {};
+
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, fetchOpts)
       .then((networkResponse) => {
         if (networkResponse.ok) {
           const clone = networkResponse.clone();

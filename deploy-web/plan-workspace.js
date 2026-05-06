@@ -106,7 +106,7 @@
         if (!j || !j.ok || !j.publicKey) {
           return false;
         }
-        return navigator.serviceWorker.register("./service-worker.js?v=20260505nuclearprovider3").then(function (reg) {
+        return navigator.serviceWorker.register("./service-worker.js?v=20260507swforce1").then(function (reg) {
           return reg.pushManager.getSubscription().then(function (existing) {
             if (existing) {
               return existing;

@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Account &amp; profile · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+  <link rel="stylesheet" href="./styles.css?v=20260506brandonfix1" />
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page account-hub-page">
+  <script src="./session-device.js?v=20260507shell1"></script>
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← <span data-page-i18n="common.home">Home</span></a>
     <a class="btn btn-primary" href="./legal-settings.html" data-page-i18n="common.settingsLegal">Settings &amp; legal</a>
@@ -67,18 +68,23 @@
     <p class="note" id="activePlanBadge" hidden>
       <span data-page-i18n="account.planActive">Plan active:</span> <strong id="activePlanBadgeText" data-page-i18n="account.none">No active plan</strong>
     </p>
-    <section class="section alt" style="margin-top: 1rem">
+    <section class="section alt vc-account-lane-section" style="margin-top: 1rem">
       <h2 class="shops-lane-title" style="font-size: 1.1rem">Active lane</h2>
       <p class="note">
         Switch how you show up in the marketplace. Citizen is the everyday browse-and-buy lane (same secure account as buyer). Seller turns on
         listing, orders, and payout tools. You can switch any time after signing in.
       </p>
-      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem">
-        <button type="button" class="btn btn-secondary" id="vcHubRoleCitizen">Citizen</button>
-        <button type="button" class="btn btn-secondary" id="vcHubRoleBuyer">Buyer</button>
-        <button type="button" class="btn btn-primary" id="vcHubRoleSeller">Seller</button>
+      <p class="hero-actions vc-account-lane-actions" style="flex-wrap: wrap; gap: 0.5rem">
+        <button type="button" class="btn btn-secondary" id="vcHubRoleCitizen" aria-pressed="false">Citizen</button>
+        <button type="button" class="btn btn-secondary" id="vcHubRoleBuyer" aria-pressed="false">Buyer</button>
+        <button type="button" class="btn btn-secondary" id="vcHubRoleSeller" aria-pressed="false">Seller</button>
       </p>
       <p class="note" id="vcHubRoleStatus" aria-live="polite"></p>
+      <p class="note" style="margin-top: 0.5rem">
+        <strong>Selling without Stripe yet:</strong> you can still browse seller tools and listings, but <strong>payouts</strong> need a Stripe Connect
+        account. When you are ready, add your Connect account ID on
+        <a href="./seller-payments.html">Seller payments</a> — checkout for buyers can still run on the platform side depending on your setup.
+      </p>
     </section>
     <div class="shop-bubble-grid">
       <a class="shop" href="./lane-passport.html"><h3 data-page-i18n="account.signin">Sign in / register</h3><p data-page-i18n="account.signin.desc">Open the Lane passport page to create an account or sign in.</p></a>
@@ -521,6 +527,38 @@
         h.Authorization = "Bearer " + token;
         return h;
       }
+      function readStoredPassportMode() {
+        try {
+          var raw = localStorage.getItem("vibecart-public-auth-user");
+          if (!raw) return "";
+          var u = JSON.parse(raw);
+          var pm = String((u && u.passportMode) || "").toLowerCase();
+          if (pm === "citizen" || pm === "buyer" || pm === "seller") {
+            return pm;
+          }
+          var r = String((u && u.role) || "").toLowerCase();
+          if (r === "seller") return "seller";
+          if (r === "buyer") return "buyer";
+          return "";
+        } catch {
+          return "";
+        }
+      }
+      function syncActiveLaneButtons() {
+        var mode = readStoredPassportMode();
+        if (!readToken()) {
+          mode = "";
+        }
+        var map = { citizen: "vcHubRoleCitizen", buyer: "vcHubRoleBuyer", seller: "vcHubRoleSeller" };
+        ["citizen", "buyer", "seller"].forEach(function (key) {
+          var btn = document.getElementById(map[key]);
+          if (!btn) return;
+          var on = Boolean(mode && mode === key);
+          btn.classList.toggle("btn-primary", on);
+          btn.classList.toggle("btn-secondary", !on);
+          btn.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+      }
       function applyRole(role) {
         var want = String(role || "").toLowerCase();
         if (want !== "citizen" && want !== "buyer" && want !== "seller") {
@@ -529,13 +567,14 @@
         var token = readToken();
         if (!token) {
           setRoleStatus("Sign in on Lane passport first, then pick a lane.");
+          syncActiveLaneButtons();
           return;
         }
         setRoleStatus("Updating lane…");
         var headers = mergeAuthHeaders(token, { "Content-Type": "application/json", Accept: "application/json" });
         fetch("/api/public/auth/session/role", {
           method: "POST",
-          credentials: "same-origin",
+          credentials: "include",
           headers: headers,
           body: JSON.stringify({ role: want })
         })
@@ -562,10 +601,12 @@
               /* ignore */
             }
             var label = String(pair.json.passportMode || want);
-            setRoleStatus("Lane set to " + label + ". Reload a page if menus look stale.");
+            setRoleStatus("Lane set to " + label + ". Menus update on the next navigation; refresh if something still looks cached.");
+            syncActiveLaneButtons();
           })
           .catch(function (err) {
             setRoleStatus(String((err && err.message) || "Could not switch lane."));
+            syncActiveLaneButtons();
           });
       }
       var bCit = document.getElementById("vcHubRoleCitizen");
@@ -586,8 +627,11 @@
           applyRole("seller");
         });
       }
+      syncActiveLaneButtons();
     })();
   </script>
+  <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
+  <script src="./mobile-app-shell.js?v=20260506brandonfix1" defer></script>
   <script src="./site-chrome.js?v=20260512role1" defer></script>
 </body>
 </html>

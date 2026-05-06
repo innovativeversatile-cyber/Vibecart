@@ -464,7 +464,15 @@
   }
   function isTrustedShopUrl(url) {
     var host = extractHost(url);
-    return !!(host && trustedHosts[host]);
+    if (!host) return false;
+    if (trustedHosts[host]) return true;
+    var keys = Object.keys(trustedHosts);
+    for (var i = 0; i < keys.length; i += 1) {
+      var k = keys[i];
+      if (!k) continue;
+      if (host === k || host.endsWith("." + k)) return true;
+    }
+    return false;
   }
   function isCommissionTrackedUrl(url) {
     try {
@@ -705,127 +713,6 @@
     paintWorldwideHint(raw, matches.length > 0);
   }
 
-  function getAuthToken() {
-    try {
-      return String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
-    } catch {
-      return "";
-    }
-  }
-
-  function inferBuyerCountry() {
-    try {
-      var raw = localStorage.getItem("vibecart-public-auth-user");
-      var user = raw ? JSON.parse(raw) : {};
-      var cc = String((user && user.countryCode) || "").trim().toUpperCase();
-      if (cc.length === 2) return cc;
-    } catch {
-      /* ignore */
-    }
-    try {
-      var tz = String(Intl.DateTimeFormat().resolvedOptions().timeZone || "").toLowerCase();
-      if (tz.indexOf("dublin") >= 0 || tz.indexOf("cork") >= 0 || tz.indexOf("galway") >= 0 || tz.indexOf("limerick") >= 0) {
-        return "IE";
-      }
-      if (tz.indexOf("belfast") >= 0) {
-        return "GB";
-      }
-    } catch {
-      /* ignore */
-    }
-    return "ZA";
-  }
-
-  function renderLiveProducts(products) {
-    if (!grid || !Array.isArray(products) || !products.length) return;
-    var heading = document.createElement("div");
-    heading.className = "shop";
-    heading.innerHTML = "<h3>Real VibeCart live listings</h3><p>These are actual seller listings from your marketplace (with secure shipping + fee breakdown).</p>";
-    grid.insertBefore(heading, grid.firstChild);
-    products.slice(0, 14).forEach(function (p) {
-      var card = document.createElement("a");
-      card.className = "shop";
-      card.href = "#";
-      card.innerHTML =
-        "<h3>" + String(p.title || "Listing") + "</h3>" +
-        "<p>" + String(p.shopName || "Shop") + " · " + Number(p.basePrice || 0).toFixed(2) + " " + String(p.currency || "EUR") + " · stock " + Number(p.stock || 0) + "</p>";
-      card.addEventListener("click", async function (event) {
-        event.preventDefault();
-        var shippingMethod = String(window.prompt("Choose shipping: economy / standard / express / pickup", "standard") || "standard").trim().toLowerCase();
-        var buyerCountry = inferBuyerCountry();
-        try {
-          var quoteRes = await fetch(
-            "/api/public/orders/quote?productId=" +
-              encodeURIComponent(String(p.id || 0)) +
-              "&quantity=1&buyerCountry=" +
-              encodeURIComponent(buyerCountry) +
-              "&shippingMethod=" +
-              encodeURIComponent(shippingMethod)
-          );
-          var quoteBody = await quoteRes.json();
-          if (!quoteRes.ok || !quoteBody.ok || !quoteBody.quote) {
-            throw new Error(quoteBody.code || "QUOTE_FAILED");
-          }
-          var q = quoteBody.quote;
-          var proceed = window.confirm(
-            "Subtotal: " +
-              Number(q.subtotal || 0).toFixed(2) +
-              " " +
-              q.currency +
-              "\nShipping: " +
-              Number(q.shippingFee || 0).toFixed(2) +
-              "\nService fee: " +
-              Number(q.serviceFee || 0).toFixed(2) +
-              "\nTotal: " +
-              Number(q.totalAmount || 0).toFixed(2) +
-              "\n\nContinue order?"
-          );
-          if (!proceed) return;
-          var token = getAuthToken();
-          if (!token) {
-            if (searchStatus) searchStatus.textContent = "Sign in as buyer first to complete secure checkout.";
-            return;
-          }
-          var orderHeaders = { "Content-Type": "application/json" };
-          if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
-            orderHeaders = window.VibeCartSessionDevice.merge(token, orderHeaders);
-          } else {
-            orderHeaders.Authorization = "Bearer " + token;
-          }
-          var createRes = await fetch("/api/public/orders/create", {
-            method: "POST",
-            headers: orderHeaders,
-            body: JSON.stringify({
-              productId: Number(p.id || 0),
-              quantity: 1,
-              shippingMethod: shippingMethod,
-              buyerCountry: buyerCountry
-            })
-          });
-          var createBody = await createRes.json();
-          if (!createRes.ok || !createBody.ok) throw new Error(createBody.code || "ORDER_FAILED");
-          if (searchStatus) {
-            searchStatus.textContent = "Order #" + Number(createBody.order.orderId || 0) + " placed. Track in Orders; escrow release is automatic after dual confirmation.";
-          }
-        } catch (err) {
-          if (searchStatus) searchStatus.textContent = "Secure order failed: " + String((err && err.message) || "unknown");
-        }
-      });
-      grid.insertBefore(card, heading.nextSibling);
-    });
-  }
-
-  async function loadLiveProducts() {
-    try {
-      var res = await fetch("/api/public/products/live?limit=20");
-      var body = await res.json();
-      if (!res.ok || !body.ok || !Array.isArray(body.products)) return;
-      renderLiveProducts(body.products);
-    } catch {
-      /* ignore */
-    }
-  }
-
   if (tabsWrap) {
     Array.prototype.slice.call(tabsWrap.querySelectorAll("[data-live-cat]")).forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -906,5 +793,4 @@
       renderList(listForCategory(cat), "Showing " + cat + " shops.");
     });
   }
-  loadLiveProducts();
 })();

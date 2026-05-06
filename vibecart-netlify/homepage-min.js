@@ -2147,9 +2147,18 @@
   function initPwaBootstrapLite() {
     if (!("serviceWorker" in navigator)) return;
     // Register for installability + offline shell. Bump ?v= when service-worker.js CACHE_NAME changes.
-    navigator.serviceWorker.register("./service-worker.js?v=20260505nuclearprovider3").catch(function () {
-      /* ignore */
-    });
+    navigator.serviceWorker
+      .register("./service-worker.js?v=20260507swforce1")
+      .then(function (reg) {
+        try {
+          if (reg && typeof reg.update === "function") reg.update();
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(function () {
+        /* ignore */
+      });
   }
 
   function initHealthCoachIntelLite() {

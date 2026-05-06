@@ -2790,6 +2790,29 @@ body.luxe-instant.luxe-ready .section {
   box-shadow: 0 12px 40px rgba(232, 163, 23, 0.08);
 }
 
+.shop.vc-live-product-card {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+a.vc-live-product-card__main {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  padding: 0.95rem 0.75rem 0;
+}
+
+a.vc-live-product-card__main:hover {
+  text-decoration: none;
+}
+
+.card.vc-hot-product--focused {
+  outline: 2px solid rgba(120, 255, 210, 0.85);
+  outline-offset: 2px;
+  border-color: rgba(120, 255, 210, 0.55);
+}
+
 .card.vc-cat-selected {
   border-color: rgba(232, 163, 23, 0.8);
   box-shadow: 0 0 0 2px rgba(232, 163, 23, 0.35), 0 14px 44px rgba(232, 163, 23, 0.14);
@@ -3473,6 +3496,21 @@ body.shops-lane-page main.shops-lane-main > section {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   background-image: none;
   animation: none;
+}
+
+/* Account hub: keep lane switchers tappable above fixed chrome / assist layers. */
+.vc-account-lane-actions {
+  position: relative;
+  z-index: 4;
+}
+
+/* Brandon universal shell uses very high z-index; lift hub + live market main above it so links and lane buttons work. */
+html.vc-brandon-universal body.account-hub-page main.shops-lane-main,
+html.vc-brandon-universal body.live-market-shops-page main.shops-lane-main,
+html.vc-brandon-universal body.orders-tracking-page main.shops-lane-main {
+  position: relative;
+  z-index: 20350;
+  isolation: isolate;
 }
 
 body.shops-lane-page main.shops-lane-main > section:nth-of-type(even) {
@@ -6243,6 +6281,12 @@ html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai__micro {
   background: rgba(12, 8, 22, 0.96);
   padding: 0.85rem 0.9rem 1rem;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 3;
+}
+
+html.vc-brandon-universal .vc-mobile-ai__panel:not([hidden]) {
+  z-index: 20310;
 }
 
 /* Mobile masterpiece pass: less computer-like, more thumb-native. */
@@ -7290,6 +7334,9 @@ html.vc-arrange-on .vc-first5-bar {
   font: inherit;
   margin-bottom: 0.45rem;
   resize: none;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 
 .vc-mobile-ai__save {

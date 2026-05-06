@@ -4,17 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Orders &amp; tracking · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+  <link rel="stylesheet" href="./styles.css?v=20260506brandonfix1" />
 </head>
-<body class="shops-lane-page">
+<body class="shops-lane-page orders-tracking-page">
+  <script>
+    try {
+      document.body.classList.remove("vc-intro-blocking");
+    } catch (e) {}
+  </script>
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
-    <a class="btn btn-primary" href="./account-hub.html">Account</a>
+    <a class="btn btn-secondary" href="./account-hub.html">Account</a>
   </header>
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title">Orders &amp; tracking</h1>
-    <p class="note shops-lane-intro">Paste an order id, simulate courier updates, and see return windows — all tools live on the hub tracking block.</p>
-    <p class="hero-actions"><a class="btn btn-primary" href="./index.html#tracking">Open tracking tools</a></p>
+    <p class="note shops-lane-intro">
+      Your VibeCart orders load from the signed-in account. This page uses the same APIs as checkout — no redirect loop to the homepage.
+    </p>
+    <section class="section alt" style="margin-top: 0.75rem">
+      <h2 class="shops-lane-title" style="font-size: 1.05rem">Your orders</h2>
+      <p class="note" id="ordersTrackingStatus" aria-live="polite"></p>
+      <ul id="ordersTrackingList" class="note" style="margin: 0.5rem 0 0; list-style: none; padding: 0"></ul>
+    </section>
+    <section class="section alt" style="margin-top: 0.75rem">
+      <h2 class="shops-lane-title" style="font-size: 1.05rem">Track one order</h2>
+      <p class="note">Enter the order number you received after checkout (or pick from the list above).</p>
+      <div class="admin-grid" style="max-width: 28rem">
+        <label for="ordersTrackingIdInput">Order id</label>
+        <input id="ordersTrackingIdInput" type="number" min="1" step="1" placeholder="e.g. 42" />
+      </div>
+      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem">
+        <button type="button" class="btn btn-primary" id="ordersTrackingLoadBtn">Load tracking</button>
+        <a class="btn btn-secondary" href="./seller-orders.html">Seller orders inbox</a>
+      </p>
+      <div id="ordersTrackingDetail" class="note" style="margin-top: 0.75rem"></div>
+    </section>
   </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./orders-tracking.js?v=20260506orders2" defer></script>
+  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
 </body>
 </html>

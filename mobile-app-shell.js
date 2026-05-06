@@ -3519,6 +3519,9 @@
         }
         document.body.classList.remove("vc-cine-active");
         document.body.classList.remove("vc-cine-beat");
+        // Cinematic used this to dim chrome; clear it so Brandon + page controls work again.
+        // Intent blast re-adds vc-intro-blocking only when that modal actually mounts.
+        document.body.classList.remove("vc-intro-blocking");
         // Keep blocking layer until wow-lane prompt mounts to avoid visual flash/jump.
         document.body.classList.remove("vc-cine-lane-buy", "vc-cine-lane-book", "vc-cine-lane-sell", "vc-cine-lane-fast");
         document.body.classList.add("vc-intro-pulse-bridge");

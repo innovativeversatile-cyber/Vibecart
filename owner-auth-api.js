@@ -7624,6 +7624,47 @@ async function handlePublicProductsLive(req, res) {
   });
 }
 
+async function handlePublicProductById(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  const productIdRaw = Number(urlObj.searchParams.get("productId") || urlObj.searchParams.get("id") || 0);
+  const productId = Number.isFinite(productIdRaw) && productIdRaw > 0 ? productIdRaw : 0;
+  if (!productId) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_PRODUCT_ID" });
+  }
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.shop_id, s.name AS shop_name, p.category_id, p.title, p.base_price, p.currency, p.stock, p.origin_country
+       FROM products p
+       JOIN shops s ON s.id = p.shop_id
+       WHERE p.id = ?
+         AND p.status = 'active'
+         AND p.stock > 0
+       LIMIT 1`,
+      [productId]
+    );
+    const row = rows[0];
+    if (!row) {
+      return sendJson(res, 404, { ok: false, code: "PRODUCT_NOT_AVAILABLE" });
+    }
+    return sendJson(res, 200, {
+      ok: true,
+      product: {
+        id: Number(row.id),
+        shopId: Number(row.shop_id),
+        shopName: String(row.shop_name),
+        categoryId: Number(row.category_id),
+        title: String(row.title),
+        basePrice: Number(row.base_price),
+        currency: String(row.currency || "EUR"),
+        stock: Number(row.stock),
+        originCountry: String(row.origin_country || "").toUpperCase()
+      }
+    });
+  } catch {
+    return sendJson(res, 500, { ok: false, code: "PRODUCT_LOOKUP_FAILED" });
+  }
+}
+
 async function handlePublicPaymentConfig(req, res) {
   return sendJson(res, 200, {
     ok: true,
@@ -8600,6 +8641,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/products/live")) {
       return await handlePublicProductsLive(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/products/by-id") {
+      return await handlePublicProductById(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/products/publish") {
       return await handlePublicProductPublish(req, res);

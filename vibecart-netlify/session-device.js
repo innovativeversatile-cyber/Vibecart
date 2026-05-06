@@ -4,6 +4,19 @@
  */
 (function (w) {
   "use strict";
+  function stripIntroBlocking() {
+    try {
+      if (w.document && w.document.body) {
+        w.document.body.classList.remove("vc-intro-blocking");
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  stripIntroBlocking();
+  if (w.document && w.document.readyState === "loading") {
+    w.document.addEventListener("DOMContentLoaded", stripIntroBlocking);
+  }
   var KEY = "vibecart-device-binding-v1";
 
   function getOrCreate() {

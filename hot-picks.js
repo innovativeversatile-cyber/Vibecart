@@ -257,6 +257,29 @@
     }
   }
 
+  function readFocusProductId() {
+    try {
+      var p = new URLSearchParams(window.location.search || "");
+      var raw = String(p.get("productId") || "").trim();
+      var n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function hotPicksListingHref(productId) {
+    try {
+      var u = new URL("./hot-picks.html", window.location.href);
+      u.searchParams.set("productId", String(productId));
+      var ref = bridgeRefForLinks();
+      if (ref) u.searchParams.set("ref", ref);
+      return u.pathname + "?" + u.searchParams.toString();
+    } catch {
+      return "./hot-picks.html?productId=" + encodeURIComponent(String(productId));
+    }
+  }
+
   function inferCountryCode() {
     try {
       var rawUser = localStorage.getItem("vibecart-public-auth-user");
@@ -309,8 +332,8 @@
     }
   }
 
-  function pickTargetUrl(p) {
-    var direct = safeTarget(
+  function pickExplicitOutboundUrl(p) {
+    return safeTarget(
       p.shopUrl ||
         p.shop_url ||
         p.productUrl ||
@@ -320,8 +343,21 @@
         p.url ||
         p.link
     );
+  }
+
+  function isDbMarketplaceListing(p) {
+    var idNum = Number(p.id || p.productId || 0);
+    if (!Number.isFinite(idNum) || idNum <= 0) return false;
+    return !pickExplicitOutboundUrl(p);
+  }
+
+  function pickTargetUrl(p) {
+    var direct = pickExplicitOutboundUrl(p);
     if (direct) {
       return direct;
+    }
+    if (isDbMarketplaceListing(p)) {
+      return "";
     }
     var cat = productCategory(p).toLowerCase();
     var fallbackByCategory = {
@@ -362,6 +398,7 @@
     var item = String(p.name || p.title || "Marketplace item");
     var cat = productCategory(p) || "All";
     var target = pickTargetUrl(p);
+    var pid = Number(p.id || p.productId || 0);
     if (target) {
       var ref = bridgeRefForLinks();
       var base =
@@ -373,6 +410,9 @@
         encodeURIComponent(item) +
         "&target=" +
         encodeURIComponent(target);
+      if (pid > 0) {
+        base += "&productId=" + encodeURIComponent(String(pid));
+      }
       return ref ? base + "&ref=" + encodeURIComponent(ref) : base;
     }
     return "";
@@ -383,46 +423,87 @@
     items.forEach(function (p) {
       var title = String(p.name || p.title || "Marketplace item");
       var cat = productCategory(p);
-      var price = p.price != null ? String(p.price) : "";
+      var priceVal = p.price != null ? p.price : p.basePrice;
+      var price = priceVal != null ? String(priceVal) : "";
       var currency = String(p.currency || "EUR");
       var target = pickTargetUrl(p);
+      var internal = isDbMarketplaceListing(p);
+      var pid = Number(p.id || p.productId || 0);
+      var listingHref = internal && pid > 0 ? hotPicksListingHref(pid) : "";
       var commissionEnabled = isCommissionTrackedUrl(target);
       var href = offerHref(p);
-      var ctaLabel = target ? "Open source website" : "Source unavailable";
       var joinLabel = isLoggedIn() ? "Saved with your account route" : "Sign in to save + track this pick";
-      var html =
-        '<article class="card">' +
-        '<img src="' +
-        escapeHtml(pickImage(p)) +
-        '" alt="' +
-        escapeHtml(title) +
-        '" loading="lazy" />' +
-        "<h3>" +
-        escapeHtml(title) +
-        "</h3>" +
-        '<p class="note">Category: ' +
-        escapeHtml(cat) +
-        (price ? " · " + escapeHtml(currency + " " + price) : "") +
-        "</p>" +
-        '<p class="note">External checkout on assigned source site. · ' +
-        (commissionEnabled ? "Commission-enabled." : "Traffic-only.") +
-        "</p>" +
-        '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link' +
-        (href ? "" : " is-disabled") +
-        '" href="' +
-        escapeHtml(href || "#") +
-        '" data-aff-shop="' +
-        escapeHtml(title) +
-        '" data-aff-target="' +
-        escapeHtml(target) +
-        '" data-aff-commission="' +
-        (commissionEnabled ? "1" : "0") +
-        '">' +
-        escapeHtml(ctaLabel) +
-        '</a><a class="btn btn-secondary" href="./index.html#account-access">' +
-        escapeHtml(joinLabel) +
-        "</a></p>" +
-        "</article>";
+      var shopLabel = String(p.shopName || p.shop_name || "").trim();
+      var domId = "vc-hot-product-" + String(p.id != null ? p.id : pid).replace(/[^a-zA-Z0-9-_]/g, "-");
+      if (domId === "vc-hot-product-") {
+        domId = "vc-hot-product-anon";
+      }
+      var html;
+      if (internal) {
+        html =
+          '<article class="card vc-hot-internal-listing" id="' +
+          escapeHtml(domId) +
+          '">' +
+          '<img src="' +
+          escapeHtml(pickImage(p)) +
+          '" alt="' +
+          escapeHtml(title) +
+          '" loading="lazy" />' +
+          "<h3>" +
+          escapeHtml(title) +
+          "</h3>" +
+          '<p class="note">Category: ' +
+          escapeHtml(cat) +
+          (price ? " · " + escapeHtml(currency + " " + price) : "") +
+          "</p>" +
+          '<p class="note">VibeCart marketplace listing' +
+          (shopLabel ? " · " + escapeHtml(shopLabel) : "") +
+          ". Checkout uses secure order quotes from the Live marketplace.</p>" +
+          '<p class="hero-actions">' +
+          '<a class="btn btn-primary" href="' +
+          escapeHtml(listingHref) +
+          '">Open exact listing (shareable)</a>' +
+          '<a class="btn btn-secondary" href="./live-market-shops.html">Live marketplace grid</a>' +
+          '<a class="btn btn-secondary" href="./index.html#account-access">' +
+          escapeHtml(joinLabel) +
+          "</a></p>" +
+          "</article>";
+      } else {
+        var ctaLabel = target ? "Open source website" : "Source unavailable";
+        html =
+          '<article class="card">' +
+          '<img src="' +
+          escapeHtml(pickImage(p)) +
+          '" alt="' +
+          escapeHtml(title) +
+          '" loading="lazy" />' +
+          "<h3>" +
+          escapeHtml(title) +
+          "</h3>" +
+          '<p class="note">Category: ' +
+          escapeHtml(cat) +
+          (price ? " · " + escapeHtml(currency + " " + price) : "") +
+          "</p>" +
+          '<p class="note">External checkout on assigned source site. · ' +
+          (commissionEnabled ? "Commission-enabled." : "Traffic-only.") +
+          "</p>" +
+          '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link' +
+          (href ? "" : " is-disabled") +
+          '" href="' +
+          escapeHtml(href || "#") +
+          '" data-aff-shop="' +
+          escapeHtml(title) +
+          '" data-aff-target="' +
+          escapeHtml(target) +
+          '" data-aff-commission="' +
+          (commissionEnabled ? "1" : "0") +
+          '">' +
+          escapeHtml(ctaLabel) +
+          '</a><a class="btn btn-secondary" href="./index.html#account-access">' +
+          escapeHtml(joinLabel) +
+          "</a></p>" +
+          "</article>";
+      }
       grid.insertAdjacentHTML("beforeend", html);
     });
     Array.prototype.slice.call(grid.querySelectorAll(".vc-hot-offer-link")).forEach(function (a) {
@@ -465,6 +546,7 @@
 
   async function boot() {
     var lane = laneFromQuery().toLowerCase();
+    var focusId = readFocusProductId();
     var br = bridgeRefForLinks();
     if (br && status && status.parentNode) {
       var note = document.createElement("p");
@@ -488,6 +570,31 @@
       var response = await fetch(url);
       var body = await response.json();
       var all = normalizePayload(body);
+
+      if (focusId > 0) {
+        try {
+          var dRes = await fetch("/api/public/products/by-id?productId=" + encodeURIComponent(String(focusId)));
+          var dBody = await dRes.json();
+          if (dRes.ok && dBody.ok && dBody.product) {
+            var row = dBody.product;
+            all = all.filter(function (x) {
+              return Number(x.id) !== focusId;
+            });
+            all.unshift({
+              id: row.id,
+              name: row.title,
+              title: row.title,
+              shopName: row.shopName,
+              basePrice: row.basePrice,
+              currency: row.currency,
+              categoryId: row.categoryId,
+              stock: row.stock
+            });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
 
       try {
         var rawLocal = localStorage.getItem("vibecart-seller-live-listing");
@@ -515,9 +622,13 @@
       }
 
       var filtered = all;
-      if (lane) {
+      if (lane && !focusId) {
         filtered = all.filter(function (p) {
           return productCategory(p).toLowerCase() === lane;
+        });
+      } else if (lane && focusId) {
+        filtered = all.filter(function (p) {
+          return Number(p.id) === focusId || productCategory(p).toLowerCase() === lane;
         });
       }
       var top = filtered.slice(0, 12);
@@ -528,11 +639,27 @@
         return;
       }
       if (status) {
-        status.textContent = lane
-          ? "Showing live " + lane + " picks."
-          : "Showing live hot picks right now.";
+        if (focusId > 0) {
+          status.textContent =
+            "Focused on listing #" +
+            focusId +
+            (lane ? " · lane filter " + lane + " still applies to other cards." : " · share this URL to return.");
+        } else {
+          status.textContent = lane
+            ? "Showing live " + lane + " picks."
+            : "Showing live hot picks right now.";
+        }
       }
       render(top);
+      if (focusId > 0) {
+        requestAnimationFrame(function () {
+          var el = document.getElementById("vc-hot-product-" + String(focusId));
+          if (el) {
+            el.classList.add("vc-hot-product--focused");
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        });
+      }
     } catch {
       if (status) {
         status.textContent = "Could not load live picks right now. Please try again shortly.";

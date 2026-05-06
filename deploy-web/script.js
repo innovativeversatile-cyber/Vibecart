@@ -6489,7 +6489,16 @@ autoDebugRunBtn?.addEventListener("click", runAutonomousDebugSweep);
     const inAppShell = document.documentElement.classList.contains("vc-mobile-app");
     if (inAppShell) {
       // Keep storage for installed app mode, but still re-register SW so updates land.
-      navigator.serviceWorker.register("./service-worker.js?v=20260505nuclearprovider3").catch(() => {});
+      navigator.serviceWorker
+        .register("./service-worker.js?v=20260507swforce1")
+        .then((reg) => {
+          try {
+            if (reg && typeof reg.update === "function") reg.update();
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch(() => {});
       return;
     }
     navigator.serviceWorker
