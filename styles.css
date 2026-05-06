@@ -3513,6 +3513,14 @@ html.vc-brandon-universal body.orders-tracking-page main.shops-lane-main {
   isolation: isolate;
 }
 
+/* Live market: block external retailer grid until disclaimer is ticked (VibeCart listings stay usable). */
+body.live-market-external-pending .live-market-external-shop-wrap {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.25);
+  user-select: none;
+}
+
 body.shops-lane-page main.shops-lane-main > section:nth-of-type(even) {
   background: rgba(12, 10, 28, 0.74);
   border-color: rgba(255, 255, 255, 0.09);

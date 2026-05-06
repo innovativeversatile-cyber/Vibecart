@@ -1558,6 +1558,13 @@
       }
     });
 
+    function brandonPanelInteractiveTarget(t) {
+      try {
+        return Boolean(t && t.closest && t.closest("textarea, input, select, button, a, label"));
+      } catch {
+        return false;
+      }
+    }
     orb?.addEventListener(
       "touchstart",
       (ev) => {
@@ -1585,6 +1592,9 @@
     panel?.addEventListener(
       "touchstart",
       (ev) => {
+        if (brandonPanelInteractiveTarget(ev.target)) {
+          return;
+        }
         const t = ev.changedTouches && ev.changedTouches[0];
         if (!t) return;
         startY = Number(t.clientY || 0);
@@ -1594,6 +1604,9 @@
     panel?.addEventListener(
       "touchend",
       (ev) => {
+        if (brandonPanelInteractiveTarget(ev.target)) {
+          return;
+        }
         const t = ev.changedTouches && ev.changedTouches[0];
         if (!t) return;
         const endY = Number(t.clientY || 0);

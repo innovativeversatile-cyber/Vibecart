@@ -28,6 +28,28 @@
     return h;
   }
 
+  function setTrackLoading(loading) {
+    if (!trackBtn) return;
+    trackBtn.disabled = Boolean(loading);
+    trackBtn.setAttribute("aria-busy", loading ? "true" : "false");
+  }
+
+  function parseBodyFromText(text) {
+    var raw = String(text || "").trim();
+    if (!raw) {
+      return {};
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {
+        ok: false,
+        code: "NON_JSON_RESPONSE",
+        message: raw.slice(0, 220)
+      };
+    }
+  }
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -84,30 +106,51 @@
     detailEl.innerHTML = lines;
   }
 
+  function humanOrderError(res, body) {
+    if (
+      res.status === 401 ||
+      (body && (body.code === "TOKEN_REQUIRED" || body.code === "INVALID_SESSION"))
+    ) {
+      return "Session missing or expired — open Lane passport and sign in again.";
+    }
+    if (res.status === 403 || (body && body.code === "ORDER_FORBIDDEN")) {
+      return "This order is not linked to your signed-in account.";
+    }
+    if (res.status === 404 || (body && body.code === "ORDER_NOT_FOUND")) {
+      return "Order not found. Check the id from your receipt.";
+    }
+    if (body && body.code === "NON_JSON_RESPONSE") {
+      return "Server returned non-JSON (is the API up?). " + String(body.message || "").slice(0, 120);
+    }
+    return String((body && (body.message || body.code)) || "Could not load this order (HTTP " + res.status + ").");
+  }
+
   async function loadOrderTrack(orderId) {
     var token = readToken();
     if (!token) {
       setStatus("Sign in via Lane passport to load order tracking.");
       return;
     }
+    setTrackLoading(true);
     setStatus("Loading order #" + orderId + "…");
     try {
       var res = await fetch("/api/public/orders/track?orderId=" + encodeURIComponent(String(orderId)), {
         credentials: "include",
         headers: mergeAuthHeaders(token, { Accept: "application/json" })
       });
-      var body = await res.json().catch(function () {
-        return {};
-      });
+      var text = await res.text();
+      var body = parseBodyFromText(text);
       if (!res.ok || !body.ok) {
-        setStatus(String((body && body.code) || "Could not load this order."));
+        setStatus(humanOrderError(res, body));
         if (detailEl) detailEl.innerHTML = "";
         return;
       }
       setStatus("Order #" + orderId + " loaded.");
       renderDetail(body);
-    } catch {
-      setStatus("Network error loading order.");
+    } catch (err) {
+      setStatus("Network error loading order: " + String((err && err.message) || err || "unknown"));
+    } finally {
+      setTrackLoading(false);
     }
   }
 
@@ -126,11 +169,10 @@
         credentials: "include",
         headers: mergeAuthHeaders(token, { Accept: "application/json" })
       });
-      var body = await res.json().catch(function () {
-        return {};
-      });
+      var text = await res.text();
+      var body = parseBodyFromText(text);
       if (!res.ok || !body.ok || !Array.isArray(body.orders)) {
-        setStatus(String((body && body.code) || "Could not load orders."));
+        setStatus(humanOrderError(res, body) || String((body && body.code) || "Could not load orders."));
         return;
       }
       var rows = body.orders;
@@ -166,19 +208,28 @@
         });
       });
       setStatus("Showing " + rows.length + " recent order(s). Tap an order # for tracking detail.");
-    } catch {
-      setStatus("Network error.");
+    } catch (err) {
+      setStatus("Network error: " + String((err && err.message) || err || "unknown"));
     }
   }
 
   if (trackBtn) {
     trackBtn.addEventListener("click", function () {
-      var id = Number((trackInput && trackInput.value) || 0);
-      if (!id) {
+      var raw = (trackInput && trackInput.value) || "";
+      var id = parseInt(String(raw).replace(/\s+/g, ""), 10);
+      if (!id || id < 1) {
         setStatus("Enter a numeric order id.");
         return;
       }
       loadOrderTrack(id);
+    });
+  }
+  if (trackInput) {
+    trackInput.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        if (trackBtn) trackBtn.click();
+      }
     });
   }
 

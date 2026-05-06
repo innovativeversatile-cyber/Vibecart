@@ -32,6 +32,14 @@
   var requested = String(params.get("cat") || "").trim();
   var topCta = document.getElementById("openFullMarketplaceTop");
   var grid = document.getElementById("liveMarketShopGrid");
+  var vcGrid = document.getElementById("liveMarketVcGrid");
+  var vcStatus = document.getElementById("liveMarketVcStatus");
+  var vcTitle = document.getElementById("liveMarketVcTitle");
+  var vcLead = document.getElementById("liveMarketVcLead");
+  var dealContextRailWrap = document.getElementById("dealContextRailWrap");
+  var dealContextRailLabel = document.getElementById("dealContextRailLabel");
+  var dealContextRail = document.getElementById("dealContextRail");
+  var gateNote = document.getElementById("liveMarketDisclaimerGateNote");
   var intro = document.getElementById("liveMarketShopsIntro");
   var searchInput = document.getElementById("liveMarketShopSearch");
   var searchBtn = document.getElementById("liveMarketShopSearchBtn");
@@ -371,6 +379,42 @@
       : categories.indexOf(requested) >= 0
         ? requested
         : "Electronics";
+  var dealTone = String(params.get("deal") || "").trim().toLowerCase();
+  if (dealTone === "fashion" && cat === "All") {
+    cat = "Fashion";
+  }
+  if (dealTone === "electronics" && cat === "All") {
+    cat = "Electronics";
+  }
+  if (dealTone === "books" && cat === "All") {
+    cat = "Books";
+  }
+  if (dealTone === "gaming" && cat === "All") {
+    cat = "Gaming";
+  }
+  function categoryIdForVcFetch() {
+    if (dealTone === "electronics") return 1;
+    if (dealTone === "fashion") return 2;
+    if (dealTone === "books") return 3;
+    if (dealTone === "gaming") return 4;
+    if (dealTone === "best") return 0;
+    var byCat = { Electronics: 1, Fashion: 2, Books: 3, Gaming: 4 };
+    return cat !== "All" ? byCat[cat] || 0 : 0;
+  }
+  function syncDisclaimerShell() {
+    var pending = Boolean(disclaimerAck && !disclaimerAck.checked);
+    try {
+      document.body.classList.toggle("live-market-external-pending", pending);
+    } catch {
+      /* ignore */
+    }
+    if (gateNote) {
+      gateNote.hidden = !pending;
+      gateNote.textContent = pending
+        ? "External retailer tiles are locked until you tick the disclaimer and (optionally) read the policy link. VibeCart seller listings above stay open."
+        : "";
+    }
+  }
   var trustedHosts = buildTrustedHostSet(mapByRegion);
   function renderRegionResolutionHint() {
     if (!regionSelect) return;
@@ -416,6 +460,50 @@
       src: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=540&h=340&q=75",
       href: "https://www.shein.com",
       title: "Fast trend refresh"
+    }
+  ];
+  var electronicsDealRail = [
+    {
+      src: "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.amazon.com/deals?ref_=nav_cs_gb",
+      title: "Electronics deals hub"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.currys.co.uk",
+      title: "Currys tech offers"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1527443224154-c4a3942d3daf?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.mediamarkt.de",
+      title: "MediaMarkt EU"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.bestbuy.com",
+      title: "Best Buy US"
+    }
+  ];
+  var booksDealRail = [
+    {
+      src: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.amazon.com/s?k=study+books",
+      title: "Study picks"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1524995997946-a1c02491cba8?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.abebooks.com",
+      title: "AbeBooks textbooks"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.waterstones.com",
+      title: "Waterstones new"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.fnac.com/livres",
+      title: "Fnac books FR"
     }
   ];
   if (!grid) {
@@ -532,9 +620,14 @@
         return;
       }
       if (disclaimerAck && !disclaimerAck.checked) {
+        event.preventDefault();
+        event.stopPropagation();
         if (searchStatus) {
-          searchStatus.textContent = "Tip: tick the marketplace disclaimer for safer buying guidance.";
+          searchStatus.textContent =
+            "Tick the marketplace disclaimer (and read the policy link if you need the full legal text) before opening external retailers.";
         }
+        syncDisclaimerShell();
+        return;
       }
       try {
         localStorage.setItem(
@@ -586,11 +679,61 @@
   }
 
   function paintCategoryUi(active) {
+    var mainTitle = document.querySelector("main.shops-lane-main > .shops-lane-title");
+    if (mainTitle) {
+      if (dealTone === "best") {
+        mainTitle.textContent = "Best bargains · VibeCart + global retailers";
+      } else if (dealTone === "fashion") {
+        mainTitle.textContent = "Fashion deals · VibeCart + flagship fashion";
+      } else if (dealTone === "electronics") {
+        mainTitle.textContent = "Electronics offers · VibeCart + tech storefronts";
+      } else if (dealTone === "books") {
+        mainTitle.textContent = "Books & study · VibeCart + bookstore partners";
+      } else if (dealTone === "gaming") {
+        mainTitle.textContent = "Gaming · VibeCart + game stores";
+      } else {
+        mainTitle.textContent = "Global live market shops";
+      }
+    }
+    if (vcTitle && vcLead) {
+      if (dealTone === "best") {
+        vcTitle.textContent = "Best bargains on VibeCart";
+        vcLead.textContent =
+          "Live seller inventory sorted by price. External retailer tiles below stay locked until you accept the disclaimer.";
+      } else if (dealTone === "fashion") {
+        vcTitle.textContent = "Fashion lane on VibeCart";
+        vcLead.textContent = "Seller fashion listings — opens Hot Picks for on-platform checkout.";
+      } else if (dealTone === "electronics") {
+        vcTitle.textContent = "Electronics on VibeCart";
+        vcLead.textContent = "Phones, laptops, and accessories from verified VibeCart shops.";
+      } else if (dealTone === "books") {
+        vcTitle.textContent = "Books & study on VibeCart";
+        vcLead.textContent = "Textbooks and reads from VibeCart sellers — then curated bookstore portals.";
+      } else if (dealTone === "gaming") {
+        vcTitle.textContent = "Gaming on VibeCart";
+        vcLead.textContent = "Games and gear from VibeCart inventory.";
+      } else {
+        vcTitle.textContent = "VibeCart seller listings";
+        vcLead.textContent =
+          "Live inventory from VibeCart shops — opens Hot Picks for checkout on-platform. External shops require the disclaimer.";
+      }
+    }
     if (intro) {
-      intro.textContent =
+      var base =
         active === "All"
-          ? "Live market shops across every category below. Pick a shop and continue checkout on that site."
-          : "Live market shops for " + active + ". Pick any shop below and continue checkout on that shop.";
+          ? "Browse VibeCart listings above, then regional storefront tiles below. External links open the retailer in a new tab."
+          : "VibeCart listings match your lane; storefront tiles focus on " + active + ".";
+      if (dealTone === "best") {
+        intro.textContent = base + " Best-bargains lane highlights low-price VibeCart stock first.";
+      } else if (dealTone === "fashion") {
+        intro.textContent = base + " Fashion lane adds a visual rail of inspiration plus real fashion retailers.";
+      } else if (dealTone === "electronics") {
+        intro.textContent = base + " Electronics lane adds deal-focused storefront shortcuts with imagery.";
+      } else if (dealTone === "books") {
+        intro.textContent = base + " Books lane highlights study-friendly portals.";
+      } else {
+        intro.textContent = base;
+      }
     }
     if (topCta) {
       try {
@@ -656,6 +799,105 @@
     var line = tones[Math.floor(Math.random() * tones.length)];
     var hint = regionHints[resolvedRegion] || regionHints.global;
     return line + " " + hint;
+  }
+
+  function renderDealContextRail() {
+    if (!dealContextRail || !dealContextRailWrap || !dealContextRailLabel) {
+      return;
+    }
+    dealContextRail.innerHTML = "";
+    var pack = null;
+    if (dealTone === "fashion" || cat === "Fashion") {
+      pack = { label: "Fashion inspiration + storefront shortcuts (disclaimer applies)", items: fashionTrends };
+    } else if (dealTone === "electronics" || cat === "Electronics") {
+      pack = { label: "Electronics deal shelf — storefront entry points (disclaimer applies)", items: electronicsDealRail };
+    } else if (dealTone === "books" || cat === "Books") {
+      pack = { label: "Books & study portals (disclaimer applies)", items: booksDealRail };
+    }
+    if (!pack || !pack.items || !pack.items.length) {
+      dealContextRailWrap.hidden = true;
+      dealContextRailWrap.style.display = "none";
+      return;
+    }
+    dealContextRailLabel.textContent = pack.label;
+    pack.items.forEach(function (trend) {
+      var card = document.createElement("a");
+      card.className = "vc-fashion-trend-link";
+      card.href = trend.href;
+      card.target = "_blank";
+      card.rel = "noopener noreferrer";
+      card.innerHTML =
+        '<img loading="lazy" src="' + trend.src + '" alt="' + String(trend.title || "").replace(/"/g, "") + '" /><span>' + trend.title + "</span>";
+      dealContextRail.appendChild(card);
+    });
+    dealContextRailWrap.hidden = false;
+    dealContextRailWrap.style.display = "";
+  }
+
+  function appendVcProductCard(p) {
+    if (!vcGrid) return;
+    var a = document.createElement("a");
+    a.className = "shop vc-live-vc-product";
+    a.href = "./hot-picks.html?productId=" + encodeURIComponent(String(p.id));
+    var h3 = document.createElement("h3");
+    h3.textContent = p.title || "Listing";
+    var para = document.createElement("p");
+    para.textContent =
+      String(p.shopName || "Shop") +
+      " · " +
+      String(p.basePrice != null ? p.basePrice : "") +
+      " " +
+      String(p.currency || "");
+    a.appendChild(h3);
+    a.appendChild(para);
+    vcGrid.appendChild(a);
+  }
+
+  async function loadVcProducts() {
+    if (!vcGrid) {
+      return;
+    }
+    var cid = categoryIdForVcFetch();
+    if (vcStatus) {
+      vcStatus.textContent = "Loading VibeCart listings…";
+    }
+    vcGrid.innerHTML = "";
+    try {
+      var u = "/api/public/products/live?limit=48" + (cid ? "&categoryId=" + cid : "");
+      var res = await fetch(u, { headers: { Accept: "application/json" } });
+      var text = await res.text();
+      var body = {};
+      try {
+        body = text ? JSON.parse(text) : {};
+      } catch {
+        body = {};
+      }
+      if (!res.ok || !body.ok || !Array.isArray(body.products)) {
+        if (vcStatus) {
+          vcStatus.textContent =
+            "Could not load VibeCart listings (" +
+            String((body && body.code) || res.status) +
+            "). External shops still work after the disclaimer.";
+        }
+        return;
+      }
+      var products = body.products.slice();
+      if (dealTone === "best") {
+        products.sort(function (a, b) {
+          return Number(a.basePrice || 0) - Number(b.basePrice || 0);
+        });
+      }
+      products.forEach(appendVcProductCard);
+      if (vcStatus) {
+        vcStatus.textContent = products.length
+          ? "Showing " + products.length + " VibeCart listing(s). Tap a card for Hot Picks checkout."
+          : "No active VibeCart listings for this filter yet.";
+      }
+    } catch {
+      if (vcStatus) {
+        vcStatus.textContent = "Network error loading VibeCart listings.";
+      }
+    }
   }
 
   function paintWorldwideHint(rawQuery, hasLocalMatches) {
@@ -730,6 +972,8 @@
         }
         paintCategoryUi(cat);
         renderList(listForCategory(cat), "Showing " + cat + " shops.");
+        renderDealContextRail();
+        loadVcProducts();
         try {
           var url = new URL(window.location.href);
           url.searchParams.set("cat", cat);
@@ -747,6 +991,30 @@
   renderRegionResolutionHint();
   renderList(listForCategory(cat), "Showing " + cat + " shops.");
   renderFashionTrends();
+  renderDealContextRail();
+  if (disclaimerAck) {
+    disclaimerAck.addEventListener("change", syncDisclaimerShell);
+  }
+  syncDisclaimerShell();
+  if (dealContextRailWrap) {
+    dealContextRailWrap.addEventListener(
+      "click",
+      function (ev) {
+        var a = ev.target && ev.target.closest && ev.target.closest("a.vc-fashion-trend-link");
+        if (!a) return;
+        if (disclaimerAck && !disclaimerAck.checked) {
+          ev.preventDefault();
+          if (searchStatus) {
+            searchStatus.textContent =
+              "Tick the marketplace disclaimer before opening the featured storefront links.";
+          }
+          syncDisclaimerShell();
+        }
+      },
+      true
+    );
+  }
+  loadVcProducts();
   if (fashionAdviceBtn) {
     fashionAdviceBtn.addEventListener("click", function () {
       if (fashionAdviceOutput) {
