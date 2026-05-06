@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Seller Growth workspace · VibeCart</title>
+  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-secondary" href="./seller-boost.html">Seller Boost</a>
+    <a class="btn btn-primary" href="./sell-journey.html">Selling checklist</a>
+    <a class="btn btn-secondary" href="./seller-bridge-toolkit.html">Seller bridge toolkit</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">AI Seller Growth — Zero to Ten</h1>
+    <p class="note shops-lane-intro">
+      Full workspace on its own page — no homepage scroll. Generate plans here; publish listings from
+      <a href="./sell-journey.html">Selling checklist</a>.
+    </p>
+
+    <section id="seller-growth-ai" class="section alt" aria-label="Seller growth workspace">
+      <p>
+        You have <strong>0</strong> live sellers today (demo counter). This module keeps an active acquisition plan until you reach
+        <strong>10 verified sellers</strong>, then hands off to catalog and conversion work. Update the counter when a
+        seller is truly onboarded (profile + listings + rules accepted).
+      </p>
+      <p class="note">
+        <label style="display: flex; gap: 0.5rem; align-items: flex-start">
+          <input id="sellerFlowDisclaimerAck" type="checkbox" style="margin-top: 0.2rem" />
+          <span>I confirm outreach and listings follow <a href="./policy.html" target="_blank" rel="noopener">VibeCart policy</a> and applicable local laws.</span>
+        </label>
+      </p>
+      <div class="ai-grid">
+        <label for="sgNiche">Target niche (what they sell)</label>
+        <input id="sgNiche" type="text" placeholder="Example: phone accessories, campus snacks, handmade jewelry" />
+
+        <label for="sgRegion">Primary region or city</label>
+        <input id="sgRegion" type="text" placeholder="Example: Lublin PL, Nairobi KE, diaspora EU" />
+
+        <label for="sgChannel">Main outreach channel (first 14 days)</label>
+        <select id="sgChannel">
+          <option value="campus">Campus / in-person tables</option>
+          <option value="whatsapp">WhatsApp groups and DMs</option>
+          <option value="instagram">Instagram DMs and creators</option>
+          <option value="orgs">Student orgs and societies</option>
+          <option value="mixed">Mixed (AI splits the plan)</option>
+        </select>
+
+        <label for="sgOwnerName">Your first name (optional, for message templates)</label>
+        <input id="sgOwnerName" type="text" placeholder="Example: Alex" maxlength="40" />
+
+        <div class="hero-actions">
+          <button id="sgRunPlan" type="button" class="btn btn-primary">Generate my 0→10 plan</button>
+        </div>
+      </div>
+      <div class="ai-result" aria-live="polite">
+        <strong>Verified sellers onboarded</strong>
+        <p id="sgMilestone" class="note">At 0/10: prioritize daily outbound and one live touchpoint per week until you pass 4 sellers.</p>
+        <div class="hero-actions" style="margin-top: 10px">
+          <button id="sgDec" type="button" class="btn btn-secondary" aria-label="Decrease seller count">−</button>
+          <span id="sgCount" class="badge" style="margin: 0 12px; font-size: 1.1rem">0</span>
+          <span style="align-self: center; color: var(--muted)">/ 10</span>
+          <button id="sgInc" type="button" class="btn btn-secondary" aria-label="Increase seller count">+</button>
+        </div>
+      </div>
+      <div id="sgPlanOut" class="ai-result" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="./session-device.js?v=20260501sess1"></script>
+  <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
+  <script src="./seller-growth-workspace.js?v=20260507ws1" defer></script>
+  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
+</body>
+</html>

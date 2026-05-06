@@ -246,6 +246,10 @@
               msg =
                 "No active shop on your account yet. Finish seller onboarding (shop profile) in account hub, then publish again.";
             }
+            if (code === "ROLE_FORBIDDEN") {
+              msg =
+                "This session cannot publish (role). Sign in with an account that has a seller shop, or open Account hub to switch to seller journey.";
+            }
             throw new Error(msg);
           }
           var id = json.product && json.product.id ? String(json.product.id) : "";

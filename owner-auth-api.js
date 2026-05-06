@@ -2764,7 +2764,8 @@ async function tryReleaseOrderSettlement(orderId) {
 }
 
 async function handlePublicProductPublish(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  /** Same shop ownership gate as listings; buyers/providers with an active shop can publish. */
+  const session = await requirePublicSessionRole(req, res, new Set(["seller", "buyer", "service_provider"]));
   if (!session) {
     return;
   }
