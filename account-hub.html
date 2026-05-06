@@ -352,7 +352,14 @@
           if (token) {
             return Promise.resolve(token);
           }
-          return fetch("/api/public/auth/session", { credentials: "same-origin" })
+          var sessionHeaders = undefined;
+          if (token) {
+            sessionHeaders =
+              window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function"
+                ? window.VibeCartSessionDevice.authHeaders(token)
+                : { Authorization: "Bearer " + token };
+          }
+          return fetch("/api/public/auth/session", { credentials: "same-origin", headers: sessionHeaders })
             .then(function (r) {
               return r.json().catch(function () {
                 return {};
@@ -395,6 +402,18 @@
             });
           })
           .then(function (body) {
+            var alertEl = document.getElementById("accountHubAlert");
+            if (body && body.ok && body.renewal && body.renewal.locked) {
+              var renewPlan = String(body.renewal.subscriptionPlan || "starter").toLowerCase();
+              if (alertEl) {
+                alertEl.innerHTML =
+                  "Your package renewal payment failed, so dashboard access is locked. " +
+                  "<a href=\"/api/public/payments/checkout/redirect?flow=coach&plan=" +
+                  encodeURIComponent(renewPlan) +
+                  "&paymentMethod=card&autoRenew=1\">Renew now</a> to restore access.";
+                alertEl.hidden = false;
+              }
+            }
             if (!body || !body.ok || !Array.isArray(body.sessions) || !body.sessions.length) {
               return;
             }

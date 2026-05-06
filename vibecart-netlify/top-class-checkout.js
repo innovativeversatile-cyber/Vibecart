@@ -108,7 +108,12 @@
           recordTelemetry("checkout_start_failed", { status: response.status, reason: payload && payload.error });
           return;
         }
-        window.location.assign(String(payload.redirectUrl));
+        var redirectUrl = String(payload.redirectUrl);
+        window.location.assign(redirectUrl);
+        window.setTimeout(function () {
+          startBtn.disabled = false;
+          statusEl.innerHTML = 'If checkout did not open, continue here: <a href="' + redirectUrl + '">open secure checkout</a>.';
+        }, 4200);
       } catch (error) {
         var reason = error && error.message === "timeout" ? "timeout" : "network";
         statusEl.textContent = reason === "timeout"

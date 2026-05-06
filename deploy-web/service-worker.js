@@ -1,5 +1,5 @@
 // Bump CACHE_NAME whenever you need all clients to drop old cached assets.
-const CACHE_NAME = "vibecart-pwa-v20260505pwafix1";
+const CACHE_NAME = "vibecart-pwa-v20260512slotspersist1";
 // Precache small static assets. Avoid index.html / main CSS+JS here so deploy updates still win on next load.
 const OFFLINE_URLS = [
   "./manifest.json",
@@ -59,6 +59,7 @@ const OFFLINE_URLS = [
   "./service-provider-hub.html",
   "./my-business.html",
   "./my-business.js",
+  "./my-business-slots-hotfix.js",
   "./my-listings.html",
   "./my-listings.js",
   "./page-i18n.js",

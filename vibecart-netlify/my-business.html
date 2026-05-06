@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>My Business · VibeCart</title>
   <meta name="description" content="Service bookings, portfolio offers, slots, and client requests for providers and clients." />
   <link rel="stylesheet" href="./styles.css?v=20260504mbdesk1" />
@@ -91,6 +94,31 @@
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.12);
     }
+    .vc-mb-cli-media img {
+      cursor: zoom-in;
+    }
+    .vc-mb-image-lightbox {
+      border: 0;
+      width: min(96vw, 1100px);
+      max-height: 96vh;
+      padding: 0.45rem;
+      background: rgba(5, 6, 12, 0.95);
+      border-radius: 12px;
+    }
+    .vc-mb-image-lightbox::backdrop {
+      background: rgba(0, 0, 0, 0.78);
+    }
+    .vc-mb-image-lightbox img {
+      display: block;
+      width: 100%;
+      max-height: calc(96vh - 3.2rem);
+      object-fit: contain;
+      border-radius: 10px;
+    }
+    .vc-mb-image-lightbox .vc-mb-image-lightbox-close {
+      margin-top: 0.35rem;
+      width: 100%;
+    }
     .vc-mb-chat-panel {
       margin-top: 0.85rem;
       padding: 0.75rem 0.85rem;
@@ -98,17 +126,85 @@
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(8, 10, 20, 0.42);
     }
+    .vc-provider-compact details {
+      margin-top: 0.65rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 0.45rem 0.55rem;
+      background: rgba(0,0,0,0.15);
+    }
+    .vc-provider-compact summary {
+      cursor: pointer;
+      font-weight: 700;
+      list-style: none;
+    }
+    .vc-provider-compact summary::-webkit-details-marker {
+      display: none;
+    }
+    .vc-provider-compact summary::before {
+      content: "▸ ";
+      opacity: 0.85;
+    }
+    .vc-provider-compact details[open] summary::before {
+      content: "▾ ";
+    }
+    /* Nuclear mobile layout guard:
+       prevent blank pre-scroll area before My Business content. */
+    body.vc-my-business-dashboard #mbMainDashboard {
+      margin-top: 0 !important;
+      padding-top: 0.35rem !important;
+      min-height: 0 !important;
+    }
+    body.vc-my-business-dashboard #mbMainDashboard > *:first-child {
+      margin-top: 0 !important;
+    }
+    body.vc-my-business-dashboard #mbGateRoot {
+      align-content: start !important;
+      place-items: start center !important;
+      padding-top: max(0.35rem, env(safe-area-inset-top, 0px)) !important;
+    }
+    html.vc-mobile-app body.vc-my-business-dashboard #mbMainDashboard,
+    html.vc-phone body.vc-my-business-dashboard #mbMainDashboard {
+      margin-top: 0 !important;
+      padding-top: 0.25rem !important;
+    }
   </style>
+  <script>
+    (function () {
+      var BUILD = "20260505-mb-nuclear-hardpass1";
+      try {
+        var url = new URL(window.location.href);
+        if (!url.searchParams.get("vcbuild")) {
+          url.searchParams.set("vcbuild", BUILD);
+          window.location.replace(url.toString());
+          return;
+        }
+      } catch (e) {
+        /* ignore URL rewrite errors */
+      }
+      try {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (r) { r.unregister(); });
+          }).catch(function () {});
+        }
+        if (window.caches && typeof window.caches.keys === "function") {
+          window.caches.keys().then(function (keys) {
+            keys.forEach(function (k) { window.caches.delete(k); });
+          }).catch(function () {});
+        }
+      } catch (e2) {
+        /* ignore cache clear errors */
+      }
+      window.__VC_MB_BUILD = BUILD;
+    })();
+  </script>
 </head>
 <body class="shops-lane-page vc-my-business-dashboard mb-boot-pending vc-no-brandon">
   <div id="mbGateRoot" class="vc-mb-gate-root" role="presentation" hidden>
     <div class="vc-mb-gate-card" role="dialog" aria-modal="true" aria-labelledby="mbGateHeading">
       <h2 id="mbGateHeading">My Business</h2>
       <p class="vc-mb-gate-lead" id="mbGateLead">Pick how you are showing up today — book as a client, run your provider desk, or use the citizen desk for both.</p>
-      <p class="note" style="margin-top: 0.35rem; font-size: 0.88rem">
-        <strong>Provider booking link:</strong> send clients to this page with
-        <code>?flow=book&amp;line=Hair%20Styling&amp;vcServiceId=YOUR_OFFER_ID</code> (match your service line label and the numeric id from your published work card). They can browse first; signing in is required to send a reservation.
-      </p>
 
       <div id="mbStepPersona" class="vc-mb-gate-step">
         <p class="note" style="margin-top:0;" id="mbStepPersonaLabel">Step 1 — choose how you are using My Business</p>
@@ -166,7 +262,7 @@
         <div class="vc-mb-gate-actions">
           <button type="button" class="btn btn-secondary" id="mbResetProfile">Change role / service</button>
           <button type="button" class="btn btn-primary" id="mbUnlockSubmit">Enter dashboard</button>
-          <button type="button" class="btn btn-primary" id="mbUnlockQuick" hidden>Continue to bookings</button>
+          
         </div>
         <p class="vc-mb-gate-status" id="mbGateStatusUnlock" aria-live="polite"></p>
       </div>
@@ -239,6 +335,7 @@
         <label for="mbCliDetails" style="margin-top:0.65rem">What do you need? (details for your provider)</label>
         <textarea id="mbCliDetails" rows="4" placeholder="Describe the service, timing constraints, allergies, references, etc."></textarea>
       </div>
+      <p class="note vc-mb-client-desk-status" id="mbClientDeskStatus" aria-live="polite" style="margin-top:0.65rem;min-height:1.35em"></p>
       <p class="hero-actions vc-mb-client-nav">
         <button type="button" class="btn btn-secondary" id="mbClientBack">Back</button>
         <button type="button" class="btn btn-primary" id="mbClientNext">Continue</button>
@@ -275,7 +372,7 @@
     <div id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
       <h2 style="margin-top:0;" id="mbBeautySectionTitle">Slots preview</h2>
       <p class="note" id="mbBeautySectionLead">
-        Load published times for a date, then open checkout when you are ready to require prepayment.
+        Pick a service line and date, then open checkout when you are ready to require prepayment.
       </p>
       <div class="vc-visual-grid" style="margin:0.65rem 0;">
         <article class="vc-visual-step">
@@ -287,20 +384,6 @@
           <p>Route deposits through your payment template or VibeCart checkout.</p>
         </article>
       </div>
-      <div class="ai-grid">
-        <label for="beautyBookingServiceType">Service type</label>
-        <select id="beautyBookingServiceType">
-          <option value="Hair Styling">Hair styling / hairdresser</option>
-          <option value="Barber">Barber</option>
-          <option value="Bakery / custom cakes">Bakery / custom cakes</option>
-          <option value="Nails">Nails</option>
-          <option value="Makeup">Makeup</option>
-          <option value="Other service">Other / custom line</option>
-        </select>
-        <label for="beautyBookingDate">Preferred date</label>
-        <input id="beautyBookingDate" type="date" />
-        <button type="button" class="btn btn-primary" id="beautyShowBookingSlots">Show available slots</button>
-      </div>
       <div id="beautyBookingSlotsResult" class="ai-result" style="margin-top:0.5rem;"></div>
       <p class="hero-actions" style="margin-top:0.65rem;">
         <a id="beautyBookingPrepayRouteBtn" class="btn btn-primary" href="./account-hub.html#bookings">Require prepayment to confirm booking</a>
@@ -310,7 +393,7 @@
 
     <div class="vc-biz-hero" style="margin-top:0.85rem;" data-mb-show="provider">
       <h1 class="shops-lane-title">Overview</h1>
-      <p class="note">Listings, work cards for this service line, and booking requests. Refresh after you publish or change a request.</p>
+      <p class="note">Listings and pending requests for this service line.</p>
       <p class="hero-actions">
         <button class="btn btn-primary" id="bizRefreshBtn" type="button">Refresh dashboard</button>
         <span class="note" id="bizStatus" aria-live="polite"></span>
@@ -319,129 +402,113 @@
     </div>
 
     <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+      <h2 style="margin-top:0;">Incoming requests</h2>
+      <p class="note">Open a request to accept or decline. Use clear when you want a clean list.</p>
+      <p class="hero-actions">
+        <button type="button" class="btn btn-secondary" id="mbProviderClearRequests">Clear request list</button>
+      </p>
+      <div id="bakeryBookingList" class="vc-booking-list"></div>
+    </div>
+
+    <div class="vc-biz-card vc-provider-compact" style="margin-top:.95rem;" data-mb-show="provider">
       <h2 style="margin-top:0;" id="mbPortfolioHead">Service portfolio</h2>
       <p class="note" id="mbPortfolioLead">
-        Add a work card for the service line you selected at the gate. Clients discover it when it is published (active).
+        Create your card with style and price, then publish.
       </p>
       <div class="vc-biz-form">
         <div class="vc-biz-row">
-          <label for="bakeryServiceCategory">Service line</label>
-          <select id="bakeryServiceCategory">
-            <option value="Bakery / custom cakes">Bakery / custom cakes</option>
-            <option value="Hair Styling">Hair styling / hairdresser</option>
-            <option value="Barber">Barber</option>
-            <option value="Nails">Nails</option>
-            <option value="Makeup">Makeup</option>
-            <option value="Other service">Other service</option>
-          </select>
-        </div>
-        <div class="vc-biz-row">
           <input id="bakeryBusinessName" type="text" placeholder="Business or artist name (e.g. Sweet Crumbs)" />
-          <input id="bakeryWorkTitle" type="text" placeholder="Offer title (e.g. Wedding cake 3-tier, Bridal glam, Fade &amp; beard)" />
           <input id="bakeryStyleTheme" type="text" placeholder="Style / theme (minimal, floral, luxury…)" />
-        </div>
-        <label for="bakerySlotDurationMinutes">Each appointment length (minutes)</label>
-        <p class="note" style="margin:0 0 0.35rem 0">Used when you use “Fill list from window” so start times do not overlap.</p>
-        <div class="vc-biz-row">
           <input id="bakeryBasePrice" type="number" min="0" step="0.01" placeholder="Base price" />
-          <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
-          <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
-          <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
         </div>
-        <input type="hidden" id="bakeryEditServiceId" value="0" />
-        <label for="bakeryMediaPick">Photos &amp; videos (clients see these)</label>
-        <p class="note" style="margin-top:0.15rem">
-          Upload from your phone or computer (JPEG/PNG/WebP up to 12 MB, MP4 up to 25 MB), or paste a public image/video link below. Up to 12 items.
-        </p>
-        <input id="bakeryMediaPick" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" multiple />
-        <p class="hero-actions" style="margin-top:0.35rem">
-          <button type="button" class="btn btn-secondary" id="bakeryAddMediaUrl">Add media from URL</button>
-          <button type="button" class="btn btn-secondary" id="bakeryClearWorkForm">New card (clear form)</button>
-        </p>
-        <label for="bakeryExternalMediaUrl">External media URL (optional)</label>
-        <div class="vc-biz-row">
-          <input id="bakeryExternalMediaUrl" type="url" placeholder="https://… image or .mp4" />
-          <select id="bakeryExternalMediaKind" aria-label="Media type">
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-          </select>
-          <button type="button" class="btn btn-secondary" id="bakeryExternalMediaAdd">Add link</button>
-        </div>
-        <div id="bakeryGalleryEditor" class="vc-mb-gallery-editor" aria-live="polite"></div>
+        <input id="bakeryWorkTitle" type="hidden" value="" />
         <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
+        <details>
+          <summary>Advanced options</summary>
+          <p class="note" style="margin:0.45rem 0;">Optional fields for richer cards and media.</p>
+          <div class="vc-biz-row">
+            <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
+            <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
+            <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
+          </div>
+          <label for="bakeryMediaPick">Photos &amp; videos (clients see these)</label>
+          <p class="note" style="margin-top:0.15rem">
+            Upload from your phone or computer (JPEG/PNG/WebP up to 12 MB, MP4 up to 25 MB), or paste a public image/video link below. Up to 12 items.
+          </p>
+          <input id="bakeryMediaPick" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" multiple />
+          <p class="hero-actions" style="margin-top:0.35rem">
+            <button type="button" class="btn btn-secondary" id="bakeryAddMediaUrl">Add media from URL</button>
+            <button type="button" class="btn btn-secondary" id="bakeryClearWorkForm">New card (clear form)</button>
+          </p>
+          <label for="bakeryExternalMediaUrl">External media URL (optional)</label>
+          <div class="vc-biz-row">
+            <input id="bakeryExternalMediaUrl" type="url" placeholder="https://… image or .mp4" />
+            <select id="bakeryExternalMediaKind" aria-label="Media type">
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+            </select>
+            <button type="button" class="btn btn-secondary" id="bakeryExternalMediaAdd">Add link</button>
+          </div>
+          <div id="bakeryGalleryEditor" class="vc-mb-gallery-editor" aria-live="polite"></div>
+        </details>
+        <input type="hidden" id="bakeryEditServiceId" value="0" />
         <p class="hero-actions">
           <button class="btn btn-primary" id="bakerySaveBtn" type="button">Save service work card</button>
+          <button class="btn btn-primary" id="bakerySavePublishBtn" type="button">Save and publish now</button>
+          <button class="btn btn-secondary" id="mbPublishCurrentCard" type="button">Publish current card</button>
         </p>
       </div>
       <div id="bakeryWorkList" class="vc-work-list"></div>
-      <hr style="opacity:.2;margin:1rem 0;" />
-      <h3 style="margin:.2rem 0;">Published time slots (what clients see)</h3>
-      <p class="note">Pick a saved work card and date. Only times you publish here appear to clients (no placeholder times). <strong>Replace entire day</strong> overwrites every slot that day for that card. <strong>Append</strong> adds the listed times without removing others. <strong>Remove</strong> deletes only the times you list. Save your work card first so <em>Slot length</em> is correct for “Fill day”.</p>
-      <div class="vc-biz-form">
+      <h3 style="margin:.2rem 0;">Slot creation</h3>
+        <p class="note">Create and update availability using only start/end times (times auto-generate).</p>
+        <div class="vc-biz-form">
         <div class="vc-biz-row">
-          <label for="mbProvSlotService">Work card</label>
-          <select id="mbProvSlotService"></select>
           <label for="mbProvSlotDate">Date</label>
           <input id="mbProvSlotDate" type="date" />
         </div>
         <div class="vc-biz-row">
-          <label for="mbProvSlotDayStart">Day window start</label>
-          <input id="mbProvSlotDayStart" type="text" inputmode="numeric" placeholder="09:00" maxlength="5" autocomplete="off" />
-          <label for="mbProvSlotDayEnd">Day window end</label>
-          <input id="mbProvSlotDayEnd" type="text" inputmode="numeric" placeholder="17:00" maxlength="5" autocomplete="off" />
-          <button type="button" class="btn btn-secondary" id="mbProvSlotGenDay">Fill list from window</button>
+          <div>
+            <label for="mbProvSlotDayStart">Start time</label>
+            <input id="mbProvSlotDayStart" type="time" step="300" />
+          </div>
+          <div>
+            <label for="mbProvSlotDayEnd">End time</label>
+            <input id="mbProvSlotDayEnd" type="time" step="300" />
+          </div>
         </div>
-        <label for="mbProvSlotTimes">Times for that day (comma-separated, 24h)</label>
-        <input id="mbProvSlotTimes" type="text" placeholder="09:00, 10:30, 14:00, 16:30" />
-        <label for="mbProvSlotRemoveTimes">Times to remove (comma-separated)</label>
-        <input id="mbProvSlotRemoveTimes" type="text" placeholder="14:00, 15:30" />
+        <input id="mbProvSlotTimes" type="text" hidden />
         <p class="hero-actions" style="margin-top:0.5rem">
-          <button type="button" class="btn btn-secondary" id="mbProvSlotLoad">Load from server</button>
-          <button type="button" class="btn btn-secondary" id="mbProvSlotAppend">Append listed times</button>
-          <button type="button" class="btn btn-secondary" id="mbProvSlotRemoveBtn">Remove listed times</button>
-          <button type="button" class="btn btn-primary" id="mbProvSlotSave">Replace entire day with list</button>
+          <button type="button" class="btn btn-primary" id="mbProvSlotSave">Publish slots</button>
+          <button type="button" class="btn btn-secondary" id="mbProvSlotCancel">Cancel date slots</button>
         </p>
-      </div>
-      <hr style="opacity:.2;margin:1rem 0;" />
+        </div>
+      <h3 style="margin:.2rem 0;">AI provider sections</h3>
+        <p class="note">AI helps generate custom dashboard sections and flows.</p>
+        <textarea id="mbAiRequirements" rows="3" placeholder="Example: build a hairstylist dashboard with VIP queue, retention nudges, no-show recovery, and sales goals."></textarea>
+      <p class="hero-actions" style="margin-top:0.35rem">
+        <button class="btn btn-secondary" type="button" data-ai-template="retention">Retention flow</button>
+        <button class="btn btn-secondary" type="button" data-ai-template="no_show">No-show recovery</button>
+        <button class="btn btn-secondary" type="button" data-ai-template="vip">VIP experience</button>
+        <button class="btn btn-secondary" type="button" data-ai-template="growth">Growth + upsell</button>
+      </p>
+        <p class="hero-actions" style="margin-top:0.5rem">
+          <button class="btn btn-primary" id="mbAiGenerateBtn" type="button">Generate AI sections</button>
+        </p>
+        <div id="mbAiSectionsOut" class="ai-result"></div>
+      <h3 style="margin:.2rem 0;">Policy section</h3>
+        <p class="note">Set your business policy (late cancellation, no-show, hygiene, deposit rules).</p>
+        <textarea id="mbProviderPolicy" rows="3" placeholder="Example: late cancellation within 24h loses deposit."></textarea>
       <h3 style="margin:.2rem 0;">Automatic payout setup</h3>
-      <p class="note">Connect Stripe account ID (`acct_...`) so funds auto-release to seller once both buyer and seller confirm.</p>
+      <p class="note">Connect Stripe account ID (`acct_...`) for automatic payout flow.</p>
       <div class="vc-biz-row">
         <input id="sellerStripeAccountId" type="text" placeholder="acct_1234..." />
         <button class="btn btn-secondary" id="savePayoutAccountBtn" type="button">Save payout account</button>
       </div>
     </div>
 
-    <div id="mb-provider-bookings" class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
-      <h2 style="margin-top:0;">Client booking requests</h2>
-      <p class="note">Open a request below to see full details, accept or decline, and message the client after you accept — all on this page.</p>
-      <article id="mbProvFocusRoot" class="vc-mb-prov-focus" hidden data-booking-id="">
-        <div class="vc-mb-prov-focus-head">
-          <h3 id="mbProvFocusTitle" style="margin:0;">Selected request</h3>
-          <button type="button" class="btn btn-secondary" id="mbProvFocusClose">Close</button>
-        </div>
-        <p class="note" id="mbProvFocusSummary"></p>
-        <p class="vc-mb-prov-closed-banner" id="mbProvFocusClosedBanner" hidden role="status"></p>
-        <div id="mbProvFocusDetails" class="vc-mb-prov-focus-details"></div>
-        <p class="hero-actions" id="mbProvFocusActions">
-          <button type="button" class="btn btn-secondary" data-booking-status="confirmed">Accept</button>
-          <button type="button" class="btn btn-secondary" data-booking-status="declined">Decline</button>
-          <button type="button" class="btn btn-primary" data-booking-status="completed">Mark complete</button>
-        </p>
-        <div id="mbProvFocusChatWrap" class="vc-mb-prov-chat-wrap" hidden>
-          <h4 style="margin:0.65rem 0 0.25rem;">Messages</h4>
-          <p class="note" id="mbProvFocusChatNote"></p>
-          <div id="mbProvChatList" class="vc-mb-chat-list"></div>
-          <div class="vc-biz-row" style="margin-top:0.5rem;">
-            <input id="mbProvChatInput" type="text" maxlength="2000" placeholder="Reply to client…" />
-            <button type="button" class="btn btn-primary" id="mbProvChatSend">Send</button>
-          </div>
-        </div>
-      </article>
-      <div id="bakeryBookingList" class="vc-booking-list"></div>
-    </div>
-
     <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
-      <h2 style="margin-top:0;">Calendar view (quick schedule)</h2>
+      <h2 style="margin-top:0;">Calendar view (slot dates)</h2>
+      <p class="note">Dates with created slots are highlighted.</p>
       <div id="bakeryCalendarView" class="vc-booking-list"></div>
     </div>
 
@@ -455,10 +522,58 @@
     </div>
 
   </main>
+  <dialog id="mbClientImageLightbox" class="vc-mb-image-lightbox">
+    <img id="mbClientImageLightboxImg" alt="Provider preview image" loading="eager" decoding="async" />
+    <button type="button" class="btn btn-secondary vc-mb-image-lightbox-close" id="mbClientImageLightboxClose">Close</button>
+  </dialog>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./password-toggle.js?v=20260502pw1"></script>
   <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-  <script src="./my-business.js?v=20260504mbdesk1" defer></script>
-  <script src="./site-chrome.js?v=20260510inbox1" defer></script>
+  <script>
+    (function () {
+      try {
+        var resetKey = "vibecart-mb-hardpass-reset-done-v1";
+        if (localStorage.getItem(resetKey) !== "1") {
+          localStorage.removeItem("vibecart-mb-dashboard-v2");
+          sessionStorage.removeItem("vibecart-mb-unlock-sess-v2");
+          localStorage.setItem(resetKey, "1");
+        }
+      } catch (e0) {
+        /* ignore reset issues */
+      }
+      function resetTopScroll() {
+        try {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        } catch (e) {
+          /* ignore */
+        }
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", resetTopScroll, { once: true });
+      } else {
+        resetTopScroll();
+      }
+      window.addEventListener("load", function () {
+        window.setTimeout(resetTopScroll, 0);
+        window.setTimeout(resetTopScroll, 120);
+      }, { once: true });
+      window.setTimeout(function () {
+        try {
+          var body = document.body;
+          if (!body || !body.classList.contains("mb-boot-pending")) return;
+          body.classList.remove("mb-boot-pending");
+          var main = document.getElementById("mbMainDashboard");
+          if (main) main.removeAttribute("aria-hidden");
+        } catch (e) {
+          /* ignore boot fallback errors */
+        }
+      }, 1800);
+    })();
+  </script>
+  <script src="./my-business.js?v=20260513slotclienttime1" defer></script>
+  <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
+  <script src="./site-chrome.js?v=20260505mbnuclearhardpass1" defer></script>
 </body>
 </html>

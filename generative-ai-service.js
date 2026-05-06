@@ -1,7 +1,7 @@
 "use strict";
 
 const OPENAI_API_KEY = String(process.env.OPENAI_API_KEY || "").trim();
-const OPENAI_MODEL = String(process.env.OPENAI_MODEL || "gpt-4o-mini").trim();
+const OPENAI_MODEL = String(process.env.OPENAI_MODEL || "gpt-4o").trim();
 
 function isGenerativeAiConfigured() {
   return Boolean(OPENAI_API_KEY);
@@ -160,6 +160,26 @@ async function generateCoachWorkspacePlanLLM(input) {
     wake: String(input.profile?.wake || "").trim().slice(0, 120),
     notes: String(input.profile?.notes || "").trim().slice(0, 400)
   };
+  const recentCheckins = Array.isArray(input.recentCheckins)
+    ? input.recentCheckins
+        .slice(-14)
+        .map((row) => ({
+          at: String(row?.at || "").slice(0, 40),
+          completed: String(row?.completed || "").slice(0, 20),
+          effort: Number(row?.effort || 0),
+          soreness: String(row?.soreness || "").slice(0, 20),
+          sleep: String(row?.sleep || "").slice(0, 20),
+          mood: String(row?.mood || "").slice(0, 20)
+        }))
+    : [];
+  const checkinSummary = input.checkinSummary && typeof input.checkinSummary === "object"
+    ? {
+        adherence: String(input.checkinSummary.adherence || "").slice(0, 20),
+        avgEffort: Number(input.checkinSummary.avgEffort || 0),
+        avgSleep: String(input.checkinSummary.avgSleep || "").slice(0, 20),
+        trend: String(input.checkinSummary.trend || "").slice(0, 320)
+      }
+    : null;
   let capsHint = "";
   if (flow === "insurance") {
     capsHint =
@@ -177,17 +197,19 @@ async function generateCoachWorkspacePlanLLM(input) {
       "Always frame the AI as an accountability and planning assistant, not a clinician.";
   }
   const system =
-    "You are VibeCart's live generative coach for the post-checkout workspace. " +
-    "Write warm, vivid, motivating copy that feels personal and action-led (second person). " +
-    "Celebrate small wins, name momentum, and anchor habits to realistic times using the profile when helpful. " +
-    "Strict safety: NOT medical advice — no diagnoses, treatments, prescriptions, dosing, or claims to cure conditions. " +
-    "If user notes mention conditions, add one short line urging them to follow their clinician's guidance. " +
+    "You are VibeCart's elite live AI fitness coach for post-checkout clients. " +
+    "Create practical, specific, execution-ready routines that feel like a real coach. " +
+    "Strict safety: NOT medical advice. No diagnosis, treatment, dosing, or cure claims. " +
+    "If notes mention conditions, add one concise clinician-guidance reminder. " +
     `${capsHint}` +
-    " Output ONLY JSON (no markdown fences): " +
-    '{"routine":"string: multi-line day plan; each logical line separated by \\\\n; aim for 12–18 lines mixing morning/midday/evening blocks, hydration, movement, mindset check-in, and one rest boundary","notifications":[' +
-    '"exactly 6 distinct short mobile reminders, max 118 chars each, imperative or gentle nudge — vary focus across hydration, movement, breath/stretch, meal-prep habit if allowed by caps, sleep wind-down, accountability check"]} ' +
-    "All six notification strings must differ in wording and intent.";
-  const user = JSON.stringify({ flow, ownedPlans, profile });
+    "Respect package progression: starter has NO meal plan details; ai-home/plus/pro can include meal planning. " +
+    "For plus/pro include gym-equipment options and progression cues. " +
+    "Output ONLY JSON (no markdown) with keys: " +
+    '{"routine":"multi-line summary string","weekPlan":[{"day":"Day 1","focus":"...","warmup":"...","main":"...","cardio":"...","cooldown":"..."}],' +
+    '"notifications":["exactly 6 reminders, each <=118 chars"],' +
+    '"adaptationNote":"how next sessions were adjusted using check-ins",'+
+    '"mealPlan":{"enabled":true|false,"dailyTemplate":["..."],"prepBlocks":["..."]}}';
+  const user = JSON.stringify({ flow, ownedPlans, profile, recentCheckins, checkinSummary });
   const r = await openaiChat(
     [
       { role: "system", content: system },
@@ -214,6 +236,27 @@ async function generateCoachWorkspacePlanLLM(input) {
     .filter(Boolean)
     .map((x) => x.slice(0, 200))
     .slice(0, 6);
+  const weekPlanIn = Array.isArray(parsed?.weekPlan) ? parsed.weekPlan : [];
+  const weekPlan = weekPlanIn.slice(0, 7).map((row, idx) => ({
+    day: String(row?.day || `Day ${idx + 1}`).trim().slice(0, 30),
+    focus: String(row?.focus || "Training focus").trim().slice(0, 120),
+    warmup: String(row?.warmup || "Mobility + activation").trim().slice(0, 260),
+    main: String(row?.main || "Strength work").trim().slice(0, 360),
+    cardio: String(row?.cardio || "Cardio block").trim().slice(0, 220),
+    cooldown: String(row?.cooldown || "Stretch + breathing").trim().slice(0, 220)
+  }));
+  const adaptationNote = String(parsed?.adaptationNote || "").trim().slice(0, 300);
+  const mealPlan = parsed?.mealPlan && typeof parsed.mealPlan === "object"
+    ? {
+        enabled: Boolean(parsed.mealPlan.enabled),
+        dailyTemplate: Array.isArray(parsed.mealPlan.dailyTemplate)
+          ? parsed.mealPlan.dailyTemplate.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 8)
+          : [],
+        prepBlocks: Array.isArray(parsed.mealPlan.prepBlocks)
+          ? parsed.mealPlan.prepBlocks.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 6)
+          : []
+      }
+    : null;
   if (routine.length < 60 || notifications.length < 5) {
     return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
   }
@@ -221,6 +264,9 @@ async function generateCoachWorkspacePlanLLM(input) {
     ok: true,
     routine: routine.slice(0, 12000),
     notifications,
+    weekPlan,
+    adaptationNote,
+    mealPlan,
     model: r.model
   };
 }
@@ -729,6 +775,51 @@ async function generateMbStudioSuiteLLM(input) {
   };
 }
 
+async function generateProviderDashboardSectionsLLM(input) {
+  if (!isGenerativeAiConfigured()) {
+    return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
+  }
+  const requirements = String(input.requirements || "").trim().slice(0, 1800);
+  const service = String(input.service || "General service").trim().slice(0, 120);
+  const mode = String(input.mode || "autonomous").trim().toLowerCase().slice(0, 40);
+  const system =
+    "You are VibeCart's live AI for service-provider dashboards inside My Business. " +
+    "Design practical, high-conversion dashboard sections for operators (beauty, wellness, trades, creative services). " +
+    "Output ONLY JSON (no markdown): " +
+    '{"sections":[{"title":"short title","intent":"why this section exists","automation":"how AI automates it","widgets":["specific dashboard cards"]}]}. ' +
+    "Rules: provide exactly 6 sections, each with 2-4 widget ideas. Keep wording practical and operator-focused. " +
+    "Do not request secrets, card data, OTPs, or password info. Respect compliance and safety workflows.";
+  const user = JSON.stringify({ requirements, service, mode });
+  const r = await openaiChat(
+    [{ role: "system", content: system }, { role: "user", content: user }],
+    1400,
+    { temperature: 0.6 }
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  const raw = parsed && Array.isArray(parsed.sections) ? parsed.sections : [];
+  if (!raw.length) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  const sections = raw
+    .slice(0, 8)
+    .map((s) => ({
+      title: String((s && s.title) || "Section").trim().slice(0, 90),
+      intent: String((s && s.intent) || "").trim().slice(0, 360),
+      automation: String((s && s.automation) || "").trim().slice(0, 360),
+      widgets: Array.isArray(s && s.widgets)
+        ? s.widgets.map((w) => String(w || "").trim()).filter(Boolean).slice(0, 5)
+        : []
+    }))
+    .filter((s) => s.title && s.intent);
+  if (!sections.length) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  return { ok: true, sections, model: r.model };
+}
+
 function brandonGuideQuestionHitsCredentialScope(q) {
   const s = String(q || "").trim().toLowerCase();
   if (!s) return false;
@@ -835,6 +926,9 @@ async function runPublicGenerativeAgent(agent, input) {
   }
   if (agent === "mb_studio_suite") {
     return generateMbStudioSuiteLLM(input || {});
+  }
+  if (agent === "provider_dashboard_sections") {
+    return generateProviderDashboardSectionsLLM(input || {});
   }
   return { ok: false, code: "INVALID_AGENT" };
 }

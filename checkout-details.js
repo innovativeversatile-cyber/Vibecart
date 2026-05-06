@@ -514,7 +514,21 @@
         if (payToken) {
           loc += "&authToken=" + encodeURIComponent(payToken);
         }
+        var navStartedAt = Date.now();
         window.location.assign(loc);
+        window.setTimeout(function () {
+          var elapsed = Date.now() - navStartedAt;
+          if (elapsed < 3500) {
+            return;
+          }
+          if (statusEl) {
+            statusEl.innerHTML =
+              "Still here? Continue with secure payment using this direct link: " +
+              "<a href=\"" +
+              loc +
+              "\">Open checkout</a>.";
+          }
+        }, 3600);
       });
     }
   }

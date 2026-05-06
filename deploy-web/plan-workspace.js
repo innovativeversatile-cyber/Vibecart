@@ -31,7 +31,15 @@
   }
 
   function recoverTokenFromServerSession() {
-    return fetch("/api/public/auth/session", { credentials: "same-origin" })
+    var existingToken = getPublicAuthToken();
+    var headers = undefined;
+    if (existingToken) {
+      headers =
+        window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function"
+          ? window.VibeCartSessionDevice.authHeaders(existingToken)
+          : { Authorization: "Bearer " + existingToken };
+    }
+    return fetch("/api/public/auth/session", { credentials: "same-origin", headers: headers })
       .then(function (res) {
         return res.json().catch(function () {
           return {};
@@ -98,7 +106,7 @@
         if (!j || !j.ok || !j.publicKey) {
           return false;
         }
-        return navigator.serviceWorker.register("./service-worker.js").then(function (reg) {
+        return navigator.serviceWorker.register("./service-worker.js?v=20260505nuclearprovider3").then(function (reg) {
           return reg.pushManager.getSubscription().then(function (existing) {
             if (existing) {
               return existing;
@@ -218,9 +226,9 @@
       if (plan === "family-protect") return "Family Protect";
       return "Student Lite";
     }
-    if (plan === "pro") return "Coach Pro";
-    if (plan === "plus") return "Coach Plus";
-    if (plan === "ai-home") return "AI Home Workout";
+    if (plan === "pro") return "Coach Pro Elite";
+    if (plan === "plus") return "Coach Plus Gym";
+    if (plan === "ai-home") return "AI Home + Meals";
     return "Starter Coach";
   }
 
@@ -234,7 +242,11 @@
       updates: true,
       meals: false,
       prep: false,
-      homeOnly: false
+      homeOnly: false,
+      gymMode: false,
+      advancedPeriodization: false,
+      aiAutonomy: true,
+      extraCheckins: false
     };
     if (flow === "insurance") {
       return {
@@ -242,17 +254,145 @@
         updates: true,
         meals: false,
         prep: false,
-        homeOnly: false
+        homeOnly: false,
+        gymMode: false,
+        advancedPeriodization: false,
+        aiAutonomy: false,
+        extraCheckins: false
       };
     }
-    if (has("plus") || has("pro")) {
+    if (has("ai-home") || has("plus") || has("pro")) {
       base.meals = true;
       base.prep = true;
     }
     if (has("ai-home")) {
       base.homeOnly = true;
     }
+    if (has("plus") || has("pro")) {
+      base.gymMode = true;
+      base.extraCheckins = true;
+    }
+    if (has("pro")) {
+      base.advancedPeriodization = true;
+    }
     return base;
+  }
+
+  function workoutDayTemplate(day, focus, warmup, blockA, blockB, cardio, cooldown) {
+    return [
+      day + " - " + focus,
+      "  Warm-up (8-12 min): " + warmup,
+      "  Block A: " + blockA,
+      "  Block B: " + blockB,
+      "  Cardio (12-20 min): " + cardio,
+      "  Cool-down (8-10 min): " + cooldown
+    ];
+  }
+
+  function buildWeeklySplit(caps) {
+    var plan = [];
+    if (caps.homeOnly) {
+      plan = plan.concat(
+        workoutDayTemplate(
+          "Day 1",
+          "Lower body + core (home)",
+          "marching in place, hip circles, ankle mobility",
+          "Goblet/bodyweight squat 4x12, reverse lunge 3x10/leg",
+          "Glute bridge 4x15, plank shoulder taps 3x16",
+          "Brisk walk or step-ups intervals",
+          "hamstring stretch, calf stretch, box breathing"
+        ),
+        workoutDayTemplate(
+          "Day 2",
+          "Upper push + posture (home)",
+          "band pull-aparts, wall slides, arm circles",
+          "Incline push-up 4x10, pike push-up 3x8",
+          "Chair dips 3x12, dead bug 3x12/side",
+          "Low-impact HIIT 30/30 x 12 rounds",
+          "chest opener, triceps stretch, thoracic rotations"
+        ),
+        workoutDayTemplate(
+          "Day 3",
+          "Conditioning + mobility",
+          "joint mobility flow, light skipping",
+          "Circuit 4 rounds: squat thrust x12, mountain climbers x30s",
+          "Single-leg RDL 3x10/leg, side plank 3x30s/side",
+          "Zone 2 cardio 20 min",
+          "long mobility flow + diaphragmatic breathing"
+        ),
+        workoutDayTemplate(
+          "Day 4",
+          "Lower strength endurance",
+          "glute activation + adductor rockbacks",
+          "Split squat 4x10/leg, tempo squat 3x12",
+          "Calf raise 4x20, hollow hold 3x30s",
+          "Bike/walk intervals 1:1 x 16 min",
+          "quad/hip-flexor stretches + recovery breathing"
+        ),
+        workoutDayTemplate(
+          "Day 5",
+          "Upper pull + core stability",
+          "band rows activation, scap circles",
+          "Resistance-band row 4x12, rear-delt fly 3x15",
+          "Biceps curl 3x12, suitcase carry 4x30m",
+          "Shadow boxing intervals 10-15 min",
+          "lat stretch, neck release, child pose"
+        ),
+        ["Day 6 - Active recovery walk + light stretching (25-45 min)"],
+        ["Day 7 - Rest, hydration, sleep target, and weekly check-in"]
+      );
+      return plan;
+    }
+    plan = plan.concat(
+      workoutDayTemplate(
+        "Day 1",
+        "Gym push (chest/shoulders/triceps)",
+        "5 min incline walk + shoulder prep",
+        "Bench press 4x6-8, incline DB press 3x8-10",
+        "Shoulder press 4x8, cable fly 3x12, triceps pushdown 3x12",
+        "Incline treadmill 15 min zone 2",
+        "pec stretch, shoulder stretch, breath down-regulation"
+      ),
+      workoutDayTemplate(
+        "Day 2",
+        "Gym lower (quads/glutes/core)",
+        "bike 6 min + hip mobility",
+        "Back squat 4x6-8, Romanian deadlift 4x8",
+        "Leg press 3x12, walking lunge 3x12/leg, plank 3x45s",
+        "Rower intervals 45/75 x 8",
+        "hamstring, hip-flexor, glute stretches"
+      ),
+      workoutDayTemplate(
+        "Day 3",
+        "Cardio + mobility reset",
+        "light jump rope + dynamic mobility",
+        "Zone 2 cardio 30-40 min",
+        "Core: dead bug 3x12/side, pallof press 3x12/side",
+        "Optional finisher bike 8 min",
+        "full-body stretch and foam rolling"
+      ),
+      workoutDayTemplate(
+        "Day 4",
+        "Gym pull (back/biceps)",
+        "lat activation + thoracic mobility",
+        "Deadlift or trap-bar deadlift 4x5",
+        "Lat pulldown 4x10, seated row 3x12, biceps curl 3x12",
+        "SkiErg intervals 12 min",
+        "lat stretch, forearm release, breathing"
+      ),
+      workoutDayTemplate(
+        "Day 5",
+        "Full-body hypertrophy + conditioning",
+        "dynamic warm-up + activation circuits",
+        "DB thruster 4x10, split squat 3x10/leg",
+        "Cable row 3x12, push-up 3xAMRAP, farmer carry 4x30m",
+        "Assault bike 10-15 min",
+        "recovery stretch flow + box breathing"
+      ),
+      ["Day 6 - Optional light cardio + mobility (30-40 min)"],
+      ["Day 7 - Rest, readiness score check, weekly report + progression"]
+    );
+    return plan;
   }
 
   function buildRoutine(input, flow, ownedPlans) {
@@ -260,26 +400,47 @@
     var caps = planCapabilities(flow, plans);
     var labels = plans.map(function (p) { return packageLabel(flow, p); });
     var lines = [];
+    var weekly = buildWeeklySplit(caps);
     lines.push("Active package(s): " + labels.join(" + "));
-    lines.push("Primary goal: " + (input.goal || "General wellness"));
-    lines.push("Training time: " + (input.wake || "Morning"));
-    lines.push("Daily routine:");
-    lines.push("- 10 min mobility and breathing warm-up");
-    lines.push("- 25 min focused workout adapted to " + (input.activity || "medium") + " activity level");
-    lines.push("- 15 min cool-down / stretch");
-    lines.push("- Evening check-in update with AI coach");
-    if (caps.homeOnly) {
-      lines.push("- Home-only training mode: no gym equipment required.");
-      lines.push("- AI adjusts daily intensity using your previous check-ins.");
-    }
+    lines.push("Goal focus: " + (input.goal || "General wellness"));
+    lines.push("Training window: " + (input.wake || "Morning"));
+    lines.push("Current activity level: " + (input.activity || "medium"));
+    lines.push("");
+    lines.push("Coach autonomy engine:");
+    lines.push("- AI runs weekly planning, daily session drafting, and end-of-day adaptation from check-ins.");
+    lines.push("- AI tracks intensity, recovery, mood, soreness, and completion before generating next day.");
+    lines.push("- AI auto-generates motivational nudges and sends reminders on your training schedule.");
+    lines.push("");
+    lines.push("7-day real workout blueprint:");
+    weekly.forEach(function (line) {
+      if (Array.isArray(line)) {
+        line.forEach(function (nested) { lines.push(nested); });
+        return;
+      }
+      lines.push(line);
+    });
+    lines.push("");
     if (caps.meals) {
-      lines.push("Meal guidance:");
+      lines.push("Meal and prep system (enabled):");
       lines.push("- Nutrition style: " + (input.diet || "Balanced"));
-      lines.push("- Meal prep: 2 prep blocks/week with shopping checklist");
-      lines.push("- Recovery hydration target and protein timing included");
+      lines.push("- Daily structure: breakfast, lunch, dinner, and one optional snack.");
+      lines.push("- Weekly prep: 2 prep blocks (Sun/Wed), shopping list, batch-cook guidance.");
+      lines.push("- Macros and portions are tuned by AI from weekly check-ins and target pace.");
+      lines.push("- Hydration, protein timing, and post-workout recovery meals are included.");
     } else {
-      lines.push("Package scope:");
-      lines.push("- Routine + updates only (meal plans unlock on Plus/Pro).");
+      lines.push("Nutrition scope:");
+      lines.push("- This package excludes meal plans by design.");
+      lines.push("- Upgrade from package 2+ to unlock complete meal prep and diet planning.");
+    }
+    lines.push("");
+    lines.push("Check-ins and progression:");
+    lines.push("- Daily check-in: workout complete, effort score (1-10), soreness, mood, and sleep.");
+    lines.push("- Weekly check-in: scale trend, body measurements, and adherence review.");
+    if (caps.extraCheckins) {
+      lines.push("- Mid-week coach intervention is active for faster correction and accountability.");
+    }
+    if (caps.advancedPeriodization) {
+      lines.push("- Pro periodization enabled: volume/intensity waves with deload recommendations.");
     }
     if (flow === "insurance") {
       lines.push("Insurance support:");
@@ -293,17 +454,28 @@
 
   function buildNotifications(flow, ownedPlans) {
     var plans = Array.isArray(ownedPlans) ? ownedPlans : [ownedPlans];
+    var caps = planCapabilities(flow, plans);
     var list = [
-      "Morning reminder: start your first routine block.",
-      "Update request: send your daily check-in to AI coach.",
-      "Progress checkpoint every 7 days with plan adjustment."
+      "06:30 - Warm-up alert: mobility + breathing starts in 15 minutes.",
+      "Post-workout - Log sets/reps completed so AI can tune tomorrow's intensity.",
+      "20:30 - Daily check-in: soreness, mood, sleep target, and encouragement message.",
+      "Sunday - Weekly review: progression, body-target split changes, and next plan draft."
     ];
-    if (flow === "coach" && (plans.indexOf("plus") >= 0 || plans.indexOf("pro") >= 0)) {
-      list.push("Meal prep alert: weekly prep checklist is ready.");
-      list.push("Nutrition update: AI adjusted meal portions for your goal.");
+    if (flow === "coach" && caps.meals) {
+      list.push("Meal prep alert: your shopping list and prep flow are ready.");
+      list.push("Nutrition update: AI adjusted portions and calories from check-in data.");
     }
-    if (flow === "coach" && plans.indexOf("ai-home") >= 0) {
-      list.push("Home workout ping: your no-equipment routine is ready.");
+    if (flow === "coach" && caps.homeOnly) {
+      list.push("Home session alert: no-equipment routine with clear reps/sets is ready.");
+    }
+    if (flow === "coach" && caps.gymMode) {
+      list.push("Gym lane alert: today's equipment-based split and rest timers are loaded.");
+    }
+    if (flow === "coach" && caps.extraCheckins) {
+      list.push("Mid-week intervention: coach AI detected drift and updated your next 3 sessions.");
+    }
+    if (flow === "coach" && caps.advancedPeriodization) {
+      list.push("Pro alert: periodization cycle updated (load progression + deload guidance).");
     }
     if (flow === "insurance") {
       list.push("Coverage update: keep routine logs for insurer wellness benefits.");
@@ -446,9 +618,469 @@
     });
   }
 
-  function renderAutoPlan(params, profile, out, list, planStatus, ownedPlans) {
+  function checkinStorageKey(params) {
+    var sid = String((params && params.sessionId) || (params && params.plan) || "default").trim();
+    return "vibecart-coach-checkins:" + sid;
+  }
+
+  function readCoachCheckins(params) {
+    try {
+      var raw = localStorage.getItem(checkinStorageKey(params));
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveCoachCheckins(params, rows) {
+    try {
+      localStorage.setItem(checkinStorageKey(params), JSON.stringify(Array.isArray(rows) ? rows.slice(-40) : []));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function summarizeRecentCheckins(rows) {
+    var list = Array.isArray(rows) ? rows.slice(-7) : [];
+    if (!list.length) {
+      return { adherence: "unknown", avgEffort: 0, avgSleep: "unknown", trend: "No check-ins yet" };
+    }
+    var done = 0;
+    var effortTotal = 0;
+    var effortN = 0;
+    var poorSleep = 0;
+    list.forEach(function (row) {
+      var completed = String(row && row.completed || "").toLowerCase();
+      if (completed === "yes" || completed === "partial") {
+        done += 1;
+      }
+      var ef = Number(row && row.effort || 0);
+      if (Number.isFinite(ef) && ef > 0) {
+        effortTotal += ef;
+        effortN += 1;
+      }
+      if (String(row && row.sleep || "").toLowerCase() === "poor") {
+        poorSleep += 1;
+      }
+    });
+    var adherenceRatio = done / Math.max(1, list.length);
+    return {
+      adherence: adherenceRatio >= 0.8 ? "high" : adherenceRatio >= 0.5 ? "medium" : "low",
+      avgEffort: effortN ? Number((effortTotal / effortN).toFixed(1)) : 0,
+      avgSleep: poorSleep >= 3 ? "poor" : poorSleep >= 1 ? "mixed" : "good",
+      trend:
+        "Last " +
+        list.length +
+        " check-ins: adherence " +
+        Math.round(adherenceRatio * 100) +
+        "%, avg effort " +
+        (effortN ? Number((effortTotal / effortN).toFixed(1)) : "n/a") +
+        ", sleep " +
+        (poorSleep >= 3 ? "struggling" : poorSleep >= 1 ? "mixed" : "stable")
+    };
+  }
+
+  var EXERCISE_LIBRARY = [
+    {
+      id: "bodyweight-squat",
+      label: "Bodyweight Squat",
+      category: "lower-body",
+      video: "https://cdn.pixabay.com/video/2020/11/11/54708-479595454_large.mp4",
+      setup: "Feet shoulder-width, toes slightly out, core braced, chest tall.",
+      execution: ["Push hips back first.", "Bend knees and lower until thighs are near parallel.", "Drive through mid-foot to stand tall."],
+      repForm: ["Knees track over toes.", "Spine stays neutral; avoid rounding.", "Control down for 2 seconds, stand with intent."],
+      mistakes: ["Knees collapsing inward.", "Heels lifting off floor.", "Dropping chest too far forward."]
+    },
+    {
+      id: "goblet-squat",
+      label: "Goblet Squat",
+      category: "lower-body",
+      video: "https://cdn.pixabay.com/video/2021/09/03/87299-597760557_large.mp4",
+      setup: "Hold dumbbell close to chest, elbows down, stance shoulder-width.",
+      execution: ["Inhale and brace.", "Sit down between hips keeping torso upright.", "Press floor away and exhale at top."],
+      repForm: ["Keep dumbbell close to sternum.", "Full foot contact throughout rep.", "Hips and shoulders rise together."],
+      mistakes: ["Letting weight drift forward.", "Rushing bottom position.", "Locking knees hard at top."]
+    },
+    {
+      id: "reverse-lunge",
+      label: "Reverse Lunge",
+      category: "lower-body",
+      video: "https://cdn.pixabay.com/video/2022/01/31/106302-683050663_large.mp4",
+      setup: "Stand tall, feet hip-width, core tight, eyes forward.",
+      execution: ["Step one leg backward.", "Lower both knees under control.", "Drive front heel to return to standing."],
+      repForm: ["Front knee stays stacked over mid-foot.", "Torso remains vertical.", "Move smoothly with balanced tempo."],
+      mistakes: ["Overstriding backward.", "Front heel lifting.", "Leaning torso excessively forward."]
+    },
+    {
+      id: "romanian-deadlift",
+      label: "Romanian Deadlift",
+      category: "posterior-chain",
+      video: "https://cdn.pixabay.com/video/2021/10/06/91189-624522764_large.mp4",
+      setup: "Soft knees, weight close to thighs, lats engaged, spine neutral.",
+      execution: ["Hinge hips back while sliding weight down thighs.", "Pause when hamstrings are loaded.", "Drive hips forward to stand."],
+      repForm: ["Bar/dumbbells stay close to body.", "Neck stays neutral.", "Hinge from hips, not lower back."],
+      mistakes: ["Turning hinge into squat.", "Rounding lower back.", "Shrugging shoulders upward."]
+    },
+    {
+      id: "push-up",
+      label: "Push-up",
+      category: "upper-body",
+      video: "https://cdn.pixabay.com/video/2020/10/11/52033-467543551_large.mp4",
+      setup: "Hands slightly wider than shoulders, body in straight line, glutes tight.",
+      execution: ["Lower chest toward floor with elbows at 30-45 degrees.", "Touch depth consistently.", "Press back to full lockout."],
+      repForm: ["Ribs down, no sagging hips.", "Neck neutral.", "Control descent and explosive press."],
+      mistakes: ["Flaring elbows too wide.", "Partial range reps.", "Hips dropping or piking."]
+    },
+    {
+      id: "bench-press",
+      label: "Bench Press",
+      category: "upper-body",
+      video: "https://cdn.pixabay.com/video/2023/05/08/162060-825302248_large.mp4",
+      setup: "Feet planted, shoulder blades retracted, grip even, wrists stacked.",
+      execution: ["Unrack with straight wrists.", "Lower bar to mid-chest under control.", "Press bar up and slightly back."],
+      repForm: ["Forearms vertical at bottom.", "Light arch in upper back only.", "Bar path consistent each rep."],
+      mistakes: ["Bouncing bar off chest.", "Loose shoulder position.", "Overextending wrists."]
+    },
+    {
+      id: "shoulder-press",
+      label: "Dumbbell Shoulder Press",
+      category: "upper-body",
+      video: "https://cdn.pixabay.com/video/2022/03/17/110914-689803180_large.mp4",
+      setup: "Core braced, glutes tight, dumbbells at shoulder level.",
+      execution: ["Press weights overhead in line with ears.", "Control down to shoulder line.", "Repeat with stable torso."],
+      repForm: ["Avoid excessive lower-back arch.", "Move through full range.", "Keep elbows under wrists."],
+      mistakes: ["Pressing in front of body.", "Shrugging aggressively.", "Using leg drive unintentionally."]
+    },
+    {
+      id: "seated-row",
+      label: "Seated Cable Row",
+      category: "upper-body",
+      video: "https://cdn.pixabay.com/video/2022/07/03/122777-728016188_large.mp4",
+      setup: "Neutral spine, chest lifted, shoulders down, soft knees.",
+      execution: ["Pull handle toward lower ribs.", "Squeeze shoulder blades together.", "Return with control to full stretch."],
+      repForm: ["Lead with elbows, not wrists.", "Torso stays mostly still.", "Use full scapular motion."],
+      mistakes: ["Jerking torso backward.", "Shortening range of motion.", "Rounded upper back."]
+    },
+    {
+      id: "lat-pulldown",
+      label: "Lat Pulldown",
+      category: "upper-body",
+      video: "https://cdn.pixabay.com/video/2023/05/10/162334-825829694_large.mp4",
+      setup: "Set thigh pad secure, chest up, slight lean back.",
+      execution: ["Pull bar to upper chest.", "Pause with elbows down and back.", "Control bar up to full stretch."],
+      repForm: ["Keep shoulders away from ears.", "No momentum swinging.", "Full stretch at top each rep."],
+      mistakes: ["Pulling bar behind neck.", "Leaning too far back.", "Rushing the eccentric phase."]
+    },
+    {
+      id: "glute-bridge",
+      label: "Glute Bridge",
+      category: "posterior-chain",
+      video: "https://cdn.pixabay.com/video/2023/03/28/156673-813010203_large.mp4",
+      setup: "Lie on back, knees bent, feet flat under knees, core braced.",
+      execution: ["Drive through heels and lift hips.", "Squeeze glutes at top for one second.", "Lower with control."],
+      repForm: ["Ribs down, pelvis neutral.", "No over-arching lower back.", "Keep knees tracking forward."],
+      mistakes: ["Pushing from toes.", "Hyperextending spine.", "Losing glute squeeze at top."]
+    },
+    {
+      id: "plank",
+      label: "Forearm Plank",
+      category: "core",
+      video: "https://cdn.pixabay.com/video/2021/04/26/72357-541492789_large.mp4",
+      setup: "Elbows under shoulders, feet hip-width, straight line head-to-heel.",
+      execution: ["Brace abs and glutes.", "Breathe steadily without losing position.", "Hold prescribed time."],
+      repForm: ["Neutral pelvis and spine.", "Push floor away with forearms.", "Maintain tension on every second."],
+      mistakes: ["Hips sagging.", "Hips too high.", "Holding breath throughout set."]
+    },
+    {
+      id: "dead-bug",
+      label: "Dead Bug",
+      category: "core",
+      video: "https://cdn.pixabay.com/video/2023/04/26/160252-821390951_large.mp4",
+      setup: "Lie on back, arms up, knees at 90 degrees, ribs down.",
+      execution: ["Extend opposite arm and leg slowly.", "Keep lower back gently pressed down.", "Return and alternate sides."],
+      repForm: ["Move slow and controlled.", "No rib flare.", "Exhale on extension for better brace."],
+      mistakes: ["Moving too fast.", "Arching lower back.", "Losing limb control."]
+    },
+    {
+      id: "mountain-climber",
+      label: "Mountain Climber",
+      category: "cardio",
+      video: "https://cdn.pixabay.com/video/2021/11/07/96855-643782441_large.mp4",
+      setup: "High plank position, shoulders stacked over wrists.",
+      execution: ["Drive one knee toward chest.", "Alternate legs rhythmically.", "Maintain strong plank line."],
+      repForm: ["Keep hips level.", "Land feet softly.", "Keep shoulders stable over hands."],
+      mistakes: ["Bouncing hips high.", "Short knee drive.", "Collapsing upper back."]
+    },
+    {
+      id: "jumping-jacks",
+      label: "Jumping Jacks",
+      category: "cardio",
+      video: "https://cdn.pixabay.com/video/2021/08/04/84157-583391326_large.mp4",
+      setup: "Stand tall, arms by sides, core lightly engaged.",
+      execution: ["Jump feet out as arms rise overhead.", "Jump feet in as arms return down.", "Keep steady breathing rhythm."],
+      repForm: ["Land softly on balls of feet.", "Maintain upright posture.", "Use full arm range."],
+      mistakes: ["Hard noisy landings.", "Shallow arm movement.", "Holding breath."]
+    },
+    {
+      id: "incline-walk",
+      label: "Incline Treadmill Walk",
+      category: "cardio",
+      video: "https://cdn.pixabay.com/video/2020/11/11/54695-479594385_large.mp4",
+      setup: "Set incline and speed to sustainable effort zone.",
+      execution: ["Walk with long controlled steps.", "Maintain nasal or controlled mouth breathing.", "Sustain target duration."],
+      repForm: ["Keep chest up and shoulders relaxed.", "Avoid leaning heavily on rails.", "Consistent pace over spikes."],
+      mistakes: ["Hanging on handrails.", "Too high speed causing poor mechanics.", "Overstriding."]
+    },
+    {
+      id: "dynamic-stretch-flow",
+      label: "Dynamic Stretch Flow",
+      category: "mobility",
+      video: "https://cdn.pixabay.com/video/2022/01/21/104921-668844087_large.mp4",
+      setup: "Start standing with relaxed breathing and controlled tempo.",
+      execution: ["Move through hips, hamstrings, thoracic spine, and ankles.", "Use smooth transitions between stretches.", "Complete both sides evenly."],
+      repForm: ["Never force painful range.", "Control breath with each movement.", "Keep motions deliberate and fluid."],
+      mistakes: ["Bouncing aggressively.", "Skipping tight areas.", "Moving too fast to control form."]
+    }
+  ];
+
+  function renderExerciseLibrary(categoryEl, exerciseEl, detailEl) {
+    if (!categoryEl || !exerciseEl || !detailEl) {
+      return;
+    }
+    var categories = ["all"];
+    EXERCISE_LIBRARY.forEach(function (x) {
+      if (categories.indexOf(x.category) < 0) {
+        categories.push(x.category);
+      }
+    });
+    categoryEl.innerHTML = categories
+      .map(function (cat) {
+        var label = cat === "all" ? "All categories" : cat.replace(/-/g, " ");
+        return "<option value=\"" + cat + "\">" + label + "</option>";
+      })
+      .join("");
+
+    function refreshExerciseOptions() {
+      var selectedCategory = String(categoryEl.value || "all");
+      var options = EXERCISE_LIBRARY.filter(function (x) {
+        return selectedCategory === "all" || x.category === selectedCategory;
+      });
+      exerciseEl.innerHTML = options
+        .map(function (x) {
+          return "<option value=\"" + x.id + "\">" + x.label + "</option>";
+        })
+        .join("");
+      if (options[0]) {
+        paintExerciseDetail(options[0].id);
+      } else {
+        detailEl.innerHTML = "<p class=\"note\">No exercise loaded for this category.</p>";
+      }
+    }
+
+    function paintExerciseDetail(exerciseId) {
+      var item = EXERCISE_LIBRARY.find(function (x) {
+        return x.id === exerciseId;
+      });
+      if (!item) {
+        detailEl.innerHTML = "<p class=\"note\">Exercise not found.</p>";
+        return;
+      }
+      function listHtml(title, rows) {
+        var list = (Array.isArray(rows) ? rows : [])
+          .map(function (row) {
+            return "<li>" + String(row || "") + "</li>";
+          })
+          .join("");
+        return "<h4 style=\"margin:0.55rem 0 0.35rem;\">" + title + "</h4><ul class=\"buyer-adv-list\" style=\"margin:0;\">" + list + "</ul>";
+      }
+      detailEl.innerHTML =
+        "<p class=\"note\" style=\"margin:0;\"><strong>" + item.label + "</strong> · " + item.category.replace(/-/g, " ") + "</p>" +
+        "<video controls playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:280px;object-fit:cover;margin-top:0.55rem;\">" +
+        "<source src=\"" + item.video + "\" type=\"video/mp4\"/>" +
+        "</video>" +
+        "<h4 style=\"margin:0.55rem 0 0.35rem;\">Setup</h4><p class=\"note\" style=\"margin:0;\">" + item.setup + "</p>" +
+        listHtml("Execution steps", item.execution) +
+        listHtml("Rep form cues", item.repForm) +
+        listHtml("Common mistakes to avoid", item.mistakes);
+    }
+
+    categoryEl.addEventListener("change", refreshExerciseOptions);
+    exerciseEl.addEventListener("change", function () {
+      paintExerciseDetail(String(exerciseEl.value || ""));
+    });
+    refreshExerciseOptions();
+  }
+
+  var EXERCISE_ALIASES = {
+    "bodyweight-squat": ["squat", "bodyweight squat"],
+    "goblet-squat": ["goblet squat"],
+    "reverse-lunge": ["reverse lunge", "lunge", "walking lunge", "split squat"],
+    "romanian-deadlift": ["romanian deadlift", "rdl", "deadlift", "trap-bar deadlift"],
+    "push-up": ["push-up", "push up", "incline push-up", "pike push-up"],
+    "bench-press": ["bench press", "incline db press", "incline press"],
+    "shoulder-press": ["shoulder press", "overhead press", "dumbbell shoulder press"],
+    "seated-row": ["seated row", "cable row", "row"],
+    "lat-pulldown": ["lat pulldown", "pulldown"],
+    "glute-bridge": ["glute bridge", "hip bridge"],
+    "plank": ["plank", "side plank"],
+    "dead-bug": ["dead bug"],
+    "mountain-climber": ["mountain climber", "mountain climbers"],
+    "jumping-jacks": ["jumping jack", "jumping jacks"],
+    "incline-walk": ["incline walk", "treadmill walk", "zone 2 cardio", "zone 2"],
+    "dynamic-stretch-flow": ["dynamic stretch", "mobility flow", "stretch", "cool-down", "cooldown"]
+  };
+
+  function detectExercisesFromRoutineText(routineText) {
+    var text = String(routineText || "").toLowerCase();
+    var ids = [];
+    Object.keys(EXERCISE_ALIASES).forEach(function (id) {
+      var aliases = EXERCISE_ALIASES[id] || [];
+      var hit = aliases.some(function (needle) {
+        return text.indexOf(String(needle || "").toLowerCase()) >= 0;
+      });
+      if (hit) {
+        ids.push(id);
+      }
+    });
+    return ids;
+  }
+
+  function detectExercisesInLine(line) {
+    var text = String(line || "").toLowerCase();
+    var ids = [];
+    Object.keys(EXERCISE_ALIASES).forEach(function (id) {
+      var aliases = EXERCISE_ALIASES[id] || [];
+      var hit = aliases.some(function (needle) {
+        return text.indexOf(String(needle || "").toLowerCase()) >= 0;
+      });
+      if (hit && ids.indexOf(id) < 0) {
+        ids.push(id);
+      }
+    });
+    return ids;
+  }
+
+  function detectExercisesByDay(routineText) {
+    var lines = String(routineText || "").split(/\r?\n/);
+    var groups = [];
+    var current = null;
+    lines.forEach(function (rawLine) {
+      var line = String(rawLine || "").trim();
+      if (!line) {
+        return;
+      }
+      if (/^day\s*\d+\b/i.test(line)) {
+        current = { day: line, ids: [] };
+        groups.push(current);
+        return;
+      }
+      if (!current) {
+        return;
+      }
+      var found = detectExercisesInLine(line);
+      found.forEach(function (id) {
+        if (current.ids.indexOf(id) < 0) {
+          current.ids.push(id);
+        }
+      });
+    });
+    return groups.filter(function (g) { return Array.isArray(g.ids) && g.ids.length > 0; }).slice(0, 7);
+  }
+
+  function renderRoutineExerciseLinks(containerEl, routineText, onPickExercise) {
+    if (!containerEl) {
+      return;
+    }
+    var ids = detectExercisesFromRoutineText(routineText);
+    var dayGroups = detectExercisesByDay(routineText);
+    if (!ids.length) {
+      containerEl.innerHTML = "";
+      return;
+    }
+    var items = ids
+      .map(function (id) {
+        var item = EXERCISE_LIBRARY.find(function (x) { return x.id === id; });
+        if (!item) {
+          return "";
+        }
+        return (
+          "<button type=\"button\" class=\"btn btn-secondary\" data-exercise-id=\"" +
+          item.id +
+          "\" style=\"padding:0.38rem 0.7rem;font-size:0.78rem\">" +
+          item.label +
+          "</button>"
+        );
+      })
+      .filter(Boolean);
+    var groupedHtml = "";
+    if (dayGroups.length) {
+      groupedHtml =
+        "<div style=\"width:100%\">" +
+        dayGroups
+          .map(function (g) {
+            var buttons = g.ids
+              .map(function (id) {
+                var item = EXERCISE_LIBRARY.find(function (x) { return x.id === id; });
+                if (!item) return "";
+                return (
+                  "<button type=\"button\" class=\"btn btn-secondary\" data-exercise-id=\"" +
+                  item.id +
+                  "\" style=\"padding:0.32rem 0.62rem;font-size:0.74rem;margin:0 0.28rem 0.28rem 0;\">" +
+                  item.label +
+                  "</button>"
+                );
+              })
+              .filter(Boolean)
+              .join("");
+            return (
+              "<article class=\"section alt\" style=\"padding:0.55rem;margin:0.38rem 0;\">" +
+              "<p class=\"note\" style=\"margin:0 0 0.25rem;\"><strong>" + g.day + "</strong> · watch form for today's exercises</p>" +
+              buttons +
+              "</article>"
+            );
+          })
+          .join("") +
+        "</div>";
+    }
+    containerEl.innerHTML =
+      "<p class=\"note\" style=\"margin:0 0 0.2rem;width:100%;\">Quick form shortcuts from this routine:</p>" +
+      (groupedHtml || items.join(""));
+    if (typeof onPickExercise === "function") {
+      Array.prototype.slice.call(containerEl.querySelectorAll("button[data-exercise-id]")).forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var id = String(btn.getAttribute("data-exercise-id") || "").trim();
+          if (id) {
+            onPickExercise(id);
+          }
+        });
+      });
+    }
+  }
+
+  function formatStructuredWeekPlan(ai) {
+    var week = Array.isArray(ai && ai.weekPlan) ? ai.weekPlan : [];
+    if (!week.length) {
+      return "";
+    }
+    var lines = ["", "AI structured weekly schedule:"];
+    week.slice(0, 7).forEach(function (day, index) {
+      var dayLabel = String((day && day.day) || ("Day " + (index + 1))).trim();
+      var focus = String((day && day.focus) || "Training focus").trim();
+      lines.push(dayLabel + " - " + focus);
+      lines.push("  Warm-up: " + String((day && day.warmup) || "Mobility + activation").trim());
+      lines.push("  Main: " + String((day && day.main) || "Primary strength block").trim());
+      lines.push("  Cardio: " + String((day && day.cardio) || "Zone 2 or intervals").trim());
+      lines.push("  Cool-down: " + String((day && day.cooldown) || "Stretch + breathing").trim());
+    });
+    return lines.join("\n");
+  }
+
+  function renderAutoPlan(params, profile, out, list, planStatus, ownedPlans, automationCtx) {
     var routine = buildRoutine(profile, params.flow, ownedPlans);
     var notifications = buildNotifications(params.flow, ownedPlans);
+    var checkins = readCoachCheckins(params);
+    var checkinSummary = summarizeRecentCheckins(checkins);
 
     function commitPlan(r, n, sourceTag) {
       if (out) {
@@ -483,8 +1115,18 @@
       if (planStatus) {
         planStatus.textContent =
           sourceTag === "generative"
-            ? "Generative AI plan loaded. Refine fields above and tap Refine to regenerate."
+            ? "Live AI autopilot loaded. Plan adapts from your check-ins and package capabilities."
             : "AI plan is activated. All purchased package benefits are unlocked.";
+      }
+      if (automationCtx && automationCtx.checkinStatusEl) {
+        automationCtx.checkinStatusEl.textContent = checkinSummary.trend;
+      }
+      if (automationCtx && automationCtx.routineExerciseLinksEl) {
+        renderRoutineExerciseLinks(
+          automationCtx.routineExerciseLinksEl,
+          r,
+          typeof automationCtx.onPickExercise === "function" ? automationCtx.onPickExercise : null
+        );
       }
     }
 
@@ -517,7 +1159,9 @@
           activity: profile.activity || "",
           wake: profile.wake || "",
           notes: profile.notes || ""
-        }
+        },
+        recentCheckins: checkins.slice(-12),
+        checkinSummary: checkinSummary
       })
       .then(function (ai) {
         if (!ai) {
@@ -532,11 +1176,39 @@
               })
               .filter(Boolean)
           : [];
+        var structuredRoutine = formatStructuredWeekPlan(ai);
+        if (structuredRoutine) {
+          r = r + "\n" + structuredRoutine;
+        }
+        var adaptation = String(ai.adaptationNote || "").trim();
+        if (adaptation) {
+          r += "\n\nAutopilot adaptation:\n- " + adaptation;
+        }
+        var mealPlan = ai.mealPlan && typeof ai.mealPlan === "object" ? ai.mealPlan : null;
+        if (mealPlan && mealPlan.enabled) {
+          var mealLines = Array.isArray(mealPlan.dailyTemplate) ? mealPlan.dailyTemplate.filter(Boolean).slice(0, 6) : [];
+          var prepLines = Array.isArray(mealPlan.prepBlocks) ? mealPlan.prepBlocks.filter(Boolean).slice(0, 4) : [];
+          if (mealLines.length || prepLines.length) {
+            r += "\n\nMeal autopilot:";
+            mealLines.forEach(function (line) {
+              r += "\n- " + String(line).trim();
+            });
+            prepLines.forEach(function (line) {
+              r += "\n- Prep: " + String(line).trim();
+            });
+          }
+        }
         if (r.length < 60 || n.length < 5) {
           pushFirstLine(notifications);
           return;
         }
         commitPlan(r, n, "generative");
+        if (planStatus) {
+          var modelName = String(ai.model || "").trim();
+          if (modelName) {
+            planStatus.textContent = "Live AI autopilot active (" + modelName + "). Plan updates from your check-ins.";
+          }
+        }
         pushFirstLine(n);
         var tok = getPublicAuthToken();
         if (tok && n[0]) {
@@ -572,61 +1244,159 @@
     return "there";
   }
 
-  function renderPlanVisuals(flow, ownedPlans) {
+  function packageBlueprint(planCode) {
+    var p = normalizePlan(planCode);
+    if (p === "ai-home") {
+      return {
+        name: "AI Home + Meals",
+        level: "Level 2",
+        promise: "Home-first coaching with complete meal structure and prep automation.",
+        chips: ["No equipment", "Meal plan active", "Daily adaptive plan"],
+        focusDays: ["Mon: Lower + core", "Tue: Upper push", "Wed: Cardio + mobility", "Thu: Lower endurance", "Fri: Upper pull", "Sat: Active recovery", "Sun: Rest + review"],
+        media: [
+          { kind: "image", title: "Home workout form", src: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80" },
+          { kind: "image", title: "Meal prep layout", src: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80" },
+          { kind: "video", title: "Short mobility warm-up", src: "https://cdn.pixabay.com/video/2020/11/11/54708-479595454_large.mp4" }
+        ],
+        blocks: [
+          { title: "Today in 3 blocks", body: "Warm-up 10 min, home strength 30-40 min, cardio 15 min, cool-down 10 min." },
+          { title: "Meal autopilot", body: "Breakfast-lunch-dinner template + prep checklists (Sun/Wed) and shopping flow." },
+          { title: "Coach pressure points", body: "Missed session rescue, soreness-safe alternatives, and motivation nudges." }
+        ]
+      };
+    }
+    if (p === "plus") {
+      return {
+        name: "Coach Plus Gym",
+        level: "Level 3",
+        promise: "Gym-equipment programming with meal prep and stronger progression control.",
+        chips: ["Gym split", "Meal plan active", "Mid-week intervention"],
+        focusDays: ["Mon: Push strength", "Tue: Lower strength", "Wed: Conditioning", "Thu: Pull strength", "Fri: Full-body hypertrophy", "Sat: Optional cardio", "Sun: Recovery"],
+        media: [
+          { kind: "image", title: "Gym strength day", src: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80" },
+          { kind: "image", title: "Cardio conditioning", src: "https://images.unsplash.com/photo-1549476464-37392f717541?auto=format&fit=crop&w=1200&q=80" },
+          { kind: "video", title: "Short cardio finisher", src: "https://cdn.pixabay.com/video/2020/10/11/52033-467543551_large.mp4" }
+        ],
+        blocks: [
+          { title: "Today in 3 blocks", body: "Warm-up 8-12 min, gym lifts with sets/reps/rest, conditioning finisher, stretch." },
+          { title: "Performance meals", body: "Portion and macro-focused meal plan updated from effort/sleep/soreness trends." },
+          { title: "Accountability lane", body: "Daily check-ins + mid-week AI correction if adherence drops." }
+        ]
+      };
+    }
+    if (p === "pro") {
+      return {
+        name: "Coach Pro Elite",
+        level: "Level 4",
+        promise: "Full-stack coaching with advanced periodization, analytics, and high-touch interventions.",
+        chips: ["Advanced periodization", "Gym + meal mastery", "Elite accountability"],
+        focusDays: ["Mon: Heavy push", "Tue: Heavy lower", "Wed: Recovery + zone 2", "Thu: Heavy pull", "Fri: Dynamic full-body", "Sat: Skill/cardio", "Sun: Readiness + deload check"],
+        media: [
+          { kind: "image", title: "Elite lifting block", src: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80" },
+          { kind: "image", title: "Recovery and stretch", src: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80" },
+          { kind: "video", title: "Short stretch cooldown", src: "https://cdn.pixabay.com/video/2021/04/26/72357-541492789_large.mp4" }
+        ],
+        blocks: [
+          { title: "Today in 3 blocks", body: "Dynamic warm-up, periodized lift targets, cardio dosage, and deep cool-down protocol." },
+          { title: "Elite fuel engine", body: "Adaptive nutrition templates, prep blocks, and recovery meal timing automation." },
+          { title: "Performance analytics", body: "Fatigue trend tracking, readiness score, and automatic load/deload recommendations." }
+        ]
+      };
+    }
+    return {
+      name: "Starter Coach",
+      level: "Level 1",
+      promise: "Simple, powerful workout coaching to build consistency first.",
+      chips: ["Workout only", "No meal plan", "Daily motivation"],
+      focusDays: ["Mon: Lower + core", "Tue: Upper push", "Wed: Cardio + stretch", "Thu: Lower strength", "Fri: Upper pull", "Sat: Mobility walk", "Sun: Rest + check-in"],
+      media: [
+        { kind: "image", title: "Starter movement guide", src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80" },
+        { kind: "image", title: "Cardio basics", src: "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=1200&q=80" },
+        { kind: "video", title: "Short warm-up routine", src: "https://cdn.pixabay.com/video/2023/03/28/156673-813010203_large.mp4" }
+      ],
+      blocks: [
+        { title: "Today in 3 blocks", body: "Warm-up 10 min, focused workout 25-35 min, cardio/cool-down 15-20 min." },
+        { title: "Scope clarity", body: "No meal planning in this package. Upgrade from package 2 for nutrition automation." },
+        { title: "Consistency engine", body: "Daily reminder + quick check-in + encouragement to keep momentum." }
+      ]
+    };
+  }
+
+  function renderPlanVisuals(flow, ownedPlans, checkinSummary) {
     var wrap = byId("planVisuals");
     if (!wrap) return;
     var plans = Array.isArray(ownedPlans) ? ownedPlans.slice() : [ownedPlans];
-    var cards = [];
-    if (flow === "coach") {
-      cards.push({
-        title: "Workout lane",
-        img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80",
-        note: "Gym-aligned training visuals for your active package only."
-      });
-      if (plans.indexOf("plus") >= 0 || plans.indexOf("pro") >= 0) {
-        cards.push({
-          title: "Meal lane",
-          img: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80",
-          note: "Health meal guidance is active for Plus/Pro package holders."
-        });
-      }
-      if (plans.indexOf("ai-home") >= 0) {
-        cards.push({
-          title: "Home workout lane",
-          img: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80",
-          note: "No-equipment visuals for your AI Home package."
-        });
-      }
-    } else if (flow === "insurance") {
-      cards.push({
-        title: "Wellness compliance lane",
-        img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
-        note: "Insurance wellness dashboard for your paid package."
-      });
-    }
-    if (!cards.length) {
-      wrap.innerHTML = "<p class=\"note\">No purchased package visuals available yet.</p>";
+    if (flow !== "coach") {
+      wrap.innerHTML =
+        "<article class=\"section alt\" style=\"padding:0.9rem\">" +
+        "<h3>Wellness compliance lane</h3>" +
+        "<p class=\"note\">Insurance wellness dashboard for your paid package.</p>" +
+        "</article>";
       return;
     }
-    wrap.innerHTML = cards
-      .map(function (card) {
+    var trend = (checkinSummary && checkinSummary.trend) || "No recent check-ins yet. Submit one to activate adaptation scoring.";
+    var cards = plans.map(function (planCode) {
+      var spec = packageBlueprint(planCode);
+      var chipsHtml = (spec.chips || [])
+        .map(function (chip) {
+          return "<span style=\"display:inline-block;padding:0.22rem 0.55rem;border-radius:999px;border:1px solid rgba(255,255,255,0.2);font-size:0.76rem;margin:0 0.3rem 0.3rem 0;\">" + chip + "</span>";
+        })
+        .join("");
+      var dayHtml = (spec.focusDays || [])
+        .map(function (line) {
+          return "<li>" + line + "</li>";
+        })
+        .join("");
+      var mediaHtml = (spec.media || [])
+        .map(function (item) {
+          if (String(item.kind || "") === "video") {
         return (
-          "<article class=\"section alt\" style=\"padding:0.75rem\">" +
-          "<img src=\"" +
-          card.img +
-          "\" alt=\"" +
-          card.title +
-          "\" style=\"width:100%;border-radius:0.8rem;display:block;max-height:220px;object-fit:cover\"/>" +
-          "<h3 style=\"margin-top:0.55rem\">" +
-          card.title +
-          "</h3>" +
-          "<p class=\"note\">" +
-          card.note +
-          "</p>" +
+              "<article style=\"margin:0.45rem 0;\">" +
+              "<p class=\"note\" style=\"margin:0 0 0.3rem;\"><strong>" + String(item.title || "Coach clip") + "</strong></p>" +
+              "<video controls muted playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\">" +
+              "<source src=\"" + String(item.src || "") + "\" type=\"video/mp4\"/>" +
+              "</video>" +
+              "</article>"
+            );
+          }
+          return (
+            "<article style=\"margin:0.45rem 0;\">" +
+            "<img src=\"" + String(item.src || "") + "\" alt=\"" + String(item.title || "Coach illustration") + "\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\"/>" +
+            "<p class=\"note\" style=\"margin:0.25rem 0 0;\"><strong>" + String(item.title || "Coach illustration") + "</strong></p>" +
           "</article>"
         );
       })
       .join("");
+      var blockHtml = (spec.blocks || [])
+        .map(function (block) {
+          return (
+            "<article class=\"section alt\" style=\"padding:0.65rem;margin:0.45rem 0;\">" +
+            "<h4 style=\"margin:0 0 0.35rem;\">" + block.title + "</h4>" +
+            "<p class=\"note\" style=\"margin:0;\">" + block.body + "</p>" +
+            "</article>"
+          );
+        })
+        .join("");
+      return (
+        "<article class=\"section alt\" style=\"padding:0.9rem;\">" +
+        "<p class=\"note\" style=\"margin:0 0 0.25rem;letter-spacing:0.04em;text-transform:uppercase;\">" + spec.level + "</p>" +
+        "<h3 style=\"margin:0 0 0.4rem;\">" + spec.name + "</h3>" +
+        "<p class=\"note\" style=\"margin:0 0 0.55rem;\">" + spec.promise + "</p>" +
+        "<div>" + chipsHtml + "</div>" +
+        blockHtml +
+        "<h4 style=\"margin:0.5rem 0 0.35rem;\">Weekly body-focus split</h4>" +
+        "<ul class=\"buyer-adv-list\" style=\"margin:0;\">" + dayHtml + "</ul>" +
+        "<h4 style=\"margin:0.65rem 0 0.35rem;\">Illustrative media</h4>" +
+        mediaHtml +
+        "</article>"
+      );
+    });
+    wrap.innerHTML =
+      "<article class=\"section alt\" style=\"padding:0.9rem;background:rgba(255,255,255,0.04);\">" +
+      "<h3 style=\"margin:0 0 0.35rem;\">Autopilot trend snapshot</h3>" +
+      "<p class=\"note\" style=\"margin:0;\">" + trend + "</p>" +
+      "</article>" +
+      cards.join("");
   }
 
   function mergeUrlParamsIntoPaidPlans(params, paidPlans) {
@@ -677,6 +1447,11 @@
       .then(function (x) {
         var st = x.st;
         var body = x.body;
+        try {
+          window.__vibecartCoachRenewalState = body && body.renewal ? body.renewal : null;
+        } catch {
+          /* ignore */
+        }
         try {
           window.__vibecartCoachHydrateLast = {
             at: Date.now(),
@@ -791,6 +1566,9 @@
     planViewModeEl,
     paidPlans
   ) {
+    var renewalLockWrap = byId("workspaceRenewalLock");
+    var renewalLockText = byId("workspaceRenewalLockText");
+    var renewNowBtn = byId("renewNowBtn");
     var current = paidPlans[0];
     if (!params.sessionId && !params.plan) {
       params.plan = current.plan;
@@ -814,11 +1592,68 @@
     var ownedPlans = params.flow === "coach"
       ? (ownedCoachPlans.length ? ownedCoachPlans : [normalizePlan(params.plan)])
       : [normalizePlan(params.plan)];
+    var routineExerciseLinksEl = byId("routineExerciseLinks");
+    var exerciseCategoryEl = byId("exerciseCategorySelect");
+    var exerciseEl = byId("exerciseSelect");
+    var exerciseDetailEl = byId("exerciseFormDetail");
+    renderExerciseLibrary(exerciseCategoryEl, exerciseEl, exerciseDetailEl);
 
     if (ownedPlansEl) {
       ownedPlansEl.textContent = ownedPlans
         .map(function (planCode) { return packageLabel(params.flow, planCode); })
         .join(" + ");
+    }
+    var renewal = null;
+    try {
+      renewal = window.__vibecartCoachRenewalState || null;
+    } catch {
+      renewal = null;
+    }
+    var renewalLocked = Boolean(renewal && renewal.locked && params.flow === "coach");
+    if (renewalLockWrap) {
+      renewalLockWrap.hidden = !renewalLocked;
+    }
+    if (renewalLocked) {
+      var renewPlan = normalizePlan((renewal && renewal.subscriptionPlan) || ownedPlans[0] || params.plan || "starter");
+      var renewUrl =
+        "/api/public/payments/checkout/redirect?flow=coach&plan=" +
+        encodeURIComponent(renewPlan) +
+        "&paymentMethod=card&autoRenew=1";
+      if (renewalLockText) {
+        renewalLockText.textContent =
+          "Your last renewal payment did not go through. Renew " +
+          packageLabel("coach", renewPlan) +
+          " now to unlock your dashboard and continue your plan.";
+      }
+      if (status) {
+        status.textContent = "Dashboard locked pending renewal payment.";
+      }
+      if (meta) {
+        meta.textContent = "Renewal status: payment failed. Access will return immediately after successful renewal.";
+      }
+      if (planStatus) {
+        planStatus.textContent = "Renew now to continue routines, meal guidance, and coach notifications.";
+      }
+      if (out) {
+        out.textContent =
+          "Your package is temporarily locked because renewal did not complete. Tap Renew now to restore access.";
+      }
+      if (list) {
+        list.innerHTML = "";
+        var li = document.createElement("li");
+        li.textContent = "Renewal required. Your AI notifications will resume after successful payment.";
+        list.appendChild(li);
+      }
+      if (buildBtn) {
+        buildBtn.disabled = true;
+      }
+      if (renewNowBtn && !renewNowBtn.dataset.bound) {
+        renewNowBtn.dataset.bound = "1";
+        renewNowBtn.addEventListener("click", function () {
+          window.location.assign(renewUrl);
+        });
+      }
+      return;
     }
 
     if (planViewModeEl) {
@@ -901,7 +1736,7 @@
     if (planViewModeEl && String(planViewModeEl.value || "merged") !== "merged") {
       currentOwnedPlans = [normalizePlan(planViewModeEl.value)];
     }
-    renderPlanVisuals(params.flow, currentOwnedPlans);
+    renderPlanVisuals(params.flow, currentOwnedPlans, summarizeRecentCheckins(readCoachCheckins(params)));
 
     var onboardingWrap = byId("workspaceOnboarding");
     var onboardingTitle = byId("onboardingTitle");
@@ -916,8 +1751,27 @@
     var onboardingKey = "vibecart-onboarding-complete:" + String(params.sessionId || params.plan || "default");
 
     function applyProfileAndRender(profile) {
-      renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans);
-      renderPlanVisuals(params.flow, currentOwnedPlans);
+      renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans, {
+        routineExerciseLinksEl: routineExerciseLinksEl,
+        onPickExercise: function (exerciseId) {
+          if (!exerciseId || !exerciseCategoryEl || !exerciseEl) {
+            return;
+          }
+          var item = EXERCISE_LIBRARY.find(function (x) {
+            return x.id === exerciseId;
+          });
+          if (!item) {
+            return;
+          }
+          if (String(exerciseCategoryEl.value || "all") !== String(item.category || "")) {
+            exerciseCategoryEl.value = String(item.category || "all");
+            exerciseCategoryEl.dispatchEvent(new Event("change"));
+          }
+          exerciseEl.value = item.id;
+          exerciseEl.dispatchEvent(new Event("change"));
+        }
+      });
+      renderPlanVisuals(params.flow, currentOwnedPlans, summarizeRecentCheckins(readCoachCheckins(params)));
       try {
         localStorage.setItem(onboardingKey, "1");
       } catch {
@@ -988,11 +1842,44 @@
     var activityEl = byId("planActivity");
     var wakeEl = byId("planWake");
     var notesEl = byId("planNotes");
+    var checkinCompletedEl = byId("checkinCompleted");
+    var checkinEffortEl = byId("checkinEffort");
+    var checkinSorenessEl = byId("checkinSoreness");
+    var checkinSleepEl = byId("checkinSleep");
+    var checkinMoodEl = byId("checkinMood");
+    var submitCheckinBtn = byId("submitCheckinBtn");
+    var replanNowBtn = byId("replanNowBtn");
+    var checkinStatusEl = byId("checkinStatus");
     if (goalEl) goalEl.value = autoProfile.goal;
     if (dietEl) dietEl.value = autoProfile.diet;
     if (activityEl) activityEl.value = autoProfile.activity;
     if (wakeEl) wakeEl.value = autoProfile.wake;
     if (notesEl) notesEl.value = autoProfile.notes;
+
+    function pickExerciseInLibrary(exerciseId) {
+      if (!exerciseId || !exerciseCategoryEl || !exerciseEl) {
+        return;
+      }
+      var item = EXERCISE_LIBRARY.find(function (x) {
+        return x.id === exerciseId;
+      });
+      if (!item) {
+        return;
+      }
+      if (String(exerciseCategoryEl.value || "all") !== String(item.category || "")) {
+        exerciseCategoryEl.value = String(item.category || "all");
+        exerciseCategoryEl.dispatchEvent(new Event("change"));
+      }
+      exerciseEl.value = item.id;
+      exerciseEl.dispatchEvent(new Event("change"));
+      try {
+        if (exerciseDetailEl && exerciseDetailEl.scrollIntoView) {
+          exerciseDetailEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
 
     if (planViewModeEl) {
       planViewModeEl.addEventListener("change", function () {
@@ -1009,22 +1896,77 @@
           activity: String((activityEl && activityEl.value) || "medium").trim(),
           wake: String((wakeEl && wakeEl.value) || "").trim() || autoProfile.wake,
           notes: String((notesEl && notesEl.value) || "").trim()
-        }, out, list, planStatus, currentOwnedPlans);
-        renderPlanVisuals(params.flow, currentOwnedPlans);
+        }, out, list, planStatus, currentOwnedPlans, {
+          checkinStatusEl: checkinStatusEl,
+          routineExerciseLinksEl: routineExerciseLinksEl,
+          onPickExercise: pickExerciseInLibrary
+        });
+        renderPlanVisuals(params.flow, currentOwnedPlans, summarizeRecentCheckins(readCoachCheckins(params)));
       });
     }
 
-    buildBtn.addEventListener("click", function () {
-      var profile = {
+    function profileFromInputs() {
+      return {
         goal: String((goalEl && goalEl.value) || "").trim() || autoProfile.goal,
         diet: String((dietEl && dietEl.value) || "").trim() || autoProfile.diet,
         activity: String((activityEl && activityEl.value) || "medium").trim(),
         wake: String((wakeEl && wakeEl.value) || "").trim() || autoProfile.wake,
         notes: String((notesEl && notesEl.value) || "").trim()
       };
-      renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans);
-      renderPlanVisuals(params.flow, currentOwnedPlans);
+    }
+
+    function regenerateLivePlan(reasonText) {
+      if (checkinStatusEl && reasonText) {
+        checkinStatusEl.textContent = reasonText;
+      }
+      renderAutoPlan(params, profileFromInputs(), out, list, planStatus, currentOwnedPlans, {
+        checkinStatusEl: checkinStatusEl,
+        routineExerciseLinksEl: routineExerciseLinksEl,
+        onPickExercise: pickExerciseInLibrary
+      });
+      renderPlanVisuals(params.flow, currentOwnedPlans, summarizeRecentCheckins(readCoachCheckins(params)));
+    }
+
+    if (submitCheckinBtn && !submitCheckinBtn.dataset.bound) {
+      submitCheckinBtn.dataset.bound = "1";
+      submitCheckinBtn.addEventListener("click", function () {
+        var history = readCoachCheckins(params);
+        history.push({
+          at: new Date().toISOString(),
+          completed: String((checkinCompletedEl && checkinCompletedEl.value) || "yes"),
+          effort: Number((checkinEffortEl && checkinEffortEl.value) || 0),
+          soreness: String((checkinSorenessEl && checkinSorenessEl.value) || "medium"),
+          sleep: String((checkinSleepEl && checkinSleepEl.value) || "ok"),
+          mood: String((checkinMoodEl && checkinMoodEl.value) || "neutral")
+        });
+        saveCoachCheckins(params, history);
+        regenerateLivePlan("Check-in saved. AI is auto-adjusting your next sessions...");
+      });
+    }
+
+    if (replanNowBtn && !replanNowBtn.dataset.bound) {
+      replanNowBtn.dataset.bound = "1";
+      replanNowBtn.addEventListener("click", function () {
+        regenerateLivePlan("Running live AI replan for your current package...");
+      });
+    }
+
+    buildBtn.addEventListener("click", function () {
+      var profile = profileFromInputs();
+      renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans, {
+        checkinStatusEl: checkinStatusEl,
+        routineExerciseLinksEl: routineExerciseLinksEl,
+        onPickExercise: pickExerciseInLibrary
+      });
+      renderPlanVisuals(params.flow, currentOwnedPlans, summarizeRecentCheckins(readCoachCheckins(params)));
     });
+
+    window.setInterval(function () {
+      if (document.hidden) {
+        return;
+      }
+      regenerateLivePlan("Live autopilot refresh: syncing your package plan with latest check-ins...");
+    }, 4 * 60 * 60 * 1000);
   }
 
   function init() {
@@ -1092,7 +2034,20 @@
             return;
           }
         }
-        window.location.assign("./account-hub.html?plan_locked=1");
+        if (status) {
+          status.textContent =
+            "We could not confirm an active package on this device yet. You are not blocked: use the actions below to recover instantly.";
+        }
+        if (meta) {
+          meta.innerHTML =
+            "Open <a href=\"./account-hub.html?plan_locked=1\">Account hub</a>, " +
+            "or <a href=\"./coach-payment-recovery.html\">Restore coach access</a> if you already paid.";
+        }
+        var outEl = byId("planOutput");
+        if (outEl) {
+          outEl.textContent =
+            "No active plan is linked in this browser yet. Use Account hub or Restore coach access — no second charge.";
+        }
         return;
       }
       go(merged);

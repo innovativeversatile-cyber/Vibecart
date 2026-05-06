@@ -460,6 +460,58 @@ async function handleStripeChargeRefunded(pool, charge) {
   return { ok: true, orderId, providerReference: paymentIntentId, status: "refunded" };
 }
 
+async function handleStripeInvoicePaid(pool, invoice) {
+  const subId = String(invoice.subscription || "").trim();
+  if (!subId) {
+    return { ok: true, skipped: true, reason: "no_subscription_id" };
+  }
+  const [rows] = await pool.execute(
+    `SELECT id, user_id FROM health_user_subscriptions WHERE stripe_subscription_id = ? LIMIT 1`,
+    [subId]
+  );
+  const row = rows[0];
+  if (!row) {
+    return { ok: true, skipped: true, reason: "subscription_not_mapped", subscriptionId: subId };
+  }
+  await pool.execute(
+    `UPDATE health_user_subscriptions
+     SET status = 'active',
+         auto_renew = 1,
+         start_at = NOW(),
+         end_at = DATE_ADD(NOW(), INTERVAL 30 DAY),
+         source_note = 'stripe_invoice_paid'
+     WHERE id = ?
+     LIMIT 1`,
+    [Number(row.id)]
+  );
+  return { ok: true, userId: Number(row.user_id), subscriptionId: subId, status: "renewed" };
+}
+
+async function handleStripeInvoicePaymentFailed(pool, invoice) {
+  const subId = String(invoice.subscription || "").trim();
+  if (!subId) {
+    return { ok: true, skipped: true, reason: "no_subscription_id" };
+  }
+  const [rows] = await pool.execute(
+    `SELECT id, user_id FROM health_user_subscriptions WHERE stripe_subscription_id = ? LIMIT 1`,
+    [subId]
+  );
+  const row = rows[0];
+  if (!row) {
+    return { ok: true, skipped: true, reason: "subscription_not_mapped", subscriptionId: subId };
+  }
+  await pool.execute(
+    `UPDATE health_user_subscriptions
+     SET status = 'paused',
+         end_at = NOW(),
+         source_note = 'stripe_invoice_failed'
+     WHERE id = ?
+     LIMIT 1`,
+    [Number(row.id)]
+  );
+  return { ok: true, userId: Number(row.user_id), subscriptionId: subId, status: "paused_for_payment_failure" };
+}
+
 async function processStripeWebhookEvent(pool, event) {
   if (!event || !event.type) {
     return { ok: false, code: "INVALID_WEBHOOK_EVENT" };
@@ -490,6 +542,12 @@ async function processStripeWebhookEvent(pool, event) {
   }
   if (event.type === "charge.refunded") {
     return handleStripeChargeRefunded(pool, event.data?.object || {});
+  }
+  if (event.type === "invoice.paid") {
+    return handleStripeInvoicePaid(pool, event.data?.object || {});
+  }
+  if (event.type === "invoice.payment_failed") {
+    return handleStripeInvoicePaymentFailed(pool, event.data?.object || {});
   }
   return { ok: true, skipped: true, eventType: event.type };
 }

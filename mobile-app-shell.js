@@ -184,6 +184,10 @@
             return "";
           }
           try {
+            var rotatedToken = String(body.token || "").trim();
+            if (rotatedToken) {
+              localStorage.setItem("vibecart-public-auth-token", rotatedToken);
+            }
             localStorage.setItem("vibecart-public-auth-user", JSON.stringify(body.user));
           } catch {
             /* ignore */
@@ -922,9 +926,13 @@
 
     function brandonCloudAssistEnabled() {
       try {
-        return window.localStorage.getItem("vibecart-brandon-cloud-assist") === "1";
+        var raw = window.localStorage.getItem("vibecart-brandon-cloud-assist");
+        // Live AI is on by default; explicit "0" becomes a local kill switch.
+        if (raw == null || raw === "") return true;
+        return String(raw) !== "0";
       } catch {
-        return false;
+        // If storage is blocked, keep cloud assist on and rely on request fallbacks.
+        return true;
       }
     }
 
@@ -1653,6 +1661,56 @@
     // Sticker removed by product request.
   }
 
+  function registerNativePushIfAvailable() {
+    try {
+      var root = document.documentElement;
+      if (!root.classList.contains("vc-mobile-app")) return;
+      var pushToken = String((window && window.__VC_PUSH_TOKEN__) || "").trim();
+      var installId = String((window && window.__VC_INSTALL_ID__) || "").trim().slice(0, 64);
+      var platform = String((window && window.__VC_PUSH_PLATFORM__) || "").trim().toLowerCase();
+      if (!pushToken || !installId) return;
+      if (platform !== "android" && platform !== "ios") {
+        platform = /iphone|ipad|ios/i.test(String(navigator.userAgent || "")) ? "ios" : "android";
+      }
+      var authToken = String(localStorage.getItem("vibecart-public-auth-token") || "").trim();
+      var key = "vibecart-native-push-linked-v4";
+      var sig = [installId, pushToken.slice(0, 22), platform, authToken.slice(0, 18)].join("|");
+      if (localStorage.getItem(key) === sig) return;
+      var headers = { "Content-Type": "application/json" };
+      if (authToken) {
+        headers.Authorization = "Bearer " + authToken;
+      }
+      if (authToken && window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+        headers = window.VibeCartSessionDevice.merge(authToken, headers);
+      }
+      fetch("/api/public/mobile/push/register", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({
+          installId: installId,
+          pushToken: pushToken,
+          platform: platform,
+          authToken: authToken || undefined
+        })
+      })
+        .then(function (r) {
+          return r.json().catch(function () {
+            return {};
+          });
+        })
+        .then(function (j) {
+          if (j && j.ok) {
+            localStorage.setItem(key, sig);
+          }
+        })
+        .catch(function () {
+          /* ignore push-link failures; we retry on next open */
+        });
+    } catch {
+      /* ignore */
+    }
+  }
+
   function initMainSectionRevealForApp() {
     if (!document.documentElement.classList.contains("vc-mobile-app")) {
       return;
@@ -1818,6 +1876,24 @@
     }
     var heroCopy = document.querySelector(".hero-copy");
     if (!heroCopy) return;
+    try {
+      var cineDone = sessionStorage.getItem("vibecart-cinematic-done-v1") === "1";
+      var cineActive = !!document.getElementById("vcThreeSecondCinematic");
+      if (!cineDone || cineActive) {
+        var runAfterCine = function () {
+          window.removeEventListener("vibecart-cinematic-done", runAfterCine);
+          try {
+            initFirstFiveWowExperience();
+          } catch {
+            /* ignore */
+          }
+        };
+        window.addEventListener("vibecart-cinematic-done", runAfterCine, { once: true });
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
     var heroTitle = document.getElementById("heroTitle");
     var heroSubtitle = document.getElementById("heroSubtitle");
     var heroPrimary = document.getElementById("heroShopNowBtn");
@@ -1829,28 +1905,37 @@
         buy: {
           title: "Deals, bakers, barbers, and beauty — trusted checkout in seconds.",
           sub: "Buyer mode on. Brandon will prioritize quick deals, safe payments, and fast routes.",
-          cta: "Show me best deal now"
+          cta: "Show me best deals now",
+          href: "./live-market-shops.html?cat=All&view=global&deal=best"
         },
         sell: {
           title: "Launch your selling lane and grow faster.",
           sub: "Seller mode on. Brandon will guide listings, conversion tips, and growth tools.",
-          cta: "Start selling now"
+          cta: "Start selling now",
+          href: "./sell-journey.html"
         },
         fast: {
           title: "Speed lane unlocked for instant wins.",
           sub: "Fast mode on. Brandon will push shortest paths to hot picks, tracking, and checkout.",
-          cta: "Launch speed lane"
+          cta: "Launch speed lane",
+          href: "./hot-picks.html"
         },
         book: {
           title: "Beauty, barber, nails, and bakery — book a live offer in minutes.",
           sub: "Service booking mode. Brandon will keep you on the fastest safe path to reserve.",
-          cta: "Open booking desk"
+          cta: "Open booking desk",
+          href: "./my-business.html?flow=book"
         }
       };
       var picked = map[t] || map.buy;
       if (heroTitle) heroTitle.textContent = picked.title;
       if (heroSubtitle) heroSubtitle.textContent = picked.sub;
-      if (heroPrimary) heroPrimary.textContent = picked.cta;
+      if (heroPrimary) {
+        heroPrimary.textContent = picked.cta;
+        if (picked.href && heroPrimary.tagName === "A") {
+          heroPrimary.setAttribute("href", picked.href);
+        }
+      }
       try {
         localStorage.setItem("vibecart-mobile-wow-intent-v1", t);
       } catch {
@@ -1907,7 +1992,15 @@
     } catch {
       storedIntent = "";
     }
-    applyIntent(storedIntent || inferDefaultIntentFallback());
+    // Keep homepage default anchored to global live market (buy lane) unless user just picked a lane in this visit.
+    var visitLaneIntent = "";
+    try {
+      visitLaneIntent = String(sessionStorage.getItem("vibecart-lane-picked-this-visit-v1") || "").trim().toLowerCase();
+    } catch {
+      visitLaneIntent = "";
+    }
+    var initialIntent = visitLaneIntent || (storedIntent === "sell" || storedIntent === "fast" ? storedIntent : "buy");
+    applyIntent(initialIntent || inferDefaultIntentFallback());
 
     if (!document.getElementById("vcFirst5Proof")) {
       var proof = document.createElement("div");
@@ -1998,18 +2091,11 @@
       } catch {
         /* ignore */
       }
-      var reveal = document.createElement("div");
-      reveal.id = "vcFirst5Reveal";
-      reveal.className = "vc-first5-reveal";
-      reveal.innerHTML = "<div class='vc-first5-reveal__mark'>V</div><p>Entering your wow lane...</p>";
-      document.body.appendChild(reveal);
-
-      window.setTimeout(function () {
-        if (reveal && reveal.parentNode) reveal.parentNode.removeChild(reveal);
+      document.body.classList.add("vc-intro-blocking");
         if (document.getElementById("vcIntentBlast")) return;
         var splash = document.createElement("div");
         splash.id = "vcIntentBlast";
-        splash.className = "vc-intent-blast";
+      splash.className = "vc-intent-blast vc-intent-blast--morph";
         splash.innerHTML =
           "<div class='vc-intent-blast__card'>" +
           "<p class='badge'>Welcome to your wow lane</p>" +
@@ -2024,9 +2110,19 @@
           "<button type='button' class='btn btn-secondary vc-intent-blast__skip' id='vcIntentBlastSkip'>Skip</button>" +
           "</div>";
         document.body.appendChild(splash);
+      window.setTimeout(function () {
+        splash.classList.add("is-active");
+        splash.classList.add("vc-intent-blast--pulse-bridge");
+        window.setTimeout(function () {
+          splash.classList.remove("vc-intent-blast--pulse-bridge");
+        }, 900);
+        document.body.classList.remove("vc-intro-pulse-bridge");
+      }, 20);
 
         function closeSplash(reason, intent) {
           if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+          document.body.classList.remove("vc-intro-pulse-bridge");
+          document.body.classList.remove("vc-intro-blocking");
           try {
             sessionStorage.setItem("vibecart-first-prompt-active-v1", "0");
             sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
@@ -2048,6 +2144,11 @@
           var btn = ev.target && ev.target.closest ? ev.target.closest("[data-intent]") : null;
           if (!btn) return;
           var intent = String(btn.getAttribute("data-intent") || "buy");
+          try {
+            sessionStorage.setItem("vibecart-lane-picked-this-visit-v1", intent);
+          } catch {
+            /* ignore */
+          }
           applyIntent(intent);
           if (onboardingBtn) onboardingBtn.textContent = "Health coach";
           try {
@@ -2057,30 +2158,22 @@
           }
           if (intent === "book") {
             closeSplash("intent", intent);
-            window.setTimeout(function () {
-              window.location.assign("./my-business.html?flow=book");
-            }, 120);
+            warpTo("./my-business.html?flow=book");
             return;
           }
           if (intent === "buy") {
             closeSplash("intent", intent);
-            window.setTimeout(function () {
-              window.location.assign("./live-market-shops.html?cat=All&view=global&deal=best");
-            }, 120);
+            warpTo("./live-market-shops.html?cat=All&view=global&deal=best");
             return;
           }
           if (intent === "sell") {
             closeSplash("intent", intent);
-            window.setTimeout(function () {
-              window.location.assign("./sell-journey.html");
-            }, 120);
+            warpTo("./sell-journey.html");
             return;
           }
           if (intent === "fast") {
             closeSplash("intent", intent);
-            window.setTimeout(function () {
-              window.location.assign("./hot-picks.html");
-            }, 120);
+            warpTo("./hot-picks.html");
             return;
           }
           closeSplash("intent", intent);
@@ -2088,7 +2181,6 @@
         document.getElementById("vcIntentBlastSkip")?.addEventListener("click", function () {
           closeSplash("skip", "");
         });
-      }, 720);
     }
 
     var seenThisSession = false;
@@ -2135,31 +2227,32 @@
     } catch {
       returning = false;
     }
-    if (returning) {
-      return;
-    }
     try {
       sessionStorage.setItem(introSessionKey, "1");
     } catch {
       /* ignore */
     }
 
-    var badge = "Welcome to VibeCart";
-    var title = "A warm royal bridge is opening just for you";
-    var note =
-      "You are entering a secure, captivating market story across Africa, Europe, and Asia. Tap to browse and unlock what others are only hearing about.";
+    var badge = "";
+    var title = "Continue to your wow lane";
+    var note = returning
+      ? "Your trusted routes, saved rhythm, and Brandon guidance are ready. Tap to continue where you left off."
+      : "You are entering a secure, captivating market story across Africa, Europe, and Asia. Tap to browse and unlock what others are only hearing about.";
     var sheet = document.createElement("div");
     sheet.id = "vcMobileWelcomeSheet";
     sheet.className = "vc-mobile-welcome-sheet";
     sheet.setAttribute("role", "dialog");
     sheet.setAttribute("aria-modal", "true");
+    var badgeHtml = badge ? "<p class='badge'>" + badge + "</p>" : "";
     sheet.innerHTML =
       "<div class='vc-mobile-welcome-card vc-mobile-intro-card'>" +
-      "<p class='badge'>" + badge + "</p>" +
+      badgeHtml +
       "<h3>" + title + "</h3>" +
       "<p class='note'>" + note + "</p>" +
       "<div class='hero-actions'>" +
-      "<button type='button' class='btn btn-primary vc-intro-browse-pulse' id='vcMobileWelcomeClose'>Tap to browse</button>" +
+      "<button type='button' class='btn btn-primary vc-intro-browse-pulse' id='vcMobileWelcomeClose'>" +
+      (returning ? "Continue" : "Tap to browse") +
+      "</button>" +
       "</div>" +
       "</div>";
     document.body.appendChild(sheet);
@@ -3091,7 +3184,769 @@
   }
 
   function mountHeavyMobileStickers() {
-    return !isLeanMobileHudTemplatePage();
+    return !isLeanMobileHudTemplatePage() && !isSimpleWowModeEnabled();
+  }
+
+  function isSimpleWowModeEnabled() {
+    try {
+      var q = String((window.location && window.location.search) || "");
+      // Allow query override for testing.
+      if (/[?&]simpleWow=0(?:&|$)/i.test(q)) return false;
+      if (/[?&]simpleWow=1(?:&|$)/i.test(q)) return true;
+      // Nuclear mode: keep simple wow ON by default on mobile.
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
+  function isSimpleWowLandingPage() {
+    try {
+      var p = String((window.location && window.location.pathname) || "").toLowerCase();
+      return p === "" || p === "/" || /(^|\/)index\.html$/i.test(p);
+    } catch {
+      return false;
+    }
+  }
+
+  function initSimpleWowEntry() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (document.getElementById("vcSimpleWowEntry")) return;
+    var mount = document.querySelector("main") || document.body;
+    if (!mount) return;
+    var card = document.createElement("section");
+    card.id = "vcSimpleWowEntry";
+    card.className = "vc-simple-wow-entry";
+    var displayName = "";
+    var returning = false;
+    try {
+      var rawUser = localStorage.getItem("vibecart-public-auth-user");
+      var user = rawUser ? JSON.parse(rawUser) : null;
+      displayName = String((user && (user.displayName || user.fullName || user.firstName)) || "").trim();
+    } catch {
+      displayName = "";
+    }
+    try {
+      returning = Number(localStorage.getItem("vibecart-mobile-last-seen-v1") || "0") > 0;
+    } catch {
+      returning = false;
+    }
+    var kicker = returning ? "Simple mode · returning" : "Simple mode · first time";
+    var title = displayName
+      ? "Hi " + displayName + " - your next great find starts now."
+      : "Your next great find starts now.";
+    var note = returning
+      ? "Jump back in with one clear start. Your lane and Brandon guidance are ready."
+      : "One clear start, then your lane unfolds: trusted deals, booking, or seller growth.";
+    card.innerHTML =
+      "<p class='vc-simple-wow-entry__kicker'>" + kicker + " · Simple mode · wow start</p>" +
+      "<h2>" + title + "</h2>" +
+      "<p>" + note + "</p>" +
+      "<div class='vc-simple-wow-entry__actions'>" +
+      "<a class='btn btn-primary' data-vc-wow-intent='buy' href='./live-market-shops.html?cat=All&view=global&deal=best'>Shop now</a>" +
+      "<a class='btn btn-secondary' data-vc-wow-intent='book' href='./my-business.html?flow=book'>Book services</a>" +
+      "<a class='btn btn-secondary' data-vc-wow-intent='sell' href='./sell-journey.html'>Start selling</a>" +
+      "</div>" +
+      "<div class='vc-simple-wow-entry__proof'>" +
+      "<span>Verified trust signals</span>" +
+      "<span>Fast routes by Brandon AI</span>" +
+      "<span>Global + local options</span>" +
+      "</div>";
+    mount.insertBefore(card, mount.firstChild || null);
+    card.querySelectorAll("[data-vc-wow-intent]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        try {
+          var lane = String(el.getAttribute("data-vc-wow-intent") || "buy");
+          localStorage.setItem("vibecart-mobile-wow-intent-v1", lane);
+          sessionStorage.setItem("vibecart-lane-picked-this-visit-v1", lane);
+        } catch {
+          /* ignore */
+        }
+      });
+    });
+  }
+
+  function initSimpleWowUserSticker() {
+    if (document.getElementById("vcSimpleWowSticker")) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "vcSimpleWowSticker";
+    btn.className = "vc-simple-wow-sticker";
+    function paint() {
+      var on = isSimpleWowModeEnabled();
+      btn.textContent = on ? "WOW mode: ON" : "WOW mode: OFF";
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.classList.toggle("is-off", !on);
+    }
+    btn.addEventListener("click", function () {
+      var next = !isSimpleWowModeEnabled();
+      try {
+        localStorage.setItem("vibecart-mobile-simple-wow-v1", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      paint();
+      try {
+        if (navigator && navigator.vibrate) navigator.vibrate(next ? [12, 28, 12] : 12);
+      } catch {
+        /* ignore */
+      }
+      // Re-apply layout style immediately and then refresh once for full shell consistency.
+      document.body.classList.toggle("vc-simple-wow-on", next);
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 120);
+    });
+    document.body.appendChild(btn);
+    paint();
+  }
+
+  function initShockHeroCinematic() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    var hero = document.querySelector(".hero");
+    if (!hero || document.getElementById("vcShockHeroAura")) return;
+    var fx = document.createElement("div");
+    fx.id = "vcShockHeroAura";
+    fx.className = "vc-shock-hero-aura";
+    fx.innerHTML =
+      "<span class='vc-shock-ring vc-shock-ring--a'></span>" +
+      "<span class='vc-shock-ring vc-shock-ring--b'></span>" +
+      "<span class='vc-shock-pulse'></span>" +
+      "<span class='vc-shock-label'>Live cinematic lane</span>";
+    hero.appendChild(fx);
+    hero.classList.add("vc-shock-hero-on");
+  }
+
+  function initThreeSecondCinematicOpener() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (document.getElementById("vcThreeSecondCinematic")) return;
+    try {
+      if (sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1") return;
+      if (sessionStorage.getItem("vibecart-mobile-cinematic-opened-v2") === "1") return;
+      sessionStorage.setItem("vibecart-mobile-cinematic-opened-v2", "1");
+    } catch {
+      /* ignore */
+    }
+    var wrap = document.createElement("div");
+    var lane = "buy";
+    try {
+      lane = String(localStorage.getItem("vibecart-mobile-wow-intent-v1") || "buy").trim().toLowerCase();
+    } catch {
+      lane = "buy";
+    }
+    if (!/^(buy|book|sell|fast)$/.test(lane)) lane = "buy";
+    var laneMeta = {
+      buy: {
+        title: "Buyer lane ignition",
+        line: "Trusted picks. Faster checkout. Better discovery.",
+        cta: "Enter buyer lane",
+        ms: 2900,
+        vibrate: [10, 20, 10]
+      },
+      book: {
+        title: "Service lane ignition",
+        line: "Beauty, barber, bakery, nails - reserve with confidence.",
+        cta: "Enter service lane",
+        ms: 3200,
+        vibrate: [8, 14, 8, 14, 8]
+      },
+      sell: {
+        title: "Seller lane ignition",
+        line: "List sharper. Convert faster. Grow with precision.",
+        cta: "Enter seller lane",
+        ms: 3400,
+        vibrate: [14, 26, 14]
+      },
+      fast: {
+        title: "Speed lane ignition",
+        line: "Instant routes. Live momentum. Zero hesitation.",
+        cta: "Enter speed lane",
+        ms: 2600,
+        vibrate: [6, 10, 6, 10, 6]
+      }
+    };
+    var chosen = laneMeta[lane] || laneMeta.buy;
+    function getOrCreateCinematicAudioContext() {
+      try {
+        var existing = window.__vcCineAudioCtx;
+        if (existing) return existing;
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        var ctx = new Ctx();
+        window.__vcCineAudioCtx = ctx;
+        return ctx;
+      } catch {
+        return null;
+      }
+    }
+    function playCinematicTone(kind) {
+      try {
+        var ctx = getOrCreateCinematicAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") {
+          try {
+            ctx.resume();
+          } catch {
+            /* ignore */
+          }
+        }
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        var osc2 = ctx.createOscillator();
+        var gain2 = ctx.createGain();
+        osc.connect(gain);
+        osc2.connect(gain2);
+        gain.connect(ctx.destination);
+        gain2.connect(ctx.destination);
+        var now = ctx.currentTime;
+        var base = kind === "fast" ? 420 : kind === "sell" ? 360 : kind === "book" ? 330 : 300;
+        osc.type = kind === "sell" ? "triangle" : kind === "book" ? "sine" : "sawtooth";
+        osc2.type = "sine";
+        osc.frequency.setValueAtTime(base, now);
+        osc.frequency.exponentialRampToValueAtTime(base * 1.55, now + 0.18);
+        osc2.frequency.setValueAtTime(base * 1.25, now);
+        osc2.frequency.exponentialRampToValueAtTime(base * 1.9, now + 0.26);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.05, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+        gain2.gain.setValueAtTime(0.0001, now);
+        gain2.gain.exponentialRampToValueAtTime(0.03, now + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.48);
+        osc.start(now);
+        osc2.start(now + 0.04);
+        osc.stop(now + 0.44);
+        osc2.stop(now + 0.5);
+      } catch {
+        /* ignore audio failures (autoplay/device restrictions) */
+      }
+    }
+    var returning = false;
+    try {
+      returning = Number(localStorage.getItem("vibecart-mobile-last-seen-v1") || "0") > 0;
+    } catch {
+      returning = false;
+    }
+    var greeting = returning ? "Welcome back" : "Welcome";
+    wrap.id = "vcThreeSecondCinematic";
+    wrap.className = "vc-three-cinematic vc-three-cinematic--" + lane;
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-label", "VibeCart cinematic opener");
+    wrap.innerHTML =
+      "<div class='vc-three-cinematic__bg'></div>" +
+      "<div class='vc-three-cinematic__rings'>" +
+      "<span></span><span></span><span></span>" +
+      "</div>" +
+      "<div class='vc-three-cinematic__card'>" +
+      "<p class='vc-three-cinematic__kicker'>" + greeting + "</p>" +
+      "<h3>" + chosen.title + "</h3>" +
+      "<p>" + chosen.line + " Brandon is primed for your route.</p>" +
+      "<button type='button' class='btn btn-secondary vc-three-cinematic__skip' id='vcThreeCinematicSkip'>" +
+      String(chosen.cta || "Enter now") +
+      "</button>" +
+      "</div>";
+    document.body.appendChild(wrap);
+    playCinematicTone(lane);
+    try {
+      if (navigator && navigator.vibrate && Array.isArray(chosen.vibrate)) navigator.vibrate(chosen.vibrate);
+    } catch {
+      /* ignore */
+    }
+    document.body.classList.add("vc-cine-active");
+    document.body.classList.add("vc-intro-blocking");
+    document.body.classList.add("vc-cine-lane-" + lane);
+    var beatTimer = window.setInterval(function () {
+      document.body.classList.toggle("vc-cine-beat");
+    }, lane === "fast" ? 300 : lane === "sell" ? 420 : lane === "book" ? 520 : 380);
+    function close() {
+      if (!wrap || !wrap.parentNode) return;
+      window.clearInterval(beatTimer);
+      wrap.classList.add("is-leaving");
+      window.setTimeout(function () {
+        if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+        try {
+          sessionStorage.setItem("vibecart-cinematic-done-v1", "1");
+        } catch {
+          /* ignore */
+        }
+        document.body.classList.remove("vc-cine-active");
+        document.body.classList.remove("vc-cine-beat");
+        // Keep blocking layer until wow-lane prompt mounts to avoid visual flash/jump.
+        document.body.classList.remove("vc-cine-lane-buy", "vc-cine-lane-book", "vc-cine-lane-sell", "vc-cine-lane-fast");
+        document.body.classList.add("vc-intro-pulse-bridge");
+        window.setTimeout(function () {
+          try {
+            window.dispatchEvent(new CustomEvent("vibecart-cinematic-done", { detail: { lane: lane } }));
+          } catch {
+            /* ignore */
+          }
+        }, 40);
+        try {
+          localStorage.setItem("vibecart-mobile-cinematic-last-lane-v1", lane);
+        } catch {
+          /* ignore */
+        }
+      }, 180);
+    }
+    var t1 = window.setTimeout(function () {
+      wrap.classList.add("is-active");
+    }, 40);
+    var t2 = window.setTimeout(close, Number(chosen.ms || 3000));
+    var skip = document.getElementById("vcThreeCinematicSkip");
+    if (skip) {
+      skip.addEventListener("click", function () {
+        window.clearTimeout(t2);
+        close();
+      });
+    }
+    wrap.addEventListener("click", function (ev) {
+      if (ev.target === wrap) {
+        window.clearTimeout(t2);
+        close();
+      }
+    });
+    window.addEventListener(
+      "pagehide",
+      function () {
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+        window.clearInterval(beatTimer);
+      },
+      { once: true, passive: true }
+    );
+  }
+
+  function initCinematicAudioUnlock() {
+    if (window.__vcCineAudioUnlockBound) return;
+    window.__vcCineAudioUnlockBound = true;
+    function unlock() {
+      try {
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return;
+        if (!window.__vcCineAudioCtx) {
+          window.__vcCineAudioCtx = new Ctx();
+        }
+        if (window.__vcCineAudioCtx && window.__vcCineAudioCtx.state === "suspended") {
+          window.__vcCineAudioCtx.resume();
+        }
+      } catch {
+        /* ignore */
+      }
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("touchstart", unlock, true);
+      window.removeEventListener("click", unlock, true);
+    }
+    window.addEventListener("pointerdown", unlock, true);
+    window.addEventListener("touchstart", unlock, true);
+    window.addEventListener("click", unlock, true);
+  }
+
+  function initPostHeroScrollPrompt() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    var existing = document.getElementById("vcPostHeroScrollPrompt");
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+    var row = document.createElement("div");
+    row.id = "vcPostHeroScrollPrompt";
+    row.className = "vc-post-hero-scroll-prompt";
+    row.innerHTML =
+      "<button type='button' class='vc-post-hero-scroll-prompt__trigger' aria-expanded='false'>" +
+      "<span>Continue scrolling</span><strong>Reveal every page</strong>" +
+      "<em>Tap to open full route map</em>" +
+      "</button>" +
+      "<div class='vc-post-hero-scroll-prompt__panel' hidden>" +
+      "<p class='vc-post-hero-scroll-prompt__lead'>Every major VibeCart route is now one tap away.</p>" +
+      "<input id='vcPostHeroRouteSearch' class='vc-post-hero-scroll-prompt__search' type='search' placeholder='Search pages (e.g. orders, coach, market)' />" +
+      "<div class='vc-post-hero-scroll-prompt__grid' id='vcPostHeroRouteGrid'></div>" +
+      "</div>";
+    var links = [
+      ["Home", "./index.html"],
+      ["Live market", "./live-market-shops.html?cat=All&view=global"],
+      ["Hot picks", "./hot-picks.html"],
+      ["Global search", "./global-search.html"],
+      ["Browse categories", "./browse-categories.html"],
+      ["Buy journey", "./buy-journey.html"],
+      ["My Business", "./my-business.html"],
+      ["Service providers", "./service-provider-hub.html"],
+      ["Sell journey", "./sell-journey.html"],
+      ["Wellbeing", "./wellbeing.html"],
+      ["Coach experience", "./coach-experience.html"],
+      ["Plan workspace", "./plan-workspace.html"],
+      ["Orders tracking", "./orders-tracking.html"],
+      ["Account hub", "./account-hub.html"],
+      ["Security overview", "./security-overview.html"],
+      ["Regional shops", "./regional-shops.html"],
+      ["Rewards hub", "./rewards-hub.html"],
+      ["Bridge hub", "./bridge-hub.html"],
+      ["Insurance", "./insurance.html"],
+      ["Policy center", "./policy.html"]
+    ];
+    var grid = row.querySelector("#vcPostHeroRouteGrid");
+    if (grid) {
+      grid.innerHTML = links
+        .map(function (pair) {
+          return "<a class='btn btn-secondary' data-route-label='" + String(pair[0] || "").toLowerCase() + "' href='" + pair[1] + "'>" + pair[0] + "</a>";
+        })
+        .join("");
+    }
+    var search = row.querySelector("#vcPostHeroRouteSearch");
+    if (search && grid) {
+      search.addEventListener("input", function () {
+        var q = String(search.value || "").trim().toLowerCase();
+        grid.querySelectorAll("[data-route-label]").forEach(function (el) {
+          var label = String(el.getAttribute("data-route-label") || "");
+          el.style.display = !q || label.indexOf(q) >= 0 ? "" : "none";
+        });
+      });
+    }
+    var trigger = row.querySelector(".vc-post-hero-scroll-prompt__trigger");
+    var panel = row.querySelector(".vc-post-hero-scroll-prompt__panel");
+    if (trigger && panel) {
+      trigger.addEventListener("click", function () {
+        var open = panel.hasAttribute("hidden");
+        if (open) panel.removeAttribute("hidden");
+        else panel.setAttribute("hidden", "hidden");
+        trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        row.classList.toggle("is-open", open);
+      });
+    }
+    if (!document.getElementById("vcCinematicConciergeRail")) {
+      try {
+        initCinematicConciergeRail();
+      } catch {
+        /* ignore */
+      }
+    }
+    var rail = document.getElementById("vcCinematicConciergeRail");
+    function revealFrom(node) {
+      if (!node || !node.parentNode) return;
+      var cur = node;
+      while (cur) {
+        if (cur !== row) cur.classList.remove("vc-post-hero-hidden");
+        cur = cur.nextElementSibling;
+      }
+      disableScrollGate();
+    }
+    function hideFrom(node) {
+      if (!node || !node.parentNode) return;
+      var cur = node;
+      while (cur) {
+        if (cur !== row) cur.classList.add("vc-post-hero-hidden");
+        cur = cur.nextElementSibling;
+      }
+      enableScrollGate(row);
+    }
+    function disableScrollGate() {
+      try {
+        if (window.__vcScrollGateScroll) window.removeEventListener("scroll", window.__vcScrollGateScroll, true);
+        if (window.__vcScrollGateWheel) window.removeEventListener("wheel", window.__vcScrollGateWheel, { capture: true });
+        if (window.__vcScrollGateTouch) window.removeEventListener("touchmove", window.__vcScrollGateTouch, { capture: true });
+        if (window.__vcScrollGateKeydown) window.removeEventListener("keydown", window.__vcScrollGateKeydown, true);
+        if (window.__vcScrollGateResize) window.removeEventListener("resize", window.__vcScrollGateResize, true);
+      } catch {
+        /* ignore */
+      }
+      window.__vcScrollGateScroll = null;
+      window.__vcScrollGateWheel = null;
+      window.__vcScrollGateTouch = null;
+      window.__vcScrollGateKeydown = null;
+      window.__vcScrollGateResize = null;
+      window.__vcScrollGateMax = null;
+      window.__vcScrollGateTouchY = null;
+    }
+    function enableScrollGate(anchor) {
+      disableScrollGate();
+      if (!anchor) return;
+      function calcMax() {
+        try {
+          var rect = anchor.getBoundingClientRect();
+          var top = Number(rect.top || 0) + Number(window.scrollY || 0);
+          return Math.max(0, Math.floor(top));
+        } catch {
+          return 0;
+        }
+      }
+      function clamp() {
+        var max = Number(window.__vcScrollGateMax || 0);
+        var y = Number(window.scrollY || 0);
+        if (y > max) {
+          window.scrollTo({ top: max, behavior: "auto" });
+        }
+      }
+      window.__vcScrollGateMax = calcMax();
+      window.__vcScrollGateResize = function () {
+        window.__vcScrollGateMax = calcMax();
+        clamp();
+      };
+      window.__vcScrollGateScroll = function () {
+        clamp();
+      };
+      window.__vcScrollGateWheel = function (ev) {
+        var max = Number(window.__vcScrollGateMax || 0);
+        var y = Number(window.scrollY || 0);
+        if (y >= max && ev && Number(ev.deltaY || 0) > 0) {
+          ev.preventDefault();
+        }
+      };
+      window.__vcScrollGateTouch = function (ev) {
+        if (!ev || !ev.touches || !ev.touches[0]) return;
+        var yNow = Number(ev.touches[0].clientY || 0);
+        var yPrev = Number(window.__vcScrollGateTouchY || yNow);
+        window.__vcScrollGateTouchY = yNow;
+        var movingDown = yNow < yPrev;
+        var max = Number(window.__vcScrollGateMax || 0);
+        var y = Number(window.scrollY || 0);
+        if (y >= max && movingDown) {
+          ev.preventDefault();
+        }
+      };
+      window.__vcScrollGateKeydown = function (ev) {
+        if (!ev) return;
+        var max = Number(window.__vcScrollGateMax || 0);
+        var y = Number(window.scrollY || 0);
+        var key = String(ev.key || "");
+        var blocks = key === "ArrowDown" || key === "PageDown" || key === "End" || key === " ";
+        if (blocks && y >= max) {
+          ev.preventDefault();
+        }
+      };
+      window.addEventListener("resize", window.__vcScrollGateResize, true);
+      window.addEventListener("scroll", window.__vcScrollGateScroll, true);
+      window.addEventListener("wheel", window.__vcScrollGateWheel, { capture: true, passive: false });
+      window.addEventListener("touchmove", window.__vcScrollGateTouch, { capture: true, passive: false });
+      window.addEventListener("keydown", window.__vcScrollGateKeydown, true);
+      clamp();
+    }
+    if (rail && rail.parentNode) {
+      function forcePlacePrompt() {
+        try {
+          if (!rail.parentNode) return;
+          rail.parentNode.insertBefore(row, rail);
+        } catch {
+          /* ignore */
+        }
+      }
+      forcePlacePrompt();
+      window.requestAnimationFrame(function () {
+        forcePlacePrompt();
+        window.requestAnimationFrame(forcePlacePrompt);
+      });
+      hideFrom(rail);
+      if (trigger && panel) {
+        trigger.addEventListener("click", function () {
+          revealFrom(rail);
+        });
+      }
+      return;
+    }
+    // Concierge rail not present -> do not show this prompt elsewhere.
+  }
+
+  function initCinematicConciergeRail() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (document.getElementById("vcCinematicConciergeRail")) return;
+    var hero = document.querySelector(".hero");
+    if (!hero || !hero.parentNode) return;
+    var rail = document.createElement("div");
+    rail.id = "vcCinematicConciergeRail";
+    rail.className = "vc-cinematic-concierge-rail";
+    rail.innerHTML =
+      "<a href='./live-market-shops.html?cat=All&view=global' class='btn btn-secondary'>Live market</a>" +
+      "<a href='./my-business.html?flow=book' class='btn btn-secondary'>Book now</a>" +
+      "<a href='./sell-journey.html' class='btn btn-secondary'>Sell lane</a>" +
+      "<a href='./wellbeing.html' class='btn btn-secondary'>Wellbeing</a>" +
+      "<a href='./account-hub.html' class='btn btn-secondary'>Account</a>";
+    var parent = hero.parentNode;
+    var insertAfter = hero;
+    try {
+      var hairNode = Array.from(document.querySelectorAll("button, a, span, div, h1, h2, h3, p")).find(function (el) {
+        if (!el || !el.textContent) return false;
+        return /hair,\s*barber\s*&\s*baking/i.test(String(el.textContent || "").trim());
+      });
+      var hairBlock = null;
+      if (hairNode && hairNode.closest) {
+        hairBlock =
+          hairNode.closest("section, article, .card, .panel, .hero-copy, .hero, main, .page-group") ||
+          hairNode.parentElement ||
+          null;
+      }
+      if (hairBlock && hairBlock.parentNode === parent) {
+        insertAfter = hairBlock;
+      }
+    } catch {
+      /* ignore */
+    }
+    if (insertAfter && insertAfter.nextSibling) parent.insertBefore(rail, insertAfter.nextSibling);
+    else parent.appendChild(rail);
+  }
+
+  function initMindBlowingCalmFlow() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    document.body.classList.add("vc-one-moment-flow");
+    document.body.classList.add("vc-motion-lite");
+    var calmTimer = null;
+    function scheduleCalm(ms) {
+      if (calmTimer) window.clearTimeout(calmTimer);
+      calmTimer = window.setTimeout(function () {
+        document.body.classList.add("vc-auto-calm");
+      }, Number(ms || 2600));
+    }
+    function markActive() {
+      document.body.classList.remove("vc-auto-calm");
+      scheduleCalm(2600);
+    }
+    ["touchstart", "pointerdown", "scroll", "keydown"].forEach(function (evName) {
+      window.addEventListener(evName, markActive, { passive: true });
+    });
+    scheduleCalm(1800);
+  }
+
+  function warpTo(url) {
+    if (!url) return;
+    if (document.body) document.body.classList.add("vc-warp-out");
+    window.setTimeout(function () {
+      window.location.assign(url);
+    }, 210);
+  }
+
+  function initGoosebumpsPack() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (window.__vcGoosebumpsPackBound) return;
+    window.__vcGoosebumpsPackBound = true;
+    var root = document.body;
+    if (!root) return;
+    root.classList.add("vc-goosebumps-on", "vc-bass-illusion-on");
+    root.classList.add("vc-heartbeat-lock");
+    window.setTimeout(function () {
+      root.classList.remove("vc-heartbeat-lock");
+    }, 1600);
+    try {
+      if (navigator && navigator.vibrate) navigator.vibrate([10, 34, 10]);
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      var heroCopy = document.querySelector(".hero-copy");
+      if (heroCopy && !document.getElementById("vcNameWhisper")) {
+        var rawUser = localStorage.getItem("vibecart-public-auth-user");
+        var user = rawUser ? JSON.parse(rawUser) : null;
+        var name = String((user && (user.firstName || user.displayName || user.fullName)) || "").trim();
+        if (name) {
+          var whisper = document.createElement("p");
+          whisper.id = "vcNameWhisper";
+          whisper.className = "vc-name-whisper";
+          whisper.textContent = "Welcome back, " + name + ". Your lane is alive.";
+          heroCopy.insertBefore(whisper, heroCopy.firstChild || null);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    var hero = document.querySelector(".hero");
+    if (hero && !document.getElementById("vcLivingHeroOrbit")) {
+      var orbit = document.createElement("div");
+      orbit.id = "vcLivingHeroOrbit";
+      orbit.className = "vc-living-hero-orbit";
+      hero.appendChild(orbit);
+    }
+    var startX = 0;
+    if (hero) {
+      hero.addEventListener("touchstart", function (ev) {
+        startX = Number(ev && ev.touches && ev.touches[0] ? ev.touches[0].clientX : 0);
+      }, { passive: true });
+      hero.addEventListener("touchmove", function (ev) {
+        var x = Number(ev && ev.touches && ev.touches[0] ? ev.touches[0].clientX : startX);
+        var delta = Math.max(-1, Math.min(1, (x - startX) / 120));
+        root.style.setProperty("--vc-hero-orbit-x", String(delta));
+      }, { passive: true });
+    }
+
+    var cta = document.getElementById("heroShopNowBtn");
+    var ctaIdleTimer = null;
+    function scheduleCtaMagnet() {
+      if (!cta) return;
+      if (ctaIdleTimer) window.clearTimeout(ctaIdleTimer);
+      cta.classList.remove("vc-magnetic-cta");
+      ctaIdleTimer = window.setTimeout(function () {
+        cta.classList.add("vc-magnetic-cta");
+      }, 1800);
+    }
+    ["scroll", "touchstart", "pointerdown", "keydown"].forEach(function (evName) {
+      window.addEventListener(evName, scheduleCtaMagnet, { passive: true });
+    });
+    scheduleCtaMagnet();
+
+    function wakeBrandonPulse() {
+      var ai = document.getElementById("vc-mobile-ai");
+      if (!ai) return;
+      ai.classList.add("vc-brandon-presence");
+      window.setTimeout(function () {
+        ai.classList.remove("vc-brandon-presence");
+      }, 1200);
+    }
+    window.addEventListener("vibecart-cinematic-done", wakeBrandonPulse, { passive: true });
+    window.addEventListener("vibecart-first-prompt-complete", function (ev) {
+      var lane = String(ev && ev.detail && ev.detail.intent ? ev.detail.intent : "buy").toLowerCase();
+      root.setAttribute("data-vc-lane", /^(buy|book|sell|fast)$/.test(lane) ? lane : "buy");
+      root.classList.add("vc-lane-aura-shift");
+      window.setTimeout(function () {
+        root.classList.remove("vc-lane-aura-shift");
+      }, 1800);
+      wakeBrandonPulse();
+    }, { passive: true });
+  }
+
+  function initBrandonGhostAssistMode() {
+    var wrap = document.getElementById("vc-mobile-ai");
+    if (!wrap) return;
+    wrap.classList.add("vc-mobile-ai--ghost");
+    var orb = wrap.querySelector(".vc-mobile-ai__orb");
+    var panel = wrap.querySelector(".vc-mobile-ai__panel");
+    var micro = wrap.querySelector(".vc-mobile-ai__micro");
+    var hesitationTimer = null;
+    function setGhost(on) {
+      wrap.classList.toggle("vc-mobile-ai--ghost", !!on);
+      wrap.classList.toggle("vc-mobile-ai--awake", !on);
+    }
+    function pokeAssist(line) {
+      setGhost(false);
+      if (micro && line) micro.textContent = String(line).slice(0, 120);
+      if (hesitationTimer) window.clearTimeout(hesitationTimer);
+      hesitationTimer = window.setTimeout(function () {
+        var expanded = orb && orb.getAttribute("aria-expanded") === "true";
+        if (!expanded && !panel?.matches(":not([hidden])")) {
+          setGhost(true);
+        }
+      }, 2600);
+    }
+    window.addEventListener(
+      "vibecart-cinematic-done",
+      function () {
+        pokeAssist("Brandon is live. Pick buy, sell, book, or fast and I will guide instantly.");
+      },
+      { passive: true }
+    );
+    window.addEventListener(
+      "vibecart-first-prompt-complete",
+      function (ev) {
+        var chosen = String(ev && ev.detail && ev.detail.intent ? ev.detail.intent : "").toLowerCase();
+        document.body.classList.add("vc-after-lane-selected");
+        pokeAssist(
+          chosen
+            ? "Lane locked: " + chosen + ". Brandon is live and routing your fastest next move."
+            : "Brandon is live. Tell me your goal and I will route your next best move."
+        );
+      },
+      { passive: true }
+    );
+    if (orb) {
+      orb.addEventListener("click", function () {
+        setGhost(false);
+        if (hesitationTimer) window.clearTimeout(hesitationTimer);
+      });
+    }
   }
 
   function teardownEphemeralStickerHud() {
@@ -3110,7 +3965,9 @@
       "vcArrangeResetHud",
       "vcActionHub",
       "vcQuickActionTrigger",
-      "vcVibeModeBtn"
+      "vcVibeModeBtn",
+      "vcSimpleWowSticker",
+      "vcPostHeroScrollPrompt"
     ].forEach(function (id) {
       try {
         var n = document.getElementById(id);
@@ -3143,14 +4000,44 @@
       });
     }
     enhanceHero();
+    initCinematicAudioUnlock();
+    initMindBlowingCalmFlow();
+    initGoosebumpsPack();
     document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+    initSimpleWowUserSticker();
+    if (isSimpleWowModeEnabled()) {
+      document.body.classList.add("vc-simple-wow-on");
+      document.body.classList.add("vc-v3-wow");
+    }
     initMobileFocusMode();
     initThumbFlowBoost();
     initTrustSnapshotCard();
+    initSimpleWowEntry();
+    initThreeSecondCinematicOpener();
+    initShockHeroCinematic();
+    initCinematicLaneBadge();
+    initCinematicConciergeRail();
+    initPostHeroScrollPrompt();
+    // Re-apply placement after late layout shifts from async cards/widgets.
+    window.setTimeout(function () {
+      try {
+        initCinematicConciergeRail();
+        initPostHeroScrollPrompt();
+      } catch {
+        /* ignore */
+      }
+    }, 900);
+    // Remove the post-cinematic welcome sheet; keep only wow lane prompt sequence.
+    try {
+      var staleWelcome = document.getElementById("vcMobileWelcomeSheet");
+      if (staleWelcome && staleWelcome.parentNode) staleWelcome.parentNode.removeChild(staleWelcome);
+    } catch {
+      /* ignore */
+    }
+    initFirstFiveWowExperience();
+    initBrandonGhostAssistMode();
     var heavy = mountHeavyMobileStickers();
     if (heavy) {
-      initDailyWelcomeSheet();
-      initFirstFiveWowExperience();
       initDailyStreakChip();
       initStoryRail();
       initSwipeSaveDeals();
@@ -3166,6 +4053,31 @@
       initFloatingActionHub();
       initFloatingControlLayout();
     }
+  }
+
+  function initCinematicLaneBadge() {
+    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (document.getElementById("vcCinematicLaneBadge")) return;
+    var heroCopy = document.querySelector(".hero-copy");
+    if (!heroCopy) return;
+    var lane = "buy";
+    try {
+      lane = String(localStorage.getItem("vibecart-mobile-wow-intent-v1") || "buy").trim().toLowerCase();
+    } catch {
+      lane = "buy";
+    }
+    if (!/^(buy|book|sell|fast)$/.test(lane)) lane = "buy";
+    var laneLabelMap = {
+      buy: "Buyer energy live",
+      book: "Service energy live",
+      sell: "Seller energy live",
+      fast: "Speed energy live"
+    };
+    var badge = document.createElement("p");
+    badge.id = "vcCinematicLaneBadge";
+    badge.className = "vc-cinematic-lane-badge";
+    badge.textContent = laneLabelMap[lane] || laneLabelMap.buy;
+    heroCopy.insertBefore(badge, heroCopy.firstChild || null);
   }
 
   window.addEventListener(
@@ -3201,6 +4113,10 @@
     if (document.body && document.body.classList.contains("health-coach-page")) {
       if (isApp) {
         document.body.classList.add("vc-mobile-shell");
+        if (isSimpleWowModeEnabled()) {
+          document.body.classList.add("vc-simple-wow-on");
+          document.body.classList.add("vc-v3-wow");
+        }
         initMainSectionRevealForApp();
         ensureAppShopHubLink();
       }
@@ -3208,6 +4124,10 @@
     }
     if (isApp) {
       document.body.classList.add("vc-mobile-shell");
+      if (isSimpleWowModeEnabled()) {
+        document.body.classList.add("vc-simple-wow-on");
+        document.body.classList.add("vc-v3-wow");
+      }
       initMainSectionRevealForApp();
       ensureAppShopHubLink();
       window.addEventListener(
@@ -3231,6 +4151,7 @@
     if (isApp || isPhone) {
       runMobileHudPack();
     }
+    registerNativePushIfAvailable();
   }
 
   window.addEventListener(
@@ -3253,6 +4174,10 @@
         if (document.body && document.body.classList.contains("health-coach-page")) {
           if (root.classList.contains("vc-mobile-app")) {
             document.body.classList.add("vc-mobile-shell");
+            if (isSimpleWowModeEnabled()) {
+              document.body.classList.add("vc-simple-wow-on");
+              document.body.classList.add("vc-v3-wow");
+            }
             initMainSectionRevealForApp();
             ensureAppShopHubLink();
           }
@@ -3260,6 +4185,10 @@
         }
         if (root.classList.contains("vc-mobile-app")) {
           document.body.classList.add("vc-mobile-shell");
+          if (isSimpleWowModeEnabled()) {
+            document.body.classList.add("vc-simple-wow-on");
+            document.body.classList.add("vc-v3-wow");
+          }
           initMainSectionRevealForApp();
           ensureAppShopHubLink();
         }
@@ -3270,6 +4199,7 @@
           /* ignore */
         }
         runMobileHudPack();
+        registerNativePushIfAvailable();
       } catch {
         /* ignore */
       }

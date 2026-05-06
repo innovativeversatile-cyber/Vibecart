@@ -67,6 +67,17 @@
           "&paymentMethod=" +
           encodeURIComponent(method);
         window.location.href = target;
+        window.setTimeout(function () {
+          if (gatewayBtn) {
+            gatewayBtn.dataset.loading = "0";
+            gatewayBtn.disabled = false;
+            gatewayBtn.textContent = "Step 2: Go to secure gateway";
+          }
+          if (doneStatus) {
+            doneStatus.innerHTML =
+              'Still here? Continue with secure payment: <a href="' + target + '">open gateway</a>.';
+          }
+        }, 4200);
       });
     }
   }

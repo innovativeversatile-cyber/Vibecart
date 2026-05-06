@@ -11,8 +11,12 @@
       return;
     }
     try {
+      var headers = { Authorization: "Bearer " + token };
+      if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.authHeaders === "function") {
+        headers = window.VibeCartSessionDevice.authHeaders(token);
+      }
       var res = await fetch("/api/public/auth/session", {
-        headers: { Authorization: "Bearer " + token }
+        headers: headers
       });
       var body = await res.json().catch(function () { return {}; });
       var role = String((body && body.user && body.user.role) || "").toLowerCase();

@@ -301,9 +301,216 @@
         var anchor = event.target && event.target.closest ? event.target.closest("a[href='#']") : null;
         if (!anchor) return;
         event.preventDefault();
+        var hint = anchor.getAttribute("data-vc-href-hint");
+        if (hint) {
+          try {
+            window.location.assign(String(hint));
+          } catch {
+            /* ignore */
+          }
+        }
       },
       true
     );
+  }
+
+  function initUnstuckGuard() {
+    if (!document.body || document.body.getAttribute("data-vc-unstuck-guard") === "1") return;
+    document.body.setAttribute("data-vc-unstuck-guard", "1");
+    function findBusyButton(form) {
+      if (!form || !form.querySelector) return null;
+      return form.querySelector("button[disabled], input[type='submit'][disabled]");
+    }
+    function releaseIfStuck(form, startedAt) {
+      var btn = findBusyButton(form);
+      if (!btn) return;
+      var age = Date.now() - startedAt;
+      if (age < 12000) return;
+      btn.disabled = false;
+      if (!form.querySelector(".vc-unstuck-note")) {
+        var note = document.createElement("p");
+        note.className = "note vc-unstuck-note";
+        note.textContent = "This action took too long. Please try again, or use Account hub if payment/sign-in did not continue.";
+        form.appendChild(note);
+      }
+    }
+    document.addEventListener(
+      "submit",
+      function (event) {
+        var form = event.target;
+        if (!form || !form.tagName || String(form.tagName).toLowerCase() !== "form") return;
+        var startedAt = Date.now();
+        window.setTimeout(function () {
+          releaseIfStuck(form, startedAt);
+        }, 12500);
+      },
+      true
+    );
+    window.addEventListener("offline", function () {
+      if (document.getElementById("vcOfflineSticky")) return;
+      var bar = document.createElement("div");
+      bar.id = "vcOfflineSticky";
+      bar.style.cssText =
+        "position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;padding:10px 12px;border-radius:10px;background:#1f2937;color:#fff;font-size:13px";
+      bar.textContent =
+        "You appear offline. Actions may pause. Reconnect and retry; your account and recovery links remain available.";
+      document.body.appendChild(bar);
+    });
+    window.addEventListener("online", function () {
+      var bar = document.getElementById("vcOfflineSticky");
+      if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
+    });
+  }
+
+  function initRecoveryToastAndFetchGuard() {
+    if (typeof window === "undefined" || window.__vcRecoveryToastBound === "1") return;
+    window.__vcRecoveryToastBound = "1";
+    var toast = document.createElement("div");
+    toast.id = "vcRecoveryToast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    toast.style.cssText =
+      "position:fixed;left:12px;right:12px;bottom:62px;z-index:100000;padding:10px 12px;border-radius:12px;background:#111827;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.35);display:none";
+    var msg = document.createElement("div");
+    msg.id = "vcRecoveryToastMsg";
+    msg.style.cssText = "font-size:13px;line-height:1.35;margin-bottom:8px";
+    var actions = document.createElement("div");
+    actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap";
+    var retryBtn = document.createElement("button");
+    retryBtn.type = "button";
+    retryBtn.className = "btn btn-secondary";
+    retryBtn.textContent = "Retry";
+    var hubBtn = document.createElement("a");
+    hubBtn.className = "btn btn-secondary";
+    hubBtn.href = "./account-hub.html";
+    hubBtn.textContent = "Account hub";
+    var restoreBtn = document.createElement("a");
+    restoreBtn.className = "btn btn-secondary";
+    restoreBtn.href = "./coach-payment-recovery.html";
+    restoreBtn.textContent = "Restore access";
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "btn btn-secondary";
+    closeBtn.textContent = "Close";
+    actions.appendChild(retryBtn);
+    actions.appendChild(hubBtn);
+    actions.appendChild(restoreBtn);
+    actions.appendChild(closeBtn);
+    toast.appendChild(msg);
+    toast.appendChild(actions);
+    document.body.appendChild(toast);
+    var retryFn = null;
+    function hideToast() {
+      toast.style.display = "none";
+      retryFn = null;
+    }
+    function showToast(message, onRetry) {
+      msg.textContent = String(message || "Action failed. You can retry or open account recovery.");
+      toast.style.display = "block";
+      retryFn = typeof onRetry === "function" ? onRetry : null;
+    }
+    function postClientEvent(eventType, severity, message, payload) {
+      try {
+        origFetch("/api/public/telemetry/client-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventType: String(eventType || "client_event"),
+            severity: String(severity || "info"),
+            message: String(message || "").slice(0, 500),
+            pagePath: String((window.location && window.location.pathname) || "").slice(0, 255),
+            payload: payload || {}
+          })
+        }).catch(function () {});
+      } catch {
+        /* ignore */
+      }
+    }
+    retryBtn.addEventListener("click", function () {
+      if (retryFn) {
+        var fn = retryFn;
+        hideToast();
+        fn();
+        return;
+      }
+      window.location.reload();
+    });
+    closeBtn.addEventListener("click", hideToast);
+    window.addEventListener("vc:recovery-toast", function (event) {
+      var detail = (event && event.detail) || {};
+      showToast(detail.message || "Action did not complete.", detail.onRetry || null);
+    });
+
+    if (window.__vcFetchGuardBound === "1") return;
+    window.__vcFetchGuardBound = "1";
+    var origFetch = window.fetch;
+    if (typeof origFetch !== "function") return;
+    window.fetch = function (input, init) {
+      var reqUrl = typeof input === "string" ? input : input && input.url ? String(input.url) : "";
+      var isApi = /\/api\//i.test(reqUrl);
+      if (!isApi) {
+        return origFetch(input, init);
+      }
+      var method = String((init && init.method) || "GET").toUpperCase();
+      var timeoutMs = method === "GET" ? 20000 : 25000;
+      var doFetch = function () {
+        var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+        var timer = null;
+        var nextInit = Object.assign({}, init || {});
+        if (controller && !nextInit.signal) {
+          nextInit.signal = controller.signal;
+        }
+        if (controller) {
+          timer = window.setTimeout(function () {
+            try {
+              controller.abort();
+            } catch {
+              /* ignore */
+            }
+          }, timeoutMs);
+        }
+        return origFetch(input, nextInit)
+          .then(function (res) {
+            if (timer) window.clearTimeout(timer);
+            if (!res || !res.ok) {
+              postClientEvent("api_non_ok", "warn", "API response not ok", {
+                status: res ? Number(res.status || 0) : 0,
+                url: reqUrl
+              });
+              /* 4xx responses usually carry { code, message } for the page to show — avoid scary global toast. */
+              var st = res ? Number(res.status || 0) : 0;
+              if (st >= 500 || st === 0) {
+                showToast(
+                  "Request did not complete successfully. Retry now or open Account hub.",
+                  function () {
+                    doFetch().catch(function () {});
+                  }
+                );
+              }
+            }
+            return res;
+          })
+          .catch(function (err) {
+            if (timer) window.clearTimeout(timer);
+            postClientEvent(
+              String(err && err.name) === "AbortError" ? "api_timeout" : "api_network_error",
+              "error",
+              String((err && err.message) || "Request failed"),
+              { url: reqUrl, method: method }
+            );
+            showToast(
+              String(err && err.name) === "AbortError"
+                ? "Request timed out. Check your network and retry."
+                : "Network issue detected. Retry now or open recovery.",
+              function () {
+                doFetch().catch(function () {});
+              }
+            );
+            throw err;
+          });
+      };
+      return doFetch();
+    };
   }
 
   function applyLuxeClasses(on) {
@@ -651,6 +858,8 @@
   initTopbarAutoHide();
   initBackToTop();
   initDeadEndLinkGuard();
+  initUnstuckGuard();
+  initRecoveryToastAndFetchGuard();
   var sceneDirector = initSceneDirector();
   initRevealEffects();
   initPointerAmbience();

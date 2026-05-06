@@ -4,7 +4,7 @@ const crypto = require("crypto");
 
 /**
  * Backend helper for push registration + order notifications.
- * Native: Expo + FCM legacy (`FCM_SERVER_KEY`). Browser: Web Push via `web-push` + VAPID env vars.
+ * Native: Expo + FCM (v1 preferred, legacy fallback). Browser: Web Push via `web-push` + VAPID env vars.
  */
 
 let webPushModule;
@@ -21,6 +21,7 @@ function loadWebPush() {
 }
 
 let webPushVapidReady = false;
+let fcmV1AccessTokenCache = { token: "", expMs: 0 };
 function ensureWebPushVapidConfigured() {
   const webpush = loadWebPush();
   if (!webpush) {
@@ -54,6 +55,89 @@ function tryParseWebPushSubscription(raw) {
   } catch {
     return null;
   }
+}
+
+function base64UrlEncode(input) {
+  return Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function parseFcmServiceAccount() {
+  const inlineJson = String(process.env.FCM_SERVICE_ACCOUNT_JSON || "").trim();
+  if (inlineJson) {
+    try {
+      const parsed = JSON.parse(inlineJson);
+      if (parsed && parsed.client_email && parsed.private_key && parsed.project_id) {
+        return parsed;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  const projectId = String(process.env.FCM_PROJECT_ID || "").trim();
+  const clientEmail = String(process.env.FCM_CLIENT_EMAIL || "").trim();
+  const privateKey = String(process.env.FCM_PRIVATE_KEY || "")
+    .replace(/\\n/g, "\n")
+    .trim();
+  if (!projectId || !clientEmail || !privateKey) {
+    return null;
+  }
+  return { project_id: projectId, client_email: clientEmail, private_key: privateKey };
+}
+
+async function getFcmV1AccessToken() {
+  const now = Date.now();
+  if (fcmV1AccessTokenCache.token && now < fcmV1AccessTokenCache.expMs - 60_000) {
+    return fcmV1AccessTokenCache.token;
+  }
+  const sa = parseFcmServiceAccount();
+  if (!sa) {
+    return "";
+  }
+  const iat = Math.floor(now / 1000);
+  const exp = iat + 3600;
+  const header = { alg: "RS256", typ: "JWT" };
+  const claim = {
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat,
+    exp
+  };
+  const signingInput = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(claim))}`;
+  const signer = crypto.createSign("RSA-SHA256");
+  signer.update(signingInput);
+  signer.end();
+  const signature = signer.sign(sa.private_key, "base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  const jwt = `${signingInput}.${signature}`;
+  const body = new URLSearchParams({
+    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    assertion: jwt
+  });
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString()
+  });
+  const json = await res.json().catch(() => ({}));
+  const token = String((json && json.access_token) || "").trim();
+  const expiresIn = Number((json && json.expires_in) || 3600);
+  if (!res.ok || !token) {
+    return "";
+  }
+  fcmV1AccessTokenCache = {
+    token,
+    expMs: Date.now() + Math.max(300, expiresIn - 30) * 1000
+  };
+  return token;
+}
+
+function inferNativeTokenKind(token) {
+  const t = String(token || "").trim();
+  if (!t) return "unknown";
+  if (/^(ExponentPushToken|ExpoPushToken)\[.+\]$/i.test(t)) return "expo";
+  // APNs tokens are often 64+ hex chars.
+  if (/^[a-f0-9]{64,200}$/i.test(t)) return "apns";
+  return "fcm";
 }
 
 async function ensureWebPushSubscriptionsTable(db) {
@@ -270,6 +354,7 @@ async function sendViaProvider(tokens, title, message, deepLink) {
   }
   const expoTokens = [];
   const fcmTokens = [];
+  const apnsTokens = [];
   const webSubs = [];
   for (const token of list) {
     const t = String(token || "").trim();
@@ -281,14 +366,15 @@ async function sendViaProvider(tokens, title, message, deepLink) {
       webSubs.push({ subscription: webParsed, raw: t.slice(0, 120) });
       continue;
     }
-    if (/^(ExponentPushToken|ExpoPushToken)\[.+\]$/i.test(t)) {
-      expoTokens.push(t);
-    } else {
-      fcmTokens.push(t);
-    }
+    const kind = inferNativeTokenKind(t);
+    if (kind === "expo") expoTokens.push(t);
+    else if (kind === "apns") apnsTokens.push(t);
+    else fcmTokens.push(t);
   }
 
   const results = [];
+  const vibeTone = String(process.env.VIBECART_NOTIFICATION_SOUND || "default").trim() || "default";
+  const vibeChannel = String(process.env.VIBECART_ANDROID_CHANNEL_ID || "vibecart-alerts").trim() || "vibecart-alerts";
   const webPayload = JSON.stringify({
     title: String(title || "").slice(0, 120),
     body: String(message || "").slice(0, 500),
@@ -332,7 +418,8 @@ async function sendViaProvider(tokens, title, message, deepLink) {
             to: token,
             title: String(title || "").slice(0, 120),
             body: String(message || "").slice(0, 500),
-            sound: "default",
+            sound: vibeTone,
+            channelId: vibeChannel,
             data: deepLink ? { url: String(deepLink).slice(0, 512) } : {}
           })
         });
@@ -350,12 +437,69 @@ async function sendViaProvider(tokens, title, message, deepLink) {
     }
   }
 
-  if (!fcmTokens.length) {
+  const nativeTokens = fcmTokens.concat(apnsTokens);
+  if (!nativeTokens.length) return results;
+
+  // Preferred path: Firebase Cloud Messaging HTTP v1 (Android + iOS/APNs routing).
+  const sa = parseFcmServiceAccount();
+  const accessToken = sa ? await getFcmV1AccessToken() : "";
+  if (sa && accessToken) {
+    for (const token of nativeTokens) {
+      const t = String(token || "").trim();
+      if (!t) continue;
+      const kind = inferNativeTokenKind(t);
+      const fcmV1Url = `https://fcm.googleapis.com/v1/projects/${encodeURIComponent(sa.project_id)}/messages:send`;
+      const payload = {
+        message: {
+          token: t,
+          notification: {
+            title: String(title || "").slice(0, 120),
+            body: String(message || "").slice(0, 500)
+          },
+          data: deepLink ? { url: String(deepLink).slice(0, 512) } : {}
+        }
+      };
+      if (kind === "apns") {
+        payload.message.apns = {
+          headers: { "apns-priority": "10" },
+          payload: { aps: { sound: vibeTone, "content-available": 1 } }
+        };
+      } else {
+        payload.message.android = {
+          priority: "high",
+          notification: {
+            channel_id: vibeChannel,
+            sound: vibeTone
+          }
+        };
+      }
+      try {
+        const res = await fetch(fcmV1Url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+        const body = await res.json().catch(() => ({}));
+        const ok = res.ok && !!body && typeof body.name === "string";
+        results.push({
+          token: t,
+          success: ok,
+          providerMessageId: ok ? String(body.name || "") : null
+        });
+      } catch {
+        results.push({ token: t, success: false, providerMessageId: null });
+      }
+    }
     return results;
   }
+
+  // Backward compatibility path: FCM legacy server key.
   if (!fcmKey) {
     return results.concat(
-      fcmTokens.map((token) => ({
+      nativeTokens.map((token) => ({
         token,
         success: false,
         providerMessageId: null
@@ -363,11 +507,9 @@ async function sendViaProvider(tokens, title, message, deepLink) {
     );
   }
 
-  for (const token of fcmTokens) {
+  for (const token of nativeTokens) {
     const t = String(token || "").trim();
-    if (!t) {
-      continue;
-    }
+    if (!t) continue;
     try {
       const res = await fetch("https://fcm.googleapis.com/fcm/send", {
         method: "POST",
@@ -377,8 +519,22 @@ async function sendViaProvider(tokens, title, message, deepLink) {
         },
         body: JSON.stringify({
           to: t,
-          notification: { title: String(title || "").slice(0, 120), body: String(message || "").slice(0, 500) },
-          data: deepLink ? { url: String(deepLink).slice(0, 512) } : {}
+          priority: "high",
+          notification: {
+            title: String(title || "").slice(0, 120),
+            body: String(message || "").slice(0, 500),
+            sound: vibeTone
+          },
+          android: {
+            notification: {
+              channel_id: vibeChannel,
+              sound: vibeTone
+            }
+          },
+          data: Object.assign({}, deepLink ? { url: String(deepLink).slice(0, 512) } : {}, {
+            vc_sound: vibeTone,
+            vc_channel: vibeChannel
+          })
         })
       });
       const body = await res.json().catch(() => ({}));

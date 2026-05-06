@@ -3378,8 +3378,19 @@ async function refreshPublicSessionOnLoad() {
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body.ok || !body.user) {
-      clearPublicAuth();
-      paintAuthLoggedOut();
+      const code = String((body && body.code) || "").toUpperCase();
+      const invalidSession =
+        response.status === 401 || response.status === 403 || code === "INVALID_SESSION" || code === "NO_SESSION";
+      if (invalidSession) {
+        clearPublicAuth();
+        paintAuthLoggedOut();
+        return;
+      }
+      if (hasToken && auth.user) {
+        paintAuthLoggedIn(auth.user);
+      } else {
+        paintAuthLoggedOut();
+      }
       return;
     }
     const nextTok = body.token ? String(body.token) : hasToken ? auth.token : "";
@@ -3391,7 +3402,10 @@ async function refreshPublicSessionOnLoad() {
     persistPublicAuth(nextTok, body.user);
     paintAuthLoggedIn(body.user);
   } catch {
-    clearPublicAuth();
+    if (hasToken && auth.user) {
+      paintAuthLoggedIn(auth.user);
+      return;
+    }
     paintAuthLoggedOut();
   }
 }
@@ -3591,6 +3605,12 @@ function initPublicAccountAuth() {
     if (btnCreate) {
       btnCreate.disabled = true;
     }
+    var createTimer = window.setTimeout(function () {
+      if (btnCreate) {
+        btnCreate.disabled = false;
+      }
+      setAuthStatus("Registration is taking too long. Retry now, or open Account hub.");
+    }, 16000);
     setAuthStatus(authT("accountPassport.creating"));
     try {
       const response = await fetch("/api/public/auth/register", {
@@ -3638,6 +3658,7 @@ function initPublicAccountAuth() {
     } catch {
       setAuthStatus(authT("accountPassport.errGeneric"));
     } finally {
+      window.clearTimeout(createTimer);
       if (btnCreate) {
         btnCreate.disabled = false;
       }
@@ -3658,6 +3679,12 @@ function initPublicAccountAuth() {
     if (btnLogin) {
       btnLogin.disabled = true;
     }
+    var loginTimer = window.setTimeout(function () {
+      if (btnLogin) {
+        btnLogin.disabled = false;
+      }
+      setAuthStatus("Sign-in timed out. Retry now, or use Account hub if this continues.");
+    }, 16000);
     try {
       const response = await fetch("/api/public/auth/login", {
         method: "POST",
@@ -3708,6 +3735,7 @@ function initPublicAccountAuth() {
     } catch {
       setAuthStatus(authT("accountPassport.errGeneric"));
     } finally {
+      window.clearTimeout(loginTimer);
       if (btnLogin) {
         btnLogin.disabled = false;
       }
@@ -5681,17 +5709,26 @@ async function startCoachSubscriptionCheckout(planCode) {
   coachDashboard.textContent = `Starting ${planCode} subscription...`;
   var autoRenewPref = localStorage.getItem(COACH_AUTO_RENEW_KEY);
   var autoRenew = autoRenewPref === null ? true : autoRenewPref === "1";
-  const response = await fetch("/api/public/coach/subscription/start", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId: getPublicUserId(),
-      planCode,
-      source: "web-health-coach",
-      autoRenew: autoRenew
+  const response = await Promise.race([
+    fetch("/api/public/coach/subscription/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: getPublicUserId(),
+        planCode,
+        source: "web-health-coach",
+        autoRenew: autoRenew
+      })
+    }),
+    new Promise(function (_, reject) {
+      window.setTimeout(function () {
+        reject(new Error("timeout"));
+      }, 15000);
     })
+  ]);
+  const result = await response.json().catch(function () {
+    return {};
   });
-  const result = await response.json();
   if (!result || !result.ok) {
     coachDashboard.textContent = "Could not start subscription right now.";
     return;
@@ -6452,7 +6489,7 @@ autoDebugRunBtn?.addEventListener("click", runAutonomousDebugSweep);
     const inAppShell = document.documentElement.classList.contains("vc-mobile-app");
     if (inAppShell) {
       // Keep storage for installed app mode, but still re-register SW so updates land.
-      navigator.serviceWorker.register("./service-worker.js?v=20260505pwafix1").catch(() => {});
+      navigator.serviceWorker.register("./service-worker.js?v=20260505nuclearprovider3").catch(() => {});
       return;
     }
     navigator.serviceWorker

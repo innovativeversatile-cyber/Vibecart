@@ -191,16 +191,8 @@
           el.addEventListener(type, halt, true);
         });
       });
-      form.addEventListener(
-        "submit",
-        function (event) {
-          event.stopPropagation();
-          if (typeof event.stopImmediatePropagation === "function") {
-            event.stopImmediatePropagation();
-          }
-        },
-        true
-      );
+      // Do not intercept submit in capture phase; the actual search handler
+      // below must receive submit events to route to global search.
     })();
     if (i18n) {
       var stored = i18n.getStored() || "en";

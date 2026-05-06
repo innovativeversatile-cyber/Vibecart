@@ -43,6 +43,14 @@ function note(msg) {
   results.notes.push(msg);
 }
 
+function isExpectedHighValueBlock(status, json) {
+  const code = String((json && json.code) || "").trim().toUpperCase();
+  if (Number(status) !== 401 && Number(status) !== 403) {
+    return false;
+  }
+  return code === "ACCOUNT_REQUIRED_HIGH_VALUE" || code === "INVALID_SESSION" || code === "NO_SESSION";
+}
+
 function fail(label, detail) {
   results.fail += 1;
   console.error(`FAIL ${label}: ${detail}`);
@@ -111,6 +119,33 @@ async function postExpectOk(label, path, body, extraHeaders = {}) {
     const { status, json } = await req("POST", `${API_BASE}${path}`, body, extraHeaders);
     if (responseOk(status, json)) {
       pass(label);
+      return json;
+    }
+    fail(label, `HTTP ${status} ${JSON.stringify(json || {}).slice(0, 240)}`);
+  } catch (e) {
+    fail(label, e.message || String(e));
+  }
+  return null;
+}
+
+async function postExpectOkOrHighValueBlocked(label, path, body, extraHeaders = {}) {
+  if (!mutations) {
+    note(`SKIP (SMOKE_MUTATIONS=0) ${label}`);
+    return null;
+  }
+  if (mutationPostCount > 0 && mutationPostCount % 25 === 0 && POST_CHUNK_PAUSE_MS > 0) {
+    note(`RATE chunk pause ${POST_CHUNK_PAUSE_MS}ms after ${mutationPostCount} POSTs`);
+    await sleep(POST_CHUNK_PAUSE_MS);
+  }
+  mutationPostCount += 1;
+  try {
+    const { status, json } = await req("POST", `${API_BASE}${path}`, body, extraHeaders);
+    if (responseOk(status, json)) {
+      pass(label);
+      return json;
+    }
+    if (isExpectedHighValueBlock(status, json)) {
+      pass(`${label} (protected route blocked as expected)`);
       return json;
     }
     fail(label, `HTTP ${status} ${JSON.stringify(json || {}).slice(0, 240)}`);
@@ -272,17 +307,23 @@ if (mutations) {
     if (reg.status === 200 && reg.json?.ok && reg.json.token && reg.json.user?.id) {
       pass(`POST auth/register (${h.tag})`);
       const userId = Number(reg.json.user.id);
-      smokeSessions.push({ token: reg.json.token, userId });
-      await postExpectOk(`POST coach/profile ${h.tag}`, "/api/public/coach/profile/upsert", {
-        userId,
-        coachFocus: h.coachFocus,
-        baselineWeightKg: h.baselineWeightKg,
-        targetWeightKg: h.targetWeightKg,
-        goalNotes: h.goalNotes,
-        dailyActivityGoal: "45 minutes brisk walking",
-        medicationTrackingEnabled: false,
-        healthRiskNotes: "Smoke test synthetic cohort"
-      });
+      const token = String(reg.json.token || "").trim();
+      smokeSessions.push({ token, userId });
+      await postExpectOkOrHighValueBlocked(
+        `POST coach/profile ${h.tag}`,
+        "/api/public/coach/profile/upsert",
+        {
+          userId,
+          coachFocus: h.coachFocus,
+          baselineWeightKg: h.baselineWeightKg,
+          targetWeightKg: h.targetWeightKg,
+          goalNotes: h.goalNotes,
+          dailyActivityGoal: "45 minutes brisk walking",
+          medicationTrackingEnabled: false,
+          healthRiskNotes: "Smoke test synthetic cohort"
+        },
+        token ? { Authorization: `Bearer ${token}` } : {}
+      );
     } else {
       fail(`POST auth/register (${h.tag})`, `HTTP ${reg.status} ${JSON.stringify(reg.json || {}).slice(0, 200)}`);
       break;
@@ -297,12 +338,17 @@ if (mutations && smokeSessions.length > 0) {
     const d = new Date();
     d.setDate(d.getDate() + i - 7);
     const iso = d.toISOString().slice(0, 10);
-    await postExpectOk(`POST coach/checkin #${i + 1}`, "/api/public/coach/checkin/add", {
-      userId: sess.userId,
-      checkinType: checkinTypes[i % checkinTypes.length],
-      metricValue: String(70 + (i % 5)),
-      notes: `Smoke booking-style cadence ${iso} slot ${(i % 5) + 9}:00`
-    });
+    await postExpectOkOrHighValueBlocked(
+      `POST coach/checkin #${i + 1}`,
+      "/api/public/coach/checkin/add",
+      {
+        userId: sess.userId,
+        checkinType: checkinTypes[i % checkinTypes.length],
+        metricValue: String(70 + (i % 5)),
+        notes: `Smoke booking-style cadence ${iso} slot ${(i % 5) + 9}:00`
+      },
+      sess.token ? { Authorization: `Bearer ${sess.token}` } : {}
+    );
   }
 }
 

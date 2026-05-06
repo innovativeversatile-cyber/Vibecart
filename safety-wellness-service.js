@@ -21,15 +21,22 @@ const COACH_PLAN_FEATURES = Object.freeze({
     ...COACH_FREE_FEATURES,
     "checkin_unlimited",
     "wearable_advanced",
-    "custom_plan_monthly"
+    "custom_plan_monthly",
+    "nutrition_meal_plan",
+    "meal_prep_weekly",
+    "gym_equipment_routines"
   ],
   PRO: [
     ...COACH_FREE_FEATURES,
     "checkin_unlimited",
     "wearable_advanced",
     "custom_plan_monthly",
+    "nutrition_meal_plan",
+    "meal_prep_weekly",
+    "gym_equipment_routines",
     "deep_analysis_report",
-    "priority_human_review"
+    "priority_human_review",
+    "periodization_advanced"
   ]
 });
 
@@ -44,7 +51,14 @@ function normalizeCoachCheckoutPlanSlug(raw) {
 
 const COACH_CHECKOUT_SLUG_FEATURES = Object.freeze({
   starter: [...COACH_FREE_FEATURES],
-  "ai-home": [...COACH_FREE_FEATURES, "checkin_unlimited", "custom_plan_monthly"],
+  "ai-home": [
+    ...COACH_FREE_FEATURES,
+    "checkin_unlimited",
+    "custom_plan_monthly",
+    "nutrition_meal_plan",
+    "meal_prep_weekly",
+    "home_workout_daily"
+  ],
   plus: [...COACH_PLAN_FEATURES.PLUS],
   pro: [...COACH_PLAN_FEATURES.PRO]
 });
@@ -79,6 +93,24 @@ async function ensureCoachMonetizationTables(db) {
       INDEX idx_health_subscriptions_user_status (user_id, status, end_at)
     )`
   );
+  try {
+    await db.execute(`ALTER TABLE health_user_subscriptions ADD COLUMN stripe_subscription_id VARCHAR(255) NULL`);
+  } catch (err) {
+    const msg = String((err && err.message) || err);
+    if (!/Duplicate column name/i.test(msg)) {
+      throw err;
+    }
+  }
+  try {
+    await db.execute(
+      `ALTER TABLE health_user_subscriptions ADD UNIQUE KEY uq_health_subscriptions_stripe_sub (stripe_subscription_id)`
+    );
+  } catch (err) {
+    const msg = String((err && err.message) || err);
+    if (!/Duplicate key name|already exists/i.test(msg)) {
+      throw err;
+    }
+  }
   await db.execute(
     `CREATE TABLE IF NOT EXISTS health_feature_entitlements (
       id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -232,6 +264,8 @@ async function fulfillStripeCoachCheckoutSession(db, session) {
   const amountCents = Number(session.amount_total);
   const amountEur = Number.isFinite(amountCents) ? amountCents / 100 : null;
   const currency = String(session.currency || "eur").toUpperCase().slice(0, 8) || "EUR";
+  const autoRenew = String(metadata.autoRenew || "0").trim() === "1";
+  const stripeSubscriptionId = String(session.subscription || "").trim();
 
   const [existingFulfill] = await db.execute(
     `SELECT id FROM stripe_checkout_fulfillment_events WHERE stripe_checkout_session_id = ? LIMIT 1`,
@@ -265,11 +299,31 @@ async function fulfillStripeCoachCheckoutSession(db, session) {
       [sessionId, userId, flow, plan, addonPlan || null, paymentStatus, currency, amountEur]
     );
     fulfillEventId = Number(ins.insertId);
+    if (autoRenew && stripeSubscriptionId) {
+      await conn.execute(
+        `UPDATE health_user_subscriptions
+         SET status = 'expired', end_at = NOW()
+         WHERE user_id = ?
+           AND status = 'active'
+           AND (stripe_subscription_id IS NULL OR stripe_subscription_id <> ?)`,
+        [userId, stripeSubscriptionId]
+      );
+      const renewPlanCode =
+        plan === "pro" ? "PRO" : plan === "plus" ? "PLUS" : plan === "ai-home" ? "PLUS" : "FREE";
+      await conn.execute(
+        `INSERT INTO health_user_subscriptions (user_id, plan_id, stripe_subscription_id, status, auto_renew, start_at, end_at, source_note)
+         SELECT ?, p.id, ?, 'active', 1, NOW(), DATE_ADD(NOW(), INTERVAL p.interval_days DAY), 'stripe_auto_renew'
+         FROM health_subscription_plans p
+         WHERE p.plan_code = ?
+         LIMIT 1`,
+        [userId, stripeSubscriptionId, renewPlanCode]
+      );
+    }
     for (const featureKey of featureSet) {
       await conn.execute(
         `INSERT INTO health_feature_entitlements (user_id, feature_key, source_type, source_id, starts_at, expires_at)
-         VALUES (?, ?, 'promo', ?, NOW(), DATE_ADD(NOW(), INTERVAL ? DAY))`,
-        [userId, featureKey, fulfillEventId, COACH_STRIPE_PROMO_DAYS]
+         VALUES (?, ?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? DAY))`,
+        [userId, featureKey, autoRenew ? "subscription" : "promo", fulfillEventId, autoRenew ? 35 : COACH_STRIPE_PROMO_DAYS]
       );
     }
     await conn.commit();

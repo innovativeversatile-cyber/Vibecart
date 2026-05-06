@@ -3017,6 +3017,57 @@ async function refreshAnalyticsOverview() {
   }
 }
 
+function ensureClientEventsHotspotCard() {
+  if (document.getElementById("clientEventsHotspotCard")) {
+    return;
+  }
+  const anchor = document.getElementById("analyticsDashboardMeta");
+  const host = (anchor && anchor.parentElement) || document.querySelector("main") || document.body;
+  if (!host) return;
+  const card = document.createElement("section");
+  card.id = "clientEventsHotspotCard";
+  card.className = "card";
+  card.innerHTML =
+    "<h3>Client Event Hotspots</h3>" +
+    "<p class='small' id='clientEventsHotspotSummary'>Loading telemetry hotspots...</p>" +
+    "<div id='clientEventsTopPages'></div>" +
+    "<div id='clientEventsTopEvents' style='margin-top:.5rem;'></div>";
+  host.appendChild(card);
+}
+
+async function refreshClientEventHotspots() {
+  ensureClientEventsHotspotCard();
+  const payload = await authedPost("/api/owner/client-events/hotspots", { days: 14, limit: 12 });
+  const summaryNode = document.getElementById("clientEventsHotspotSummary");
+  const pagesNode = document.getElementById("clientEventsTopPages");
+  const eventsNode = document.getElementById("clientEventsTopEvents");
+  if (summaryNode) {
+    const s = payload.summary || {};
+    summaryNode.textContent =
+      `Last ${payload.days || 14}d: ${Number(s.total || 0)} events · ${Number(s.error_count || 0)} errors · ${Number(s.warn_count || 0)} warnings.`;
+  }
+  if (pagesNode) {
+    const rows = Array.isArray(payload.topPages) ? payload.topPages : [];
+    pagesNode.innerHTML = rows.length
+      ? rows
+          .map((r) => {
+            return `<div class='msg msg-buyer'>${String(r.page_path || "unknown")}: ${Number(r.n || 0)} events (${Number(r.errors || 0)} errors)</div>`;
+          })
+          .join("")
+      : "<div class='msg msg-buyer'>No hotspot pages yet.</div>";
+  }
+  if (eventsNode) {
+    const rows = Array.isArray(payload.topEvents) ? payload.topEvents : [];
+    eventsNode.innerHTML = rows.length
+      ? rows
+          .map((r) => {
+            return `<div class='msg msg-buyer'>${String(r.event_type || "event")}: ${Number(r.n || 0)}</div>`;
+          })
+          .join("")
+      : "<div class='msg msg-buyer'>No hotspot event types yet.</div>";
+  }
+}
+
 async function requestOwnerPayoutFromPanel() {
   const amount = Number(document.getElementById("ownerPayoutAmount")?.value || "0");
   const destinationLabel = String(document.getElementById("ownerPayoutDestination")?.value || "").trim();
@@ -3809,6 +3860,7 @@ function initializeOwnerSecurity() {
     refreshOwnerRevenueDashboard().catch(() => {});
     refreshPublicUserStats().catch(() => {});
     refreshAnalyticsOverview().catch(() => {});
+    refreshClientEventHotspots().catch(() => {});
     if (localStorage.getItem(LIVE_MONEY_DASHBOARD_KEY) === "1") {
       startLiveMoneyDashboard();
     }
