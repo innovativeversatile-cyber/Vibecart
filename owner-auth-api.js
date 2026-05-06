@@ -926,8 +926,10 @@ async function incrementSellerProductMetric(productId, fieldName, by = 1) {
   );
 }
 
+const VC_SELLER_LISTING_ROLES = new Set(["seller", "buyer", "service_provider"]);
+
 async function handlePublicSellerListings(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
   if (!session) return;
   await ensureSellerProductMetricsTable();
   const [rows] = await pool.execute(
@@ -986,13 +988,14 @@ async function handlePublicSellerListings(req, res) {
 }
 
 async function handlePublicSellerListingUpdate(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
   if (!session) return;
   const body = await readJson(req);
   const productId = Number(body.productId || 0);
   const nextStatusRaw = String(body.status || "").trim().toLowerCase();
   const stockRaw = body.stock;
   const basePriceRaw = body.basePrice;
+  const remove = Boolean(body.remove || body.archive || body.delete);
   if (!productId) {
     return sendJson(res, 400, { ok: false, code: "INVALID_PRODUCT_ID" });
   }
@@ -1007,6 +1010,10 @@ async function handlePublicSellerListingUpdate(req, res) {
   if (!ownedRows.length) {
     return sendJson(res, 403, { ok: false, code: "LISTING_FORBIDDEN" });
   }
+  if (remove) {
+    await pool.execute(`UPDATE products SET status = 'archived', stock = 0 WHERE id = ? LIMIT 1`, [productId]);
+    return sendJson(res, 200, { ok: true, archived: true });
+  }
   const updates = [];
   const params = [];
   if (Number.isFinite(Number(basePriceRaw)) && Number(basePriceRaw) > 0) {
@@ -1018,9 +1025,28 @@ async function handlePublicSellerListingUpdate(req, res) {
     params.push(Math.max(0, Math.min(9999, Math.floor(Number(stockRaw)))));
   }
   if (nextStatusRaw) {
-    const nextStatus = nextStatusRaw === "paused" ? "paused" : "active";
+    let nextStatus = "active";
+    if (nextStatusRaw === "paused") {
+      nextStatus = "paused";
+    } else if (nextStatusRaw === "archived" || nextStatusRaw === "removed" || nextStatusRaw === "deleted") {
+      nextStatus = "archived";
+    } else {
+      nextStatus = "active";
+    }
     updates.push("status = ?");
     params.push(nextStatus);
+  }
+  const title = String(body.title || "").trim();
+  if (title.length >= 4 && title.length <= 180) {
+    updates.push("title = ?");
+    params.push(title);
+  }
+  if (body.description !== undefined && body.description !== null) {
+    const desc = String(body.description || "").trim();
+    if (desc.length <= 12000) {
+      updates.push("description = ?");
+      params.push(desc.length ? desc : null);
+    }
   }
   if (!updates.length) {
     return sendJson(res, 400, { ok: false, code: "NO_UPDATES" });
@@ -1031,7 +1057,7 @@ async function handlePublicSellerListingUpdate(req, res) {
 }
 
 async function handlePublicSellerSaleNotifications(req, res) {
-  const session = await requirePublicSessionRole(req, res, new Set(["seller"]));
+  const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
   if (!session) return;
   await ensureSellerSaleNotificationsTable();
   const [rows] = await pool.execute(

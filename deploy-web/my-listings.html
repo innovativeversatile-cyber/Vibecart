@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Listings · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+  <link rel="stylesheet" href="./styles.css?v=20260515seller1" />
   <style>
     .vc-listings-shell { max-width: 1080px; margin: 0 auto; }
     .vc-listings-grid { display: grid; gap: 0.85rem; margin-top: 1rem; }
@@ -18,18 +18,22 @@
     .vc-inline-input { max-width: 110px; }
   </style>
 </head>
-<body class="shops-lane-page">
-  <header class="shops-lane-topbar">
-    <a class="btn btn-secondary" href="./index.html">← Home</a>
-    <a class="btn btn-secondary" href="./sell-journey.html">Selling checklist</a>
-    <a class="btn btn-secondary" href="./seller-boost.html">Seller Boost</a>
-    <a class="btn btn-secondary" href="./seller-orders.html">Seller orders</a>
-    <a class="btn btn-secondary" href="./seller-messages.html">Messages</a>
-    <a class="btn btn-secondary" href="./seller-payments.html">Seller payments</a>
+<body class="shops-lane-page vc-seller-skin">
+  <header class="shops-lane-topbar vc-seller-rail" aria-label="Seller navigation">
+    <a class="btn btn-secondary" href="./index.html" title="Home">Home</a>
+    <a class="btn btn-secondary" href="./sell-journey.html" title="Selling checklist">Sell</a>
+    <a class="btn btn-secondary" href="./my-listings.html" title="My listings">Listings</a>
+    <a class="btn btn-secondary" href="./seller-orders.html" title="Seller orders">Orders</a>
+    <a class="btn btn-secondary" href="./seller-payments.html" title="Payouts">Payouts</a>
+    <a class="btn btn-primary" href="./seller-messages.html" title="Messages">Messages</a>
+    <a class="btn btn-secondary" href="./seller-boost.html" title="Seller Boost">Boost</a>
   </header>
   <main class="section alt shops-lane-main vc-listings-shell">
     <h1 class="shops-lane-title">My Listings</h1>
-    <p class="note">Monitor active, paused, and sold items with real views/clicks stats and sale alerts.</p>
+    <p class="note">
+      Monitor listings, edit text, pause, or remove from the marketplace. Money movement is tied to
+      <a href="./seller-orders.html">orders</a> — see <a href="./seller-payments.html">how payouts work</a>.
+    </p>
     <p class="hero-actions">
       <button class="btn btn-primary" id="vcListingsRefreshBtn" type="button">Refresh</button>
       <span class="note" id="vcListingsStatus" aria-live="polite"></span>
@@ -52,7 +56,7 @@
     <section id="vcListingsGrid" class="vc-listings-grid" aria-live="polite"></section>
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
-  <script src="./my-listings.js?v=20260501sessbind1" defer></script>
+  <script src="./my-listings.js?v=20260515listings1" defer></script>
   <script src="./site-chrome.js?v=20260514nav1" defer></script>
 </body>
 </html>

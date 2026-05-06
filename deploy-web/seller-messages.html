@@ -4,21 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Messages · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+  <link rel="stylesheet" href="./styles.css?v=20260515seller1" />
 </head>
-<body class="shops-lane-page">
-  <header class="shops-lane-topbar">
-    <a class="btn btn-secondary" href="./index.html">← Home</a>
-    <a class="btn btn-secondary" href="./account-hub.html">Account hub</a>
-    <a class="btn btn-primary" href="./sell-journey.html">Selling checklist</a>
+<body class="shops-lane-page vc-seller-skin">
+  <header class="shops-lane-topbar vc-seller-rail" aria-label="Seller navigation">
+    <a class="btn btn-secondary" href="./index.html" title="Home">Home</a>
+    <a class="btn btn-secondary" href="./sell-journey.html" title="Selling checklist">Sell</a>
+    <a class="btn btn-secondary" href="./my-listings.html" title="My listings">Listings</a>
+    <a class="btn btn-secondary" href="./seller-orders.html" title="Seller orders">Orders</a>
+    <a class="btn btn-secondary" href="./seller-payments.html" title="Payouts">Payouts</a>
+    <a class="btn btn-primary" href="./seller-messages.html" title="Messages">Messages</a>
+    <a class="btn btn-secondary" href="./account-hub.html" title="Account">Account</a>
   </header>
   <main class="section alt shops-lane-main">
     <h1 class="shops-lane-title">Buyer–seller messages</h1>
     <p class="note shops-lane-intro">
-      Same lightweight thread box as on the marketplace home — for product questions and delivery updates. Nothing here routes to My Business.
+      Threaded chat for product questions and delivery updates. Use the same shop name you use on listings so threads line up.
     </p>
+
+    <div class="vc-push-banner" role="region" aria-label="Push notifications">
+      <strong>Phone notifications</strong>
+      <span id="vcSellerMsgPushStatus" class="note" style="display: block; margin-top: 0.35rem"></span>
+      <p class="hero-actions" style="margin-top: 0.5rem; margin-bottom: 0">
+        <button type="button" class="btn btn-secondary" id="vcSellerMsgPushBtn">Enable alerts on this device</button>
+      </p>
+      <p class="note" style="margin-top: 0.45rem; margin-bottom: 0">
+        Uses Web Push (HTTPS). The server must expose VAPID keys; when message-push events are wired on the API, alerts can appear in the system tray even when this tab is closed (OS/browser dependent).
+      </p>
+    </div>
+
     <section id="communication" class="section" aria-label="Communication hub">
-      <h2 style="font-size:1.1rem">Your threads</h2>
+      <h2 style="font-size: 1.1rem">Your threads</h2>
       <p id="chatPrivateHint" class="note"></p>
       <div class="alt">
         <div class="chat-input-row">
@@ -37,6 +53,7 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./script-safe.js?v=20260506sellerboost1"></script>
+  <script src="./seller-messages.js?v=20260515push1" defer></script>
   <script src="./site-chrome.js?v=20260514nav1" defer></script>
 </body>
 </html>

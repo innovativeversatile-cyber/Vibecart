@@ -3344,6 +3344,57 @@ body[data-vc-chronotope="night"] .vibe-aura-line {
   transition: transform 240ms ease, opacity 240ms ease;
 }
 
+/* Seller workspace: tighter “dock” navigation */
+body.vc-seller-skin .shops-lane-topbar.vc-seller-rail {
+  justify-content: center;
+  gap: 0.3rem 0.4rem;
+  padding: 0.42rem 0.55rem;
+  margin: 0.35rem auto 0.85rem;
+  max-width: 58rem;
+  border-radius: 999px;
+  border: 1px solid rgba(100, 210, 255, 0.22);
+  background: linear-gradient(145deg, rgba(16, 22, 38, 0.97), rgba(10, 12, 24, 0.94));
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+body.vc-seller-skin .shops-lane-topbar.vc-seller-rail .btn {
+  font-size: 0.72rem;
+  padding: 0.26rem 0.52rem;
+  border-radius: 999px;
+  line-height: 1.25;
+}
+body.vc-seller-skin .shops-lane-topbar.vc-seller-rail .btn-primary {
+  box-shadow: 0 0 0 1px rgba(12, 214, 255, 0.28);
+}
+body.vc-seller-skin .shops-lane-main {
+  padding-top: 0.15rem;
+}
+
+.vc-listing-edit {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  gap: 0.45rem;
+}
+.vc-listing-edit textarea {
+  width: 100%;
+  min-height: 4rem;
+  font: inherit;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: inherit;
+}
+.vc-push-banner {
+  margin: 0.75rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(130, 230, 255, 0.2);
+  background: rgba(12, 40, 52, 0.45);
+  font-size: 0.88rem;
+}
+
 .topbar.vc-nav-hidden,
 .shops-lane-topbar.vc-nav-hidden {
   transform: translateY(calc(-100% - 8px));
