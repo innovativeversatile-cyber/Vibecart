@@ -3149,7 +3149,40 @@
     safeInit("initNavAutoHideLite", initNavAutoHideLite);
     safeInit("initBackToTopLite", initBackToTopLite);
     safeInit("initDeadEndLinkGuardLite", initDeadEndLinkGuardLite);
+    applySellerGrowthWorkspaceDeepLinkAfterHomeInit();
     vcSignalReactNativePaintReadyFromLite();
+  }
+
+  function applySellerGrowthWorkspaceDeepLinkAfterHomeInit() {
+    try {
+      var raw = String(window.location.hash || "")
+        .replace(/^#/, "")
+        .split("&")[0]
+        .trim();
+      if (raw !== "seller-growth-ai") {
+        return;
+      }
+      var el = document.getElementById("seller-growth-ai");
+      if (!el) {
+        return;
+      }
+      el.removeAttribute("hidden");
+      el.classList.remove("hidden", "vc-focused-hidden", "vc-hardpass-collapsed");
+      el.style.display = "";
+      window.setTimeout(function () {
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          try {
+            el.scrollIntoView(true);
+          } catch {
+            /* ignore */
+          }
+        }
+      }, 140);
+    } catch {
+      /* ignore */
+    }
   }
 
   if (document.readyState === "loading") {

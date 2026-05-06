@@ -75,6 +75,44 @@
           <option value="7-21">7-21 days (cross-border tracked)</option>
           <option value="21-35">21-35 days (remote routes)</option>
         </select>
+        <label for="vcSellCurrency">Listing currency (ISO 4217)</label>
+        <select id="vcSellCurrency">
+          <option value="EUR">EUR — Euro</option>
+          <option value="USD">USD — US dollar</option>
+          <option value="GBP">GBP — Pound sterling</option>
+          <option value="ZAR">ZAR — South African rand</option>
+          <option value="PLN">PLN — Polish złoty</option>
+          <option value="KES">KES — Kenyan shilling</option>
+          <option value="NGN">NGN — Nigerian naira</option>
+        </select>
+        <label for="vcSellRulesCountry">Jurisdiction for rules summary</label>
+        <select id="vcSellRulesCountry" aria-describedby="vcSellRulesBody">
+          <option value="OTHER">Other / not listed</option>
+          <option value="ZA">South Africa (ZA)</option>
+          <option value="KE">Kenya (KE)</option>
+          <option value="IE">Ireland (IE)</option>
+          <option value="NG">Nigeria (NG)</option>
+          <option value="GH">Ghana (GH)</option>
+          <option value="EG">Egypt (EG)</option>
+          <option value="GB">United Kingdom (GB)</option>
+          <option value="DE">Germany (DE)</option>
+          <option value="PL">Poland (PL)</option>
+          <option value="US">United States (US)</option>
+          <option value="AE">United Arab Emirates (AE)</option>
+          <option value="ZW">Zimbabwe (ZW)</option>
+        </select>
+        <details id="vcSellRulesDetails" class="note" style="margin-top: 0.35rem">
+          <summary style="cursor: pointer; font-weight: 600">Rules &amp; regulations summary (not legal advice)</summary>
+          <p id="vcSellRulesBody" class="note" style="margin: 0.5rem 0 0"></p>
+          <p class="note" style="margin: 0.35rem 0 0">
+            Full platform rules: <a href="./policy.html" target="_blank" rel="noopener">policy &amp; lawful use</a>.
+            Align <strong>Origin country</strong> in step 1 with where you operate; adjust the jurisdiction dropdown if you sell into a different primary market.
+          </p>
+        </details>
+        <label class="note" style="display: flex; gap: 0.5rem; align-items: flex-start; margin-top: 0.5rem">
+          <input id="vcSellPublishAck" type="checkbox" style="margin-top: 0.2rem" />
+          <span>I confirm this listing follows <a href="./policy.html" target="_blank" rel="noopener">VibeCart policy</a> and applicable laws in the jurisdiction I selected.</span>
+        </label>
       </div>
       <p class="hero-actions">
         <button type="button" class="btn btn-secondary" data-flow-prev>Back</button>
@@ -87,7 +125,7 @@
   </main>
   <script src="./session-device.js?v=20260501sess1"></script>
   <script src="./flow-shell.js?v=20260419haptic1" defer></script>
-  <script src="./sell-journey.js?v=20260501sessbind1" defer></script>
+  <script src="./sell-journey.js?v=20260506publish1" defer></script>
   <script src="./site-chrome.js?v=20260510inbox1" defer></script>
 </body>
 </html>

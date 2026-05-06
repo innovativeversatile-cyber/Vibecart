@@ -885,7 +885,7 @@
         return;
       }
       el.removeAttribute("hidden");
-      el.classList.remove("hidden");
+      el.classList.remove("hidden", "vc-focused-hidden", "vc-hardpass-collapsed");
       el.style.display = "";
       window.requestAnimationFrame(function () {
         try {
