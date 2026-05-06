@@ -862,7 +862,6 @@
     bindGo("nextTrackingStep", "./orders-tracking.html");
     bindGo("openReturnWindow", "./orders-tracking.html");
     /* #aiSuggest: script.js runs on-page ranking — do not bindGo here or every tap also navigates away. */
-    bindGo("sgRunPlan", "./seller-boost.html");
     bindGo("refreshAds", "./policy.html");
     bindGo("earnRewardPoints", "./rewards-hub.html");
     bindGo("redeemReward", "./rewards-hub.html");
@@ -872,6 +871,38 @@
     initSafeMarketFiltering();
     initRegionalYouthMarketCards();
     initRoleAndAccountVisibility();
+
+    function applySellerBoostDeepLink() {
+      var raw = String(window.location.hash || "")
+        .replace(/^#/, "")
+        .split("&")[0]
+        .trim();
+      if (raw !== "seller-growth-ai") {
+        return;
+      }
+      var el = document.getElementById("seller-growth-ai");
+      if (!el) {
+        return;
+      }
+      el.removeAttribute("hidden");
+      el.classList.remove("hidden");
+      el.style.display = "";
+      window.requestAnimationFrame(function () {
+        try {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch {
+          try {
+            el.scrollIntoView(true);
+          } catch {
+            /* ignore */
+          }
+        }
+      });
+    }
+
+    applySellerBoostDeepLink();
+    window.addEventListener("hashchange", applySellerBoostDeepLink, { passive: true });
+
     initCommunicationHub();
 
     function initEmergencyHomepageTapGuard() {
