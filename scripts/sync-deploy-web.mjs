@@ -87,13 +87,16 @@ function copyRootHtmlAndStatics() {
   return n;
 }
 
+/** Root client bundles allowed to appear in deploy-web even before a first manual copy exists there. */
+const ROOT_JS_ALWAYS_DEPLOY = new Set(["seller-growth-workspace.js"]);
+
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */
 function syncExistingRootJs() {
   let n = 0;
   for (const ent of fs.readdirSync(ROOT, { withFileTypes: true })) {
     if (!ent.isFile() || !ent.name.endsWith(".js")) continue;
     const dst = path.join(DEPLOY, ent.name);
-    if (!exists(dst)) continue;
+    if (!exists(dst) && !ROOT_JS_ALWAYS_DEPLOY.has(ent.name)) continue;
     const src = path.join(ROOT, ent.name);
     copyFile(src, dst);
     n += 1;
