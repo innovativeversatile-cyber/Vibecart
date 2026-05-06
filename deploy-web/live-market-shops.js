@@ -597,6 +597,14 @@
       return false;
     }
   }
+  function shopLogoSrc(shopUrl) {
+    var host = extractHost(String(shopUrl || "").trim());
+    if (!host) {
+      return "";
+    }
+    return "https://www.google.com/s2/favicons?sz=64&domain=" + encodeURIComponent(host);
+  }
+
   function buildShopLink(shop, category) {
     var a = document.createElement("a");
     a.className = "shop";
@@ -624,7 +632,18 @@
     a.setAttribute("data-aff-shop", shop.name);
     a.setAttribute("data-aff-cat", category);
     a.setAttribute("data-aff-commission", commissionEnabled ? "1" : "0");
+    var logoHtml = "";
+    if (trusted) {
+      var ls = shopLogoSrc(shop.url);
+      if (ls) {
+        logoHtml =
+          '<img class="shop-logo" width="28" height="28" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" src="' +
+          ls +
+          '" />';
+      }
+    }
     a.innerHTML =
+      logoHtml +
       "<h3>" +
       shop.name +
       "</h3><p>" +
@@ -675,6 +694,9 @@
       if (searchStatus) {
         searchStatus.textContent = message || "No shops found for that search.";
       }
+      if (typeof window.vibeCartRefreshShopFavicons === "function") {
+        window.vibeCartRefreshShopFavicons();
+      }
       return;
     }
     items.forEach(function (entry) {
@@ -682,6 +704,9 @@
     });
     if (searchStatus) {
       searchStatus.textContent = message || ("Showing " + items.length + " shop result(s).");
+    }
+    if (typeof window.vibeCartRefreshShopFavicons === "function") {
+      window.vibeCartRefreshShopFavicons();
     }
   }
 

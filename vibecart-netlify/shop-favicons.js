@@ -8,21 +8,45 @@
       "</svg>"
     );
 
+  function externalOriginFromShopHref(href) {
+    var h = String(href || "").trim();
+    if (!h) {
+      return "";
+    }
+    try {
+      if (/^https?:\/\//i.test(h)) {
+        return new URL(h).origin;
+      }
+      var base = typeof window !== "undefined" && window.location && window.location.origin ? window.location.origin : "https://vibe-cart.com";
+      var u = new URL(h, base);
+      if (String(u.pathname || "").indexOf("/api/public/shop/redirect") >= 0) {
+        var t = u.searchParams.get("target");
+        if (t) {
+          return new URL(t).origin;
+        }
+      }
+    } catch {
+      return "";
+    }
+    return "";
+  }
+
   function addShopFavicons() {
-    var cards = document.querySelectorAll(".shop-bubble-grid a.shop[href^='http']");
+    var cards = document.querySelectorAll(".shop-bubble-grid a.shop");
     cards.forEach(function (card) {
+      if (card.querySelector(".shop-logo")) {
+        return;
+      }
       var h3 = card.querySelector("h3");
       if (!h3 || h3.querySelector(".shop-favicon")) {
         return;
       }
       var href = String(card.getAttribute("href") || "").trim();
-      if (!href) {
+      if (!href || href === "#") {
         return;
       }
-      var origin = "";
-      try {
-        origin = new URL(href).origin;
-      } catch {
+      var origin = externalOriginFromShopHref(href);
+      if (!origin) {
         return;
       }
       var img = document.createElement("img");
@@ -41,6 +65,8 @@
       h3.prepend(img);
     });
   }
+
+  window.vibeCartRefreshShopFavicons = addShopFavicons;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", addShopFavicons, { once: true });

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live market shops · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260507market1" />
+  <link rel="stylesheet" href="./styles.css?v=20260507market3" />
 </head>
 <body class="shops-lane-page live-market-shops-page">
   <script src="./session-device.js?v=20260507shell1"></script>
@@ -17,6 +17,18 @@
     <p class="note shops-lane-intro" id="liveMarketShopsIntro">
       Pick your region and category, then open a shop — links go straight to the retailer in a new tab.
     </p>
+    <section class="section alt live-market-hotpicks-strip" style="margin-top: 0.55rem; padding: 0.65rem 0.85rem" aria-labelledby="liveMarketHotPicksTitle">
+      <h2 class="shops-lane-title" id="liveMarketHotPicksTitle" style="font-size: 1.05rem">Hot picks (on-platform)</h2>
+      <p class="note">
+        Seller listings with imagery and VibeCart checkout — use Hot picks alongside this external shop grid.
+      </p>
+      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem">
+        <a class="btn btn-primary" href="./hot-picks.html">Open Hot picks</a>
+        <a class="btn btn-secondary" href="./hot-picks.html?lane=Electronics">Electronics</a>
+        <a class="btn btn-secondary" href="./hot-picks.html?lane=Fashion">Fashion</a>
+        <a class="btn btn-secondary" href="./hot-picks.html?lane=Books">Books</a>
+      </p>
+    </section>
     <div class="admin-grid" style="max-width:32rem;margin-bottom:0.8rem">
       <label for="liveMarketRegionSelect">Market region</label>
       <select id="liveMarketRegionSelect" aria-label="Live market region targeting">
@@ -73,7 +85,9 @@
     </div>
   </main>
   <script src="./page-i18n.js?v=20260502layoutlift1"></script>
-  <script src="./live-market-shops.js?v=20260507market2"></script>
-  <script src="./site-chrome.js?v=20260507market1" defer></script>
+  <script src="./vibecart-ai-client.js?v=20260430genai1"></script>
+  <script src="./live-market-shops.js?v=20260507market3"></script>
+  <script src="./shop-favicons.js?v=20260507favi1"></script>
+  <script src="./site-chrome.js?v=20260507market2" defer></script>
 </body>
 </html>

@@ -889,7 +889,7 @@
     return;
   }
   window.__vcBrandonUniversalScheduled = "1";
-  var SHELL = "./mobile-app-shell.js?v=20260507brandonfix3";
+  var SHELL = "./mobile-app-shell.js?v=20260507brandonfix4";
   var CLIENT = "./vibecart-ai-client.js?v=20260430genai1";
   function skip() {
     if (!document.body) return true;

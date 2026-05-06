@@ -3641,6 +3641,7 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
 .shop-bubble-grid .shop {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   justify-content: center;
   min-height: 118px;
   padding: 0.85rem 0.9rem;

@@ -1545,6 +1545,27 @@
       refreshMicroVisibility();
     })();
 
+    function focusBrandonInput() {
+      try {
+        if (!ta) return;
+        ta.removeAttribute("readonly");
+        ta.removeAttribute("disabled");
+        window.requestAnimationFrame(function () {
+          try {
+            ta.focus({ preventScroll: true });
+          } catch {
+            try {
+              ta.focus();
+            } catch {
+              /* ignore */
+            }
+          }
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+
     orb?.addEventListener("click", () => {
       const open = panel?.hasAttribute("hidden");
       if (open) {
@@ -1552,6 +1573,7 @@
         orb.setAttribute("aria-expanded", "true");
         refreshBrandonQuickActions();
         hardPressVibrate();
+        focusBrandonInput();
       } else {
         panel?.setAttribute("hidden", "hidden");
         orb.setAttribute("aria-expanded", "false");
@@ -1585,6 +1607,7 @@
           orb.setAttribute("aria-expanded", "true");
           refreshBrandonQuickActions();
           hardPressVibrate();
+          focusBrandonInput();
         }
       },
       { passive: true }
@@ -2136,7 +2159,7 @@
         "<p>1) Choose lane  2) Verify trust  3) Move fast with Brandon</p>" +
         "<div class='hero-actions'>" +
         "<a class='btn btn-primary' href='./hot-picks.html'>Start now</a>" +
-        "<a class='btn btn-secondary' href='./security-overview.html'>Safety first</a>" +
+        "<a class='btn btn-secondary' href='./legal-settings.html'>Safety first</a>" +
         "</div>";
       var actions = heroCopy.querySelector(".hero-actions");
       if (actions && actions.parentNode === heroCopy) {
