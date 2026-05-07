@@ -609,6 +609,30 @@
     );
     searchStatus.parentNode.insertBefore(note, searchStatus.nextSibling);
   })();
+  function shopOutboundRedirectHref(displayName, cat, targetHttpsUrl) {
+    var shop = String(displayName || "Partner shop").trim().slice(0, 120);
+    var c = String(cat || "All").trim().slice(0, 80);
+    var target = String(targetHttpsUrl || "").trim();
+    if (!target) return "#";
+    var base =
+      "/api/public/shop/redirect?shop=" +
+      encodeURIComponent(shop) +
+      "&cat=" +
+      encodeURIComponent(c) +
+      "&partner=" +
+      encodeURIComponent(shop) +
+      "&target=" +
+      encodeURIComponent(target);
+    try {
+      var ref = bridgeRefForLinks();
+      if (ref) {
+        base += "&ref=" + encodeURIComponent(ref);
+      }
+    } catch {
+      /* ignore */
+    }
+    return base;
+  }
   function extractHost(url) {
     try {
       return String(new URL(url).hostname || "").toLowerCase();
@@ -702,9 +726,7 @@
     var commissionEnabled = isCommissionTrackedUrl(shop.url);
     if (trusted) {
       var targetUrl = String(shop.url || "").trim();
-      a.href = targetUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
+      a.href = shopOutboundRedirectHref(shop.name, category, targetUrl);
     } else {
       a.href = "#";
       a.classList.add("is-disabled");
@@ -826,7 +848,7 @@
       if (dealTone === "best") {
         vcTitle.textContent = "VibeCart seller listings";
         vcLead.textContent =
-          "Products from registered shops (sorted low-to-high in this lane). Tap for Hot picks — not the same as the retailer promo strip above.";
+          "Photos reflect seller uploads when provided — tap any tile for VibeCart checkout (buyer sign-in required).";
       } else if (dealTone === "fashion") {
         vcTitle.textContent = "Fashion lane on VibeCart";
         vcLead.textContent = "External fashion listings — opens Hot Picks with source-website checkout.";
@@ -848,7 +870,7 @@
     if (intro) {
       var base =
         active === "All"
-          ? "Browse VibeCart listings above, then regional storefront tiles below. External links open the retailer in a new tab."
+          ? "Promotional rails swipe sideways; seller listings open checkout. Regional storefront tiles use tracked redirects after you accept the disclaimer."
           : "VibeCart listings match your lane; storefront tiles focus on " + active + ".";
       if (dealTone === "best") {
         intro.textContent = base + " Best-bargains lane highlights low-price VibeCart stock first.";
@@ -957,12 +979,17 @@
       return;
     }
     dealContextRailLabel.textContent = pack.label;
+    var promoCat =
+      dealTone === "best"
+        ? "Best bargains"
+        : cat !== "All"
+          ? cat
+          : "Marketplace";
     pack.items.forEach(function (trend) {
       var card = document.createElement("a");
       card.className = "vc-fashion-trend-link vc-live-deal-promo-card";
-      card.href = trend.href;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer";
+      card.href = shopOutboundRedirectHref(trend.title, promoCat, trend.href);
+      card.setAttribute("data-vc-external-target", String(trend.href || ""));
       var badge = trend.badge
         ? '<span class="vc-live-deal-promo-badge">' + String(trend.badge).replace(/</g, "&lt;") + "</span>"
         : "";
@@ -984,6 +1011,28 @@
     dealContextRailWrap.style.display = "";
   }
 
+  function absoluteMediaUrl(u) {
+    var raw = String(u || "").trim();
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.indexOf("//") === 0) {
+      try {
+        return String(window.location && window.location.protocol ? window.location.protocol : "https:") + raw;
+      } catch {
+        return "https:" + raw.slice(2);
+      }
+    }
+    if (raw.charAt(0) === "/") {
+      try {
+        var origin = String(window.location && window.location.origin ? window.location.origin : "").replace(/\/$/, "");
+        if (origin) return origin + raw;
+      } catch {
+        /* ignore */
+      }
+    }
+    return raw;
+  }
+
   function placeholderImageForListing(categoryName) {
     var c = String(categoryName || "").toLowerCase();
     if (c.indexOf("book") >= 0) {
@@ -1002,8 +1051,8 @@
     if (!vcGrid) return;
     var a = document.createElement("a");
     a.className = "shop vc-live-vc-product";
-    a.href = "./hot-picks.html?productId=" + encodeURIComponent(String(p.id));
-    var imgSrc = String(p.imageUrl || "").trim() || placeholderImageForListing(p.categoryName || "");
+    a.href = "./marketplace-buy.html?productId=" + encodeURIComponent(String(p.id));
+    var imgSrc = absoluteMediaUrl(String(p.imageUrl || "").trim()) || placeholderImageForListing(p.categoryName || "");
     if (imgSrc) {
       var img = document.createElement("img");
       img.className = "vc-live-vc-product__media";
@@ -1067,7 +1116,7 @@
       products.forEach(appendVcProductCard);
       if (vcStatus) {
         vcStatus.textContent = products.length
-          ? "Showing " + products.length + " VibeCart listing(s). Tap a card for Hot Picks checkout."
+          ? "Showing " + products.length + " seller listing(s). Tap a tile → marketplace checkout."
           : "No active VibeCart listings for this filter yet.";
       }
     } catch {

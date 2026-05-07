@@ -3752,10 +3752,16 @@
       window.__vcScrollGateMax = null;
       window.__vcScrollGateTouchY = null;
       window.__vcScrollGateTouchStart = null;
+      window.__vcScrollGateGestureAxis = null;
       if (window.__vcScrollGateTouchStartHandler) {
         window.removeEventListener("touchstart", window.__vcScrollGateTouchStartHandler, true);
       }
       window.__vcScrollGateTouchStartHandler = null;
+      if (window.__vcScrollGateTouchEndHandler) {
+        window.removeEventListener("touchend", window.__vcScrollGateTouchEndHandler, true);
+        window.removeEventListener("touchcancel", window.__vcScrollGateTouchEndHandler, true);
+      }
+      window.__vcScrollGateTouchEndHandler = null;
       try {
         var L0 = window.__vibecartLenis;
         var lh0 = window.__vcScrollGateLenisHandler;
@@ -3803,7 +3809,7 @@
         if (!node || !node.closest) return false;
         if (
           node.closest(
-            ".vc-mobile-rail, .vc-mobile-rail-section, .vc-mobile-chapter-deck, .vc-bridge-truth-list, .shop-folder-landing, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-epic-track, .vc-epic-experience, #market-fit .market-pillars, .vc-live-deal-promo-rail, .vc-fashion-trends-rail, .live-market-deal-rail-wrap"
+            ".vc-horizontal-only, .vc-mobile-rail, .vc-mobile-rail-section, .vc-mobile-chapter-deck, .vc-bridge-truth-list, .shop-folder-landing, .shop-folder-scroll-hint, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-hot-ai-trend, #hotPicksAiTrendTrack, .vc-epic-track, .vc-epic-experience, #market-fit .market-pillars, .vc-live-deal-promo-rail, .vc-fashion-trends-rail, .live-market-deal-rail-wrap, #bridge-routes .vc-bridge-truth-list"
           )
         ) {
           return true;
@@ -3868,6 +3874,7 @@
         }
       };
       window.__vcScrollGateTouchStartHandler = function (ev) {
+        window.__vcScrollGateGestureAxis = null;
         if (scrollGateTargetAllowsHorizontal(ev)) {
           window.__vcScrollGateTouchStart = null;
           return;
@@ -3879,13 +3886,27 @@
         };
       };
       window.addEventListener("touchstart", window.__vcScrollGateTouchStartHandler, { capture: true, passive: true });
+      window.__vcScrollGateTouchEndHandler = function () {
+        window.__vcScrollGateGestureAxis = null;
+        window.__vcScrollGateTouchStart = null;
+        window.__vcScrollGateTouchY = null;
+      };
+      window.addEventListener("touchend", window.__vcScrollGateTouchEndHandler, { capture: true, passive: true });
+      window.addEventListener("touchcancel", window.__vcScrollGateTouchEndHandler, { capture: true, passive: true });
       window.__vcScrollGateTouch = function (ev) {
         if (scrollGateTargetAllowsHorizontal(ev)) return;
         var st = window.__vcScrollGateTouchStart;
         if (st && ev && ev.touches && ev.touches[0]) {
-          var dx = Math.abs(Number(ev.touches[0].clientX || 0) - st.x);
-          var dy = Math.abs(Number(ev.touches[0].clientY || 0) - st.y);
-          if (dx > dy + 10) return;
+          var rdx = Number(ev.touches[0].clientX || 0) - st.x;
+          var rdy = Number(ev.touches[0].clientY || 0) - st.y;
+          var adx = Math.abs(rdx);
+          var ady = Math.abs(rdy);
+          if (window.__vcScrollGateGestureAxis == null && (adx > 6 || ady > 6)) {
+            window.__vcScrollGateGestureAxis = adx > ady ? "h" : "v";
+          }
+        }
+        if (window.__vcScrollGateGestureAxis === "h") {
+          return;
         }
         if (!ev || !ev.touches || !ev.touches[0]) return;
         var yNow = Number(ev.touches[0].clientY || 0);

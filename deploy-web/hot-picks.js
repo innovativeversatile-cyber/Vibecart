@@ -524,7 +524,6 @@
       var pid = Number(p.id || p.productId || 0);
       var listingHref = internal && pid > 0 ? hotPicksListingHref(pid) : "";
       var commissionEnabled = isCommissionTrackedUrl(target);
-      var href = offerHref(p);
       var joinLabel = isLoggedIn() ? "Saved with your account route" : "Sign in to save + track this pick";
       var shopLabel = String(p.shopName || p.shop_name || "").trim();
       var domId = "vc-hot-product-" + String(p.id != null ? p.id : pid).replace(/[^a-zA-Z0-9-_]/g, "-");
@@ -532,15 +531,49 @@
         domId = "vc-hot-product-anon";
       }
       var html;
-      if (!internal && target) {
-        var ctaLabel = target ? "Open source website" : "Source unavailable";
+      var outboundTracked = offerHref(p);
+      if (internal && pid > 0) {
+        var sellerLine = shopLabel ? "Sold by " + escapeHtml(shopLabel) + "." : "VibeCart marketplace listing.";
+        html =
+          '<article class="card vc-hot-internal" id="' +
+          escapeHtml(domId) +
+          '">' +
+          '<img src="' +
+          escapeHtml(pickImage(p)) +
+          '" alt="' +
+          escapeHtml(title) +
+          '" loading="lazy" decoding="async" />' +
+          "<h3>" +
+          escapeHtml(title) +
+          "</h3>" +
+          '<p class="note">Category: ' +
+          escapeHtml(cat) +
+          (price ? " · " + escapeHtml(currency + " " + price) : "") +
+          "</p>" +
+          '<p class="note">' +
+          sellerLine +
+          "</p>" +
+          '<p class="hero-actions"><a class="btn btn-primary" href="./marketplace-buy.html?productId=' +
+          encodeURIComponent(String(pid)) +
+          '">Continue to checkout</a>' +
+          '<a class="btn btn-secondary" href="' +
+          escapeHtml(listingHref) +
+          '">Listing link</a>' +
+          '<a class="btn btn-secondary" href="./account-hub.html#account-access">' +
+          escapeHtml(joinLabel) +
+          "</a></p>" +
+          "</article>";
+        grid.insertAdjacentHTML("beforeend", html);
+      } else if (!internal && target) {
+        var ctaHref = outboundTracked || target;
+        var ctaLabel = outboundTracked ? "Open tracked storefront" : "Open source website";
         html =
           '<article class="card">' +
           '<img src="' +
           escapeHtml(pickImage(p)) +
           '" alt="' +
           escapeHtml(title) +
-          '" loading="lazy" />' +
+          '" loading="lazy" decoding="async" />' +
           "<h3>" +
           escapeHtml(title) +
           "</h3>" +
@@ -552,8 +585,8 @@
           (commissionEnabled ? "Commission-enabled." : "Traffic-only.") +
           "</p>" +
           '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link" href="' +
-          escapeHtml(target) +
-          '" target="_blank" rel="noopener noreferrer" data-aff-shop="' +
+          escapeHtml(ctaHref) +
+          '" data-aff-shop="' +
           escapeHtml(title) +
           '" data-aff-target="' +
           escapeHtml(target) +
@@ -561,7 +594,7 @@
           (commissionEnabled ? "1" : "0") +
           '">' +
           escapeHtml(ctaLabel) +
-          '</a><a class="btn btn-secondary" href="./index.html#account-access">' +
+          '</a><a class="btn btn-secondary" href="./account-hub.html#account-access">' +
           escapeHtml(joinLabel) +
           "</a></p>" +
           "</article>";
@@ -696,21 +729,30 @@
         });
       }
       var top = filtered.filter(function (row) {
+        if (isDbMarketplaceListing(row)) {
+          return true;
+        }
         return isExternalTarget(pickTargetUrl(row));
-      }).slice(0, 12);
-      if (!top.length && status) {
-        status.textContent = "No verified external bargains available for this lane right now.";
-      }
+      }).slice(0, 36);
+      var topExternal = top.filter(function (row) {
+        return isExternalTarget(pickTargetUrl(row));
+      }).length;
       if (status) {
         if (focusId > 0) {
           status.textContent =
             "Focused on listing #" +
             focusId +
             (lane ? " · lane filter " + lane + " still applies to other cards." : " · share this URL to return.");
+        } else if (!top.length) {
+          status.textContent = "No live listings match this lane right now.";
+        } else if (!topExternal) {
+          status.textContent =
+            (lane ? "Showing VibeCart marketplace listings for " + lane + "." : "Showing VibeCart marketplace listings.") +
+            " External partner picks appear when available.";
         } else {
           status.textContent = lane
-            ? "Showing live " + lane + " picks."
-            : "Showing live hot picks right now.";
+            ? "Showing live " + lane + " picks — marketplace + partner storefronts."
+            : "Showing live hot picks — marketplace + partner storefronts.";
         }
       }
       render(top);

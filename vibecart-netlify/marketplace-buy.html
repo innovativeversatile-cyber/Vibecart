@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buy on VibeCart · marketplace checkout</title>
+  <meta name="description" content="Review a live marketplace listing and place an order with your buyer account." />
+  <link rel="stylesheet" href="./styles.css?v=20260507buyfix1" />
+</head>
+<body class="shops-lane-page live-market-shops-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./hot-picks.html">← Hot picks</a>
+    <a class="btn btn-primary" href="./account-hub.html#account-access">Account</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Marketplace checkout</h1>
+    <p class="note">
+      You need a <strong>buyer</strong> sign-in. We create a pending order — payment capture follows the platform flow for your region.
+    </p>
+    <div id="mbRoot" class="vc-marketplace-buy-root"></div>
+    <p class="note" id="mbStatus" aria-live="polite"></p>
+  </main>
+  <script src="./marketplace-buy.js?v=20260507buyfix1" defer></script>
+  <script src="./analytics-visit.js?v=20260501visit1" defer></script>
+</body>
+</html>
