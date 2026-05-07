@@ -681,28 +681,19 @@
     };
   }
 
-  /* Google gtv sample bucket often returns 403 from mobile/WebView — use public demo MP4s. */
+  /* Same-origin demo clips (see media/coach-demos/) — avoids third-party 403s and SW opaque-response bugs on mobile. */
   var COACH_DEMO_MP4_POOL = [
-    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4",
-    "https://www.w3schools.com/html/mov_bbb.mp4"
+    "./media/coach-demos/flower.mp4",
+    "./media/coach-demos/friday.mp4",
+    "./media/coach-demos/mov_bbb.mp4"
   ];
   function coachDemoMp4At(i) {
     var pool = COACH_DEMO_MP4_POOL;
     return pool[Math.max(0, Number(i) || 0) % pool.length];
   }
-  function coachVideoSourceTags(primaryUrl) {
-    var primary = String(primaryUrl || "").trim();
-    if (!primary) {
-      primary = COACH_DEMO_MP4_POOL[0];
-    }
-    var tags = "<source src=\"" + primary + "\" type=\"video/mp4\"/>";
-    COACH_DEMO_MP4_POOL.forEach(function (url) {
-      if (url !== primary) {
-        tags += "<source src=\"" + url + "\" type=\"video/mp4\"/>";
-      }
-    });
-    return tags;
+  function coachVideoPrimaryUrl(primaryUrl) {
+    var u = String(primaryUrl || "").trim();
+    return u || COACH_DEMO_MP4_POOL[0];
   }
 
   var EXERCISE_LIBRARY = [
@@ -906,9 +897,9 @@
       }
       detailEl.innerHTML =
         "<p class=\"note\" style=\"margin:0;\"><strong>" + item.label + "</strong> · " + item.category.replace(/-/g, " ") + "</p>" +
-        "<video controls playsinline webkit-playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:280px;object-fit:cover;margin-top:0.55rem;\">" +
-        coachVideoSourceTags(item.video) +
-        "</video>" +
+        "<video controls playsinline webkit-playsinline preload=\"metadata\" src=\"" +
+        coachVideoPrimaryUrl(item.video) +
+        "\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:280px;object-fit:cover;margin-top:0.55rem;\"></video>" +
         "<h4 style=\"margin:0.55rem 0 0.35rem;\">Setup</h4><p class=\"note\" style=\"margin:0;\">" + item.setup + "</p>" +
         listHtml("Execution steps", item.execution) +
         listHtml("Rep form cues", item.repForm) +
@@ -1470,9 +1461,9 @@
         return (
               "<article style=\"margin:0.45rem 0;\">" +
               "<p class=\"note\" style=\"margin:0 0 0.3rem;\"><strong>" + String(item.title || "Coach clip") + "</strong></p>" +
-              "<video controls playsinline webkit-playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\">" +
-              coachVideoSourceTags(item.src) +
-              "</video>" +
+              "<video controls playsinline webkit-playsinline preload=\"metadata\" src=\"" +
+              coachVideoPrimaryUrl(item.src) +
+              "\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\"></video>" +
               "</article>"
             );
           }

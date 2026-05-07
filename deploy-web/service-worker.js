@@ -1,5 +1,5 @@
 // Bump CACHE_NAME whenever you need all clients to drop old cached assets.
-const CACHE_NAME = "vibecart-pwa-v20260508force1";
+const CACHE_NAME = "vibecart-pwa-v20260507mediasw1";
 // Precache small static assets. Avoid index.html / main CSS+JS here so deploy updates still win on next load.
 const OFFLINE_URLS = [
   "./manifest.json",
@@ -100,6 +100,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   const url = new URL(event.request.url);
+  const scopeOrigin = new URL(self.registration.scope).origin;
+  /* Cross-origin media (and other third-party fetches) must not flow through this SW:
+     intercepted no-cors responses are often opaque and break <video> on iOS/Android WebViews. */
+  if (url.origin !== scopeOrigin) {
+    return;
+  }
   if (url.pathname.startsWith("/api/")) {
     return;
   }
