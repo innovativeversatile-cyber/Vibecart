@@ -119,6 +119,16 @@
     return outputArray;
   }
 
+  function mbWebPushShowDebugOpsNote() {
+    try {
+      if (/[?&]debug=1(?:&|$)/.test(String(location.search || ""))) return true;
+      var h = String(location.hostname || "");
+      return h === "localhost" || h === "127.0.0.1" || /\.localhost$/.test(h);
+    } catch (_) {
+      return false;
+    }
+  }
+
   function wireMbWebPushControls() {
     var btn = document.getElementById("mbWebPushBtn");
     var note = document.getElementById("mbWebPushNote");
@@ -138,74 +148,86 @@
     function setNote(t) {
       if (note) note.textContent = String(t || "");
     }
-    fetch("/api/public/web-push/config")
+    var configPromise = fetch("/api/public/web-push/config")
       .then(function (r) {
         return r.json();
       })
       .then(function (j) {
         if (j && j.ok && j.publicKey) vapidPublicKey = String(j.publicKey);
+        return j;
       })
-      .catch(function () {});
+      .catch(function () {
+        return null;
+      });
     btn.addEventListener("click", function () {
       var token = getToken();
       if (!token) {
         setNote("Sign in first, then try again.");
         return;
       }
-      if (!vapidPublicKey) {
-        setNote(
-          "Web Push is off until the API has VAPID keys. On Railway (Node service), set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY from `npx web-push generate-vapid-keys`, redeploy the API, then hard-refresh this page."
-        );
-        return;
-      }
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        setNote("Use Chrome on Android, or add VibeCart to your Home Screen on iPhone for notifications.");
-        return;
-      }
-      setNote("Working…");
-      navigator.serviceWorker
-        .register("./service-worker.js")
-        .then(function (reg) {
-          return reg.pushManager.getSubscription().then(function (existing) {
-            if (existing) return existing;
-            return reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-            });
-          });
-        })
-        .then(function (sub) {
-          var headers = { "Content-Type": "application/json", Authorization: "Bearer " + token };
-          if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
-            headers = window.VibeCartSessionDevice.merge(token, headers);
-          }
-          return fetch("/api/public/account/web-push/register", {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify({ subscription: sub.toJSON() })
-          }).then(function (r) {
-            return r.json().then(function (j) {
-              return { ok: r.ok, j: j };
-            });
-          });
-        })
-        .then(function (x) {
-          if (x && x.ok && x.j && x.j.ok) {
-            try {
-              localStorage.setItem(PUSH_ONCE_KEY, "1");
-            } catch (_) {
-              /* ignore */
-            }
-            btn.disabled = true;
-            btn.textContent = "Phone alerts enabled";
-            setNote("Booking alerts enabled for this browser. Allow notifications in phone settings if prompted.");
+      setNote("Checking…");
+      configPromise.then(function () {
+        if (!vapidPublicKey) {
+          if (mbWebPushShowDebugOpsNote()) {
+            setNote(
+              "Web Push is off until the API has VAPID keys. On Railway (Node service), set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY from `npx web-push generate-vapid-keys`, redeploy the API, then hard-refresh this page."
+            );
           } else {
-            setNote((x && x.j && (x.j.message || x.j.code)) || "Could not save subscription.");
+            setNote(
+              "Booking alerts are not available on this site yet. You can still use the dashboard here; try again after an update."
+            );
           }
-        })
-        .catch(function (err) {
-          setNote((err && err.message) || "Permission denied or blocked.");
-        });
+          return;
+        }
+        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+          setNote("Use Chrome on Android, or add VibeCart to your Home Screen on iPhone for notifications.");
+          return;
+        }
+        setNote("Working…");
+        navigator.serviceWorker
+          .register("./service-worker.js")
+          .then(function (reg) {
+            return reg.pushManager.getSubscription().then(function (existing) {
+              if (existing) return existing;
+              return reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+              });
+            });
+          })
+          .then(function (sub) {
+            var headers = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+            if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function") {
+              headers = window.VibeCartSessionDevice.merge(token, headers);
+            }
+            return fetch("/api/public/account/web-push/register", {
+              method: "POST",
+              headers: headers,
+              body: JSON.stringify({ subscription: sub.toJSON() })
+            }).then(function (r) {
+              return r.json().then(function (j) {
+                return { ok: r.ok, j: j };
+              });
+            });
+          })
+          .then(function (x) {
+            if (x && x.ok && x.j && x.j.ok) {
+              try {
+                localStorage.setItem(PUSH_ONCE_KEY, "1");
+              } catch (_) {
+                /* ignore */
+              }
+              btn.disabled = true;
+              btn.textContent = "Phone alerts enabled";
+              setNote("Booking alerts enabled for this browser. Allow notifications in phone settings if prompted.");
+            } else {
+              setNote((x && x.j && (x.j.message || x.j.code)) || "Could not save subscription.");
+            }
+          })
+          .catch(function (err) {
+            setNote((err && err.message) || "Permission denied or blocked.");
+          });
+      });
     });
   }
 
