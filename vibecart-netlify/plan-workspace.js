@@ -681,12 +681,12 @@
     };
   }
 
-  /* Self-hosted fitness B-roll (media/coach-demos/). Pexels license allows commercial use — illustrative context, not 1:1 form checks. */
+  /* Package dashboard clips: real workout footage (Mixkit / Pexels), same files as library where it fits. */
   var COACH_ILLUSTRATIVE_MEDIA = {
-    mobility: "./media/coach-demos/illustrative-mobility.mp4",
+    mobility: "./media/coach-demos/workout-dynamic-stretch.mp4",
     cardio: "./media/coach-demos/illustrative-cardio.mp4",
-    gym: "./media/coach-demos/illustrative-gym.mp4",
-    warmup: "./media/coach-demos/illustrative-warmup.mp4"
+    gym: "./media/coach-demos/workout-seated-row.mp4",
+    warmup: "./media/coach-demos/workout-jumping-jacks.mp4"
   };
   function coachVideoPrimaryUrl(primaryUrl) {
     var u = String(primaryUrl || "").trim();
@@ -698,7 +698,7 @@
       id: "bodyweight-squat",
       label: "Bodyweight Squat",
       category: "lower-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      video: "./media/coach-demos/workout-bodyweight-squat.mp4",
       setup: "Feet shoulder-width, toes slightly out, core braced, chest tall.",
       execution: ["Push hips back first.", "Bend knees and lower until thighs are near parallel.", "Drive through mid-foot to stand tall."],
       repForm: ["Knees track over toes.", "Spine stays neutral; avoid rounding.", "Control down for 2 seconds, stand with intent."],
@@ -708,7 +708,7 @@
       id: "goblet-squat",
       label: "Goblet Squat",
       category: "lower-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      video: "./media/coach-demos/workout-goblet-squat.mp4",
       setup: "Hold dumbbell close to chest, elbows down, stance shoulder-width.",
       execution: ["Inhale and brace.", "Sit down between hips keeping torso upright.", "Press floor away and exhale at top."],
       repForm: ["Keep dumbbell close to sternum.", "Full foot contact throughout rep.", "Hips and shoulders rise together."],
@@ -718,7 +718,7 @@
       id: "reverse-lunge",
       label: "Reverse Lunge",
       category: "lower-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+      video: "./media/coach-demos/workout-reverse-lunge.mp4",
       setup: "Stand tall, feet hip-width, core tight, eyes forward.",
       execution: ["Step one leg backward.", "Lower both knees under control.", "Drive front heel to return to standing."],
       repForm: ["Front knee stays stacked over mid-foot.", "Torso remains vertical.", "Move smoothly with balanced tempo."],
@@ -728,7 +728,7 @@
       id: "romanian-deadlift",
       label: "Romanian Deadlift",
       category: "posterior-chain",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      video: "./media/coach-demos/workout-romanian-deadlift.mp4",
       setup: "Soft knees, weight close to thighs, lats engaged, spine neutral.",
       execution: ["Hinge hips back while sliding weight down thighs.", "Pause when hamstrings are loaded.", "Drive hips forward to stand."],
       repForm: ["Bar/dumbbells stay close to body.", "Neck stays neutral.", "Hinge from hips, not lower back."],
@@ -738,7 +738,7 @@
       id: "push-up",
       label: "Push-up",
       category: "upper-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      video: "./media/coach-demos/workout-push-up.mp4",
       setup: "Hands slightly wider than shoulders, body in straight line, glutes tight.",
       execution: ["Lower chest toward floor with elbows at 30-45 degrees.", "Touch depth consistently.", "Press back to full lockout."],
       repForm: ["Ribs down, no sagging hips.", "Neck neutral.", "Control descent and explosive press."],
@@ -748,7 +748,7 @@
       id: "bench-press",
       label: "Bench Press",
       category: "upper-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      video: "./media/coach-demos/workout-bench-press.mp4",
       setup: "Feet planted, shoulder blades retracted, grip even, wrists stacked.",
       execution: ["Unrack with straight wrists.", "Lower bar to mid-chest under control.", "Press bar up and slightly back."],
       repForm: ["Forearms vertical at bottom.", "Light arch in upper back only.", "Bar path consistent each rep."],
@@ -758,7 +758,7 @@
       id: "shoulder-press",
       label: "Dumbbell Shoulder Press",
       category: "upper-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      video: "./media/coach-demos/workout-shoulder-press.mp4",
       setup: "Core braced, glutes tight, dumbbells at shoulder level.",
       execution: ["Press weights overhead in line with ears.", "Control down to shoulder line.", "Repeat with stable torso."],
       repForm: ["Avoid excessive lower-back arch.", "Move through full range.", "Keep elbows under wrists."],
@@ -768,7 +768,7 @@
       id: "seated-row",
       label: "Seated Cable Row",
       category: "upper-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+      video: "./media/coach-demos/workout-seated-row.mp4",
       setup: "Neutral spine, chest lifted, shoulders down, soft knees.",
       execution: ["Pull handle toward lower ribs.", "Squeeze shoulder blades together.", "Return with control to full stretch."],
       repForm: ["Lead with elbows, not wrists.", "Torso stays mostly still.", "Use full scapular motion."],
@@ -778,7 +778,7 @@
       id: "lat-pulldown",
       label: "Lat Pulldown",
       category: "upper-body",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      video: "./media/coach-demos/workout-lat-pulldown.mp4",
       setup: "Set thigh pad secure, chest up, slight lean back.",
       execution: ["Pull bar to upper chest.", "Pause with elbows down and back.", "Control bar up to full stretch."],
       repForm: ["Keep shoulders away from ears.", "No momentum swinging.", "Full stretch at top each rep."],
@@ -788,7 +788,7 @@
       id: "glute-bridge",
       label: "Glute Bridge",
       category: "posterior-chain",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      video: "./media/coach-demos/workout-supine-bench.mp4",
       setup: "Lie on back, knees bent, feet flat under knees, core braced.",
       execution: ["Drive through heels and lift hips.", "Squeeze glutes at top for one second.", "Lower with control."],
       repForm: ["Ribs down, pelvis neutral.", "No over-arching lower back.", "Keep knees tracking forward."],
@@ -798,7 +798,7 @@
       id: "plank",
       label: "Forearm Plank",
       category: "core",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      video: "./media/coach-demos/workout-plank.mp4",
       setup: "Elbows under shoulders, feet hip-width, straight line head-to-heel.",
       execution: ["Brace abs and glutes.", "Breathe steadily without losing position.", "Hold prescribed time."],
       repForm: ["Neutral pelvis and spine.", "Push floor away with forearms.", "Maintain tension on every second."],
@@ -808,7 +808,7 @@
       id: "dead-bug",
       label: "Dead Bug",
       category: "core",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      video: "./media/coach-demos/workout-supine-bench.mp4",
       setup: "Lie on back, arms up, knees at 90 degrees, ribs down.",
       execution: ["Extend opposite arm and leg slowly.", "Keep lower back gently pressed down.", "Return and alternate sides."],
       repForm: ["Move slow and controlled.", "No rib flare.", "Exhale on extension for better brace."],
@@ -818,7 +818,7 @@
       id: "mountain-climber",
       label: "Mountain Climber",
       category: "cardio",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+      video: "./media/coach-demos/workout-mountain-climber.mp4",
       setup: "High plank position, shoulders stacked over wrists.",
       execution: ["Drive one knee toward chest.", "Alternate legs rhythmically.", "Maintain strong plank line."],
       repForm: ["Keep hips level.", "Land feet softly.", "Keep shoulders stable over hands."],
@@ -828,7 +828,7 @@
       id: "jumping-jacks",
       label: "Jumping Jacks",
       category: "cardio",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      video: "./media/coach-demos/workout-jumping-jacks.mp4",
       setup: "Stand tall, arms by sides, core lightly engaged.",
       execution: ["Jump feet out as arms rise overhead.", "Jump feet in as arms return down.", "Keep steady breathing rhythm."],
       repForm: ["Land softly on balls of feet.", "Maintain upright posture.", "Use full arm range."],
@@ -838,7 +838,7 @@
       id: "incline-walk",
       label: "Incline Treadmill Walk",
       category: "cardio",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      video: "./media/coach-demos/workout-incline-walk.mp4",
       setup: "Set incline and speed to sustainable effort zone.",
       execution: ["Walk with long controlled steps.", "Maintain nasal or controlled mouth breathing.", "Sustain target duration."],
       repForm: ["Keep chest up and shoulders relaxed.", "Avoid leaning heavily on rails.", "Consistent pace over spikes."],
@@ -848,30 +848,13 @@
       id: "dynamic-stretch-flow",
       label: "Dynamic Stretch Flow",
       category: "mobility",
-      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      video: "./media/coach-demos/workout-dynamic-stretch.mp4",
       setup: "Start standing with relaxed breathing and controlled tempo.",
       execution: ["Move through hips, hamstrings, thoracic spine, and ankles.", "Use smooth transitions between stretches.", "Complete both sides evenly."],
       repForm: ["Never force painful range.", "Control breath with each movement.", "Keep motions deliberate and fluid."],
       mistakes: ["Bouncing aggressively.", "Skipping tight areas.", "Moving too fast to control form."]
     }
   ];
-  EXERCISE_LIBRARY.forEach(function (row) {
-    var cat = String(row.category || "");
-    if (cat === "lower-body" || cat === "upper-body") {
-      row.video = COACH_ILLUSTRATIVE_MEDIA.gym;
-    } else if (cat === "posterior-chain") {
-      row.video = COACH_ILLUSTRATIVE_MEDIA.mobility;
-    } else if (cat === "core") {
-      row.video = COACH_ILLUSTRATIVE_MEDIA.warmup;
-    } else if (cat === "cardio") {
-      row.video = COACH_ILLUSTRATIVE_MEDIA.cardio;
-    } else if (cat === "mobility") {
-      row.video = COACH_ILLUSTRATIVE_MEDIA.mobility;
-    } else {
-      row.video = COACH_ILLUSTRATIVE_MEDIA.gym;
-    }
-  });
-
   function renderExerciseLibrary(categoryEl, exerciseEl, detailEl) {
     if (!categoryEl || !exerciseEl || !detailEl) {
       return function () {};
