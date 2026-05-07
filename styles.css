@@ -3615,6 +3615,93 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   padding-bottom: 0.25rem;
 }
 
+/* Live marketplace: horizontal promo strip stays inside the phone frame */
+.vc-live-deal-promo-rail {
+  grid-auto-columns: minmax(200px, min(78vw, 280px));
+  max-width: 100%;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.45rem;
+}
+
+.vc-live-deal-promo-card {
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vc-live-deal-promo-badge {
+  display: block;
+  margin: 0;
+  padding: 0.35rem 0.5rem 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffe8c8;
+  background: rgba(232, 163, 23, 0.22);
+  border-bottom: 1px solid rgba(232, 163, 23, 0.2);
+}
+
+.vc-live-deal-promo-card img {
+  height: 100px;
+}
+
+.vc-live-deal-promo-title {
+  font-weight: 700;
+}
+
+.vc-live-deal-promo-sub {
+  display: block;
+  padding: 0 0.5rem 0.45rem !important;
+  font-size: 0.68rem !important;
+  line-height: 1.35 !important;
+  color: rgba(200, 192, 230, 0.92) !important;
+}
+
+body.live-market-shops-page main.shops-lane-main {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: clip;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+
+.shop-bubble-grid .shop.vc-live-vc-product {
+  border-radius: 18px;
+  padding: 0;
+  min-height: 0;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.shop-bubble-grid .shop.vc-live-vc-product .vc-live-vc-product__media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.shop-bubble-grid .shop.vc-live-vc-product h3,
+.shop-bubble-grid .shop.vc-live-vc-product .vc-live-vc-product__meta {
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+}
+
+.shop-bubble-grid .shop.vc-live-vc-product h3 {
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.shop-bubble-grid .shop.vc-live-vc-product .vc-live-vc-product__meta {
+  padding-top: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .vc-fashion-trend-link {
   border-radius: 12px;
   overflow: hidden;

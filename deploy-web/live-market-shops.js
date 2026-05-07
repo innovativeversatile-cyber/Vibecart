@@ -528,6 +528,65 @@
       title: "Nintendo deals"
     }
   ];
+  /** Real storefronts — deals / promo entry pages (not VibeCart demo inventory). */
+  var bestBargainsDealRail = [
+    {
+      src: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.amazon.com/deals",
+      title: "Amazon",
+      badge: "Deals hub",
+      subtitle: "Lightning deals & category coupons"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.ebay.com/deals",
+      title: "eBay",
+      badge: "Promotions",
+      subtitle: "Daily deals & event pricing"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.takealot.com",
+      title: "Takealot",
+      badge: "ZA tech & home",
+      subtitle: "Flash offers by campaign"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.jumia.com.ng",
+      title: "Jumia",
+      badge: "Africa retail",
+      subtitle: "Seasonal promos per country"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.argos.co.uk",
+      title: "Argos",
+      badge: "UK catalogue",
+      subtitle: "Multi-buy & clearance"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.newegg.com",
+      title: "Newegg",
+      badge: "PC & tech",
+      subtitle: "Shell shocker & combos"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.zalando.com",
+      title: "Zalando",
+      badge: "Fashion sale",
+      subtitle: "Outlet & seasonal rows"
+    },
+    {
+      src: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=540&h=340&q=75",
+      href: "https://www.abebooks.com",
+      title: "AbeBooks",
+      badge: "Books",
+      subtitle: "Used & textbooks"
+    }
+  ];
   if (!grid) {
     return;
   }
@@ -750,7 +809,7 @@
     var mainTitle = document.querySelector("main.shops-lane-main > .shops-lane-title");
     if (mainTitle) {
       if (dealTone === "best") {
-        mainTitle.textContent = "Best bargains · VibeCart + global retailers";
+        mainTitle.textContent = "Best bargains · retailer promos + VibeCart listings";
       } else if (dealTone === "fashion") {
         mainTitle.textContent = "Fashion deals · VibeCart + flagship fashion";
       } else if (dealTone === "electronics") {
@@ -765,9 +824,9 @@
     }
     if (vcTitle && vcLead) {
       if (dealTone === "best") {
-        vcTitle.textContent = "Best bargains (external shops)";
+        vcTitle.textContent = "VibeCart seller listings";
         vcLead.textContent =
-          "Curated external bargains sorted by price and category. External retailer tiles below stay locked until you accept the disclaimer.";
+          "Products from registered shops (sorted low-to-high in this lane). Tap for Hot picks — not the same as the retailer promo strip above.";
       } else if (dealTone === "fashion") {
         vcTitle.textContent = "Fashion lane on VibeCart";
         vcLead.textContent = "External fashion listings — opens Hot Picks with source-website checkout.";
@@ -877,7 +936,13 @@
     }
     dealContextRail.innerHTML = "";
     var pack = null;
-    if (dealTone === "fashion" || cat === "Fashion") {
+    if (dealTone === "best") {
+      pack = {
+        label:
+          "Sales, discounts & promotions — swipe sideways. Each card opens a real store (tick the disclaimer first).",
+        items: bestBargainsDealRail
+      };
+    } else if (dealTone === "fashion" || cat === "Fashion") {
       pack = { label: "Fashion inspiration + storefront shortcuts (disclaimer applies)", items: fashionTrends };
     } else if (dealTone === "electronics" || cat === "Electronics") {
       pack = { label: "Electronics deal shelf — storefront entry points (disclaimer applies)", items: electronicsDealRail };
@@ -894,16 +959,43 @@
     dealContextRailLabel.textContent = pack.label;
     pack.items.forEach(function (trend) {
       var card = document.createElement("a");
-      card.className = "vc-fashion-trend-link";
+      card.className = "vc-fashion-trend-link vc-live-deal-promo-card";
       card.href = trend.href;
       card.target = "_blank";
       card.rel = "noopener noreferrer";
+      var badge = trend.badge
+        ? '<span class="vc-live-deal-promo-badge">' + String(trend.badge).replace(/</g, "&lt;") + "</span>"
+        : "";
+      var sub = trend.subtitle
+        ? '<span class="vc-live-deal-promo-sub">' + String(trend.subtitle).replace(/</g, "&lt;") + "</span>"
+        : "";
       card.innerHTML =
-        '<img loading="lazy" src="' + trend.src + '" alt="' + String(trend.title || "").replace(/"/g, "") + '" /><span>' + trend.title + "</span>";
+        badge +
+        '<img loading="lazy" src="' +
+        String(trend.src || "").replace(/"/g, "") +
+        '" alt="" />' +
+        '<span class="vc-live-deal-promo-title">' +
+        String(trend.title || "").replace(/</g, "&lt;") +
+        "</span>" +
+        sub;
       dealContextRail.appendChild(card);
     });
     dealContextRailWrap.hidden = false;
     dealContextRailWrap.style.display = "";
+  }
+
+  function placeholderImageForListing(categoryName) {
+    var c = String(categoryName || "").toLowerCase();
+    if (c.indexOf("book") >= 0) {
+      return "https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=480&h=300&q=75";
+    }
+    if (c.indexOf("fashion") >= 0) {
+      return "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=480&h=300&q=75";
+    }
+    if (c.indexOf("game") >= 0) {
+      return "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?auto=format&fit=crop&w=480&h=300&q=75";
+    }
+    return "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=480&h=300&q=75";
   }
 
   function appendVcProductCard(p) {
@@ -911,9 +1003,22 @@
     var a = document.createElement("a");
     a.className = "shop vc-live-vc-product";
     a.href = "./hot-picks.html?productId=" + encodeURIComponent(String(p.id));
+    var imgSrc = String(p.imageUrl || "").trim() || placeholderImageForListing(p.categoryName || "");
+    if (imgSrc) {
+      var img = document.createElement("img");
+      img.className = "vc-live-vc-product__media";
+      img.src = imgSrc;
+      img.alt = "";
+      img.width = 480;
+      img.height = 300;
+      img.loading = "lazy";
+      img.decoding = "async";
+      a.appendChild(img);
+    }
     var h3 = document.createElement("h3");
     h3.textContent = p.title || "Listing";
     var para = document.createElement("p");
+    para.className = "vc-live-vc-product__meta";
     para.textContent =
       String(p.shopName || "Shop") +
       " · " +
@@ -1036,7 +1141,12 @@
         }
         cat = next;
         var dealByCat = { Electronics: "electronics", Fashion: "fashion", Books: "books", Gaming: "gaming" };
-        dealTone = cat === "All" ? "" : dealByCat[cat] || dealTone;
+        var spLive = new URLSearchParams(window.location.search || "");
+        if (cat === "All") {
+          dealTone = String(spLive.get("deal") || "").trim().toLowerCase();
+        } else {
+          dealTone = dealByCat[cat] || dealTone;
+        }
         if (searchInput) {
           searchInput.value = "";
         }

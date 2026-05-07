@@ -3803,7 +3803,7 @@
         if (!node || !node.closest) return false;
         if (
           node.closest(
-            ".vc-mobile-rail, .vc-mobile-rail-section, .vc-mobile-chapter-deck, .vc-bridge-truth-list, .shop-folder-landing, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-epic-track, .vc-epic-experience, #market-fit .market-pillars"
+            ".vc-mobile-rail, .vc-mobile-rail-section, .vc-mobile-chapter-deck, .vc-bridge-truth-list, .shop-folder-landing, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-epic-track, .vc-epic-experience, #market-fit .market-pillars, .vc-live-deal-promo-rail, .vc-fashion-trends-rail, .live-market-deal-rail-wrap"
           )
         ) {
           return true;
@@ -3934,8 +3934,7 @@
           ? performance.getEntriesByType("navigation")
           : [];
       var navType = navEntries && navEntries[0] ? String(navEntries[0].type || "") : "";
-      var isNativeWebApp = document.documentElement.classList.contains("vc-mobile-app");
-      if (navType === "reload" || navType === "back_forward" || isNativeWebApp) {
+      if (navType === "reload" || navType === "back_forward") {
         revealFrom(rail);
         try {
           window.scrollTo({ top: 0, left: 0, behavior: "auto" });
