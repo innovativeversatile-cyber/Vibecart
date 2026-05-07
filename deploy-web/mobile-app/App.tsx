@@ -592,7 +592,10 @@ export default function App(): JSX.Element {
             }
           : {})}
         overScrollMode="never"
-        mediaPlaybackRequiresUserAction={true}
+        /* iOS defaults allowsInlineMediaPlayback=false — inline <video> stays 0:00 / won't play without this. */
+        allowsInlineMediaPlayback
+        /* true blocks playback in some WebViews even when the user taps the video control; we don't autoplay video in HTML. */
+        mediaPlaybackRequiresUserAction={false}
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_CLASS}
         injectedJavaScript={INJECT_HASH_SYNC}
         onMessage={(ev: { nativeEvent: { data: string } }) => {
