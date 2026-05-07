@@ -681,19 +681,16 @@
     };
   }
 
-  /* Same-origin demo clips (see media/coach-demos/) — avoids third-party 403s and SW opaque-response bugs on mobile. */
-  var COACH_DEMO_MP4_POOL = [
-    "./media/coach-demos/flower.mp4",
-    "./media/coach-demos/friday.mp4",
-    "./media/coach-demos/mov_bbb.mp4"
-  ];
-  function coachDemoMp4At(i) {
-    var pool = COACH_DEMO_MP4_POOL;
-    return pool[Math.max(0, Number(i) || 0) % pool.length];
-  }
+  /* Self-hosted fitness B-roll (media/coach-demos/). Pexels license allows commercial use — illustrative context, not 1:1 form checks. */
+  var COACH_ILLUSTRATIVE_MEDIA = {
+    mobility: "./media/coach-demos/illustrative-mobility.mp4",
+    cardio: "./media/coach-demos/illustrative-cardio.mp4",
+    gym: "./media/coach-demos/illustrative-gym.mp4",
+    warmup: "./media/coach-demos/illustrative-warmup.mp4"
+  };
   function coachVideoPrimaryUrl(primaryUrl) {
     var u = String(primaryUrl || "").trim();
-    return u || COACH_DEMO_MP4_POOL[0];
+    return u || COACH_ILLUSTRATIVE_MEDIA.gym;
   }
 
   var EXERCISE_LIBRARY = [
@@ -858,8 +855,21 @@
       mistakes: ["Bouncing aggressively.", "Skipping tight areas.", "Moving too fast to control form."]
     }
   ];
-  EXERCISE_LIBRARY.forEach(function (row, idx) {
-    row.video = coachDemoMp4At(idx);
+  EXERCISE_LIBRARY.forEach(function (row) {
+    var cat = String(row.category || "");
+    if (cat === "lower-body" || cat === "upper-body") {
+      row.video = COACH_ILLUSTRATIVE_MEDIA.gym;
+    } else if (cat === "posterior-chain") {
+      row.video = COACH_ILLUSTRATIVE_MEDIA.mobility;
+    } else if (cat === "core") {
+      row.video = COACH_ILLUSTRATIVE_MEDIA.warmup;
+    } else if (cat === "cardio") {
+      row.video = COACH_ILLUSTRATIVE_MEDIA.cardio;
+    } else if (cat === "mobility") {
+      row.video = COACH_ILLUSTRATIVE_MEDIA.mobility;
+    } else {
+      row.video = COACH_ILLUSTRATIVE_MEDIA.gym;
+    }
   });
 
   function renderExerciseLibrary(categoryEl, exerciseEl, detailEl) {
@@ -1364,7 +1374,7 @@
         media: [
           { kind: "image", title: "Home workout form", src: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Meal prep layout", src: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short mobility warm-up", src: coachDemoMp4At(0) }
+          { kind: "video", title: "Short mobility warm-up", src: COACH_ILLUSTRATIVE_MEDIA.mobility }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Warm-up 10 min, home strength 30-40 min, cardio 15 min, cool-down 10 min." },
@@ -1383,7 +1393,7 @@
         media: [
           { kind: "image", title: "Gym strength day", src: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Cardio conditioning", src: "https://images.unsplash.com/photo-1549476464-37392f717541?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short cardio finisher", src: coachDemoMp4At(1) }
+          { kind: "video", title: "Short cardio finisher", src: COACH_ILLUSTRATIVE_MEDIA.cardio }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Warm-up 8-12 min, gym lifts with sets/reps/rest, conditioning finisher, stretch." },
@@ -1402,7 +1412,7 @@
         media: [
           { kind: "image", title: "Elite lifting block", src: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Recovery and stretch", src: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short stretch cooldown", src: coachDemoMp4At(2) }
+          { kind: "video", title: "Short stretch cooldown", src: COACH_ILLUSTRATIVE_MEDIA.mobility }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Dynamic warm-up, periodized lift targets, cardio dosage, and deep cool-down protocol." },
@@ -1420,7 +1430,7 @@
       media: [
         { kind: "image", title: "Starter movement guide", src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80" },
         { kind: "image", title: "Cardio basics", src: "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=1200&q=80" },
-        { kind: "video", title: "Short warm-up routine", src: coachDemoMp4At(3) }
+        { kind: "video", title: "Short warm-up routine", src: COACH_ILLUSTRATIVE_MEDIA.warmup }
       ],
       blocks: [
         { title: "Today in 3 blocks", body: "Warm-up 10 min, focused workout 25-35 min, cardio/cool-down 15-20 min." },
