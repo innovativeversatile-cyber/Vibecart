@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global market hub · stores &amp; categories · VibeCart</title>
+  <meta name="description" content="Jump to categories, featured external stores, and the live marketplace without scrolling through the whole homepage." />
+  <link rel="stylesheet" href="./styles.css?v=20260507prodhub1" />
+</head>
+<body class="shops-lane-page">
+  <header class="shops-lane-topbar">
+    <a class="btn btn-secondary" href="./index.html">← Home</a>
+    <a class="btn btn-primary" id="gmLiveGo" href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best">Open live marketplace</a>
+  </header>
+  <main class="section alt shops-lane-main">
+    <h1 class="shops-lane-title">Global market hub</h1>
+    <p class="note shops-lane-intro">
+      Pick a category first, then open the live lane for filters, VibeCart listings, and partner shops. Everything below uses real storefront URLs.
+    </p>
+
+    <div class="global-market-sticky" aria-label="Quick navigation">
+      <label for="gmLiveCat">Category for live marketplace</label>
+      <select id="gmLiveCat" autocomplete="off">
+        <option value="All">All categories</option>
+        <option value="Electronics">Electronics</option>
+        <option value="Fashion">Fashion</option>
+        <option value="Books">Books</option>
+        <option value="Gaming">Gaming</option>
+      </select>
+      <a class="btn btn-secondary" href="./shop-hub.html">Shop hub (deals)</a>
+    </div>
+
+    <h2 class="shops-lane-title" style="font-size:1.15rem;margin-top:0.5rem;">Browse by category</h2>
+    <div class="shop-bubble-grid">
+      <a class="shop" href="./live-market-shops.html?cat=Electronics&amp;view=global&amp;deal=best"><h3>Electronics</h3><p>Phones, accessories, tech.</p></a>
+      <a class="shop" href="./live-market-shops.html?cat=Fashion&amp;view=global&amp;deal=best"><h3>Fashion</h3><p>Streetwear, basics, trends.</p></a>
+      <a class="shop" href="./live-market-shops.html?cat=Books&amp;view=global&amp;deal=best"><h3>Books</h3><p>Textbooks &amp; reads.</p></a>
+      <a class="shop" href="./live-market-shops.html?cat=Gaming&amp;view=global&amp;deal=best"><h3>Gaming</h3><p>Gear &amp; bundles.</p></a>
+      <a class="shop" href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best"><h3>Everything live</h3><p>Full marketplace view.</p></a>
+    </div>
+
+    <h2 class="shops-lane-title" style="font-size:1.15rem;margin-top:1.25rem;">Curated external lanes</h2>
+    <p class="note">Same-day psychology as fashion deals — tap through to the retailer’s own checkout.</p>
+    <div class="hero-actions" style="flex-wrap:wrap;margin-top:0.5rem;">
+      <a class="btn btn-secondary" href="./electronics-deals.html">Electronics deals</a>
+      <a class="btn btn-secondary" href="./fashion-deals.html">Fashion deals</a>
+      <a class="btn btn-secondary" href="./books-study-deals.html">Books &amp; study</a>
+      <a class="btn btn-secondary" href="./best-bargains.html">Best bargains</a>
+    </div>
+
+    <h2 class="shops-lane-title" style="font-size:1.15rem;margin-top:1.25rem;">Featured storefronts</h2>
+    <div class="shop-bubble-grid">
+      <a class="shop" href="https://www.amazon.com/deals" target="_blank" rel="noopener noreferrer"><h3>Amazon deals</h3><p>Lightning &amp; category promos.</p></a>
+      <a class="shop" href="https://www.ebay.com/deals" target="_blank" rel="noopener noreferrer"><h3>eBay deals</h3><p>Auctions &amp; Buy It Now.</p></a>
+      <a class="shop" href="https://www.jumia.com.ng" target="_blank" rel="noopener noreferrer"><h3>Jumia</h3><p>Africa e-commerce hub.</p></a>
+      <a class="shop" href="https://www.takealot.com" target="_blank" rel="noopener noreferrer"><h3>Takealot</h3><p>South Africa daily deals.</p></a>
+      <a class="shop" href="https://www.zalando.com" target="_blank" rel="noopener noreferrer"><h3>Zalando</h3><p>EU fashion marketplace.</p></a>
+      <a class="shop" href="https://www.newegg.com" target="_blank" rel="noopener noreferrer"><h3>Newegg</h3><p>PC &amp; electronics.</p></a>
+    </div>
+  </main>
+  <script>
+    (function () {
+      var s = document.getElementById("gmLiveCat");
+      var a = document.getElementById("gmLiveGo");
+      if (!s || !a) return;
+      function sync() {
+        var cat = encodeURIComponent(s.value || "All");
+        a.href = "./live-market-shops.html?cat=" + cat + "&view=global&deal=best";
+      }
+      s.addEventListener("change", sync);
+      sync();
+    })();
+  </script>
+  <script src="./analytics-visit.js?v=20260501visit1" defer></script>
+</body>
+</html>

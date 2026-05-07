@@ -45,7 +45,7 @@
         "VibeCart is where Africa, Europe, Dubai, and Asia meet to buy and sell safely.",
       "hero.subtitleExtended":
         "Discover verified sellers and local service providers — from custom baking to barber and hairdressing — pay with confidence, track shipments, and run your cross-border business from one trusted flow.",
-      "hero.shopNow": "Browse global market now",
+      "hero.shopNow": "Shop now",
       "hero.listItem": "List an Item",
       "hero.smartTour": "Start Smart Tour",
       "hero.installApp": "Install App",
@@ -87,7 +87,7 @@
       "edge.r5pain": "Handoffs to random payment links erode confidence on big carts.",
       "edge.r5body":
         "Protected checkout story, rewards memory, and global market lanes designed as one continuous arc from discovery to delivery.",
-      "edge.r5cta": "Browse global market",
+      "edge.r5cta": "Global stores hub",
       "vibe.title": "Vibe Motion Lane",
       "vibe.lead": "Swipe sideways, scroll diagonally, and watch the signal lens reveal hot zones.",
       "vibe.card1h": "Street Drip",

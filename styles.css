@@ -5072,6 +5072,110 @@ body.admin-surface .section {
   margin-top: 0.25rem;
 }
 
+/* shop-hub.html — promo rail + mixed promo tiles */
+.vc-shop-hub-promo-rail {
+  display: flex;
+  gap: 0.9rem;
+  overflow-x: auto;
+  padding: 0.35rem 0 1rem;
+  margin: 0 -0.25rem;
+  padding-inline: 0.25rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+}
+
+.vc-shop-hub-promo {
+  flex: 0 0 min(292px, 88vw);
+  scroll-snap-align: start;
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem 1.05rem 1.1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(232, 163, 23, 0.22);
+  text-decoration: none;
+  color: #f8f4ff;
+  background: linear-gradient(155deg, rgba(52, 32, 88, 0.95), rgba(10, 8, 22, 0.98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
+  min-height: 168px;
+}
+
+.vc-shop-hub-promo--wide {
+  flex-basis: min(340px, 92vw);
+  background: linear-gradient(165deg, rgba(28, 72, 64, 0.92), rgba(12, 10, 26, 0.98));
+}
+
+.vc-shop-hub-promo--accent {
+  background: linear-gradient(165deg, rgba(120, 60, 140, 0.9), rgba(14, 12, 30, 0.98));
+}
+
+.vc-shop-hub-promo__tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffe8c8;
+}
+
+.vc-shop-hub-promo__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.vc-shop-hub-promo__body {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(230, 224, 255, 0.88);
+}
+
+.vc-shop-hub-promo__cta {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9ef7ff;
+  margin-top: auto;
+}
+
+.global-market-sticky {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  margin: 0 0 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(232, 163, 23, 0.2);
+  background: rgba(10, 8, 22, 0.94);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.global-market-sticky label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c9c2e8;
+  width: 100%;
+}
+
+.global-market-sticky select {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 14, 34, 0.95);
+  color: #f5f0ff;
+  font-size: 0.88rem;
+}
+
 .note {
   color: var(--muted);
 }
@@ -6148,6 +6252,7 @@ html.vc-phone #market-fit .market-pillars {
   padding-bottom: 0.45rem;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  touch-action: pan-x;
   mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent);
 }
 
@@ -6168,6 +6273,7 @@ html.vc-phone .vc-bridge-truth-list {
   list-style: none;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
   mask-image: linear-gradient(to right, transparent, #000 8px, #000 calc(100% - 8px), transparent);
 }
 

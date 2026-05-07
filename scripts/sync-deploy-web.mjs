@@ -95,7 +95,9 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "seller-payments.js",
   "orders-tracking.js",
   "fashion-deals.js",
-  "best-bargains.js"
+  "best-bargains.js",
+  "electronics-deals.js",
+  "books-study-deals.js"
 ]);
 
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */

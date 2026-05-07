@@ -3653,10 +3653,16 @@
       "</div>";
     var links = [
       ["Home", "./index.html"],
+      ["Global hub", "./global-market.html"],
+      ["Shop hub", "./shop-hub.html"],
       ["Live market", "./live-market-shops.html?cat=All&view=global&deal=best"],
       ["Hot picks", "./hot-picks.html"],
       ["Global search", "./global-search.html"],
       ["Browse categories", "./browse-categories.html"],
+      ["Fashion deals", "./fashion-deals.html"],
+      ["Electronics deals", "./electronics-deals.html"],
+      ["Books & study", "./books-study-deals.html"],
+      ["Best bargains", "./best-bargains.html"],
       ["Buy journey", "./buy-journey.html"],
       ["Messages", "./seller-messages.html"],
       ["Service providers", "./service-provider-hub.html"],
@@ -3745,6 +3751,11 @@
       window.__vcScrollGateResize = null;
       window.__vcScrollGateMax = null;
       window.__vcScrollGateTouchY = null;
+      window.__vcScrollGateTouchStart = null;
+      if (window.__vcScrollGateTouchStartHandler) {
+        window.removeEventListener("touchstart", window.__vcScrollGateTouchStartHandler, true);
+      }
+      window.__vcScrollGateTouchStartHandler = null;
       try {
         var L0 = window.__vibecartLenis;
         var lh0 = window.__vcScrollGateLenisHandler;
@@ -3792,7 +3803,7 @@
         if (!node || !node.closest) return false;
         if (
           node.closest(
-            ".vc-mobile-rail, .shop-folder-landing, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-epic-track"
+            ".vc-mobile-rail, .vc-mobile-rail-section, .vc-mobile-chapter-deck, .vc-bridge-truth-list, .shop-folder-landing, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-epic-track, .vc-epic-experience, #market-fit .market-pillars"
           )
         ) {
           return true;
@@ -3856,8 +3867,26 @@
           ev.preventDefault();
         }
       };
+      window.__vcScrollGateTouchStartHandler = function (ev) {
+        if (scrollGateTargetAllowsHorizontal(ev)) {
+          window.__vcScrollGateTouchStart = null;
+          return;
+        }
+        if (!ev || !ev.touches || !ev.touches[0]) return;
+        window.__vcScrollGateTouchStart = {
+          x: Number(ev.touches[0].clientX || 0),
+          y: Number(ev.touches[0].clientY || 0)
+        };
+      };
+      window.addEventListener("touchstart", window.__vcScrollGateTouchStartHandler, { capture: true, passive: true });
       window.__vcScrollGateTouch = function (ev) {
         if (scrollGateTargetAllowsHorizontal(ev)) return;
+        var st = window.__vcScrollGateTouchStart;
+        if (st && ev && ev.touches && ev.touches[0]) {
+          var dx = Math.abs(Number(ev.touches[0].clientX || 0) - st.x);
+          var dy = Math.abs(Number(ev.touches[0].clientY || 0) - st.y);
+          if (dx > dy + 10) return;
+        }
         if (!ev || !ev.touches || !ev.touches[0]) return;
         var yNow = Number(ev.touches[0].clientY || 0);
         var yPrev = Number(window.__vcScrollGateTouchY || yNow);
@@ -3905,7 +3934,8 @@
           ? performance.getEntriesByType("navigation")
           : [];
       var navType = navEntries && navEntries[0] ? String(navEntries[0].type || "") : "";
-      if (navType === "reload" || navType === "back_forward") {
+      var isNativeWebApp = document.documentElement.classList.contains("vc-mobile-app");
+      if (navType === "reload" || navType === "back_forward" || isNativeWebApp) {
         revealFrom(rail);
         try {
           window.scrollTo({ top: 0, left: 0, behavior: "auto" });
