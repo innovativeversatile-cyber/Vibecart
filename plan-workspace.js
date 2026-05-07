@@ -681,6 +681,30 @@
     };
   }
 
+  /* Google gtv sample bucket often returns 403 from mobile/WebView — use public demo MP4s. */
+  var COACH_DEMO_MP4_POOL = [
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/friday.mp4",
+    "https://www.w3schools.com/html/mov_bbb.mp4"
+  ];
+  function coachDemoMp4At(i) {
+    var pool = COACH_DEMO_MP4_POOL;
+    return pool[Math.max(0, Number(i) || 0) % pool.length];
+  }
+  function coachVideoSourceTags(primaryUrl) {
+    var primary = String(primaryUrl || "").trim();
+    if (!primary) {
+      primary = COACH_DEMO_MP4_POOL[0];
+    }
+    var tags = "<source src=\"" + primary + "\" type=\"video/mp4\"/>";
+    COACH_DEMO_MP4_POOL.forEach(function (url) {
+      if (url !== primary) {
+        tags += "<source src=\"" + url + "\" type=\"video/mp4\"/>";
+      }
+    });
+    return tags;
+  }
+
   var EXERCISE_LIBRARY = [
     {
       id: "bodyweight-squat",
@@ -843,6 +867,9 @@
       mistakes: ["Bouncing aggressively.", "Skipping tight areas.", "Moving too fast to control form."]
     }
   ];
+  EXERCISE_LIBRARY.forEach(function (row, idx) {
+    row.video = coachDemoMp4At(idx);
+  });
 
   function renderExerciseLibrary(categoryEl, exerciseEl, detailEl) {
     if (!categoryEl || !exerciseEl || !detailEl) {
@@ -880,12 +907,22 @@
       detailEl.innerHTML =
         "<p class=\"note\" style=\"margin:0;\"><strong>" + item.label + "</strong> · " + item.category.replace(/-/g, " ") + "</p>" +
         "<video controls playsinline webkit-playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:280px;object-fit:cover;margin-top:0.55rem;\">" +
-        "<source src=\"" + item.video + "\" type=\"video/mp4\"/>" +
+        coachVideoSourceTags(item.video) +
         "</video>" +
         "<h4 style=\"margin:0.55rem 0 0.35rem;\">Setup</h4><p class=\"note\" style=\"margin:0;\">" + item.setup + "</p>" +
         listHtml("Execution steps", item.execution) +
         listHtml("Rep form cues", item.repForm) +
         listHtml("Common mistakes to avoid", item.mistakes);
+      window.requestAnimationFrame(function () {
+        var vid = detailEl.querySelector("video");
+        if (vid && typeof vid.load === "function") {
+          try {
+            vid.load();
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      });
     }
 
     function refreshExerciseOptions(preferredId) {
@@ -1336,7 +1373,7 @@
         media: [
           { kind: "image", title: "Home workout form", src: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Meal prep layout", src: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short mobility warm-up", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4" }
+          { kind: "video", title: "Short mobility warm-up", src: coachDemoMp4At(0) }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Warm-up 10 min, home strength 30-40 min, cardio 15 min, cool-down 10 min." },
@@ -1355,7 +1392,7 @@
         media: [
           { kind: "image", title: "Gym strength day", src: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Cardio conditioning", src: "https://images.unsplash.com/photo-1549476464-37392f717541?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short cardio finisher", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" }
+          { kind: "video", title: "Short cardio finisher", src: coachDemoMp4At(1) }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Warm-up 8-12 min, gym lifts with sets/reps/rest, conditioning finisher, stretch." },
@@ -1374,7 +1411,7 @@
         media: [
           { kind: "image", title: "Elite lifting block", src: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Recovery and stretch", src: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short stretch cooldown", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" }
+          { kind: "video", title: "Short stretch cooldown", src: coachDemoMp4At(2) }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Dynamic warm-up, periodized lift targets, cardio dosage, and deep cool-down protocol." },
@@ -1392,7 +1429,7 @@
       media: [
         { kind: "image", title: "Starter movement guide", src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80" },
         { kind: "image", title: "Cardio basics", src: "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=1200&q=80" },
-        { kind: "video", title: "Short warm-up routine", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" }
+        { kind: "video", title: "Short warm-up routine", src: coachDemoMp4At(3) }
       ],
       blocks: [
         { title: "Today in 3 blocks", body: "Warm-up 10 min, focused workout 25-35 min, cardio/cool-down 15-20 min." },
@@ -1434,7 +1471,7 @@
               "<article style=\"margin:0.45rem 0;\">" +
               "<p class=\"note\" style=\"margin:0 0 0.3rem;\"><strong>" + String(item.title || "Coach clip") + "</strong></p>" +
               "<video controls playsinline webkit-playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\">" +
-              "<source src=\"" + String(item.src || "") + "\" type=\"video/mp4\"/>" +
+              coachVideoSourceTags(item.src) +
               "</video>" +
               "</article>"
             );
@@ -1477,6 +1514,17 @@
       "<p class=\"note\" style=\"margin:0;\">" + trend + "</p>" +
       "</article>" +
       cards.join("");
+    window.requestAnimationFrame(function () {
+      Array.prototype.slice.call(wrap.querySelectorAll("video")).forEach(function (vid) {
+        if (vid && typeof vid.load === "function") {
+          try {
+            vid.load();
+          } catch (e) {
+            /* ignore */
+          }
+        }
+      });
+    });
   }
 
   function mergeUrlParamsIntoPaidPlans(params, paidPlans) {
