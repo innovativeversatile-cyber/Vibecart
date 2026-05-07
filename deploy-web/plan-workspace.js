@@ -696,9 +696,9 @@
 
   /* Per-exercise video audit (Mixkit slug vs clip): bodyweight-squat·21273 man squats at home; goblet-squat·752 squats holding ball;
      reverse-lunge·52101 lunges gym; romanian-deadlift·47890 barbell deadlift gym; push-up·731 push-ups; bench-press·100543 bench press;
-     shoulder-press·100533 shoulder press machine (label matches); seated-row·100550 rowing machine erg (label matches); lat-pulldown·100549 lat pulldown;
-     glute-bridge·4592 stability ball on floor; plank·36813 plank; dead-bug·13861 lying yoga (closest free supine control clip—no dedicated dead-bug stock);
-     mountain-climber·726 mountain climber; jumping-jacks·23197 jumping calisthenics (not strict jacks—closest match); incline-walk·100525 treadmill;
+     shoulder-press·100533 shoulder press machine (label matches); seated-row·100550 rowing machine erg; seated-cable-row·47888 plate/cable row machine (horizontal pull);
+     lat-pulldown·100549 lat pulldown; glute-bridge·4592 stability ball on floor; plank·36813 plank; dead-bug·13861 lying floor yoga (best free supine-control match);
+     mountain-climber·726 mountain climber; jumping-jacks·32802 track jumping (free license, closer to jacks than step-class clips); incline-walk·100525 treadmill;
      dynamic-stretch-flow·48563 leg stretching. */
   var EXERCISE_LIBRARY = [
     {
@@ -782,6 +782,16 @@
       mistakes: ["Pulling early with arms before the leg drive.", "Rounding hard over the stroke.", "Rushing the recovery."]
     },
     {
+      id: "seated-cable-row",
+      label: "Seated cable row (machine)",
+      category: "upper-body",
+      video: "https://assets.mixkit.co/videos/47888/47888-720.mp4",
+      setup: "Chest against the pad (if your station has one), feet planted, neutral spine, shoulders down.",
+      execution: ["Reach for the handle with straight arms, then brace your core.", "Pull elbows back toward your hips; squeeze shoulder blades at the end range.", "Return the handle with control until arms are long again."],
+      repForm: ["Lead with elbows; keep wrists neutral.", "Avoid excessive torso swing—let the back do the work.", "Full stretch at the start of each rep."],
+      mistakes: ["Shrugging ears toward shoulders.", "Cutting range short.", "Using momentum from the low back."]
+    },
+    {
       id: "lat-pulldown",
       label: "Lat Pulldown",
       category: "upper-body",
@@ -835,7 +845,7 @@
       id: "jumping-jacks",
       label: "Jumping Jacks",
       category: "cardio",
-      video: "https://assets.mixkit.co/videos/23197/23197-720.mp4",
+      video: "https://assets.mixkit.co/videos/32802/32802-720.mp4",
       setup: "Stand tall, arms by sides, core lightly engaged.",
       execution: ["Jump feet out as arms rise overhead.", "Jump feet in as arms return down.", "Keep steady breathing rhythm."],
       repForm: ["Land softly on balls of feet.", "Maintain upright posture.", "Use full arm range."],
@@ -995,13 +1005,23 @@
     "push-up": ["push-up", "push up", "pushup", "incline push-up", "pike push-up"],
     "bench-press": ["bench press", "incline db press", "incline press"],
     "shoulder-press": ["machine shoulder press", "shoulder press machine", "shoulder press", "overhead press"],
-    "seated-row": ["rowing machine", "indoor row", "erg", "rower", "500m row", "row machine"],
+    "seated-row": ["rowing machine", "indoor row", "erg", "rower", "500m row", "row machine", "concept2"],
+    "seated-cable-row": [
+      "seated cable row",
+      "cable row",
+      "low row",
+      "mid row",
+      "machine row",
+      "seated row",
+      "chest supported row",
+      "iso row"
+    ],
     "lat-pulldown": ["lat pulldown", "lat pull-down", "pulldown", "pull-down"],
     "glute-bridge": ["glute bridge", "hip bridge"],
     "plank": ["plank", "side plank"],
-    "dead-bug": ["dead bug"],
+    "dead-bug": ["dead bug", "deadbug", "alternating limb", "opposite arm and leg"],
     "mountain-climber": ["mountain climber", "mountain climbers"],
-    "jumping-jacks": ["jumping jack", "jumping jacks", "jumping exercise", "star jump"],
+    "jumping-jacks": ["jumping jack", "jumping jacks", "jumping exercise", "star jump", "jump workout", "track jumps"],
     "incline-walk": ["incline walk", "treadmill walk", "treadmill jog", "treadmill", "zone 2 cardio", "zone 2"],
     "dynamic-stretch-flow": ["dynamic stretch", "mobility flow", "stretch", "cool-down", "cooldown"]
   };
