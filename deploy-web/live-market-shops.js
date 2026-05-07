@@ -411,7 +411,7 @@
     if (gateNote) {
       gateNote.hidden = !pending;
       gateNote.textContent = pending
-        ? "External retailer tiles are locked until you tick the disclaimer and (optionally) read the policy link. Curated external listings above stay open."
+        ? "External retailer tiles below stay locked until you tick the disclaimer (and read the policy if you need the full legal text). Recommended partner picks above still open in a new tab."
         : "";
     }
   }

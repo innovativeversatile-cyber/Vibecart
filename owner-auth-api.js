@@ -90,6 +90,11 @@ const {
   getOwnerRiskDashboard
 } = require("./risk-intelligence-service");
 const {
+  SQL_JOIN_REAL_MARKETPLACE_OWNER,
+  SQL_AND_REAL_MARKETPLACE_ONLY,
+  isDemoOrSeedMarketplaceListing
+} = require("./public-catalog-demo-filter");
+const {
   acceptBarterTerms,
   upsertBarterProfile,
   createBarterOffer,
@@ -963,27 +968,57 @@ async function handlePublicSellerListings(req, res) {
      LIMIT 300`,
     [Number(session.user_id)]
   );
+  const productIds = rows.map((row) => Number(row.id || 0)).filter((id) => id > 0);
+  const imagesByProduct = new Map();
+  if (productIds.length) {
+    const ph = productIds.map(() => "?").join(",");
+    try {
+      const [imgRows] = await pool.execute(
+        `SELECT product_id, image_url FROM product_images WHERE product_id IN (${ph}) ORDER BY product_id ASC, sort_order ASC, id ASC`,
+        productIds
+      );
+      (imgRows || []).forEach((r) => {
+        const pid = Number(r.product_id);
+        const u = String(r.image_url || "").trim();
+        if (!pid || !u) {
+          return;
+        }
+        if (!imagesByProduct.has(pid)) {
+          imagesByProduct.set(pid, []);
+        }
+        imagesByProduct.get(pid).push(u);
+      });
+    } catch {
+      /* ignore image load failures */
+    }
+  }
   return sendJson(res, 200, {
     ok: true,
     count: rows.length,
-    listings: rows.map((row) => ({
-      id: Number(row.id),
-      title: String(row.title || ""),
-      description: String(row.description || ""),
-      categoryName: String(row.category_name || ""),
-      basePrice: Number(row.base_price || 0),
-      currency: String(row.currency || "EUR"),
-      stock: Number(row.stock || 0),
-      status: String(row.status || "active"),
-      originCountry: String(row.origin_country || ""),
-      createdAt: row.created_at,
-      stats: {
-        views: Number(row.view_count || 0),
-        clicks: Number(row.click_count || 0),
-        soldQty: Number(row.sold_count || 0),
-        orders: Number(row.order_count || 0)
-      }
-    }))
+    listings: rows.map((row) => {
+      const id = Number(row.id);
+      const imgs = imagesByProduct.get(id) || [];
+      return {
+        id,
+        title: String(row.title || ""),
+        description: String(row.description || ""),
+        categoryName: String(row.category_name || ""),
+        basePrice: Number(row.base_price || 0),
+        currency: String(row.currency || "EUR"),
+        stock: Number(row.stock || 0),
+        status: String(row.status || "active"),
+        originCountry: String(row.origin_country || ""),
+        createdAt: row.created_at,
+        imageUrl: imgs[0] || "",
+        imageUrls: imgs,
+        stats: {
+          views: Number(row.view_count || 0),
+          clicks: Number(row.click_count || 0),
+          soldQty: Number(row.sold_count || 0),
+          orders: Number(row.order_count || 0)
+        }
+      };
+    })
   });
 }
 
@@ -1049,11 +1084,36 @@ async function handlePublicSellerListingUpdate(req, res) {
       params.push(desc.length ? desc : null);
     }
   }
-  if (!updates.length) {
+  const wantsImageUpdate = Array.isArray(body.imageUrls);
+  if (!updates.length && !wantsImageUpdate) {
     return sendJson(res, 400, { ok: false, code: "NO_UPDATES" });
   }
-  params.push(productId);
-  await pool.execute(`UPDATE products SET ${updates.join(", ")} WHERE id = ? LIMIT 1`, params);
+  if (updates.length) {
+    params.push(productId);
+    await pool.execute(`UPDATE products SET ${updates.join(", ")} WHERE id = ? LIMIT 1`, params);
+  }
+  if (wantsImageUpdate) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await replaceProductImagesForSellerProduct(conn, Number(session.user_id), productId, body.imageUrls);
+      await conn.commit();
+    } catch (e) {
+      try {
+        await conn.rollback();
+      } catch {
+        /* ignore */
+      }
+      const code = e && e.code ? String(e.code) : "IMAGE_UPDATE_FAILED";
+      return sendJson(res, 400, {
+        ok: false,
+        code,
+        message: String((e && e.message) || "Could not attach product images.")
+      });
+    } finally {
+      conn.release();
+    }
+  }
   return sendJson(res, 200, { ok: true });
 }
 
@@ -2889,26 +2949,64 @@ async function handlePublicProductPublish(req, res) {
   }
 
   const category = await ensureCategoryIdByName(categoryName);
-  const [insertResult] = await pool.execute(
-    `INSERT INTO products (
+  const rawImageUrls = Array.isArray(body.imageUrls) ? body.imageUrls : [];
+  const conn = await pool.getConnection();
+  let insertId = 0;
+  try {
+    await conn.beginTransaction();
+    const [insertResult] = await conn.execute(
+      `INSERT INTO products (
       shop_id, category_id, title, description, base_price, currency, stock, origin_country, status
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-    [
-      Number(shop.id),
-      Number(category.categoryId),
-      title,
-      description || null,
-      Number(basePrice.toFixed(2)),
-      currency,
-      stock,
-      originCountry
-    ]
-  );
+      [
+        Number(shop.id),
+        Number(category.categoryId),
+        title,
+        description || null,
+        Number(basePrice.toFixed(2)),
+        currency,
+        stock,
+        originCountry
+      ]
+    );
+    insertId = Number(insertResult.insertId || 0);
+    if (insertId > 0 && rawImageUrls.length) {
+      await replaceProductImagesForSellerProduct(conn, Number(session.user_id), insertId, rawImageUrls);
+    }
+    await conn.commit();
+  } catch (e) {
+    try {
+      await conn.rollback();
+    } catch {
+      /* ignore */
+    }
+    const code = e && e.code ? String(e.code) : "PUBLISH_FAILED";
+    return sendJson(res, 400, {
+      ok: false,
+      code,
+      message: String((e && e.message) || "Publish failed while saving images.")
+    });
+  } finally {
+    conn.release();
+  }
+
+  let imageUrlsOut = [];
+  if (insertId > 0) {
+    try {
+      const [imgRows] = await pool.execute(
+        `SELECT image_url FROM product_images WHERE product_id = ? ORDER BY sort_order ASC, id ASC`,
+        [insertId]
+      );
+      imageUrlsOut = (imgRows || []).map((r) => String(r.image_url || "").trim()).filter(Boolean);
+    } catch {
+      imageUrlsOut = [];
+    }
+  }
 
   return sendJson(res, 200, {
     ok: true,
     product: {
-      id: Number(insertResult.insertId),
+      id: insertId,
       shopId: Number(shop.id),
       shopName: String(shop.name || ""),
       categoryId: Number(category.categoryId),
@@ -2919,7 +3017,9 @@ async function handlePublicProductPublish(req, res) {
       currency,
       stock,
       originCountry,
-      status: "active"
+      status: "active",
+      imageUrl: imageUrlsOut[0] || "",
+      imageUrls: imageUrlsOut
     }
   });
 }
@@ -3669,6 +3769,175 @@ async function handlePublicBakeryMediaGet(req, res, pathname) {
     return;
   }
   const filePath = path.join(BAKERY_MEDIA_ROOT, key);
+  let data;
+  try {
+    data = await fs.readFile(filePath);
+  } catch {
+    res.statusCode = 404;
+    res.end("Missing file");
+    return;
+  }
+  const ct = String(row.content_type || "application/octet-stream");
+  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+  res.writeHead(200, {
+    "Content-Type": ct,
+    "Content-Length": data.length,
+    "Cache-Control": "public, max-age=86400",
+    "X-Content-Type-Options": "nosniff"
+  });
+  res.end(data);
+}
+
+const PRODUCT_MEDIA_ROOT = path.join(process.cwd(), "uploads", "product-media");
+const PRODUCT_MEDIA_MAX_BYTES = 12_582_912; /* 12 MiB — listing photos only */
+
+let productMediaTableEnsured = false;
+async function ensureProductMediaTable() {
+  if (productMediaTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS product_media (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      storage_key CHAR(32) NOT NULL,
+      owner_user_id BIGINT UNSIGNED NOT NULL,
+      content_type VARCHAR(120) NOT NULL,
+      byte_length INT UNSIGNED NOT NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_product_media_key (storage_key),
+      INDEX idx_product_media_owner (owner_user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  await fs.mkdir(PRODUCT_MEDIA_ROOT, { recursive: true });
+  productMediaTableEnsured = true;
+}
+
+async function verifyProductImageUrlListForSeller(conn, userId, rawUrls) {
+  if (!Array.isArray(rawUrls)) {
+    return [];
+  }
+  const list = rawUrls.slice(0, 8);
+  const out = [];
+  const seenKeys = new Set();
+  for (const raw of list) {
+    const s = String(raw || "").trim().slice(0, 500);
+    if (!s) {
+      continue;
+    }
+    const m = /^\/api\/public\/product-media\/([a-f0-9]{32})$/i.exec(s);
+    if (!m) {
+      const err = new Error("INVALID_IMAGE_REF");
+      err.code = "INVALID_IMAGE_REF";
+      throw err;
+    }
+    const key = m[1].toLowerCase();
+    if (seenKeys.has(key)) {
+      continue;
+    }
+    seenKeys.add(key);
+    const [r] = await conn.execute(
+      `SELECT 1 FROM product_media WHERE storage_key = ? AND owner_user_id = ? LIMIT 1`,
+      [key, userId]
+    );
+    if (!r.length) {
+      const err = new Error("IMAGE_NOT_OWNED");
+      err.code = "IMAGE_NOT_OWNED";
+      throw err;
+    }
+    out.push(`/api/public/product-media/${key}`);
+  }
+  return out;
+}
+
+async function replaceProductImagesForSellerProduct(conn, userId, productId, rawUrls) {
+  const verified = await verifyProductImageUrlListForSeller(conn, userId, rawUrls);
+  await conn.execute(`DELETE FROM product_images WHERE product_id = ?`, [productId]);
+  let sortOrder = 0;
+  for (const url of verified) {
+    await conn.execute(
+      `INSERT INTO product_images (product_id, image_url, sort_order) VALUES (?, ?, ?)`,
+      [productId, url, sortOrder]
+    );
+    sortOrder += 1;
+  }
+}
+
+async function handlePublicSellerProductMediaUpload(req, res) {
+  const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
+  if (!session) {
+    return;
+  }
+  await ensureProductMediaTable();
+  let buf;
+  try {
+    buf = await readUploadBody(req, PRODUCT_MEDIA_MAX_BYTES);
+  } catch (e) {
+    const code = String(e && e.message) === "FILE_TOO_LARGE" ? "FILE_TOO_LARGE" : "UPLOAD_READ_FAILED";
+    return sendJson(res, 413, { ok: false, code, message: "Image is too large (max 12 MB)." });
+  }
+  if (!buf || buf.length < 16) {
+    return sendJson(res, 400, { ok: false, code: "EMPTY_FILE" });
+  }
+  const headerMime = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+  const sniff = detectBakeryMediaMime(buf);
+  const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const mime = sniff && allowed.has(sniff) ? sniff : allowed.has(headerMime) ? headerMime : "";
+  if (!mime) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "UNSUPPORTED_MEDIA",
+      message: "Use JPEG, PNG, or WebP for product photos."
+    });
+  }
+  const storageKey = crypto.randomBytes(16).toString("hex");
+  const filePath = path.join(PRODUCT_MEDIA_ROOT, storageKey);
+  try {
+    await pool.execute(
+      `INSERT INTO product_media (storage_key, owner_user_id, content_type, byte_length) VALUES (?, ?, ?, ?)`,
+      [storageKey, Number(session.user_id), mime, buf.length]
+    );
+  } catch (e) {
+    return sendJson(res, 500, { ok: false, code: "MEDIA_DB_FAILED", message: String(e.message || e).slice(0, 200) });
+  }
+  try {
+    await fs.writeFile(filePath, buf, { mode: 0o640 });
+  } catch (e) {
+    try {
+      await pool.execute(`DELETE FROM product_media WHERE storage_key = ? LIMIT 1`, [storageKey]);
+    } catch {
+      /* ignore */
+    }
+    return sendJson(res, 500, { ok: false, code: "MEDIA_WRITE_FAILED", message: String(e.message || e).slice(0, 200) });
+  }
+  const publicPath = `/api/public/product-media/${storageKey}`;
+  return sendJson(res, 200, {
+    ok: true,
+    url: publicPath,
+    contentType: mime,
+    bytes: buf.length
+  });
+}
+
+async function handlePublicProductMediaGet(req, res, pathname) {
+  applyCorsHeaders(req, res);
+  await ensureProductMediaTable();
+  const key = String(pathname.split("/").pop() || "").trim().toLowerCase();
+  if (!/^[a-f0-9]{32}$/.test(key)) {
+    res.statusCode = 400;
+    res.end("Bad key");
+    return;
+  }
+  const [rows] = await pool.execute(
+    `SELECT content_type, byte_length FROM product_media WHERE storage_key = ? LIMIT 1`,
+    [key]
+  );
+  const row = rows[0];
+  if (!row) {
+    res.statusCode = 404;
+    res.end("Not found");
+    return;
+  }
+  const filePath = path.join(PRODUCT_MEDIA_ROOT, key);
   let data;
   try {
     data = await fs.readFile(filePath);
@@ -6969,8 +7238,12 @@ async function handlePublicOrderCreate(req, res) {
   try {
     await conn.beginTransaction();
     const [products] = await conn.execute(
-      `SELECT p.id, p.shop_id, p.base_price, p.currency, p.stock, p.origin_country, p.title
+      `SELECT p.id, p.shop_id, p.base_price, p.currency, p.stock, p.origin_country, p.title,
+              LOWER(COALESCE(u.email, '')) AS vc_owner_email_lc,
+              COALESCE(s.slug, '') AS vc_shop_slug
        FROM products p
+       JOIN shops s ON s.id = p.shop_id
+       JOIN users u ON u.id = s.owner_user_id
        WHERE p.id = ?
          AND p.status = 'active'
        LIMIT 1`,
@@ -6978,6 +7251,10 @@ async function handlePublicOrderCreate(req, res) {
     );
     const product = products[0];
     if (!product) {
+      await conn.rollback();
+      return sendJson(res, 404, { ok: false, code: "PRODUCT_NOT_AVAILABLE" });
+    }
+    if (isDemoOrSeedMarketplaceListing(product.vc_owner_email_lc, product.vc_shop_slug)) {
       await conn.rollback();
       return sendJson(res, 404, { ok: false, code: "PRODUCT_NOT_AVAILABLE" });
     }
@@ -7586,9 +7863,11 @@ async function handlePublicProductsLive(req, res) {
      (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC, pi.id ASC LIMIT 1) AS image_url
      FROM products p
      JOIN shops s ON s.id = p.shop_id
+     ${SQL_JOIN_REAL_MARKETPLACE_OWNER}
      JOIN categories c ON c.id = p.category_id
      WHERE p.status = 'active'
        AND p.stock > 0
+       ${SQL_AND_REAL_MARKETPLACE_ONLY}
        ${whereClause}
      ORDER BY p.id DESC
      LIMIT ${limit}`;
@@ -7641,10 +7920,12 @@ async function handlePublicProductById(req, res) {
        (SELECT pi.image_url FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.sort_order ASC, pi.id ASC LIMIT 1) AS image_url
        FROM products p
        JOIN shops s ON s.id = p.shop_id
+       ${SQL_JOIN_REAL_MARKETPLACE_OWNER}
        JOIN categories c ON c.id = p.category_id
        WHERE p.id = ?
          AND p.status = 'active'
          AND p.stock > 0
+         ${SQL_AND_REAL_MARKETPLACE_ONLY}
        LIMIT 1`,
       [productId]
     );
@@ -8668,8 +8949,14 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && pathname === "/api/public/bakery/services/media/upload") {
       return await handlePublicBakeryServiceMediaUpload(req, res);
     }
+    if (req.method === "POST" && pathname === "/api/public/seller/products/media/upload") {
+      return await handlePublicSellerProductMediaUpload(req, res);
+    }
     if (req.method === "GET" && pathname.startsWith("/api/public/bakery-media/")) {
       return await handlePublicBakeryMediaGet(req, res, pathname);
+    }
+    if (req.method === "GET" && pathname.startsWith("/api/public/product-media/")) {
+      return await handlePublicProductMediaGet(req, res, pathname);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/services/upsert") {
       return await handlePublicBakeryServiceUpsert(req, res);

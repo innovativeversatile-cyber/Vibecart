@@ -13,7 +13,7 @@
   <meta name="twitter:title" content="Hot Picks · VibeCart" />
   <meta name="twitter:description" content="Live hot picks with direct external checkout on source websites." />
   <link rel="canonical" href="https://vibe-cart.com/hot-picks.html" />
-  <link rel="stylesheet" href="./styles.css?v=20260507buyfix1" />
+  <link rel="stylesheet" href="./styles.css?v=20260508affdis1" />
 </head>
 <body class="shops-lane-page">
   <header class="shops-lane-topbar">
@@ -25,6 +25,17 @@
     <p class="note shops-lane-intro" data-page-i18n="hot.intro">
       Live marketplace listings use VibeCart checkout when no outbound storefront URL is set; partner offers route through tracked links when available.
     </p>
+    <section
+      class="section alt vc-affiliate-rec-section"
+      id="hpAffiliateRecRoot"
+      hidden
+      aria-labelledby="hpAffiliateRecTitle"
+      data-vc-affiliate-auto
+    >
+      <h2 class="shops-lane-title vc-affiliate-rec__title" id="hpAffiliateRecTitle" style="font-size: 1.12rem">Recommended partner picks</h2>
+      <div class="note vc-affiliate-rec-intro vc-affiliate-rec__intro" id="hpAffiliateRecIntro"></div>
+      <div class="vc-affiliate-rec-grid vc-affiliate-rec__grid" id="hpAffiliateRecGrid" role="list"></div>
+    </section>
     <section class="vc-hot-ai-trend" id="hotPicksAiTrend" aria-labelledby="hotPicksAiTrendTitle">
       <div class="vc-hot-ai-trend__head">
         <p class="badge" data-page-i18n="hot.ai.badge">Live trend engine</p>
@@ -47,7 +58,8 @@
   </main>
   <script src="./page-i18n.js?v=20260430edge4"></script>
   <script src="./vibecart-ai-client.js?v=20260501hotai1"></script>
-  <script src="./hot-picks.js?v=20260507buyfix1" defer></script>
+  <script src="./hot-picks.js?v=20260508affdis1" defer></script>
+  <script src="./affiliate-recommendations-mount.js?v=20260508affdis1" defer></script>
   <script src="./site-chrome.js?v=20260510inbox1" defer></script>
 </body>
 </html>

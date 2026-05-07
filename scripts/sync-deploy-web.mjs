@@ -76,7 +76,8 @@ function copyRootHtmlAndStatics() {
     "robots.txt",
     "sitemap.xml",
     "manifest.json",
-    "service-worker.js"
+    "service-worker.js",
+    "affiliate-recommendations.json"
   ]) {
     const src = path.join(ROOT, name);
     if (exists(src)) {
@@ -98,7 +99,8 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "best-bargains.js",
   "electronics-deals.js",
   "books-study-deals.js",
-  "marketplace-buy.js"
+  "marketplace-buy.js",
+  "affiliate-recommendations-mount.js"
 ]);
 
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */

@@ -1,5 +1,10 @@
 "use strict";
 
+const {
+  SQL_JOIN_REAL_MARKETPLACE_OWNER,
+  SQL_AND_REAL_MARKETPLACE_ONLY
+} = require("./public-catalog-demo-filter");
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -167,7 +172,9 @@ async function getDiscoveryRecommendations(pool, input) {
      FROM products p
      JOIN categories c ON c.id = p.category_id
      JOIN shops s ON s.id = p.shop_id
+     ${SQL_JOIN_REAL_MARKETPLACE_OWNER}
      ${whereClause}
+     ${SQL_AND_REAL_MARKETPLACE_ONLY}
      ORDER BY p.created_at DESC
      LIMIT 20`,
     params

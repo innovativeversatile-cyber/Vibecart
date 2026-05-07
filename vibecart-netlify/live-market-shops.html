@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Live market shops · VibeCart</title>
-  <link rel="stylesheet" href="./styles.css?v=20260507buyfix1" />
+  <link rel="stylesheet" href="./styles.css?v=20260508affdis1" />
 </head>
 <body class="shops-lane-page live-market-shops-page">
   <script src="./session-device.js?v=20260507shell1"></script>
@@ -66,6 +66,17 @@
       <p class="note" id="dealContextRailLabel" style="margin-bottom: 0.45rem"></p>
       <div class="vc-fashion-trends-rail vc-live-deal-promo-rail" id="dealContextRail"></div>
     </div>
+    <section
+      class="section alt vc-affiliate-rec-section"
+      id="vcAffiliateRecRoot"
+      hidden
+      aria-labelledby="vcAffiliateRecTitle"
+      data-vc-affiliate-auto
+    >
+      <h2 class="shops-lane-title vc-affiliate-rec__title" id="vcAffiliateRecTitle" style="font-size: 1.12rem">Recommended partner picks</h2>
+      <div class="note vc-affiliate-rec-intro vc-affiliate-rec__intro" id="vcAffiliateRecIntro"></div>
+      <div class="vc-affiliate-rec-grid vc-affiliate-rec__grid" id="vcAffiliateRecGrid" role="list"></div>
+    </section>
     <section class="section alt live-market-vc-listings" style="margin-top: 0.55rem; padding: 0.75rem 0.85rem" aria-labelledby="liveMarketVcTitle">
       <h2 class="shops-lane-title" id="liveMarketVcTitle" style="font-size: 1.12rem">VibeCart seller listings</h2>
       <p class="note" id="liveMarketVcLead">Tap a card for checkout — real photos load when sellers uploaded artwork.</p>
@@ -86,7 +97,8 @@
   </main>
   <script src="./page-i18n.js?v=20260502layoutlift1"></script>
   <script src="./vibecart-ai-client.js?v=20260430genai1"></script>
-  <script src="./live-market-shops.js?v=20260507buyfix1"></script>
+  <script src="./live-market-shops.js?v=20260508affdis1"></script>
+  <script src="./affiliate-recommendations-mount.js?v=20260508affdis1" defer></script>
   <script src="./shop-favicons.js?v=20260507favi1"></script>
   <script src="./site-chrome.js?v=20260506wowfix1" defer></script>
 </body>

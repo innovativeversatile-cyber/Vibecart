@@ -1,5 +1,10 @@
 "use strict";
 
+const {
+  SQL_JOIN_REAL_MARKETPLACE_OWNER,
+  SQL_AND_REAL_MARKETPLACE_ONLY
+} = require("./public-catalog-demo-filter");
+
 const generativeAi = (() => {
   try {
     return require("./generative-ai-service");
@@ -126,7 +131,10 @@ async function runCulturalArbitrageScout(pool, input) {
        c.name AS category_name
      FROM products p
      JOIN categories c ON c.id = p.category_id
+     JOIN shops s ON s.id = p.shop_id
+     ${SQL_JOIN_REAL_MARKETPLACE_OWNER}
      WHERE p.status = 'active'
+     ${SQL_AND_REAL_MARKETPLACE_ONLY}
      ORDER BY p.created_at DESC
      LIMIT 100`
   );

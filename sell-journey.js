@@ -129,6 +129,27 @@
     }
   }
 
+  function uploadProductMediaFile(file, token) {
+    var headers = { "Content-Type": (file && file.type) || "application/octet-stream" };
+    headers =
+      window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
+        ? window.VibeCartSessionDevice.merge(token, headers)
+        : Object.assign({}, headers, { Authorization: "Bearer " + token });
+    return fetch("/api/public/seller/products/media/upload", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: headers,
+      body: file
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok || j.ok === false) {
+          throw new Error(String((j && (j.message || j.code)) || "HTTP_" + r.status));
+        }
+        return j;
+      });
+    });
+  }
+
   function buildPublishBody() {
     var title = String((document.getElementById("vcSellTitle") || {}).value || "").trim();
     var descriptionBase = String((document.getElementById("vcSellDescription") || {}).value || "").trim();
@@ -336,12 +357,31 @@
       } else {
         headers.Authorization = "Bearer " + token;
       }
-      fetch("/api/public/products/publish", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: headers,
-        body: JSON.stringify(body)
-      })
+      var photosEl = document.getElementById("vcSellPhotos");
+      var files = photosEl && photosEl.files ? photosEl.files : null;
+      var uploadTasks = [];
+      if (files && files.length) {
+        var maxPhotos = 8;
+        for (var fi = 0; fi < Math.min(files.length, maxPhotos); fi++) {
+          uploadTasks.push(uploadProductMediaFile(files[fi], token));
+        }
+      }
+      Promise.all(uploadTasks)
+        .then(function (uploadResults) {
+          var imageUrls = (uploadResults || []).map(function (u) {
+            return String((u && u.url) || "").trim();
+          }).filter(Boolean);
+          var publishBody = Object.assign({}, body);
+          if (imageUrls.length) {
+            publishBody.imageUrls = imageUrls;
+          }
+          return fetch("/api/public/products/publish", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: headers,
+            body: JSON.stringify(publishBody)
+          });
+        })
         .then(function (res) {
           return res.text().then(function (text) {
             var json = {};

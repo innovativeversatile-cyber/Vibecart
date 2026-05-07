@@ -3662,6 +3662,127 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   color: rgba(200, 192, 230, 0.92) !important;
 }
 
+/* Partner affiliate recommendations (live marketplace + hot picks) */
+.vc-affiliate-rec-section {
+  margin-top: 0.55rem;
+  padding: 0.75rem 0.85rem 0.85rem;
+  border-radius: 16px;
+  border: 1px solid rgba(232, 163, 23, 0.22);
+  background: linear-gradient(165deg, rgba(22, 18, 48, 0.96) 0%, rgba(12, 10, 26, 0.92) 100%);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+
+.vc-affiliate-rec-section .vc-affiliate-rec-intro {
+  margin: 0.35rem 0 0.65rem;
+  max-width: 44rem;
+  line-height: 1.45;
+}
+
+.vc-affiliate-rec-section .vc-affiliate-rec-intro > p {
+  margin: 0.35rem 0 0;
+}
+
+.vc-affiliate-rec-section .vc-affiliate-rec-intro > p:first-child {
+  margin-top: 0;
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-rec-policy-link {
+  color: rgba(255, 214, 150, 0.95);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-rec-policy-link:hover {
+  color: #fff5e0;
+}
+
+.vc-affiliate-rec-section .vc-affiliate-rec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+@media (min-width: 720px) {
+  .vc-affiliate-rec-section .vc-affiliate-rec-grid {
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  }
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  min-height: 4.75rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 14px;
+  text-decoration: none;
+  color: rgba(245, 242, 255, 0.96);
+  background: rgba(8, 6, 20, 0.55);
+  border: 1px solid rgba(140, 130, 190, 0.28);
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.12s ease;
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-card:hover {
+  border-color: rgba(232, 163, 23, 0.45);
+  background: rgba(26, 20, 52, 0.75);
+  transform: translateY(-1px);
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-card:focus-visible {
+  outline: 2px solid rgba(232, 163, 23, 0.75);
+  outline-offset: 2px;
+}
+
+.vc-affiliate-rec-section .vc-affiliate-card__label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
+.vc-affiliate-rec-section .vc-affiliate-card__desc {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: rgba(200, 192, 230, 0.9);
+  margin-top: auto;
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-card--banner {
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1rem;
+  grid-column: span 1;
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 40px;
+  object-fit: contain;
+}
+
+.vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-caption {
+  font-size: 0.68rem;
+  color: rgba(200, 192, 230, 0.85);
+  margin-top: 0.4rem;
+  text-align: center;
+}
+
+@media (min-width: 560px) {
+  .vc-affiliate-rec-section a.vc-affiliate-card--banner {
+    grid-column: span 2;
+  }
+}
+
 .vc-marketplace-buy-card {
   max-width: 36rem;
   margin: 0 auto;

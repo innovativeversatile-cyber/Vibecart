@@ -1,0 +1,104 @@
+{
+  "title": "Recommended partner picks",
+  "advertiser": "Allegro.sk",
+  "contextLine": "Partner links below open in a new tab so this VibeCart page stays open.",
+  "disclosure": {
+    "short": "This site contains affiliate links, which means I may earn a commission if you click and make a purchase, at no extra cost to you.",
+    "policyPreamble": "Our site may contain links to affiliate programs. These links help support my work, and you can read our",
+    "policyLinkLabel": "full disclosure here",
+    "policyHref": "./policy.html#affiliate-disclosure"
+  },
+  "items": [
+    {
+      "linkId": "16981057",
+      "key": "evergreen",
+      "label": "Allegro.sk — shop homepage",
+      "description": "Evergreen link to the advertiser site (deep-link capable).",
+      "href": "https://www.tkqlhce.com/click-101733745-16981057",
+      "kind": "text"
+    },
+    {
+      "linkId": "15878658",
+      "key": "all-categories",
+      "label": "All categories",
+      "description": "Všetky kategórie — browse every department.",
+      "href": "https://www.anrdoezrs.net/click-101733745-15878658",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893701",
+      "key": "electronics",
+      "label": "Electronics",
+      "description": "Elektronika — devices, accessories, and tech.",
+      "href": "https://www.kqzyfj.com/click-101733745-15893701",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893703",
+      "key": "fashion",
+      "label": "Fashion",
+      "description": "Móda — clothing and style.",
+      "href": "https://www.jdoqocy.com/click-101733745-15893703",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893705",
+      "key": "supermarket",
+      "label": "Supermarket",
+      "description": "Groceries and everyday essentials.",
+      "href": "https://www.dpbolvw.net/click-101733745-15893705",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893711",
+      "key": "beauty",
+      "label": "Beauty (Krása)",
+      "description": "Beauty and personal care.",
+      "href": "https://www.dpbolvw.net/click-101733745-15893711",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893699",
+      "key": "home-garden",
+      "label": "Home & garden",
+      "description": "Dom a záhrada — home and outdoor.",
+      "href": "https://www.tkqlhce.com/click-101733745-15893699",
+      "kind": "text"
+    },
+    {
+      "linkId": "15888849",
+      "key": "auto",
+      "label": "Auto & moto",
+      "description": "Auto-moto — parts, accessories, and moto.",
+      "href": "https://www.kqzyfj.com/click-101733745-15888849",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893708",
+      "key": "sport-travel",
+      "label": "Sport & travel",
+      "description": "Šport a cestovanie.",
+      "href": "https://www.dpbolvw.net/click-101733745-15893708",
+      "kind": "text"
+    },
+    {
+      "linkId": "15888846",
+      "key": "collectibles-art",
+      "label": "Collectibles & art",
+      "description": "Zbierky a umenie.",
+      "href": "https://www.dpbolvw.net/click-101733745-15888846",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893693",
+      "key": "logo-banner",
+      "label": "Allegro.sk",
+      "description": "Official partner storefront (banner).",
+      "href": "https://www.anrdoezrs.net/click-101733745-15893693",
+      "kind": "banner",
+      "bannerImageUrl": "https://www.ftjcfx.com/image-101733745-15893693",
+      "bannerWidth": 150,
+      "bannerHeight": 40
+    }
+  ]
+}

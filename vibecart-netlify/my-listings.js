@@ -64,7 +64,52 @@
       .replace(/'/g, "&#39;");
   }
 
+  function absoluteListingImgUrl(u) {
+    var s = String(u || "").trim();
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s)) return s;
+    if (s.indexOf("//") === 0) {
+      try {
+        return String(window.location && window.location.protocol ? window.location.protocol : "https:") + s;
+      } catch (_) {
+        return "https:" + s.slice(2);
+      }
+    }
+    if (s.charAt(0) === "/") {
+      try {
+        var origin = String(window.location && window.location.origin ? window.location.origin : "").replace(/\/$/, "");
+        if (origin) return origin + s;
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    return s;
+  }
+
+  function uploadListingPhoto(file, token) {
+    var headers = { "Content-Type": (file && file.type) || "application/octet-stream" };
+    headers =
+      window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
+        ? window.VibeCartSessionDevice.merge(token, headers)
+        : Object.assign({}, headers, { Authorization: "Bearer " + token });
+    return fetch("/api/public/seller/products/media/upload", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: headers,
+      body: file
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok || j.ok === false) {
+          throw new Error(String((j && (j.message || j.code)) || "HTTP_" + r.status));
+        }
+        return j;
+      });
+    });
+  }
+
   function cardForListing(item) {
+    var imgs = Array.isArray(item.imageUrls) ? item.imageUrls : [];
+    var primary = String(item.imageUrl || imgs[0] || "").trim();
     var st = String(item.status || "").toLowerCase();
     var statusBadge =
       st === "draft"
@@ -93,6 +138,14 @@
       escapeHtml(fmtMoney(item.basePrice, item.currency)) +
       "</strong></div>" +
       "</div>" +
+      (primary
+        ? '<div class="vc-listing-photo"><img src="' +
+          escapeHtml(absoluteListingImgUrl(primary)) +
+          '" alt="" loading="lazy" decoding="async" style="max-width:220px;width:100%;height:auto;border-radius:10px;margin:.35rem 0" referrerpolicy="no-referrer" /></div>'
+        : '<p class="note" style="margin:.25rem 0">No product photo yet — buyers see a placeholder until you add one.</p>') +
+      '<p class="note" style="margin:.25rem 0 0">Photos (JPEG/PNG/WebP, up to 8)</p>' +
+      '<input type="file" accept="image/jpeg,image/png,image/webp" multiple data-product-photos style="max-width:100%" />' +
+      '<p class="hero-actions" style="margin:.25rem 0 0"><button type="button" class="btn btn-secondary" data-action="uploadPhotos">Upload / replace photos</button></p>' +
       '<div class="vc-stats">' +
       '<span class="vc-stat-chip">Views: ' +
       Number((item.stats && item.stats.views) || 0) +
@@ -289,6 +342,47 @@
         })
         .catch(function (err) {
           setStatus("Remove failed: " + err.message);
+        });
+      return;
+    }
+    if (action === "uploadPhotos") {
+      var photoInput = card.querySelector("[data-product-photos]");
+      var auth = readAuth();
+      if (!auth.token) {
+        setStatus("Sign in to upload photos.");
+        return;
+      }
+      if (!photoInput || !photoInput.files || !photoInput.files.length) {
+        setStatus("Choose one or more images first.");
+        return;
+      }
+      setStatus("Uploading photos…");
+      var tasks = [];
+      var maxN = Math.min(photoInput.files.length, 8);
+      for (var pi = 0; pi < maxN; pi++) {
+        tasks.push(uploadListingPhoto(photoInput.files[pi], auth.token));
+      }
+      Promise.all(tasks)
+        .then(function (results) {
+          var urls = (results || []).map(function (r) {
+            return String((r && r.url) || "").trim();
+          }).filter(Boolean);
+          if (!urls.length) {
+            throw new Error("No upload URLs returned.");
+          }
+          return api("/api/public/seller/listings/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productId: productId, imageUrls: urls })
+          });
+        })
+        .then(function () {
+          setStatus("Photos saved — they appear on the live marketplace.");
+          if (photoInput) photoInput.value = "";
+          return loadAll();
+        })
+        .catch(function (err) {
+          setStatus("Photo upload failed: " + String((err && err.message) || err));
         });
       return;
     }
