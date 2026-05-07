@@ -61,7 +61,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
-    <link rel="stylesheet" href="./styles.css?v=20260510laneflat1" />
+    <link rel="stylesheet" href="./styles.css?v=20260508force1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -96,7 +96,17 @@
       }
     </script>
   </head>
-  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260504-mbflow">
+  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260508-force">
+    <script>
+      (function () {
+        try {
+          if (!("serviceWorker" in navigator)) return;
+          navigator.serviceWorker.getRegistration().then(function (reg) {
+            if (reg) reg.update();
+          });
+        } catch (e) {}
+      })();
+    </script>
     <div id="vcVipRibbon" class="vc-vip-ribbon hidden" aria-hidden="true"><span>VIP lane</span></div>
     <header class="topbar" id="siteTopbar">
       <div class="topbar-primary">
@@ -245,8 +255,8 @@
             <button id="installAppBtn" class="btn btn-secondary hidden" type="button" data-i18n="hero.installApp">Install App</button>
           </div>
           <div class="hero-quick-lanes" aria-label="Quick bargain lanes">
-            <a class="hero-lane-pill" href="./live-market-shops.html?cat=All&view=global&deal=best">Best bargains</a>
-            <a class="hero-lane-pill" href="./live-market-shops.html?cat=Fashion&view=global&deal=fashion">Fashion deals</a>
+            <a class="hero-lane-pill" href="./best-bargains.html">Best bargains</a>
+            <a class="hero-lane-pill" href="./fashion-deals.html">Fashion deals</a>
             <a class="hero-lane-pill" href="./live-market-shops.html?cat=Electronics&view=global&deal=electronics">Electronics offers</a>
             <a class="hero-lane-pill" href="./live-market-shops.html?cat=Books&view=global&deal=books">Books and study</a>
             <a class="hero-lane-pill" href="./my-business.html">Hair, barber &amp; baking</a>
@@ -846,7 +856,7 @@
           <h2>Epic Mode</h2>
           <p class="note">Swipe cinematic scenes. Tap to enter.</p>
         </div>
-        <div id="vcEpicTrack" class="vc-epic-track" aria-live="polite">
+        <div id="vcEpicTrack" class="vc-epic-track" aria-live="polite" data-lenis-prevent-touch="true">
           <article class="vc-epic-card is-active" data-epic-index="0">
             <svg class="vc-scene-fill" viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
               <defs>
@@ -935,7 +945,7 @@
 
       <section class="section alt vc-horizontal-only vc-mobile-chapter-deck" aria-label="Quick jumps">
         <p class="vc-mobile-rail-eyebrow">Swipe sideways · jump</p>
-        <nav class="vc-mobile-rail vc-mobile-rail--chips" aria-label="Jump to a lane">
+        <nav class="vc-mobile-rail vc-mobile-rail--chips" aria-label="Jump to a lane" data-lenis-prevent-touch="true">
           <a class="vc-mobile-chip" href="./lane-welcome.html" data-i18n="ui.youAreHereChip">You are here</a>
           <a class="vc-mobile-chip" href="./audience-fit.html">Who it fits</a>
           <a class="vc-mobile-chip" href="./regional-shops.html">Folders</a>
@@ -953,7 +963,7 @@
       >
         <h2 id="vcMobileFacesTitle" class="vc-mobile-rail-title">People on the route</h2>
         <p class="note vc-mobile-rail-sub">Illustrative roles — not endorsements. Swipe the cards.</p>
-        <div class="vc-mobile-rail">
+        <div class="vc-mobile-rail" data-lenis-prevent-touch="true">
           <article class="vc-mobile-rail-card vc-mobile-rail-card--person">
             <img
               class="vc-mobile-rail-photo"
@@ -1082,7 +1092,7 @@
       <section class="section alt vc-horizontal-only vc-mobile-rail-section" aria-labelledby="vcMobileMomentumTitle">
         <h2 id="vcMobileMomentumTitle" class="vc-mobile-rail-title">Momentum strip</h2>
         <p class="note vc-mobile-rail-sub">Horizontal beats — tap a tile, then keep swiping.</p>
-        <div class="vc-mobile-rail">
+        <div class="vc-mobile-rail" data-lenis-prevent-touch="true">
           <a class="vc-mobile-rail-card vc-mobile-rail-card--visual" href="./rewards-hub.html">
             <img
               src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=480&h=320&q=75"
@@ -1232,7 +1242,7 @@
       <section class="section vc-horizontal-only vc-mobile-rail-section" aria-labelledby="vcMobileGalleryTitle">
         <h2 id="vcMobileGalleryTitle" class="vc-mobile-rail-title">Browse sideways</h2>
           <p class="note vc-mobile-rail-sub">Photo-forward lane — each card opens a focused live lane.</p>
-        <div class="vc-mobile-rail">
+        <div class="vc-mobile-rail" data-lenis-prevent-touch="true">
           <a class="vc-mobile-rail-card vc-mobile-rail-card--wide" href="./hot-picks.html?lane=Electronics">
             <img
               src="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=640&h=400&q=75"
@@ -1280,7 +1290,7 @@
       <section class="section alt vc-horizontal-only vc-mobile-rail-section" aria-labelledby="vcProjectorTitle">
         <h2 id="vcProjectorTitle" class="vc-mobile-rail-title">Projector lines</h2>
         <p class="note vc-mobile-rail-sub">Micro-beats — swipe like cue cards, not a transcript.</p>
-        <div class="vc-mobile-rail vc-mobile-rail--projector">
+        <div class="vc-mobile-rail vc-mobile-rail--projector" data-lenis-prevent-touch="true">
           <figure class="vc-projector-card">
             <blockquote>“Cut the endless scroll — trade in lanes.”</blockquote>
             <figcaption>VibeCart desk</figcaption>
@@ -1330,7 +1340,7 @@
             aria-hidden="true"
             focusable="false"
           ></svg>
-          <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes">
+          <div class="shop-folder-landing" role="navigation" aria-label="Regional shop lanes" data-lenis-prevent-touch="true">
             <a class="shop-folder-card shop-folder-card--europe" href="./shops-europe.html" data-vc-region="europe">
               <span class="shop-folder-card-eyebrow">Open folder</span>
               <h3 class="shop-folder-card-title"><img class="shop-favicon" src="https://logo.clearbit.com/zalando.com" alt="Europe shop logo" loading="lazy" decoding="async" />Europe</h3>
@@ -2389,8 +2399,8 @@
     <script src="./analytics-visit.js?v=20260501visit1" defer></script>
     <script src="./script-safe.js?v=20260506sellerboost1"></script>
     <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-    <script src="./homepage-min.js?v=20260506sellerdeep1" defer></script>
-    <script src="./mobile-app-shell.js?v=20260506wowfix1" defer></script>
+    <script src="./homepage-min.js?v=20260508force1" defer></script>
+    <script src="./mobile-app-shell.js?v=20260508force1" defer></script>
     <script src="./runtime-killswitch-20260429a.js?v=20260429hardpass1" defer></script>
   </body>
 </html>

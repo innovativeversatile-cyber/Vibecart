@@ -106,7 +106,7 @@
         if (!j || !j.ok || !j.publicKey) {
           return false;
         }
-        return navigator.serviceWorker.register("./service-worker.js?v=20260507swforce1").then(function (reg) {
+        return navigator.serviceWorker.register("./service-worker.js?v=20260508force1").then(function (reg) {
           return reg.pushManager.getSubscription().then(function (existing) {
             if (existing) {
               return existing;
@@ -686,7 +686,7 @@
       id: "bodyweight-squat",
       label: "Bodyweight Squat",
       category: "lower-body",
-      video: "https://cdn.pixabay.com/video/2020/11/11/54708-479595454_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
       setup: "Feet shoulder-width, toes slightly out, core braced, chest tall.",
       execution: ["Push hips back first.", "Bend knees and lower until thighs are near parallel.", "Drive through mid-foot to stand tall."],
       repForm: ["Knees track over toes.", "Spine stays neutral; avoid rounding.", "Control down for 2 seconds, stand with intent."],
@@ -696,7 +696,7 @@
       id: "goblet-squat",
       label: "Goblet Squat",
       category: "lower-body",
-      video: "https://cdn.pixabay.com/video/2021/09/03/87299-597760557_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
       setup: "Hold dumbbell close to chest, elbows down, stance shoulder-width.",
       execution: ["Inhale and brace.", "Sit down between hips keeping torso upright.", "Press floor away and exhale at top."],
       repForm: ["Keep dumbbell close to sternum.", "Full foot contact throughout rep.", "Hips and shoulders rise together."],
@@ -706,7 +706,7 @@
       id: "reverse-lunge",
       label: "Reverse Lunge",
       category: "lower-body",
-      video: "https://cdn.pixabay.com/video/2022/01/31/106302-683050663_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
       setup: "Stand tall, feet hip-width, core tight, eyes forward.",
       execution: ["Step one leg backward.", "Lower both knees under control.", "Drive front heel to return to standing."],
       repForm: ["Front knee stays stacked over mid-foot.", "Torso remains vertical.", "Move smoothly with balanced tempo."],
@@ -716,7 +716,7 @@
       id: "romanian-deadlift",
       label: "Romanian Deadlift",
       category: "posterior-chain",
-      video: "https://cdn.pixabay.com/video/2021/10/06/91189-624522764_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
       setup: "Soft knees, weight close to thighs, lats engaged, spine neutral.",
       execution: ["Hinge hips back while sliding weight down thighs.", "Pause when hamstrings are loaded.", "Drive hips forward to stand."],
       repForm: ["Bar/dumbbells stay close to body.", "Neck stays neutral.", "Hinge from hips, not lower back."],
@@ -726,7 +726,7 @@
       id: "push-up",
       label: "Push-up",
       category: "upper-body",
-      video: "https://cdn.pixabay.com/video/2020/10/11/52033-467543551_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
       setup: "Hands slightly wider than shoulders, body in straight line, glutes tight.",
       execution: ["Lower chest toward floor with elbows at 30-45 degrees.", "Touch depth consistently.", "Press back to full lockout."],
       repForm: ["Ribs down, no sagging hips.", "Neck neutral.", "Control descent and explosive press."],
@@ -736,7 +736,7 @@
       id: "bench-press",
       label: "Bench Press",
       category: "upper-body",
-      video: "https://cdn.pixabay.com/video/2023/05/08/162060-825302248_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
       setup: "Feet planted, shoulder blades retracted, grip even, wrists stacked.",
       execution: ["Unrack with straight wrists.", "Lower bar to mid-chest under control.", "Press bar up and slightly back."],
       repForm: ["Forearms vertical at bottom.", "Light arch in upper back only.", "Bar path consistent each rep."],
@@ -746,7 +746,7 @@
       id: "shoulder-press",
       label: "Dumbbell Shoulder Press",
       category: "upper-body",
-      video: "https://cdn.pixabay.com/video/2022/03/17/110914-689803180_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
       setup: "Core braced, glutes tight, dumbbells at shoulder level.",
       execution: ["Press weights overhead in line with ears.", "Control down to shoulder line.", "Repeat with stable torso."],
       repForm: ["Avoid excessive lower-back arch.", "Move through full range.", "Keep elbows under wrists."],
@@ -756,7 +756,7 @@
       id: "seated-row",
       label: "Seated Cable Row",
       category: "upper-body",
-      video: "https://cdn.pixabay.com/video/2022/07/03/122777-728016188_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
       setup: "Neutral spine, chest lifted, shoulders down, soft knees.",
       execution: ["Pull handle toward lower ribs.", "Squeeze shoulder blades together.", "Return with control to full stretch."],
       repForm: ["Lead with elbows, not wrists.", "Torso stays mostly still.", "Use full scapular motion."],
@@ -766,7 +766,7 @@
       id: "lat-pulldown",
       label: "Lat Pulldown",
       category: "upper-body",
-      video: "https://cdn.pixabay.com/video/2023/05/10/162334-825829694_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
       setup: "Set thigh pad secure, chest up, slight lean back.",
       execution: ["Pull bar to upper chest.", "Pause with elbows down and back.", "Control bar up to full stretch."],
       repForm: ["Keep shoulders away from ears.", "No momentum swinging.", "Full stretch at top each rep."],
@@ -776,7 +776,7 @@
       id: "glute-bridge",
       label: "Glute Bridge",
       category: "posterior-chain",
-      video: "https://cdn.pixabay.com/video/2023/03/28/156673-813010203_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
       setup: "Lie on back, knees bent, feet flat under knees, core braced.",
       execution: ["Drive through heels and lift hips.", "Squeeze glutes at top for one second.", "Lower with control."],
       repForm: ["Ribs down, pelvis neutral.", "No over-arching lower back.", "Keep knees tracking forward."],
@@ -786,7 +786,7 @@
       id: "plank",
       label: "Forearm Plank",
       category: "core",
-      video: "https://cdn.pixabay.com/video/2021/04/26/72357-541492789_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
       setup: "Elbows under shoulders, feet hip-width, straight line head-to-heel.",
       execution: ["Brace abs and glutes.", "Breathe steadily without losing position.", "Hold prescribed time."],
       repForm: ["Neutral pelvis and spine.", "Push floor away with forearms.", "Maintain tension on every second."],
@@ -796,7 +796,7 @@
       id: "dead-bug",
       label: "Dead Bug",
       category: "core",
-      video: "https://cdn.pixabay.com/video/2023/04/26/160252-821390951_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
       setup: "Lie on back, arms up, knees at 90 degrees, ribs down.",
       execution: ["Extend opposite arm and leg slowly.", "Keep lower back gently pressed down.", "Return and alternate sides."],
       repForm: ["Move slow and controlled.", "No rib flare.", "Exhale on extension for better brace."],
@@ -806,7 +806,7 @@
       id: "mountain-climber",
       label: "Mountain Climber",
       category: "cardio",
-      video: "https://cdn.pixabay.com/video/2021/11/07/96855-643782441_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
       setup: "High plank position, shoulders stacked over wrists.",
       execution: ["Drive one knee toward chest.", "Alternate legs rhythmically.", "Maintain strong plank line."],
       repForm: ["Keep hips level.", "Land feet softly.", "Keep shoulders stable over hands."],
@@ -816,7 +816,7 @@
       id: "jumping-jacks",
       label: "Jumping Jacks",
       category: "cardio",
-      video: "https://cdn.pixabay.com/video/2021/08/04/84157-583391326_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
       setup: "Stand tall, arms by sides, core lightly engaged.",
       execution: ["Jump feet out as arms rise overhead.", "Jump feet in as arms return down.", "Keep steady breathing rhythm."],
       repForm: ["Land softly on balls of feet.", "Maintain upright posture.", "Use full arm range."],
@@ -826,7 +826,7 @@
       id: "incline-walk",
       label: "Incline Treadmill Walk",
       category: "cardio",
-      video: "https://cdn.pixabay.com/video/2020/11/11/54695-479594385_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
       setup: "Set incline and speed to sustainable effort zone.",
       execution: ["Walk with long controlled steps.", "Maintain nasal or controlled mouth breathing.", "Sustain target duration."],
       repForm: ["Keep chest up and shoulders relaxed.", "Avoid leaning heavily on rails.", "Consistent pace over spikes."],
@@ -836,7 +836,7 @@
       id: "dynamic-stretch-flow",
       label: "Dynamic Stretch Flow",
       category: "mobility",
-      video: "https://cdn.pixabay.com/video/2022/01/21/104921-668844087_large.mp4",
+      video: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
       setup: "Start standing with relaxed breathing and controlled tempo.",
       execution: ["Move through hips, hamstrings, thoracic spine, and ankles.", "Use smooth transitions between stretches.", "Complete both sides evenly."],
       repForm: ["Never force painful range.", "Control breath with each movement.", "Keep motions deliberate and fluid."],
@@ -1082,9 +1082,58 @@
     var checkins = readCoachCheckins(params);
     var checkinSummary = summarizeRecentCheckins(checkins);
 
+    function escHtml(v) {
+      return String(v == null ? "" : v)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderRoutineCompact(routineText) {
+      var raw = String(routineText || "");
+      var lines = raw.split(/\r?\n/).map(function (line) { return String(line || "").trim(); }).filter(Boolean);
+      var weekly = lines.filter(function (line) { return /^Day\s+\d+/i.test(line); }).slice(0, 7);
+      var highlights = lines.filter(function (line) {
+        return (
+          /^- /.test(line) &&
+          (line.toLowerCase().indexOf("meal") >= 0 ||
+            line.toLowerCase().indexOf("check-in") >= 0 ||
+            line.toLowerCase().indexOf("warm-up") >= 0 ||
+            line.toLowerCase().indexOf("cardio") >= 0)
+        );
+      }).slice(0, 4);
+      var topSummary = weekly.length
+        ? "This week: " + weekly[0] + " · " + weekly[Math.min(2, weekly.length - 1)] + " · " + weekly[weekly.length - 1]
+        : "Your package plan is active. Open details for the full weekly breakdown.";
+      var weeklyHtml = weekly.length
+        ? "<ul class=\"buyer-adv-list\" style=\"margin:0.35rem 0 0;\">" +
+          weekly.map(function (line) { return "<li>" + escHtml(line) + "</li>"; }).join("") +
+          "</ul>"
+        : "";
+      var highlightsHtml = highlights.length
+        ? "<h4 style=\"margin:0.55rem 0 0.2rem;\">Key focus</h4><ul class=\"buyer-adv-list\" style=\"margin:0;\">" +
+          highlights.map(function (line) { return "<li>" + escHtml(line.replace(/^-+\s*/, "")) + "</li>"; }).join("") +
+          "</ul>"
+        : "";
+      return (
+        "<article class=\"section alt\" style=\"padding:0.72rem;\">" +
+        "<p class=\"note\" style=\"margin:0;\"><strong>Weekly snapshot</strong></p>" +
+        "<p class=\"note\" style=\"margin:0.3rem 0 0.45rem;\">" + escHtml(topSummary) + "</p>" +
+        "<details>" +
+        "<summary style=\"cursor:pointer;font-weight:600;\">Open full weekly plan</summary>" +
+        weeklyHtml +
+        highlightsHtml +
+        "<pre style=\"white-space:pre-wrap;margin:0.55rem 0 0;font:inherit;line-height:1.42;\">" + escHtml(raw) + "</pre>" +
+        "</details>" +
+        "</article>"
+      );
+    }
+
     function commitPlan(r, n, sourceTag) {
       if (out) {
-        out.textContent = r;
+        out.innerHTML = renderRoutineCompact(r);
       }
       if (list) {
         list.innerHTML = "";
@@ -1256,7 +1305,7 @@
         media: [
           { kind: "image", title: "Home workout form", src: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Meal prep layout", src: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short mobility warm-up", src: "https://cdn.pixabay.com/video/2020/11/11/54708-479595454_large.mp4" }
+          { kind: "video", title: "Short mobility warm-up", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4" }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Warm-up 10 min, home strength 30-40 min, cardio 15 min, cool-down 10 min." },
@@ -1275,7 +1324,7 @@
         media: [
           { kind: "image", title: "Gym strength day", src: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Cardio conditioning", src: "https://images.unsplash.com/photo-1549476464-37392f717541?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short cardio finisher", src: "https://cdn.pixabay.com/video/2020/10/11/52033-467543551_large.mp4" }
+          { kind: "video", title: "Short cardio finisher", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Warm-up 8-12 min, gym lifts with sets/reps/rest, conditioning finisher, stretch." },
@@ -1294,7 +1343,7 @@
         media: [
           { kind: "image", title: "Elite lifting block", src: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1200&q=80" },
           { kind: "image", title: "Recovery and stretch", src: "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80" },
-          { kind: "video", title: "Short stretch cooldown", src: "https://cdn.pixabay.com/video/2021/04/26/72357-541492789_large.mp4" }
+          { kind: "video", title: "Short stretch cooldown", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" }
         ],
         blocks: [
           { title: "Today in 3 blocks", body: "Dynamic warm-up, periodized lift targets, cardio dosage, and deep cool-down protocol." },
@@ -1312,7 +1361,7 @@
       media: [
         { kind: "image", title: "Starter movement guide", src: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1200&q=80" },
         { kind: "image", title: "Cardio basics", src: "https://images.unsplash.com/photo-1483721310020-03333e577078?auto=format&fit=crop&w=1200&q=80" },
-        { kind: "video", title: "Short warm-up routine", src: "https://cdn.pixabay.com/video/2023/03/28/156673-813010203_large.mp4" }
+        { kind: "video", title: "Short warm-up routine", src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" }
       ],
       blocks: [
         { title: "Today in 3 blocks", body: "Warm-up 10 min, focused workout 25-35 min, cardio/cool-down 15-20 min." },
@@ -1427,6 +1476,74 @@
 
   function hydrateCoachFulfillmentFromServer() {
     var token = getPublicAuthToken();
+    function ingestCoachSessions(body, st) {
+      try {
+        window.__vibecartCoachRenewalState = body && body.renewal ? body.renewal : null;
+      } catch {
+        /* ignore */
+      }
+      try {
+        window.__vibecartCoachHydrateLast = {
+          at: Date.now(),
+          httpStatus: st,
+          bodyOk: Boolean(body && body.ok),
+          code: body && body.code ? String(body.code) : "",
+          sessionCount: Array.isArray(body && body.sessions) ? body.sessions.length : -1
+        };
+      } catch {
+        /* ignore */
+      }
+      if (!body || !body.ok || !Array.isArray(body.sessions) || !body.sessions.length) {
+        return false;
+      }
+      var merged = readPaidPlans();
+      body.sessions.forEach(function (row) {
+        if (!row || !row.sessionId) {
+          return;
+        }
+        var ic = [normalizePlan(row.plan || "starter")];
+        if (row.addonPlan) {
+          var ad = normalizePlan(row.addonPlan);
+          if (ad && ic.indexOf(ad) < 0) {
+            ic.push(ad);
+          }
+        }
+        ic.forEach(function (planCode) {
+          merged = upsertPaidPlans(merged, {
+            flow: "coach",
+            plan: planCode,
+            provider: row.provider || "card",
+            sessionId: String(row.sessionId).trim(),
+            activatedAt: new Date().toISOString()
+          });
+        });
+      });
+      savePaidPlans(merged);
+      return readPaidPlans().length > 0;
+    }
+    function runFetchWithQueryToken(tok) {
+      if (!tok) {
+        return Promise.resolve(false);
+      }
+      return fetch(
+        "/api/public/payments/coach-checkout-sessions?authToken=" + encodeURIComponent(String(tok)),
+        { credentials: "same-origin", headers: { Accept: "application/json" } }
+      )
+        .then(function (r) {
+          var st = r.status;
+          return r
+            .json()
+            .catch(function () {
+              return {};
+            })
+            .then(function (body) {
+              return ingestCoachSessions(body, st);
+            });
+        })
+        .catch(function () {
+          return false;
+        });
+    }
     function runFetch(tok) {
       var headers =
         window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
@@ -1445,51 +1562,13 @@
           });
       })
       .then(function (x) {
-        var st = x.st;
-        var body = x.body;
-        try {
-          window.__vibecartCoachRenewalState = body && body.renewal ? body.renewal : null;
-        } catch {
-          /* ignore */
+        var ok = ingestCoachSessions(x.body, x.st);
+        if (ok || !tok) {
+          return ok;
         }
-        try {
-          window.__vibecartCoachHydrateLast = {
-            at: Date.now(),
-            httpStatus: st,
-            bodyOk: Boolean(body && body.ok),
-            code: body && body.code ? String(body.code) : "",
-            sessionCount: Array.isArray(body && body.sessions) ? body.sessions.length : -1
-          };
-        } catch {
-          /* ignore */
-        }
-        if (!body || !body.ok || !Array.isArray(body.sessions) || !body.sessions.length) {
-          return false;
-        }
-        var merged = readPaidPlans();
-        body.sessions.forEach(function (row) {
-          if (!row || !row.sessionId) {
-            return;
-          }
-          var ic = [normalizePlan(row.plan || "starter")];
-          if (row.addonPlan) {
-            var ad = normalizePlan(row.addonPlan);
-            if (ad && ic.indexOf(ad) < 0) {
-              ic.push(ad);
-            }
-          }
-          ic.forEach(function (planCode) {
-            merged = upsertPaidPlans(merged, {
-              flow: "coach",
-              plan: planCode,
-              provider: row.provider || "card",
-              sessionId: String(row.sessionId).trim(),
-              activatedAt: new Date().toISOString()
-            });
-          });
-        });
-        savePaidPlans(merged);
-        return readPaidPlans().length > 0;
+        // iOS app/webview sessions can have strict device-binding mismatch on header flow.
+        // Query-token fallback intentionally skips binding for recovery-only hydration.
+        return runFetchWithQueryToken(tok);
       })
       .catch(function () {
         try {
@@ -2053,14 +2132,10 @@
       go(merged);
     }
     autoRecoverCheckoutSessionFromUrl(params).finally(function () {
-      if (getPublicAuthToken()) {
-        hydrateCoachFulfillmentFromServer().finally(function () {
-          finishFromStoredPlans();
-        });
-        return;
-      }
-      mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
-      finishFromStoredPlans();
+      hydrateCoachFulfillmentFromServer().finally(function () {
+        mergeUrlParamsIntoPaidPlans(params, readPaidPlans());
+        finishFromStoredPlans();
+      });
     });
   }
 

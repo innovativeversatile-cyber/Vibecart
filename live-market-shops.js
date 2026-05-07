@@ -82,7 +82,7 @@
       Gaming: [
         { name: "Steam Store", url: "https://store.steampowered.com", desc: "EU gaming demand and bundles." },
         { name: "PlayStation Store", url: "https://store.playstation.com", desc: "Console titles and add-ons." },
-        { name: "Xbox Store", url: "https://www.xbox.com/games/store", desc: "Xbox games and subscriptions." },
+        { name: "Xbox", url: "https://www.xbox.com", desc: "Xbox games and subscriptions." },
         { name: "GOG", url: "https://www.gog.com", desc: "Poland-based DRM-free games." }
       ]
     },
@@ -190,7 +190,7 @@
         { name: "Primark", url: "https://www.primark.com", desc: "Order where international delivery is offered." }
       ],
       Books: [
-        { name: "Amazon UAE Books", url: "https://www.amazon.ae/books-used-books-textbooks", desc: "UAE books and personal development." },
+        { name: "Amazon UAE Books", url: "https://www.amazon.ae", desc: "UAE books and personal development." },
         { name: "Kinokuniya UAE", url: "https://uae.kinokuniya.com", desc: "Books and manga in UAE." }
       ],
       Gaming: [
@@ -411,7 +411,7 @@
     if (gateNote) {
       gateNote.hidden = !pending;
       gateNote.textContent = pending
-        ? "External retailer tiles are locked until you tick the disclaimer and (optionally) read the policy link. VibeCart seller listings above stay open."
+        ? "External retailer tiles are locked until you tick the disclaimer and (optionally) read the policy link. Curated external listings above stay open."
         : "";
     }
   }
@@ -453,7 +453,7 @@
     },
     {
       src: "https://images.unsplash.com/photo-1464863979621-258859e62245?auto=format&fit=crop&w=540&h=340&q=75",
-      href: "https://www2.hm.com",
+      href: "https://www.hm.com",
       title: "Minimal capsule edits"
     },
     {
@@ -519,7 +519,7 @@
     },
     {
       src: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=540&h=340&q=75",
-      href: "https://www.playstation.com/en-us/ps-store/last-chance-to-play/",
+      href: "https://store.playstation.com",
       title: "PlayStation store"
     },
     {
@@ -557,6 +557,32 @@
       return "";
     }
   }
+  var BLOCKED_HOSTS = {
+    "mediamarkt.de": true,
+    "currys.co.uk": true,
+    "eu.shein.com": true,
+    "allegro.pl": true,
+    "fnac.com": true,
+    "currys.ie": true,
+    "littlewoodsireland.ie": true,
+    "easons.com": true,
+    "waterstones.com": true,
+    "smythstoys.com": true,
+    "gamestop.ie": true,
+    "superbalist.com": true,
+    "jumia.co.ke": true,
+    "nuriakenya.com": true,
+    "textbookcentre.com": true,
+    "noon.com": true,
+    "sharafdg.com": true,
+    "namshi.com": true,
+    "kinokuniya.com": true,
+    "rakuten.co.jp": true,
+    "hm.com": true,
+    "bestbuy.com": true,
+    "vestiairecollective.com": true,
+    "mrporter.com": true
+  };
   function buildTrustedHostSet(allMaps) {
     var set = {};
     Object.keys(allMaps || {}).forEach(function (regionKey) {
@@ -575,6 +601,11 @@
   function isTrustedShopUrl(url) {
     var host = extractHost(url);
     if (!host) return false;
+    if (BLOCKED_HOSTS[host]) return false;
+    var blockedKeys = Object.keys(BLOCKED_HOSTS);
+    for (var b = 0; b < blockedKeys.length; b += 1) {
+      if (host === blockedKeys[b] || host.endsWith("." + blockedKeys[b])) return false;
+    }
     if (trustedHosts[host]) return true;
     var keys = Object.keys(trustedHosts);
     for (var i = 0; i < keys.length; i += 1) {
@@ -612,17 +643,7 @@
     var commissionEnabled = isCommissionTrackedUrl(shop.url);
     if (trusted) {
       var targetUrl = String(shop.url || "").trim();
-      var ref = bridgeRefForLinks();
-      var redir =
-        "/api/public/shop/redirect?shop=" +
-        encodeURIComponent(String(shop.name || "shop")) +
-        "&cat=" +
-        encodeURIComponent(String(category || "All")) +
-        "&partner=" +
-        encodeURIComponent(String(shop.name || "shop")) +
-        "&target=" +
-        encodeURIComponent(targetUrl);
-      a.href = ref ? redir + "&ref=" + encodeURIComponent(ref) : redir;
+      a.href = targetUrl;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
     } else {
@@ -744,15 +765,15 @@
     }
     if (vcTitle && vcLead) {
       if (dealTone === "best") {
-        vcTitle.textContent = "Best bargains on VibeCart";
+        vcTitle.textContent = "Best bargains (external shops)";
         vcLead.textContent =
-          "Live seller inventory sorted by price. External retailer tiles below stay locked until you accept the disclaimer.";
+          "Curated external bargains sorted by price and category. External retailer tiles below stay locked until you accept the disclaimer.";
       } else if (dealTone === "fashion") {
         vcTitle.textContent = "Fashion lane on VibeCart";
-        vcLead.textContent = "Seller fashion listings — opens Hot Picks for on-platform checkout.";
+        vcLead.textContent = "External fashion listings — opens Hot Picks with source-website checkout.";
       } else if (dealTone === "electronics") {
         vcTitle.textContent = "Electronics on VibeCart";
-        vcLead.textContent = "Phones, laptops, and accessories from verified VibeCart shops.";
+        vcLead.textContent = "Phones, laptops, and accessories from verified external shops.";
       } else if (dealTone === "books") {
         vcTitle.textContent = "Books & study on VibeCart";
         vcLead.textContent = "Textbooks and reads from VibeCart sellers — then curated bookstore portals.";
@@ -760,9 +781,9 @@
         vcTitle.textContent = "Gaming on VibeCart";
         vcLead.textContent = "Games and gear from VibeCart inventory.";
       } else {
-        vcTitle.textContent = "VibeCart seller listings";
+        vcTitle.textContent = "Curated external listings";
         vcLead.textContent =
-          "Live inventory from VibeCart shops — opens Hot Picks for checkout on-platform. External shops require the disclaimer.";
+          "Curated external inventory — opens Hot Picks with source-website checkout. External shops require the disclaimer.";
       }
     }
     if (intro) {

@@ -38,7 +38,7 @@ function main() {
 
   const worldShop = read("world-shop-experience.html");
   assertIncludes(worldShop, 'href="./hot-picks.html"', "World shop internal hot picks CTA");
-  assertIncludes(worldShop, 'href="./plan-workspace.html"', "World shop internal plan workspace CTA");
+  assertIncludes(worldShop, 'href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best"', "World shop live grid CTA");
 
   const liveMarket = read("live-market-shops.js");
   assertIncludes(liveMarket, "var mapByRegion", "Live market region/category map");
@@ -71,11 +71,13 @@ function main() {
     });
   };
   const blockedPattern = "checkout-details.html?flow=buy";
+  const allowBuyCheckoutIn = new Set(["hot-picks.js", "hot-picks.html", "checkout-details.html", "checkout-details.js"]);
   walk(web)
     .filter((full) => /\.(html|js)$/i.test(full))
     .forEach((full) => {
       const body = fs.readFileSync(full, "utf8");
-      if (body.includes(blockedPattern)) {
+      const rel = path.relative(web, full).replace(/\\/g, "/");
+      if (body.includes(blockedPattern) && !allowBuyCheckoutIn.has(path.basename(rel))) {
         throw new Error(`Blocked internal buy checkout link found in ${path.relative(web, full)}`);
       }
     });

@@ -3115,6 +3115,7 @@ body.vc-vip-mode .shop-folder-constellation-line {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   overscroll-behavior-x: contain;
+  touch-action: pan-x;
   mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
 }
 
@@ -3485,6 +3486,27 @@ body.vc-seller-skin .shops-lane-main {
 body.shops-lane-page main.shops-lane-main {
   padding: 1rem 1.05rem 1.35rem;
   border-radius: 16px;
+  position: relative;
+  z-index: 20350;
+  isolation: isolate;
+}
+
+#account-access,
+.account-passport,
+#vcAuthLoggedIn {
+  position: relative;
+  z-index: 20420;
+}
+
+body.shops-lane-page .note,
+body.shops-lane-page p,
+body.shops-lane-page h1,
+body.shops-lane-page h2,
+body.shops-lane-page h3,
+body.shops-lane-page h4,
+body.shops-lane-page li {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 body.shops-lane-page main.shops-lane-main > section {
@@ -3507,7 +3529,8 @@ body.shops-lane-page main.shops-lane-main > section {
 /* Brandon universal shell uses very high z-index; lift hub + live market main above it so links and lane buttons work. */
 html.vc-brandon-universal body.account-hub-page main.shops-lane-main,
 html.vc-brandon-universal body.live-market-shops-page main.shops-lane-main,
-html.vc-brandon-universal body.orders-tracking-page main.shops-lane-main {
+html.vc-brandon-universal body.orders-tracking-page main.shops-lane-main,
+html.vc-brandon-universal body.shops-lane-page main.shops-lane-main {
   position: relative;
   z-index: 20350;
   isolation: isolate;
@@ -4912,6 +4935,128 @@ body.admin-surface .section {
   margin-top: 0.8rem;
 }
 
+/* Trade bridge block: stack cleanly on phones */
+@media (max-width: 720px) {
+  #bridge-routes {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+  }
+
+  #bridge-routes #bridgeText {
+    max-width: none;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  #bridgePathSwitch {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  #bridgePathSwitch .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  #bridge-routes .vc-bridge-truth {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    max-width: none;
+  }
+
+  #bridge-routes .vc-bridge-truth-list {
+    padding-left: 1.1rem;
+    margin: 0.35rem 0 0;
+  }
+
+  #bridge-routes .vc-bridge-truth-list li {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    margin-bottom: 0.35rem;
+  }
+}
+
+/* Curated deal hub pages (fashion-deals.html, best-bargains.html) */
+.vc-deal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.vc-deal-card {
+  margin: 0;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 14, 28, 0.88);
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+}
+
+.vc-deal-card__link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+.vc-deal-card__media {
+  display: block;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  background: #0a0c18;
+}
+
+.vc-deal-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vc-deal-card__body {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0.95rem 1rem;
+}
+
+.vc-deal-card__badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffe8c8;
+  background: rgba(232, 163, 23, 0.2);
+  border: 1px solid rgba(232, 163, 23, 0.35);
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.vc-deal-card__shop {
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.vc-deal-card__blurb {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.vc-deal-card__cta {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #9ef7ff;
+  margin-top: 0.25rem;
+}
+
 .note {
   color: var(--muted);
 }
@@ -5574,6 +5719,13 @@ html.vc-phone .vc-horizontal-only {
   display: block !important;
 }
 
+/* Narrow viewports: enable sideways lanes even when the UA never sets vc-phone (fixes desktop zoom / thin windows). */
+@media (max-width: 900px) {
+  .vc-horizontal-only {
+    display: block !important;
+  }
+}
+
 html.vc-mobile-app .vc-mobile-chapter-deck,
 html.vc-phone .vc-mobile-chapter-deck {
   margin-top: 0.25rem;
@@ -5603,6 +5755,7 @@ html.vc-phone .vc-mobile-chapter-deck {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scroll-padding-inline: 0.75rem;
+  touch-action: pan-x;
   mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent);
 }
 
@@ -6636,6 +6789,13 @@ body.mb-boot-pending > #mbMainDashboard {
 
 body.mb-boot-pending {
   min-height: 100vh;
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+body.mb-boot-pending .vc-mb-gate-root {
+  touch-action: auto;
 }
 
 .vc-mb-gate-root {
@@ -6659,6 +6819,7 @@ body.mb-boot-pending {
   max-height: min(92vh, 640px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: linear-gradient(160deg, rgba(18, 12, 32, 0.98), rgba(8, 14, 30, 0.96));
@@ -6840,6 +7001,20 @@ body.mb-mode-provider [data-mb-show="client"] {
 /* Citizen desk: hide provider tools until session is seller/service_provider (see my-business.js). */
 body.mb-mode-citizen:not(.mb-citizen-seller-surface) [data-mb-show="provider"] {
   display: none !important;
+}
+
+body.mb-mode-citizen.mb-citizen-seller-surface #mbMainDashboard [data-mb-show="provider"],
+body.mb-mode-citizen.mb-citizen-seller-surface #mbMainDashboard [data-mb-show="client"] {
+  position: relative;
+  z-index: 1;
+}
+
+body.vc-my-business-dashboard #beauty-services {
+  overflow: visible;
+}
+
+body.vc-my-business-dashboard #beauty-services::before {
+  opacity: 0.08;
 }
 
 body.vc-my-business-dashboard #beauty-services,
@@ -7186,6 +7361,61 @@ body.vc-my-business-dashboard #mb-client-service-desk {
 
 .vc-hot-ai-slide__actions a {
   text-decoration: none;
+}
+
+.vc-hot-vibe-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.vc-hot-vibe-card .hero-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.vc-hot-vibe-slider {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  margin-bottom: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.vc-hot-vibe-track {
+  display: flex;
+  transition: transform 0.26s ease;
+}
+
+.vc-hot-vibe-track img {
+  width: 100%;
+  min-width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.vc-hot-vibe-prev,
+.vc-hot-vibe-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  padding: 0;
+  line-height: 1;
+}
+
+.vc-hot-vibe-prev {
+  left: 8px;
+}
+
+.vc-hot-vibe-next {
+  right: 8px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -11255,6 +11485,8 @@ html.vc-phone .vc-edge-lane::before {
   gap: 0.45rem;
   overflow-x: auto;
   padding-bottom: 0.2rem;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
 }
 
 .vc-cinematic-concierge-rail .btn {

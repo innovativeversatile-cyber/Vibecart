@@ -6490,7 +6490,7 @@ autoDebugRunBtn?.addEventListener("click", runAutonomousDebugSweep);
     if (inAppShell) {
       // Keep storage for installed app mode, but still re-register SW so updates land.
       navigator.serviceWorker
-        .register("./service-worker.js?v=20260507swforce1")
+        .register("./service-worker.js?v=20260508force1")
         .then((reg) => {
           try {
             if (reg && typeof reg.update === "function") reg.update();

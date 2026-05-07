@@ -36,42 +36,42 @@
       caption: "Oversized sets, varsity layers, and neutral sneakers — still moving fast this season.",
       tags: ["streetwear", "hoodie", "sneakers"],
       ctaLabel: "ASOS trending",
-      ctaUrl: "https://www.asos.com/women/trending-now/cat/?cid=51153"
+      ctaUrl: "https://www.asos.com"
     },
     {
       title: "Luxury resale momentum",
       caption: "Verified pre-owned designer bags and accessories with sharper price discovery.",
       tags: ["handbag", "luxury", "fashion"],
       ctaLabel: "Vestiaire Collective",
-      ctaUrl: "https://www.vestiairecollective.com/women-bags/"
+      ctaUrl: "https://www.vestiairecollective.com"
     },
     {
       title: "Sport fashion crossover",
       caption: "Performance sneakers and athleisure sets blending gym tech with everyday fits.",
       tags: ["sneakers", "sportswear", "athleisure"],
       ctaLabel: "Nike new",
-      ctaUrl: "https://www.nike.com/w/new-3n82y"
+      ctaUrl: "https://www.nike.com"
     },
     {
       title: "Beauty meets outfit",
       caption: "Fragrance and skincare pairings shoppers bundle with statement outerwear.",
       tags: ["beauty", "makeup", "fashion"],
       ctaLabel: "Sephora new",
-      ctaUrl: "https://www.sephora.com/shop/new-arrivals"
+      ctaUrl: "https://www.sephora.com"
     },
     {
       title: "Denim + tailoring mix",
       caption: "Wide-leg denim with sharp blazers — a high-signal office-to-street formula.",
       tags: ["denim", "blazer", "streetwear"],
       ctaLabel: "Zalando inspo",
-      ctaUrl: "https://www.zalando.co.uk/womens-clothing/"
+      ctaUrl: "https://www.zalando.co.uk"
     },
     {
       title: "Minimal luxe layers",
       caption: "Quiet luxury palettes: cashmere, tonal knits, and sculptural jewelry accents.",
       tags: ["knitwear", "jewelry", "fashion"],
       ctaLabel: "MR PORTER",
-      ctaUrl: "https://www.mrporter.com/en-gb/mens/clothing"
+      ctaUrl: "https://www.mrporter.com"
     }
   ];
 
@@ -85,6 +85,32 @@
   var trendStatus = document.getElementById("hotPicksAiTrendStatus");
   var trendStamp = document.getElementById("hotPicksAiTrendStamp");
   var carouselTimer = null;
+  var BLOCKED_HOSTS = {
+    "mediamarkt.de": true,
+    "currys.co.uk": true,
+    "eu.shein.com": true,
+    "allegro.pl": true,
+    "fnac.com": true,
+    "currys.ie": true,
+    "littlewoodsireland.ie": true,
+    "easons.com": true,
+    "waterstones.com": true,
+    "smythstoys.com": true,
+    "gamestop.ie": true,
+    "superbalist.com": true,
+    "jumia.co.ke": true,
+    "nuriakenya.com": true,
+    "textbookcentre.com": true,
+    "noon.com": true,
+    "sharafdg.com": true,
+    "namshi.com": true,
+    "kinokuniya.com": true,
+    "rakuten.co.jp": true,
+    "hm.com": true,
+    "bestbuy.com": true,
+    "vestiairecollective.com": true,
+    "mrporter.com": true
+  };
 
   function escapeHtml(v) {
     return String(v == null ? "" : v)
@@ -107,17 +133,17 @@
   }
 
   function trendPlaceholderImageUrl(tags, idx) {
-    var clean = (Array.isArray(tags) ? tags : [])
-      .map(function (t) {
-        return String(t || "")
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-");
-      })
-      .filter(Boolean)
-      .slice(0, 4);
-    var seed = (clean.length ? clean.join("-") : "fashion-streetwear-style") + "-slide-" + (typeof idx === "number" ? idx : 0);
-    return "https://picsum.photos/seed/" + encodeURIComponent(seed) + "/900/1200";
+    var pool = [
+      "https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=900&h=1200&q=78",
+      "https://images.unsplash.com/photo-1464863979621-258859e62245?auto=format&fit=crop&w=900&h=1200&q=78",
+      "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&h=1200&q=78",
+      "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&h=1200&q=78",
+      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=900&h=1200&q=78",
+      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=900&h=1200&q=78"
+    ];
+    var i = Number(idx || 0);
+    i = Number.isFinite(i) ? i : 0;
+    return pool[((i % pool.length) + pool.length) % pool.length];
   }
 
   function formatHotPicksDateTime(value) {
@@ -384,9 +410,29 @@
     try {
       var parsed = new URL(value);
       if (!/^https?:$/i.test(parsed.protocol)) return "";
+      var host = String(parsed.hostname || "").toLowerCase();
+      if (!host) return "";
+      if (BLOCKED_HOSTS[host]) return "";
+      var keys = Object.keys(BLOCKED_HOSTS);
+      for (var i = 0; i < keys.length; i += 1) {
+        if (host === keys[i] || host.endsWith("." + keys[i])) return "";
+      }
       return parsed.toString();
     } catch {
       return "";
+    }
+  }
+
+  function isExternalTarget(url) {
+    var safe = safeTarget(url);
+    if (!safe) return false;
+    try {
+      var parsed = new URL(safe);
+      var host = String(parsed.host || "").toLowerCase();
+      var here = String(window.location.host || "").toLowerCase();
+      return Boolean(host && here && host !== here);
+    } catch {
+      return false;
     }
   }
 
@@ -411,21 +457,10 @@
 
   function pickTargetUrl(p) {
     var direct = pickExplicitOutboundUrl(p);
-    if (direct) {
+    if (direct && isExternalTarget(direct)) {
       return direct;
     }
-    if (isDbMarketplaceListing(p)) {
-      return "";
-    }
-    var cat = productCategory(p).toLowerCase();
-    var fallbackByCategory = {
-      electronics: "https://www.amazon.com/s?i=electronics&tag=vibecart20-20",
-      fashion: "https://www.asos.com",
-      books: "https://www.abebooks.com",
-      gaming: "https://store.steampowered.com",
-      all: "https://www.ebay.com/deals"
-    };
-    return safeTarget(fallbackByCategory[cat] || fallbackByCategory.all);
+    return "";
   }
 
   function isLoggedIn() {
@@ -497,36 +532,7 @@
         domId = "vc-hot-product-anon";
       }
       var html;
-      if (internal) {
-        html =
-          '<article class="card vc-hot-internal-listing" id="' +
-          escapeHtml(domId) +
-          '">' +
-          '<img src="' +
-          escapeHtml(pickImage(p)) +
-          '" alt="' +
-          escapeHtml(title) +
-          '" loading="lazy" />' +
-          "<h3>" +
-          escapeHtml(title) +
-          "</h3>" +
-          '<p class="note">Category: ' +
-          escapeHtml(cat) +
-          (price ? " · " + escapeHtml(currency + " " + price) : "") +
-          "</p>" +
-          '<p class="note">VibeCart marketplace listing' +
-          (shopLabel ? " · " + escapeHtml(shopLabel) : "") +
-          ". Checkout uses secure order quotes from the Live marketplace.</p>" +
-          '<p class="hero-actions">' +
-          '<a class="btn btn-primary" href="' +
-          escapeHtml(listingHref) +
-          '">Open exact listing (shareable)</a>' +
-          '<a class="btn btn-secondary" href="./live-market-shops.html?cat=All&view=global&deal=best">Live marketplace grid</a>' +
-          '<a class="btn btn-secondary" href="./index.html#account-access">' +
-          escapeHtml(joinLabel) +
-          "</a></p>" +
-          "</article>";
-      } else {
+      if (!internal && target) {
         var ctaLabel = target ? "Open source website" : "Source unavailable";
         html =
           '<article class="card">' +
@@ -545,11 +551,9 @@
           '<p class="note">External checkout on assigned source site. · ' +
           (commissionEnabled ? "Commission-enabled." : "Traffic-only.") +
           "</p>" +
-          '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link' +
-          (href ? "" : " is-disabled") +
-          '" href="' +
-          escapeHtml(href || "#") +
-          '" data-aff-shop="' +
+          '<p class="hero-actions"><a class="btn btn-primary vc-hot-offer-link" href="' +
+          escapeHtml(target) +
+          '" target="_blank" rel="noopener noreferrer" data-aff-shop="' +
           escapeHtml(title) +
           '" data-aff-target="' +
           escapeHtml(target) +
@@ -561,8 +565,8 @@
           escapeHtml(joinLabel) +
           "</a></p>" +
           "</article>";
+        grid.insertAdjacentHTML("beforeend", html);
       }
-      grid.insertAdjacentHTML("beforeend", html);
     });
     Array.prototype.slice.call(grid.querySelectorAll(".vc-hot-offer-link")).forEach(function (a) {
       if (a.dataset.boundAffClick === "1") return;
@@ -691,12 +695,11 @@
           return Number(p.id) === focusId || productCategory(p).toLowerCase() === lane;
         });
       }
-      var top = filtered.slice(0, 12);
-      if (!top.length) {
-        if (status) {
-          status.textContent = "No live picks available right now for this lane.";
-        }
-        return;
+      var top = filtered.filter(function (row) {
+        return isExternalTarget(pickTargetUrl(row));
+      }).slice(0, 12);
+      if (!top.length && status) {
+        status.textContent = "No verified external bargains available for this lane right now.";
       }
       if (status) {
         if (focusId > 0) {

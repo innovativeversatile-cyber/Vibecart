@@ -3745,14 +3745,77 @@
       window.__vcScrollGateResize = null;
       window.__vcScrollGateMax = null;
       window.__vcScrollGateTouchY = null;
+      try {
+        var L0 = window.__vibecartLenis;
+        var lh0 = window.__vcScrollGateLenisHandler;
+        if (L0 && lh0 && typeof L0.off === "function") {
+          L0.off("scroll", lh0);
+        }
+      } catch {
+        /* ignore */
+      }
+      window.__vcScrollGateLenisHandler = null;
     }
     function enableScrollGate(anchor) {
       disableScrollGate();
       if (!anchor) return;
+      function getDocScrollY() {
+        try {
+          var L = window.__vibecartLenis;
+          if (L && typeof L.scroll === "number" && isFinite(L.scroll)) {
+            return Number(L.scroll);
+          }
+        } catch {
+          /* ignore */
+        }
+        return Number(window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0);
+      }
+      function setDocScrollY(top) {
+        var y = Math.max(0, Number(top || 0));
+        try {
+          var L2 = window.__vibecartLenis;
+          if (L2 && typeof L2.scrollTo === "function") {
+            L2.scrollTo(y, { immediate: true });
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+        try {
+          window.scrollTo({ top: y, left: 0, behavior: "auto" });
+        } catch {
+          /* ignore */
+        }
+      }
+      function scrollGateTargetAllowsHorizontal(ev) {
+        var node = ev && ev.target;
+        if (!node || !node.closest) return false;
+        if (
+          node.closest(
+            ".vc-mobile-rail, .shop-folder-landing, .vc-cinematic-concierge-rail, .vc-hot-ai-track, .vc-epic-track"
+          )
+        ) {
+          return true;
+        }
+        var cur = node.nodeType === 1 ? node : node.parentElement;
+        while (cur && cur !== document.body) {
+          try {
+            var st = window.getComputedStyle(cur);
+            var ox = st.overflowX;
+            if ((ox === "auto" || ox === "scroll") && cur.scrollWidth > cur.clientWidth + 2) {
+              return true;
+            }
+          } catch {
+            /* ignore */
+          }
+          cur = cur.parentElement;
+        }
+        return false;
+      }
       function calcMax() {
         try {
           var rect = anchor.getBoundingClientRect();
-          var top = Number(rect.top || 0) + Number(window.scrollY || 0);
+          var top = Number(rect.top || 0) + getDocScrollY();
           return Math.max(0, Math.floor(top));
         } catch {
           return 0;
@@ -3760,9 +3823,9 @@
       }
       function clamp() {
         var max = Number(window.__vcScrollGateMax || 0);
-        var y = Number(window.scrollY || 0);
+        var y = getDocScrollY();
         if (y > max) {
-          window.scrollTo({ top: max, behavior: "auto" });
+          setDocScrollY(max);
         }
       }
       window.__vcScrollGateMax = calcMax();
@@ -3773,21 +3836,35 @@
       window.__vcScrollGateScroll = function () {
         clamp();
       };
+      window.__vcScrollGateLenisHandler = function () {
+        clamp();
+      };
+      try {
+        var L3 = window.__vibecartLenis;
+        if (L3 && typeof L3.on === "function" && window.__vcScrollGateLenisHandler) {
+          L3.on("scroll", window.__vcScrollGateLenisHandler);
+        }
+      } catch {
+        /* ignore */
+      }
       window.__vcScrollGateWheel = function (ev) {
+        if (scrollGateTargetAllowsHorizontal(ev)) return;
+        if (ev && Math.abs(Number(ev.deltaX || 0)) > Math.abs(Number(ev.deltaY || 0))) return;
         var max = Number(window.__vcScrollGateMax || 0);
-        var y = Number(window.scrollY || 0);
+        var y = getDocScrollY();
         if (y >= max && ev && Number(ev.deltaY || 0) > 0) {
           ev.preventDefault();
         }
       };
       window.__vcScrollGateTouch = function (ev) {
+        if (scrollGateTargetAllowsHorizontal(ev)) return;
         if (!ev || !ev.touches || !ev.touches[0]) return;
         var yNow = Number(ev.touches[0].clientY || 0);
         var yPrev = Number(window.__vcScrollGateTouchY || yNow);
         window.__vcScrollGateTouchY = yNow;
         var movingDown = yNow < yPrev;
         var max = Number(window.__vcScrollGateMax || 0);
-        var y = Number(window.scrollY || 0);
+        var y = getDocScrollY();
         if (y >= max && movingDown) {
           ev.preventDefault();
         }
@@ -3795,7 +3872,7 @@
       window.__vcScrollGateKeydown = function (ev) {
         if (!ev) return;
         var max = Number(window.__vcScrollGateMax || 0);
-        var y = Number(window.scrollY || 0);
+        var y = getDocScrollY();
         var key = String(ev.key || "");
         var blocks = key === "ArrowDown" || key === "PageDown" || key === "End" || key === " ";
         if (blocks && y >= max) {

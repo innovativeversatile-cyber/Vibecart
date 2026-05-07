@@ -490,7 +490,7 @@
 
     var beautySec = document.getElementById("beauty-services");
     if (beautySec) {
-      beautySec.hidden = false;
+      beautySec.hidden = persona === "client";
     }
     var beautyTitle = document.getElementById("mbBeautySectionTitle");
     var beautyLead = document.getElementById("mbBeautySectionLead");

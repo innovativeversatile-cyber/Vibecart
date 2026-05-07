@@ -101,7 +101,7 @@ const ADMIN_ISLAND = /^(admin\.html|admin-app\.html|admin-messages\.html|owner-a
 /** Scripted continuation anchors (not visible in HTML href crawl). */
 const FLOW_FILE_ASSERTIONS = [
   { rel: "buy-journey.js", needles: ["./checkout-details.html"] },
-  { rel: "sell-journey.js", needles: ['window.location.assign("./my-listings.html")', "sellPublishBtn"] },
+  { rel: "sell-journey.js", needles: ["sellPublishBtn", "/api/public/products/publish"] },
   { rel: "checkout-details.js", needles: ["sessionStorage.setItem", "vibecart-final-payment"] }
 ];
 
