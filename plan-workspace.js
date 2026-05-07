@@ -694,6 +694,12 @@
     return u || COACH_ILLUSTRATIVE_MEDIA.gym;
   }
 
+  /* Per-exercise video audit (Mixkit slug vs clip): bodyweight-squat·21273 man squats at home; goblet-squat·752 squats holding ball;
+     reverse-lunge·52101 lunges gym; romanian-deadlift·47890 barbell deadlift gym; push-up·731 push-ups; bench-press·100543 bench press;
+     shoulder-press·100533 shoulder press machine (label matches); seated-row·100550 rowing machine erg (label matches); lat-pulldown·100549 lat pulldown;
+     glute-bridge·4592 stability ball on floor; plank·36813 plank; dead-bug·13861 lying yoga (closest free supine control clip—no dedicated dead-bug stock);
+     mountain-climber·726 mountain climber; jumping-jacks·23197 jumping calisthenics (not strict jacks—closest match); incline-walk·100525 treadmill;
+     dynamic-stretch-flow·48563 leg stretching. */
   var EXERCISE_LIBRARY = [
     {
       id: "bodyweight-squat",
@@ -729,7 +735,7 @@
       id: "romanian-deadlift",
       label: "Romanian Deadlift",
       category: "posterior-chain",
-      video: "https://assets.mixkit.co/videos/44411/44411-720.mp4",
+      video: "https://assets.mixkit.co/videos/47890/47890-720.mp4",
       setup: "Soft knees, weight close to thighs, lats engaged, spine neutral.",
       execution: ["Hinge hips back while sliding weight down thighs.", "Pause when hamstrings are loaded.", "Drive hips forward to stand."],
       repForm: ["Bar/dumbbells stay close to body.", "Neck stays neutral.", "Hinge from hips, not lower back."],
@@ -757,23 +763,23 @@
     },
     {
       id: "shoulder-press",
-      label: "Dumbbell Shoulder Press",
+      label: "Machine shoulder press",
       category: "upper-body",
       video: "https://assets.mixkit.co/active_storage/video_items/100533/1725384049/100533-video-720.mp4",
-      setup: "Core braced, glutes tight, dumbbells at shoulder level.",
-      execution: ["Press weights overhead in line with ears.", "Control down to shoulder line.", "Repeat with stable torso."],
-      repForm: ["Avoid excessive lower-back arch.", "Move through full range.", "Keep elbows under wrists."],
-      mistakes: ["Pressing in front of body.", "Shrugging aggressively.", "Using leg drive unintentionally."]
+      setup: "Seat height set so handles line up near shoulder level; core and glutes engaged.",
+      execution: ["Press handles overhead in a controlled arc.", "Stop short of lockout if your machine cues it.", "Lower until upper arms are roughly parallel to the floor."],
+      repForm: ["Avoid excessive lower-back arch off the pad.", "Keep head neutral on the headrest.", "Move through the machine’s range without bouncing."],
+      mistakes: ["Shrugging into each rep.", "Locking aggressively at the top.", "Losing contact with the back pad."]
     },
     {
       id: "seated-row",
-      label: "Seated Cable Row",
+      label: "Rowing machine (erg)",
       category: "upper-body",
       video: "https://assets.mixkit.co/active_storage/video_items/100550/1725385839/100550-video-720.mp4",
-      setup: "Neutral spine, chest lifted, shoulders down, soft knees.",
-      execution: ["Pull handle toward lower ribs.", "Squeeze shoulder blades together.", "Return with control to full stretch."],
-      repForm: ["Lead with elbows, not wrists.", "Torso stays mostly still.", "Use full scapular motion."],
-      mistakes: ["Jerking torso backward.", "Shortening range of motion.", "Rounded upper back."]
+      setup: "Strap snug over the ball of the foot; damper at a moderate setting while learning.",
+      execution: ["Drive with legs, then hinge slightly and finish with arms.", "Return by extending arms, rocking forward, then bending knees.", "Keep strokes smooth and rhythmic."],
+      repForm: ["Straight handle path; avoid sky-high hands at the finish.", "Relax shoulders between strokes.", "Breathe steadily with the rhythm."],
+      mistakes: ["Pulling early with arms before the leg drive.", "Rounding hard over the stroke.", "Rushing the recovery."]
     },
     {
       id: "lat-pulldown",
@@ -789,7 +795,7 @@
       id: "glute-bridge",
       label: "Glute Bridge",
       category: "posterior-chain",
-      video: "https://assets.mixkit.co/videos/13861/13861-720.mp4",
+      video: "https://assets.mixkit.co/videos/4592/4592-720.mp4",
       setup: "Lie on back, knees bent, feet flat under knees, core braced.",
       execution: ["Drive through heels and lift hips.", "Squeeze glutes at top for one second.", "Lower with control."],
       repForm: ["Ribs down, pelvis neutral.", "No over-arching lower back.", "Keep knees tracking forward."],
@@ -809,7 +815,7 @@
       id: "dead-bug",
       label: "Dead Bug",
       category: "core",
-      video: "https://assets.mixkit.co/videos/4591/4591-720.mp4",
+      video: "https://assets.mixkit.co/videos/13861/13861-720.mp4",
       setup: "Lie on back, arms up, knees at 90 degrees, ribs down.",
       execution: ["Extend opposite arm and leg slowly.", "Keep lower back gently pressed down.", "Return and alternate sides."],
       repForm: ["Move slow and controlled.", "No rib flare.", "Exhale on extension for better brace."],
@@ -829,7 +835,7 @@
       id: "jumping-jacks",
       label: "Jumping Jacks",
       category: "cardio",
-      video: "https://assets.mixkit.co/videos/23643/23643-720.mp4",
+      video: "https://assets.mixkit.co/videos/23197/23197-720.mp4",
       setup: "Stand tall, arms by sides, core lightly engaged.",
       execution: ["Jump feet out as arms rise overhead.", "Jump feet in as arms return down.", "Keep steady breathing rhythm."],
       repForm: ["Land softly on balls of feet.", "Maintain upright posture.", "Use full arm range."],
@@ -837,10 +843,10 @@
     },
     {
       id: "incline-walk",
-      label: "Incline Treadmill Walk",
+      label: "Treadmill walk or jog",
       category: "cardio",
       video: "https://assets.mixkit.co/active_storage/video_items/100525/1725383255/100525-video-720.mp4",
-      setup: "Set incline and speed to sustainable effort zone.",
+      setup: "Set incline and speed to a sustainable zone (walk or light jog).",
       execution: ["Walk with long controlled steps.", "Maintain nasal or controlled mouth breathing.", "Sustain target duration."],
       repForm: ["Keep chest up and shoulders relaxed.", "Avoid leaning heavily on rails.", "Consistent pace over spikes."],
       mistakes: ["Hanging on handrails.", "Too high speed causing poor mechanics.", "Overstriding."]
@@ -988,15 +994,15 @@
     "romanian-deadlift": ["romanian deadlift", "rdl", "stiff leg", "trap-bar deadlift", "deadlift"],
     "push-up": ["push-up", "push up", "pushup", "incline push-up", "pike push-up"],
     "bench-press": ["bench press", "incline db press", "incline press"],
-    "shoulder-press": ["shoulder press", "overhead press", "dumbbell shoulder press"],
-    "seated-row": ["seated row", "cable row", "seated cable row", "barbell row", "bent-over row", "bent over row", "t-bar row"],
+    "shoulder-press": ["machine shoulder press", "shoulder press machine", "shoulder press", "overhead press"],
+    "seated-row": ["rowing machine", "indoor row", "erg", "rower", "500m row", "row machine"],
     "lat-pulldown": ["lat pulldown", "lat pull-down", "pulldown", "pull-down"],
     "glute-bridge": ["glute bridge", "hip bridge"],
     "plank": ["plank", "side plank"],
     "dead-bug": ["dead bug"],
     "mountain-climber": ["mountain climber", "mountain climbers"],
-    "jumping-jacks": ["jumping jack", "jumping jacks"],
-    "incline-walk": ["incline walk", "treadmill walk", "zone 2 cardio", "zone 2"],
+    "jumping-jacks": ["jumping jack", "jumping jacks", "jumping exercise", "star jump"],
+    "incline-walk": ["incline walk", "treadmill walk", "treadmill jog", "treadmill", "zone 2 cardio", "zone 2"],
     "dynamic-stretch-flow": ["dynamic stretch", "mobility flow", "stretch", "cool-down", "cooldown"]
   };
 
