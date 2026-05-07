@@ -846,7 +846,7 @@
 
   function renderExerciseLibrary(categoryEl, exerciseEl, detailEl) {
     if (!categoryEl || !exerciseEl || !detailEl) {
-      return;
+      return function () {};
     }
     var categories = ["all"];
     EXERCISE_LIBRARY.forEach(function (x) {
@@ -860,23 +860,6 @@
         return "<option value=\"" + cat + "\">" + label + "</option>";
       })
       .join("");
-
-    function refreshExerciseOptions() {
-      var selectedCategory = String(categoryEl.value || "all");
-      var options = EXERCISE_LIBRARY.filter(function (x) {
-        return selectedCategory === "all" || x.category === selectedCategory;
-      });
-      exerciseEl.innerHTML = options
-        .map(function (x) {
-          return "<option value=\"" + x.id + "\">" + x.label + "</option>";
-        })
-        .join("");
-      if (options[0]) {
-        paintExerciseDetail(options[0].id);
-      } else {
-        detailEl.innerHTML = "<p class=\"note\">No exercise loaded for this category.</p>";
-      }
-    }
 
     function paintExerciseDetail(exerciseId) {
       var item = EXERCISE_LIBRARY.find(function (x) {
@@ -896,7 +879,7 @@
       }
       detailEl.innerHTML =
         "<p class=\"note\" style=\"margin:0;\"><strong>" + item.label + "</strong> · " + item.category.replace(/-/g, " ") + "</p>" +
-        "<video controls playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:280px;object-fit:cover;margin-top:0.55rem;\">" +
+        "<video controls playsinline webkit-playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:280px;object-fit:cover;margin-top:0.55rem;\">" +
         "<source src=\"" + item.video + "\" type=\"video/mp4\"/>" +
         "</video>" +
         "<h4 style=\"margin:0.55rem 0 0.35rem;\">Setup</h4><p class=\"note\" style=\"margin:0;\">" + item.setup + "</p>" +
@@ -905,11 +888,59 @@
         listHtml("Common mistakes to avoid", item.mistakes);
     }
 
-    categoryEl.addEventListener("change", refreshExerciseOptions);
+    function refreshExerciseOptions(preferredId) {
+      var selectedCategory = String(categoryEl.value || "all");
+      var options = EXERCISE_LIBRARY.filter(function (x) {
+        return selectedCategory === "all" || x.category === selectedCategory;
+      });
+      exerciseEl.innerHTML = options
+        .map(function (x) {
+          return "<option value=\"" + x.id + "\">" + x.label + "</option>";
+        })
+        .join("");
+      var pick = String(preferredId || "").trim();
+      var targetId = "";
+      if (pick && options.some(function (o) { return o.id === pick; })) {
+        targetId = pick;
+      } else if (options[0]) {
+        targetId = options[0].id;
+      }
+      if (targetId) {
+        exerciseEl.value = targetId;
+        paintExerciseDetail(targetId);
+      } else {
+        detailEl.innerHTML = "<p class=\"note\">No exercise loaded for this category.</p>";
+      }
+    }
+
+    function commitExerciseSelection(exerciseId) {
+      var id = String(exerciseId || "").trim();
+      if (!id) {
+        return;
+      }
+      var item = EXERCISE_LIBRARY.find(function (x) {
+        return x.id === id;
+      });
+      if (!item) {
+        return;
+      }
+      if (String(categoryEl.value || "all") !== String(item.category || "")) {
+        categoryEl.value = String(item.category || "all");
+        refreshExerciseOptions(item.id);
+      } else {
+        exerciseEl.value = item.id;
+        paintExerciseDetail(item.id);
+      }
+    }
+
+    categoryEl.addEventListener("change", function () {
+      refreshExerciseOptions();
+    });
     exerciseEl.addEventListener("change", function () {
       paintExerciseDetail(String(exerciseEl.value || ""));
     });
     refreshExerciseOptions();
+    return commitExerciseSelection;
   }
 
   var EXERCISE_ALIASES = {
@@ -1402,7 +1433,7 @@
         return (
               "<article style=\"margin:0.45rem 0;\">" +
               "<p class=\"note\" style=\"margin:0 0 0.3rem;\"><strong>" + String(item.title || "Coach clip") + "</strong></p>" +
-              "<video controls muted playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\">" +
+              "<video controls playsinline webkit-playsinline preload=\"metadata\" style=\"width:100%;border-radius:0.7rem;display:block;max-height:220px;object-fit:cover;\">" +
               "<source src=\"" + String(item.src || "") + "\" type=\"video/mp4\"/>" +
               "</video>" +
               "</article>"
@@ -1675,7 +1706,7 @@
     var exerciseCategoryEl = byId("exerciseCategorySelect");
     var exerciseEl = byId("exerciseSelect");
     var exerciseDetailEl = byId("exerciseFormDetail");
-    renderExerciseLibrary(exerciseCategoryEl, exerciseEl, exerciseDetailEl);
+    var commitExerciseSelection = renderExerciseLibrary(exerciseCategoryEl, exerciseEl, exerciseDetailEl);
 
     if (ownedPlansEl) {
       ownedPlansEl.textContent = ownedPlans
@@ -1833,21 +1864,14 @@
       renderAutoPlan(params, profile, out, list, planStatus, currentOwnedPlans, {
         routineExerciseLinksEl: routineExerciseLinksEl,
         onPickExercise: function (exerciseId) {
-          if (!exerciseId || !exerciseCategoryEl || !exerciseEl) {
-            return;
+          commitExerciseSelection(exerciseId);
+          try {
+            if (exerciseDetailEl && exerciseDetailEl.scrollIntoView) {
+              exerciseDetailEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+          } catch {
+            /* ignore */
           }
-          var item = EXERCISE_LIBRARY.find(function (x) {
-            return x.id === exerciseId;
-          });
-          if (!item) {
-            return;
-          }
-          if (String(exerciseCategoryEl.value || "all") !== String(item.category || "")) {
-            exerciseCategoryEl.value = String(item.category || "all");
-            exerciseCategoryEl.dispatchEvent(new Event("change"));
-          }
-          exerciseEl.value = item.id;
-          exerciseEl.dispatchEvent(new Event("change"));
         }
       });
       renderPlanVisuals(params.flow, currentOwnedPlans, summarizeRecentCheckins(readCoachCheckins(params)));
@@ -1936,21 +1960,7 @@
     if (notesEl) notesEl.value = autoProfile.notes;
 
     function pickExerciseInLibrary(exerciseId) {
-      if (!exerciseId || !exerciseCategoryEl || !exerciseEl) {
-        return;
-      }
-      var item = EXERCISE_LIBRARY.find(function (x) {
-        return x.id === exerciseId;
-      });
-      if (!item) {
-        return;
-      }
-      if (String(exerciseCategoryEl.value || "all") !== String(item.category || "")) {
-        exerciseCategoryEl.value = String(item.category || "all");
-        exerciseCategoryEl.dispatchEvent(new Event("change"));
-      }
-      exerciseEl.value = item.id;
-      exerciseEl.dispatchEvent(new Event("change"));
+      commitExerciseSelection(exerciseId);
       try {
         if (exerciseDetailEl && exerciseDetailEl.scrollIntoView) {
           exerciseDetailEl.scrollIntoView({ behavior: "smooth", block: "start" });

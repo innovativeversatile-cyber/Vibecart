@@ -3509,6 +3509,21 @@ body.shops-lane-page li {
   word-break: break-word;
 }
 
+/* Coach plan workspace: keep exercise shortcuts + demo video controls tappable (especially iOS WebView). */
+body.plan-workspace-page #exerciseFormDetail video,
+body.plan-workspace-page #planVisuals video {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+body.plan-workspace-page #routineExerciseLinks button {
+  position: relative;
+  z-index: 2;
+  touch-action: manipulation;
+}
+
 body.shops-lane-page main.shops-lane-main > section {
   background: rgba(10, 12, 26, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.1);
