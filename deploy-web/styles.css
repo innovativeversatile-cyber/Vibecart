@@ -11933,6 +11933,54 @@ html.vc-phone .vc-post-hero-hidden {
   display: initial !important;
 }
 
+/* Phone frame hardening: keep all sections in-frame while preserving horizontal rails. */
+html.vc-mobile-app body,
+html.vc-phone body {
+  overflow-x: clip !important;
+}
+html.vc-mobile-app main,
+html.vc-phone main,
+html.vc-mobile-app .shops-lane-main,
+html.vc-phone .shops-lane-main,
+html.vc-mobile-app main > *,
+html.vc-phone main > * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+html.vc-mobile-app .vc-mobile-rail,
+html.vc-phone .vc-mobile-rail,
+html.vc-mobile-app .vc-story-rail,
+html.vc-phone .vc-story-rail,
+html.vc-mobile-app .vc-hot-ai-track,
+html.vc-phone .vc-hot-ai-track,
+html.vc-mobile-app .shop-folder-landing,
+html.vc-phone .shop-folder-landing,
+html.vc-mobile-app .vc-first5-bar,
+html.vc-phone .vc-first5-bar {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+  box-sizing: border-box !important;
+  overscroll-behavior-x: contain !important;
+}
+html.vc-mobile-app .vc-mobile-rail-card,
+html.vc-phone .vc-mobile-rail-card,
+html.vc-mobile-app .shop-folder-card,
+html.vc-phone .shop-folder-card {
+  max-width: calc(100vw - 44px) !important;
+}
+
+/* Remove floating overlays that sit over content and mimic "stuck" scroll. */
+html.vc-mobile-app .vc-mobile-ai,
+html.vc-phone .vc-mobile-ai,
+html.vc-mobile-app .vc-cinematic-lane-badge,
+html.vc-phone .vc-cinematic-lane-badge {
+  display: none !important;
+}
+
 body.vc-one-moment-flow #vcFirst5Proof,
 body.vc-one-moment-flow #vcFirst5AiLine,
 body.vc-one-moment-flow #vcFirst5Urgency,
