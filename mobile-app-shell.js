@@ -3421,6 +3421,22 @@
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
     if (document.getElementById("vcThreeSecondCinematic")) return;
     try {
+      var qsCine = String((window.location && window.location.search) || "");
+      if (/[?&]replayCinematic=1(?:&|$)/i.test(qsCine)) {
+        sessionStorage.removeItem("vibecart-mobile-wow-done-v1");
+        sessionStorage.removeItem("vibecart-cinematic-done-v1");
+        try {
+          var uC = new URL(window.location.href);
+          uC.searchParams.delete("replayCinematic");
+          window.history.replaceState({}, "", uC.pathname + uC.search + uC.hash);
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
       if (sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1") return;
       if (sessionStorage.getItem("vibecart-cinematic-done-v1") === "1") return;
     } catch {
