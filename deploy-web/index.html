@@ -2440,10 +2440,15 @@
               "html.vc-hard-mobile-stable .btn-secondary{background:rgba(35,27,56,.85)!important;border-color:rgba(255,255,255,.2)!important;color:#efe8ff!important;}" +
               "html.vc-hard-mobile-stable .hero{position:relative!important;overflow:hidden!important;}" +
               "html.vc-hard-mobile-stable .hero:before{content:'';position:absolute;inset:-30% -20% auto -20%;height:70%;pointer-events:none;background:radial-gradient(circle at 30% 40%,rgba(109,54,255,.25),transparent 62%),radial-gradient(circle at 70% 20%,rgba(255,78,196,.18),transparent 58%);filter:blur(16px);}"+
-              "html.vc-hard-mobile-stable .vc-mobile-rail-card-label{color:#efe8ff!important;letter-spacing:.08em!important;}";
+              "html.vc-hard-mobile-stable .vc-mobile-rail-card-label{color:#efe8ff!important;letter-spacing:.08em!important;}" +
+              "html.vc-hard-mobile-stable .btn,html.vc-hard-mobile-stable .vc-mobile-chip,html.vc-hard-mobile-stable .vc-mobile-rail-card{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease,opacity .18s ease!important;}" +
+              "html.vc-hard-mobile-stable .btn:active,html.vc-hard-mobile-stable .vc-mobile-chip:active{transform:scale(.97)!important;}" +
+              "html.vc-hard-mobile-stable .vc-mobile-rail-card:active{transform:translateY(1px) scale(.992)!important;}" +
+              "html.vc-hard-mobile-stable .section{animation:vcHardFadeIn .28s ease-out both!important;}" +
+              "@keyframes vcHardFadeIn{from{opacity:.92;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}";
             document.head.appendChild(st);
             var chip = document.createElement("div");
-            chip.textContent = "Stable mobile v14";
+            chip.textContent = "Stable mobile v15";
             chip.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:2147483647;background:rgba(12,12,24,.82);color:#cfd8ff;border:1px solid rgba(255,255,255,.2);padding:4px 8px;border-radius:999px;font:600 11px/1.2 system-ui;";
             document.body.appendChild(chip);
             var rails = document.querySelectorAll(".vc-mobile-rail,.vc-story-rail,.vc-hot-ai-track,.shop-folder-landing");
