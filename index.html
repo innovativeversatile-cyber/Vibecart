@@ -96,14 +96,59 @@
       }
     </script>
   </head>
-  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260508-lean-mobile6">
+  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260508-lean-mobile7">
     <script>
       (function () {
         try {
+          var qs = String(window.location.search || "");
+          /* Stuck on old HTML/JS (e.g. iOS PWA, no hard refresh): open homepage with ?vibeUpdate=1 once. */
+          if (/[?&]vibeUpdate=1(?:&|$)/.test(qs)) {
+            var step = Promise.resolve();
+            if ("serviceWorker" in navigator) {
+              step = navigator.serviceWorker.getRegistrations().then(function (regs) {
+                regs.forEach(function (r) {
+                  r.unregister();
+                });
+              });
+            }
+            step
+              .then(function () {
+                if (window.caches && caches.keys) {
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(
+                      keys.map(function (k) {
+                        return caches.delete(k);
+                      })
+                    );
+                  });
+                }
+              })
+              .finally(function () {
+                try {
+                  var u = new URL(window.location.href);
+                  u.searchParams.delete("vibeUpdate");
+                  window.location.replace(u.toString());
+                } catch (e2) {
+                  window.location.replace("./");
+                }
+              });
+            return;
+          }
           if (!("serviceWorker" in navigator)) return;
-          navigator.serviceWorker.getRegistration().then(function (reg) {
-            if (reg) reg.update();
+          var refreshing = false;
+          navigator.serviceWorker.addEventListener("controllerchange", function () {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
           });
+          navigator.serviceWorker
+            .register("./service-worker.js?v=20260508lean7")
+            .then(function (reg) {
+              try {
+                if (reg && typeof reg.update === "function") reg.update();
+              } catch (e3) {}
+            })
+            .catch(function () {});
         } catch (e) {}
       })();
     </script>
@@ -2350,7 +2395,7 @@
     </nav>
 
     <footer class="footer">
-      <p class="note build-id-note" data-build-id="20260422ux2">Release 20260422ux2</p>
+      <p class="note build-id-note" data-build-id="20260508lean7">Release 20260508lean7 · stuck on old version? <a href="?vibeUpdate=1">Tap to reset cache</a></p>
       <p>VibeCart - Discover, trade, and grow your vibe globally.</p>
       <div class="footer-link-grid" aria-label="Footer navigation">
         <a href="#scene-top">Home</a>
@@ -2487,7 +2532,7 @@
             });
           }
           var s = document.createElement("script");
-          s.src = "./mobile-app-shell.js?v=20260508lean6";
+          s.src = "./mobile-app-shell.js?v=20260508lean7";
           s.defer = true;
           document.body.appendChild(s);
         } catch (e) {}
