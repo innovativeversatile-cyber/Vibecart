@@ -1,17 +1,16 @@
 ---
-description: After VibeCart edits, sync deploy mirrors, commit, and push so Netlify/Railway stay current.
+description: Always sync deploy mirrors after VibeCart material edits; ship when committing.
 alwaysApply: true
 ---
 
-# VibeCart — ship after material changes
+# VibeCart — always deploy (sync) after material changes
 
-When you finish a **user-visible or deployable** change under this repo (HTML, CSS, client JS, `mobile-app-shell.js`, `deploy-web/`, `vibecart-netlify/`, static assets, or anything that should be live on production):
+**Default:** After **any** edit that affects the static site or mobile shell (HTML, CSS, client JS, `mobile-app-shell.js`, `service-worker.js`, root assets mirrored to `deploy-web/` / `vibecart-netlify/`), **always** run deploy sync before you stop. Do not hand off with root updated but mirrors stale.
 
-1. From repo root, run **`npm run deploy:sync`** so `deploy-web/` and `vibecart-netlify/` match sources (or use **`npm run ship -- "clear message"`** to sync + commit + push in one step).
-2. **`git add`** all intended paths (including sync outputs if they changed).
-3. **`git commit`** with a short, accurate message (not a vague “updates”).
-4. **`git push origin`** to the current default branch (usually `main`) so CI/Netlify can deploy.
+1. From **`vibecart/`** repo root, run **`npm run deploy`** (alias for **`npm run deploy:sync`**) so `deploy-web/` and `vibecart-netlify/` match sources.
+2. To sync **and** commit **and** push in one step: **`npm run ship -- "clear message"`** (ship runs deploy sync first).
+3. If you commit manually: **`git add`** all intended paths (including sync outputs), **`git commit`**, **`git push origin`** (usually `main`) so Netlify/deploy stay current.
 
-Do **not** leave the tree dirty with production-bound fixes. Do **not** `git push --force` unless the user explicitly asks.
+Do **not** leave production-bound fixes only in root while `deploy-web/` is old. Do **not** `git push --force` unless the user explicitly asks.
 
-If the change is **exploratory only** or the user said **not** to push yet, skip push and say so.
+If the user said **not** to push yet, still run **`npm run deploy`** locally and say the tree is ready; skip push only then.

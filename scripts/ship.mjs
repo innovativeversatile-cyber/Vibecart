@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-step: refresh deploy-web + netlify mirrors, commit, push.
+ * One-step: npm run deploy (sync deploy-web + vibecart-netlify), commit, push.
  * Usage: npm run ship -- "your commit message"
  * With no message: chore: ship YYYY-MM-DD
  */
