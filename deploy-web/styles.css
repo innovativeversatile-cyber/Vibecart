@@ -6777,6 +6777,18 @@ html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai__micro {
   text-align: left;
 }
 
+/* Lean WOW home: pin Brandon bottom-left above the thumb zone (orb was ~234px from top — easy to miss). */
+html.vc-mobile-app body.vc-mobile-shell.vc-simple-wow-on:not(.health-coach-page):not(.start-selling-page) .vc-mobile-ai,
+html.vc-phone body.vc-mobile-shell.vc-simple-wow-on:not(.health-coach-page):not(.start-selling-page) .vc-mobile-ai {
+  top: auto;
+  bottom: calc(var(--vc-mobile-tab-h, 62px) + env(safe-area-inset-bottom, 0px) + 3.85rem);
+  left: 0.65rem;
+  right: auto;
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .vc-mobile-ai__orb:active {
   transform: scale(0.9);
 }
@@ -12061,7 +12073,9 @@ body.vc-auto-calm .vc-post-hero-scroll-prompt__trigger {
   box-shadow: 0 20px 42px rgba(5, 6, 18, 0.52);
 }
 
-body.vc-intro-blocking .vc-mobile-ai {
+/* Brandon z-index is above the cinematic overlay — hide only during real full-screen intros. */
+body.vc-cine-active .vc-mobile-ai,
+body.vc-intro-blocking:not(.vc-cine-active) .vc-mobile-ai {
   display: none !important;
 }
 
