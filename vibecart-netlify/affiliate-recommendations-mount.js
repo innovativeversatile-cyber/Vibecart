@@ -112,6 +112,20 @@
         cap.textContent = String((item && item.label) || (cfg && cfg.advertiser) || "Partner");
         a.appendChild(cap);
       } else {
+        var productImg = String((item && item.productImageUrl) || "").trim();
+        if (productImg) {
+          var hero = document.createElement("img");
+          hero.className = "vc-affiliate-card__product-img";
+          hero.src = productImg;
+          hero.alt = String((item && item.label) || "Partner product");
+          hero.loading = "lazy";
+          hero.decoding = "async";
+          hero.addEventListener("error", function () {
+            hero.src =
+              "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=900&h=500&q=75";
+          });
+          a.appendChild(hero);
+        }
         var lab = document.createElement("span");
         lab.className = "vc-affiliate-card__label";
         lab.textContent = String((item && item.label) || "Shop");

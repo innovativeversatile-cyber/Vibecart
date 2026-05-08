@@ -244,31 +244,10 @@
   }
 
   function restartCarousel() {
-    if (!trendTrack) {
-      return;
-    }
     if (carouselTimer) {
       clearInterval(carouselTimer);
       carouselTimer = null;
     }
-    carouselIndex = 0;
-    carouselTimer = window.setInterval(function () {
-      var slides = trendTrack.querySelectorAll(".vc-hot-ai-slide");
-      if (!slides.length) {
-        return;
-      }
-      if (Date.now() < carouselUserHoldUntil || document.hidden || !trendTrackVisible) {
-        return;
-      }
-      carouselIndex = (carouselIndex + 1) % slides.length;
-      var el = slides[carouselIndex];
-      try {
-        var left = el.offsetLeft - Math.max((trendTrack.clientWidth - el.clientWidth) / 2, 0);
-        trendTrack.scrollTo({ left: Math.max(left, 0), behavior: "smooth" });
-      } catch {
-        /* ignore */
-      }
-    }, CAROUSEL_STEP_MS);
   }
 
   function holdCarouselFor(ms) {

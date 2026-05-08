@@ -3785,6 +3785,15 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   letter-spacing: 0.01em;
 }
 
+.vc-affiliate-rec-section .vc-affiliate-card__product-img {
+  width: 100%;
+  height: 116px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .vc-affiliate-rec-section .vc-affiliate-card__desc {
   font-size: 0.72rem;
   line-height: 1.35;
@@ -7713,15 +7722,16 @@ body.vc-my-business-dashboard #mb-client-service-desk {
   display: flex;
   gap: 0.65rem;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: none;
   padding: 0.15rem 0 0.35rem;
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
 .vc-hot-ai-slide {
   position: relative;
   flex: 0 0 min(88vw, 320px);
-  scroll-snap-align: center;
+  scroll-snap-align: none;
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
