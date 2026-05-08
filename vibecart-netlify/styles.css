@@ -11973,9 +11973,7 @@ html.vc-phone .shop-folder-card {
   max-width: calc(100vw - 44px) !important;
 }
 
-/* Remove floating overlays that sit over content and mimic "stuck" scroll. */
-html.vc-mobile-app .vc-mobile-ai,
-html.vc-phone .vc-mobile-ai,
+/* Lane badge only — Brandon must stay visible for routing (was incorrectly hiding .vc-mobile-ai everywhere). */
 html.vc-mobile-app .vc-cinematic-lane-badge,
 html.vc-phone .vc-cinematic-lane-badge {
   display: none !important;
