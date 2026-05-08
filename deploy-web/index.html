@@ -2425,13 +2425,19 @@
             st.textContent =
               "html.vc-hard-mobile-stable,html.vc-hard-mobile-stable body{overflow-x:clip!important;overscroll-behavior:none!important;}" +
               "html.vc-hard-mobile-stable main,html.vc-hard-mobile-stable .section,html.vc-hard-mobile-stable .alt,html.vc-hard-mobile-stable .hero,html.vc-hard-mobile-stable .vc-mobile-rail-section,html.vc-hard-mobile-stable .vc-mobile-chapter-deck{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}" +
+              "html.vc-hard-mobile-stable .vc-horizontal-only{display:block!important;}" +
               "html.vc-hard-mobile-stable .vc-mobile-ai,html.vc-hard-mobile-stable .vc-cinematic-lane-badge{display:none!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail,html.vc-hard-mobile-stable .vc-story-rail,html.vc-hard-mobile-stable .vc-hot-ai-track,html.vc-hard-mobile-stable .shop-folder-landing{width:100%!important;max-width:100%!important;overflow-x:auto!important;touch-action:pan-x!important;overscroll-behavior-x:contain!important;}";
+              "html.vc-hard-mobile-stable .vc-mobile-rail,html.vc-hard-mobile-stable .vc-story-rail,html.vc-hard-mobile-stable .vc-hot-ai-track,html.vc-hard-mobile-stable .shop-folder-landing{width:100%!important;max-width:100%!important;overflow-x:auto!important;touch-action:pan-x!important;overscroll-behavior-x:contain!important;}" +
+              "html.vc-hard-mobile-stable .vc-mobile-rail-card,html.vc-hard-mobile-stable .shop-folder-card{max-width:min(82vw,262px)!important;}";
             document.head.appendChild(st);
+            var chip = document.createElement("div");
+            chip.textContent = "Stable mobile v10";
+            chip.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:2147483647;background:rgba(12,12,24,.82);color:#cfd8ff;border:1px solid rgba(255,255,255,.2);padding:4px 8px;border-radius:999px;font:600 11px/1.2 system-ui;";
+            document.body.appendChild(chip);
             return;
           }
           var s = document.createElement("script");
-          s.src = "./mobile-app-shell.js?v=20260508phonefix9";
+          s.src = "./mobile-app-shell.js?v=20260508phonefix10";
           s.defer = true;
           document.body.appendChild(s);
         } catch (e) {}
