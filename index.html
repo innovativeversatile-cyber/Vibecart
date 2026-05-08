@@ -2431,9 +2431,41 @@
               "html.vc-hard-mobile-stable .vc-mobile-rail-card,html.vc-hard-mobile-stable .shop-folder-card{max-width:min(82vw,262px)!important;}";
             document.head.appendChild(st);
             var chip = document.createElement("div");
-            chip.textContent = "Stable mobile v11";
+            chip.textContent = "Stable mobile v12";
             chip.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:2147483647;background:rgba(12,12,24,.82);color:#cfd8ff;border:1px solid rgba(255,255,255,.2);padding:4px 8px;border-radius:999px;font:600 11px/1.2 system-ui;";
             document.body.appendChild(chip);
+            var rails = document.querySelectorAll(".vc-mobile-rail,.vc-story-rail,.vc-hot-ai-track,.shop-folder-landing");
+            rails.forEach(function (rail) {
+              var sx = 0, sy = 0, locked = "";
+              rail.addEventListener("touchstart", function (ev) {
+                var t = ev.touches && ev.touches[0];
+                if (!t) return;
+                sx = Number(t.clientX || 0);
+                sy = Number(t.clientY || 0);
+                locked = "";
+                rail.style.overflowX = "auto";
+              }, { passive: true });
+              rail.addEventListener("touchmove", function (ev) {
+                var t = ev.touches && ev.touches[0];
+                if (!t) return;
+                var dx = Math.abs(Number(t.clientX || 0) - sx);
+                var dy = Math.abs(Number(t.clientY || 0) - sy);
+                if (!locked && (dx > 8 || dy > 8)) {
+                  locked = dx > dy ? "x" : "y";
+                }
+                if (locked === "y") {
+                  rail.style.overflowX = "hidden";
+                } else if (locked === "x") {
+                  rail.style.overflowX = "auto";
+                }
+              }, { passive: true });
+              rail.addEventListener("touchend", function () {
+                rail.style.overflowX = "auto";
+              }, { passive: true });
+              rail.addEventListener("touchcancel", function () {
+                rail.style.overflowX = "auto";
+              }, { passive: true });
+            });
             return;
           }
           var s = document.createElement("script");
