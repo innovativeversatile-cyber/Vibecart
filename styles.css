@@ -11921,6 +11921,18 @@ html.vc-phone .vc-edge-lane::before {
   display: none !important;
 }
 
+/* Disable post-hero continue-scroll gate on phone layouts (was causing sticky/freezing scroll). */
+html.vc-mobile-app .vc-post-hero-scroll-prompt,
+html.vc-mobile-app .vc-cinematic-concierge-rail,
+html.vc-phone .vc-post-hero-scroll-prompt,
+html.vc-phone .vc-cinematic-concierge-rail {
+  display: none !important;
+}
+html.vc-mobile-app .vc-post-hero-hidden,
+html.vc-phone .vc-post-hero-hidden {
+  display: initial !important;
+}
+
 body.vc-one-moment-flow #vcFirst5Proof,
 body.vc-one-moment-flow #vcFirst5AiLine,
 body.vc-one-moment-flow #vcFirst5Urgency,
