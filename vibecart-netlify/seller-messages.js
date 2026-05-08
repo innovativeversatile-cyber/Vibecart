@@ -77,7 +77,7 @@
               return null;
             }
             return navigator.serviceWorker
-              .register("./service-worker.js", { scope: "./" })
+              .register("./service-worker.js?v=20260510lean11", { scope: "./" })
               .then(function (reg) {
                 return reg.pushManager
                   .getSubscription()

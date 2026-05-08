@@ -3376,6 +3376,7 @@
       var on = isSimpleWowModeEnabled();
       btn.textContent = on ? "WOW mode: ON" : "WOW mode: OFF";
       btn.setAttribute("aria-pressed", on ? "true" : "false");
+      btn.setAttribute("aria-label", on ? "WOW mode on, tap to turn off" : "WOW mode off, tap to turn on");
       btn.classList.toggle("is-off", !on);
     }
     btn.addEventListener("click", function () {
