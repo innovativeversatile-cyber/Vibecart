@@ -185,7 +185,7 @@
         }
         setNote("Working…");
         navigator.serviceWorker
-          .register("./service-worker.js?v=20260510lean11")
+          .register("./service-worker.js?v=20260510lean14")
           .then(function (reg) {
             return reg.pushManager.getSubscription().then(function (existing) {
               if (existing) return existing;
@@ -433,7 +433,7 @@
       .then(function (j) {
         var publicKey = String((j && j.publicKey) || "").trim();
         if (!publicKey) return null;
-        return navigator.serviceWorker.register("./service-worker.js?v=20260510lean11").then(function (reg) {
+        return navigator.serviceWorker.register("./service-worker.js?v=20260510lean14").then(function (reg) {
           return reg.pushManager.getSubscription().then(function (existing) {
             if (existing) return existing;
             return reg.pushManager.subscribe({

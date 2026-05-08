@@ -2148,7 +2148,7 @@
     if (!("serviceWorker" in navigator)) return;
     // Register for installability + offline shell. Bump ?v= when service-worker.js CACHE_NAME changes.
     navigator.serviceWorker
-      .register("./service-worker.js?v=20260510lean11")
+      .register("./service-worker.js?v=20260510lean14")
       .then(function (reg) {
         try {
           if (reg && typeof reg.update === "function") reg.update();
@@ -2761,7 +2761,12 @@
     btn.className = "vc-hardpass-uxbar-btn vc-hardpass-uxbar-btn-immersive";
     btn.setAttribute("aria-pressed", "false");
     btn.textContent = "Immersive";
-    bar.appendChild(btn);
+    var statusSlot = document.getElementById("vcHardPassUxStatus");
+    if (statusSlot && statusSlot.parentNode === bar) {
+      bar.insertBefore(btn, statusSlot);
+    } else {
+      bar.appendChild(btn);
+    }
     var IMM_KEY = "vibecart-hardpass-immersive-v1";
     function readImmersive() {
       try {
@@ -3160,6 +3165,20 @@
     safeInit("initDeadEndLinkGuardLite", initDeadEndLinkGuardLite);
     applySellerGrowthWorkspaceDeepLinkAfterHomeInit();
     vcSignalReactNativePaintReadyFromLite();
+    /* Mobile shell + cinematic can reorder hero late; remount hard-pass chrome if it never appeared. */
+    function retryHardPassMount() {
+      try {
+        if (!document.querySelector(".hero-copy")) return;
+        if (document.getElementById("vcHardPassUxBar")) return;
+        if (featureOn("hardPass_trustSignals_v1")) safeInit("initHardPassTrustSignalsLite", initHardPassTrustSignalsLite);
+        if (featureOn("hardPass_guidedUx_v1")) safeInit("initHardPassGuidedExpressLite", initHardPassGuidedExpressLite);
+        if (featureOn("hardPass_immersiveMode_v1")) safeInit("initHardPassImmersiveModeLite", initHardPassImmersiveModeLite);
+      } catch {
+        /* ignore */
+      }
+    }
+    window.setTimeout(retryHardPassMount, 1100);
+    window.setTimeout(retryHardPassMount, 3800);
   }
 
   function applySellerGrowthWorkspaceDeepLinkAfterHomeInit() {

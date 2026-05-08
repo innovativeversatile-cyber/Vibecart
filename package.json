@@ -21,6 +21,7 @@
     "health": "node -e \"const u='https://vibe-cart.com/api/health';fetch(u).then(r=>r.text().then(t=>console.log('OK',u,r.status,t.slice(0,100)))).catch(e=>{console.error(e);process.exit(1);})\"",
     "deploy": "node scripts/sync-deploy-web.mjs",
     "deploy:sync": "node scripts/sync-deploy-web.mjs",
+    "build": "node scripts/sync-deploy-web.mjs",
     "ship": "node scripts/ship.mjs",
     "health:proxy": "node scripts/check-api-proxy.mjs",
     "health:dns": "node scripts/diagnose-vibe-cart-dns.mjs",

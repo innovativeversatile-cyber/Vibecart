@@ -1954,7 +1954,7 @@
     }
   }
 
-  function initFirstFiveWowExperience() {
+  function initFirstFiveWowExperience(forceAfterCinematic) {
     var isMobileShell =
       document.documentElement.classList.contains("vc-mobile-app") ||
       document.documentElement.classList.contains("vc-phone");
@@ -1974,17 +1974,27 @@
     try {
       // Only block on the cinematic close event when the opener actually mounted.
       // Otherwise WOW-off / skipped opener / stale session keys would wait forever and strand first‑5 + intro UI.
-      var cineActive = !!document.getElementById("vcThreeSecondCinematic");
+      var cineActive = !forceAfterCinematic && !!document.getElementById("vcThreeSecondCinematic");
       if (cineActive) {
+        var cineTimer = null;
+        var ran = false;
         var runAfterCine = function () {
-          window.removeEventListener("vibecart-cinematic-done", runAfterCine);
+          if (ran) return;
+          ran = true;
+          if (cineTimer) window.clearTimeout(cineTimer);
           try {
-            initFirstFiveWowExperience();
+            window.removeEventListener("vibecart-cinematic-done", runAfterCine);
+          } catch {
+            /* ignore */
+          }
+          try {
+            initFirstFiveWowExperience(true);
           } catch {
             /* ignore */
           }
         };
         window.addEventListener("vibecart-cinematic-done", runAfterCine, { once: true });
+        cineTimer = window.setTimeout(runAfterCine, 7200);
         return;
       }
     } catch {
@@ -3313,6 +3323,7 @@
     if (document.getElementById("vcSimpleWowEntry")) return;
     var mount = document.querySelector("main") || document.body;
     if (!mount) return;
+    var heroEl = document.querySelector("main .hero") || document.querySelector(".hero");
     var card = document.createElement("section");
     card.id = "vcSimpleWowEntry";
     card.className = "vc-simple-wow-entry";
@@ -3352,7 +3363,12 @@
       "<span>Fast routes by Brandon AI</span>" +
       "<span>Global + local options</span>" +
       "</div>";
-    mount.insertBefore(card, mount.firstChild || null);
+    /* Keep the cinematic hero (density bar, live pulse, trust lane) first — simple grid sits just under it. */
+    if (heroEl && heroEl.parentNode) {
+      heroEl.parentNode.insertBefore(card, heroEl.nextSibling);
+    } else {
+      mount.insertBefore(card, mount.firstChild || null);
+    }
     card.querySelectorAll("[data-vc-wow-intent]").forEach(function (el) {
       el.addEventListener("click", function () {
         try {
@@ -4191,7 +4207,7 @@
 
   function runMobileHudPack() {
     resetWowLaneVisualArtifacts();
-    /* Lean pack: hero polish + audio unlock + Simple/WOW sticker + WOW entry + welcome cinematic only. */
+    /* WOW home: lean opener + restored hero richness (trust snapshot, first‑5 / starter pack, name whisper, lane chrome). Heavy sticker HUD still gated by mountHeavyMobileStickers(). */
     enhanceHero();
     initCinematicAudioUnlock();
     initSimpleWowUserSticker();
@@ -4204,6 +4220,50 @@
     }
     initSimpleWowEntry();
     initThreeSecondCinematicOpener();
+    if (isSimpleWowLandingPage()) {
+      try {
+        document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+      } catch {
+        /* ignore */
+      }
+      initMindBlowingCalmFlow();
+      initGoosebumpsPack();
+      initMobileFocusMode();
+      initThumbFlowBoost();
+      initTrustSnapshotCard();
+      initShockHeroCinematic();
+      initCinematicLaneBadge();
+      initFirstFiveWowExperience();
+      try {
+        initBrandonGhostAssistMode();
+      } catch {
+        /* ignore */
+      }
+      window.setTimeout(function () {
+        try {
+          initFirstFiveWowExperience(true);
+        } catch {
+          /* ignore */
+        }
+      }, 4200);
+    }
+    var heavy = mountHeavyMobileStickers();
+    if (heavy) {
+      initDailyStreakChip();
+      initStoryRail();
+      initSwipeSaveDeals();
+      initSocialPulseTicker();
+      initInboxPulse();
+      initMissionHud();
+      initDealDraftComposer();
+      initQuickActionSheet();
+      initVibeThemeSwitch();
+      initFirstFiveSecondsBar();
+      initMotionModeToggle();
+      initSmartPrefetch();
+      initFloatingActionHub();
+      initFloatingControlLayout();
+    }
     teardownVcScrollGateAndPrompts();
   }
 

@@ -6953,6 +6953,21 @@ html.vc-brandon-universal .vc-mobile-ai__panel:not([hidden]) {
   line-height: 1.25;
   padding: 0.28rem 0.52rem;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.vc-first5-proof::after {
+  content: "";
+  width: 0.34rem;
+  height: 0.34rem;
+  border-radius: 50%;
+  background: #3cff9a;
+  box-shadow: 0 0 12px rgba(60, 255, 154, 0.78);
+  flex-shrink: 0;
 }
 
 .vc-first5-ai-line {

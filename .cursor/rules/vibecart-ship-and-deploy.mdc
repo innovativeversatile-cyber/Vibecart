@@ -5,9 +5,11 @@ alwaysApply: true
 
 # VibeCart — always deploy (sync) after material changes
 
+**Mandatory final step:** When this rule applies, **always** end by running **`npm run deploy`** from **`vibecart/`** in the terminal—even if you only changed one file, even if mirrors look fine, even if Netlify runs sync in CI. Local mirrors must never lag the canonical tree you edited.
+
 **Default:** After **any** edit that affects the static site or mobile shell (HTML, CSS, client JS, `mobile-app-shell.js`, `service-worker.js`, root assets mirrored to `deploy-web/` / `vibecart-netlify/`), **always** run deploy sync before you stop. Do not hand off with root updated but mirrors stale.
 
-1. From **`vibecart/`** repo root, run **`npm run deploy`** (alias for **`npm run deploy:sync`**) so `deploy-web/` and `vibecart-netlify/` match sources.
+1. From **`vibecart/`** repo root, run **`npm run deploy`** (alias for **`npm run deploy:sync`** and **`npm run build`**) so `deploy-web/` and `vibecart-netlify/` match sources.
 2. To sync **and** commit **and** push in one step: **`npm run ship -- "clear message"`** (ship runs deploy sync first).
 3. If you commit manually: **`git add`** all intended paths (including sync outputs), **`git commit`**, **`git push origin`** (usually `main`) so Netlify/deploy stay current.
 
