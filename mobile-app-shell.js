@@ -33,6 +33,8 @@
         if (isStandaloneLikeApp() && !root.classList.contains("vc-mobile-app")) {
           root.classList.add("vc-mobile-app");
         }
+      } else if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
+        root.classList.add("vc-phone");
       }
     } catch {
       /* ignore */
@@ -3632,6 +3634,21 @@
     window.addEventListener("click", unlock, true);
   }
 
+  function teardownVcScrollGateAndPrompts() {
+    try {
+      initPostHeroScrollPrompt();
+    } catch {
+      /* ignore */
+    }
+    try {
+      document.querySelectorAll(".vc-post-hero-hidden").forEach(function (el) {
+        el.classList.remove("vc-post-hero-hidden");
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
   function initPostHeroScrollPrompt() {
     // Disabled: this prompt introduced a scroll gate that could trap touch scroll on phones.
     var existing = document.getElementById("vcPostHeroScrollPrompt");
@@ -4149,21 +4166,9 @@
 
   function runMobileHudPack() {
     resetWowLaneVisualArtifacts();
-    var onboardingBtn = document.getElementById("openOnboarding");
-    if (onboardingBtn && onboardingBtn.getAttribute("data-vc-shell-nav") !== "1") {
-      onboardingBtn.setAttribute("data-vc-shell-nav", "1");
-      onboardingBtn.textContent = "Health coach";
-      onboardingBtn.setAttribute("data-i18n", "nav.wellbeing");
-      onboardingBtn.addEventListener("click", function (ev) {
-        ev.preventDefault();
-        window.location.assign("./wellbeing.html");
-      });
-    }
+    /* Lean pack: hero polish + audio unlock + Simple/WOW sticker + WOW entry + welcome cinematic only. */
     enhanceHero();
     initCinematicAudioUnlock();
-    initMindBlowingCalmFlow();
-    initGoosebumpsPack();
-    document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
     initSimpleWowUserSticker();
     if (isSimpleWowModeEnabled()) {
       document.body.classList.add("vc-simple-wow-on");
@@ -4172,50 +4177,9 @@
       document.body.classList.remove("vc-simple-wow-on");
       document.body.classList.remove("vc-v3-wow");
     }
-    initMobileFocusMode();
-    initThumbFlowBoost();
-    initTrustSnapshotCard();
     initSimpleWowEntry();
     initThreeSecondCinematicOpener();
-    initShockHeroCinematic();
-    initCinematicLaneBadge();
-    initCinematicConciergeRail();
-    initPostHeroScrollPrompt();
-    // Re-apply placement after late layout shifts from async cards/widgets.
-    window.setTimeout(function () {
-      try {
-        initCinematicConciergeRail();
-        initPostHeroScrollPrompt();
-      } catch {
-        /* ignore */
-      }
-    }, 900);
-    // Remove the post-cinematic welcome sheet; keep only wow lane prompt sequence.
-    try {
-      var staleWelcome = document.getElementById("vcMobileWelcomeSheet");
-      if (staleWelcome && staleWelcome.parentNode) staleWelcome.parentNode.removeChild(staleWelcome);
-    } catch {
-      /* ignore */
-    }
-    initFirstFiveWowExperience();
-    initBrandonGhostAssistMode();
-    var heavy = mountHeavyMobileStickers();
-    if (heavy) {
-      initDailyStreakChip();
-      initStoryRail();
-      initSwipeSaveDeals();
-      initSocialPulseTicker();
-      initInboxPulse();
-      initMissionHud();
-      initDealDraftComposer();
-      initQuickActionSheet();
-      initVibeThemeSwitch();
-      initFirstFiveSecondsBar();
-      initMotionModeToggle();
-      initSmartPrefetch();
-      initFloatingActionHub();
-      initFloatingControlLayout();
-    }
+    teardownVcScrollGateAndPrompts();
   }
 
   function initCinematicLaneBadge() {

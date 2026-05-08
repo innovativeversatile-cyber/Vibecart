@@ -33,6 +33,8 @@
         if (isStandaloneLikeApp() && !root.classList.contains("vc-mobile-app")) {
           root.classList.add("vc-mobile-app");
         }
+      } else if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
+        root.classList.add("vc-phone");
       }
     } catch {
       /* ignore */
@@ -3632,6 +3634,21 @@
     window.addEventListener("click", unlock, true);
   }
 
+  function teardownVcScrollGateAndPrompts() {
+    try {
+      initPostHeroScrollPrompt();
+    } catch {
+      /* ignore */
+    }
+    try {
+      document.querySelectorAll(".vc-post-hero-hidden").forEach(function (el) {
+        el.classList.remove("vc-post-hero-hidden");
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
   function initPostHeroScrollPrompt() {
     // Disabled: this prompt introduced a scroll gate that could trap touch scroll on phones.
     var existing = document.getElementById("vcPostHeroScrollPrompt");
@@ -4149,21 +4166,9 @@
 
   function runMobileHudPack() {
     resetWowLaneVisualArtifacts();
-    var onboardingBtn = document.getElementById("openOnboarding");
-    if (onboardingBtn && onboardingBtn.getAttribute("data-vc-shell-nav") !== "1") {
-      onboardingBtn.setAttribute("data-vc-shell-nav", "1");
-      onboardingBtn.textContent = "Health coach";
-      onboardingBtn.setAttribute("data-i18n", "nav.wellbeing");
-      onboardingBtn.addEventListener("click", function (ev) {
-        ev.preventDefault();
-        window.location.assign("./wellbeing.html");
-      });
-    }
+    /* Lean pack: hero polish + audio unlock + Simple/WOW sticker + WOW entry + welcome cinematic only. */
     enhanceHero();
     initCinematicAudioUnlock();
-    initMindBlowingCalmFlow();
-    initGoosebumpsPack();
-    document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
     initSimpleWowUserSticker();
     if (isSimpleWowModeEnabled()) {
       document.body.classList.add("vc-simple-wow-on");
@@ -4172,50 +4177,9 @@
       document.body.classList.remove("vc-simple-wow-on");
       document.body.classList.remove("vc-v3-wow");
     }
-    initMobileFocusMode();
-    initThumbFlowBoost();
-    initTrustSnapshotCard();
     initSimpleWowEntry();
     initThreeSecondCinematicOpener();
-    initShockHeroCinematic();
-    initCinematicLaneBadge();
-    initCinematicConciergeRail();
-    initPostHeroScrollPrompt();
-    // Re-apply placement after late layout shifts from async cards/widgets.
-    window.setTimeout(function () {
-      try {
-        initCinematicConciergeRail();
-        initPostHeroScrollPrompt();
-      } catch {
-        /* ignore */
-      }
-    }, 900);
-    // Remove the post-cinematic welcome sheet; keep only wow lane prompt sequence.
-    try {
-      var staleWelcome = document.getElementById("vcMobileWelcomeSheet");
-      if (staleWelcome && staleWelcome.parentNode) staleWelcome.parentNode.removeChild(staleWelcome);
-    } catch {
-      /* ignore */
-    }
-    initFirstFiveWowExperience();
-    initBrandonGhostAssistMode();
-    var heavy = mountHeavyMobileStickers();
-    if (heavy) {
-      initDailyStreakChip();
-      initStoryRail();
-      initSwipeSaveDeals();
-      initSocialPulseTicker();
-      initInboxPulse();
-      initMissionHud();
-      initDealDraftComposer();
-      initQuickActionSheet();
-      initVibeThemeSwitch();
-      initFirstFiveSecondsBar();
-      initMotionModeToggle();
-      initSmartPrefetch();
-      initFloatingActionHub();
-      initFloatingControlLayout();
-    }
+    teardownVcScrollGateAndPrompts();
   }
 
   function initCinematicLaneBadge() {
@@ -4271,11 +4235,6 @@
     if (!isApp && !isPhone) {
       return;
     }
-    if (isApp || isPhone) {
-      applyNuclearMobileStability();
-      registerNativePushIfAvailable();
-      return;
-    }
     /* Health & coach lane: skip heavy HUD (Quick / mission / streak / deal rail) so checkout + matcher stay tappable.
        Still mount Brandon + reveal sections so the coach lane matches the rest of the app shell. */
     if (document.body && document.body.classList.contains("health-coach-page")) {
@@ -4328,86 +4287,6 @@
     registerNativePushIfAvailable();
   }
 
-  function applyNuclearMobileStability() {
-    try {
-      var root = document.documentElement;
-      if (root.classList.contains("vc-nuclear-mobile-fix")) {
-        return;
-      }
-      root.classList.add("vc-nuclear-mobile-fix");
-      if (document.body) {
-        document.body.classList.add("vc-mobile-shell");
-        document.body.classList.remove("vc-simple-wow-on");
-        document.body.classList.remove("vc-v3-wow");
-      }
-      try {
-        var lenis = window.__vibecartLenis;
-        if (lenis) {
-          if (typeof lenis.stop === "function") lenis.stop();
-          if (typeof lenis.destroy === "function") lenis.destroy();
-        }
-      } catch {
-        /* ignore */
-      }
-      var removeIds = [
-        "vc-mobile-ai",
-        "vcCinematicLaneBadge",
-        "vcCinematicConciergeRail",
-        "vcPostHeroScrollPrompt",
-        "vcActionHub",
-        "vcMissionHud",
-        "vcFirst5Bar",
-        "vcQuickActionTrigger",
-        "vcDealDraftComposer",
-        "vcQuickActionSheet"
-      ];
-      removeIds.forEach(function (id) {
-        var node = document.getElementById(id);
-        if (node && node.parentNode) node.parentNode.removeChild(node);
-      });
-      document.querySelectorAll(".vc-post-hero-hidden").forEach(function (el) {
-        el.classList.remove("vc-post-hero-hidden");
-      });
-      bindRailSwipeGuard();
-    } catch {
-      /* ignore */
-    }
-  }
-
-  function bindRailSwipeGuard() {
-    var rails = Array.from(document.querySelectorAll(".vc-mobile-rail"));
-    rails.forEach(function (rail) {
-      if (!rail || rail.getAttribute("data-vc-swipe-guard") === "1") return;
-      rail.setAttribute("data-vc-swipe-guard", "1");
-      var startX = 0;
-      var startY = 0;
-      var moved = false;
-      rail.addEventListener("touchstart", function (ev) {
-        var t = ev.touches && ev.touches[0];
-        if (!t) return;
-        startX = Number(t.clientX || 0);
-        startY = Number(t.clientY || 0);
-        moved = false;
-      }, { passive: true });
-      rail.addEventListener("touchmove", function (ev) {
-        var t = ev.touches && ev.touches[0];
-        if (!t) return;
-        var dx = Math.abs(Number(t.clientX || 0) - startX);
-        var dy = Math.abs(Number(t.clientY || 0) - startY);
-        if (dx > 8 || dy > 8) {
-          moved = true;
-        }
-      }, { passive: true });
-      rail.addEventListener("click", function (ev) {
-        if (!moved) return;
-        var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
-        if (!link) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-      }, true);
-    });
-  }
-
   window.addEventListener(
     "pageshow",
     function (ev) {
@@ -4425,9 +4304,6 @@
         if (!root.classList.contains("vc-mobile-app") && !root.classList.contains("vc-phone")) {
           return;
         }
-        applyNuclearMobileStability();
-        registerNativePushIfAvailable();
-        return;
         if (document.body && document.body.classList.contains("health-coach-page")) {
           if (root.classList.contains("vc-mobile-app")) {
             document.body.classList.add("vc-mobile-shell");
@@ -4478,9 +4354,6 @@
       if (!(root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone"))) {
         return;
       }
-      applyNuclearMobileStability();
-      registerNativePushIfAvailable();
-      return;
       if (document.body && document.body.classList.contains("health-coach-page")) {
         if (root.classList.contains("vc-mobile-app")) {
           document.body.classList.add("vc-mobile-shell");
