@@ -61,7 +61,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
-    <link rel="stylesheet" href="./styles.css?v=20260508phonefix6" />
+    <link rel="stylesheet" href="./styles.css?v=20260508phonefix7" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -2397,9 +2397,22 @@
     <script src="./session-device.js?v=20260501sess1"></script>
     <script src="./password-toggle.js?v=20260502pw1"></script>
     <script src="./analytics-visit.js?v=20260501visit1" defer></script>
-    <script src="./script-safe.js?v=20260506sellerboost1"></script>
+    <script>
+      (function () {
+        try {
+          var isMobileRuntime =
+            document.documentElement.classList.contains("vc-mobile-app") ||
+            document.documentElement.classList.contains("vc-phone") ||
+            (window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
+          if (isMobileRuntime) return;
+          var s = document.createElement("script");
+          s.src = "./script-safe.js?v=20260506sellerboost1";
+          document.body.appendChild(s);
+        } catch (e) {}
+      })();
+    </script>
     <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-    <script src="./mobile-app-shell.js?v=20260508phonefix6" defer></script>
+    <script src="./mobile-app-shell.js?v=20260508phonefix7" defer></script>
     <script>
       (function () {
         try {

@@ -12031,6 +12031,20 @@ html.vc-nuclear-mobile-fix .vc-mobile-chapter-deck,
 html.vc-nuclear-mobile-fix .vc-mobile-rail-section {
   overflow: hidden !important;
 }
+html.vc-nuclear-mobile-fix .vc-horizontal-only {
+  display: none !important;
+}
+html.vc-nuclear-mobile-fix .vc-mobile-rail,
+html.vc-nuclear-mobile-fix .vc-story-rail,
+html.vc-nuclear-mobile-fix .vc-hot-ai-track,
+html.vc-nuclear-mobile-fix .shop-folder-landing {
+  contain: layout paint style !important;
+}
+html.vc-nuclear-mobile-fix *,
+html.vc-nuclear-mobile-fix *::before,
+html.vc-nuclear-mobile-fix *::after {
+  max-width: 100vw !important;
+}
 html.vc-nuclear-mobile-fix .vc-mobile-rail-card,
 html.vc-nuclear-mobile-fix .shop-folder-card {
   max-width: calc(100vw - 44px) !important;
