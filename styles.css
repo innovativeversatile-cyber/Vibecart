@@ -5700,6 +5700,11 @@ body.admin-surface .section {
   display: none !important;
 }
 
+/* Fail-safe: onboarding modal is permanently disabled. */
+#onboardingModal {
+  display: none !important;
+}
+
 @media (max-width: 860px) {
   body {
     line-height: 1.5;
@@ -11916,6 +11921,13 @@ html.vc-phone .vc-edge-lane::before {
   display: none !important;
 }
 
+/* Disable post-hero continue-scroll gate on phone layouts (was causing sticky/freezing scroll). */
+html.vc-mobile-app .vc-post-hero-scroll-prompt,
+html.vc-mobile-app .vc-cinematic-concierge-rail,
+html.vc-phone .vc-post-hero-scroll-prompt,
+html.vc-phone .vc-cinematic-concierge-rail {
+  display: none !important;
+}
 html.vc-mobile-app .vc-post-hero-hidden,
 html.vc-phone .vc-post-hero-hidden {
   display: initial !important;

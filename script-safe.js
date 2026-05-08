@@ -412,7 +412,6 @@
 
     function initSafeHeroRouting() {
       var chipHint = document.getElementById("heroChipHint");
-      var coarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
       Array.prototype.slice.call(document.querySelectorAll(".hero-chip[data-hero-chip]")).forEach(function (chip) {
         chip.addEventListener("click", function () {
           var targetSelector = String(chip.getAttribute("data-hero-chip-target") || "").trim();
@@ -421,15 +420,7 @@
             chipHint.textContent = target ? "Jumping to section..." : "Section is unavailable right now.";
           }
           if (target) {
-            try {
-              target.scrollIntoView({ behavior: coarsePointer ? "auto" : "smooth", block: "start" });
-            } catch {
-              try {
-                target.scrollIntoView(true);
-              } catch {
-                /* ignore */
-              }
-            }
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
           }
         });
       });
@@ -525,132 +516,6 @@
       } catch {
         applyCategory("All");
       }
-    }
-
-    function initSafePathPersonaChooser() {
-      var PERSONA_PATH_KEY = "vibecart-path-persona";
-      var hint = document.getElementById("vcPersonaHint");
-      function personaHintKey(persona) {
-        if (persona === "buyer") {
-          return "pathChooser.hintBuyer";
-        }
-        if (persona === "seller") {
-          return "pathChooser.hintSeller";
-        }
-        return "pathChooser.hintCurious";
-      }
-      function applyPersonaHint(persona) {
-        if (!hint) {
-          return;
-        }
-        var i18n = window.VibeCartI18n;
-        var lang = "en";
-        try {
-          if (i18n && typeof i18n.getStored === "function") {
-            lang = i18n.getStored() || "en";
-          }
-        } catch {
-          lang = "en";
-        }
-        var text = i18n && i18n.t ? String(i18n.t(lang, personaHintKey(persona)) || "").trim() : "";
-        hint.textContent = text;
-        hint.hidden = !text;
-      }
-      function scrollToEl(el) {
-        if (!el) {
-          return;
-        }
-        var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
-        try {
-          el.scrollIntoView({ behavior: coarse ? "auto" : "smooth", block: "start" });
-        } catch {
-          try {
-            el.scrollIntoView(true);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-      Array.prototype.slice.call(document.querySelectorAll("[data-vc-persona]")).forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var persona = String(btn.getAttribute("data-vc-persona") || "curious").trim();
-          try {
-            localStorage.setItem(PERSONA_PATH_KEY, persona);
-          } catch {
-            /* ignore */
-          }
-          applyPersonaHint(persona);
-          if (persona === "curious") {
-            scrollToEl(document.getElementById("categories"));
-            return;
-          }
-          if (persona === "buyer") {
-            scrollToEl(document.getElementById("market"));
-            return;
-          }
-          if (persona === "seller") {
-            go("./sell-journey.html");
-          }
-        });
-      });
-      try {
-        var saved = localStorage.getItem(PERSONA_PATH_KEY);
-        if (saved === "buyer" || saved === "seller" || saved === "curious") {
-          applyPersonaHint(saved);
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-
-    function initSafeOnboardingTour() {
-      var modal = document.getElementById("onboardingModal");
-      var openBtn = document.getElementById("openOnboarding");
-      var textEl = document.getElementById("onboardingText");
-      var nextBtn = document.getElementById("onboardingNext");
-      var closeBtn = document.getElementById("onboardingClose");
-      if (!modal || !openBtn || !textEl || !nextBtn || !closeBtn) {
-        return;
-      }
-      var steps = [
-        "Welcome. This quick tour helps you shop safely, save money, and use trusted sellers.",
-        "Step 1: Start with Hot Picks and compare options quickly.",
-        "Step 2: Use AI Assistant for budget-safe product picks and compare options fast.",
-        "Step 3: Activate rewards by completing secure actions and on-time payments."
-      ];
-      var idx = 0;
-      function openModal() {
-        idx = 0;
-        textEl.textContent = steps[0];
-        modal.classList.remove("hidden");
-        modal.setAttribute("aria-hidden", "false");
-        try {
-          nextBtn.focus();
-        } catch {
-          /* ignore */
-        }
-      }
-      function closeModal() {
-        modal.classList.add("hidden");
-        modal.setAttribute("aria-hidden", "true");
-        try {
-          localStorage.setItem("vibecart-onboarding-done", "1");
-        } catch {
-          /* ignore */
-        }
-      }
-      openBtn.addEventListener("click", function () {
-        openModal();
-      });
-      nextBtn.addEventListener("click", function () {
-        if (idx >= steps.length - 1) {
-          closeModal();
-          return;
-        }
-        idx += 1;
-        textEl.textContent = steps[idx];
-      });
-      closeBtn.addEventListener("click", closeModal);
     }
 
     function initRegionalYouthMarketCards() {
@@ -1002,8 +867,6 @@
     bindGo("redeemReward", "./rewards-hub.html");
     initSafeAccountPassport();
     initSafeHeroRouting();
-    initSafePathPersonaChooser();
-    initSafeOnboardingTour();
     initMarketDeepLink();
     initSafeMarketFiltering();
     initRegionalYouthMarketCards();

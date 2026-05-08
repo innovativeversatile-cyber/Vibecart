@@ -22,15 +22,14 @@ import type { WebView as WebViewType } from "react-native-webview";
 
 const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
 const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
-const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','50px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='430px';b.style.margin='0 auto';b.style.minHeight='100dvh';b.style.overflowX='clip';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover');}var s=document.getElementById('vc-mobile-frame-fix');if(!s){s=document.createElement('style');s.id='vc-mobile-frame-fix';s.textContent='html.vc-mobile-app,html.vc-mobile-app body{overscroll-behavior-y:none!important;overscroll-behavior-x:none!important;-webkit-overflow-scrolling:auto;scroll-behavior:auto!important;}html.vc-mobile-app *{scroll-behavior:auto!important;}html.vc-mobile-app [class*=\"rail\"],html.vc-mobile-app [class*=\"deck\"],html.vc-mobile-app [class*=\"story\"]{scroll-snap-type:none!important;}';(document.head||d).appendChild(s);}}catch(e){}})();true;`;
+const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','50px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='430px';b.style.margin='0 auto';b.style.minHeight='100dvh';b.style.overflowX='clip';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover');}var s=document.getElementById('vc-mobile-frame-fix');if(!s){s=document.createElement('style');s.id='vc-mobile-frame-fix';s.textContent='html.vc-mobile-app,html.vc-mobile-app body{overscroll-behavior-y:none!important;overscroll-behavior-x:none!important;-webkit-overflow-scrolling:auto;scroll-behavior:auto!important;}html.vc-mobile-app *{scroll-behavior:auto!important;}html.vc-mobile-app .topbar,html.vc-mobile-app .global-market-sticky,html.vc-mobile-app .vc-post-hero-scroll-prompt{position:static!important;top:auto!important;}html.vc-mobile-app .vc-post-hero-scroll-prompt,html.vc-mobile-app .vc-cinematic-concierge-rail{display:none!important;}html.vc-mobile-app [class*=\"rail\"],html.vc-mobile-app [class*=\"deck\"],html.vc-mobile-app [class*=\"story\"]{scroll-snap-type:none!important;}';(document.head||d).appendChild(s);}}catch(e){}})();true;`;
 
-/** Hash + scroll intelligence: dock follows the section in view (IntersectionObserver). */
+/** Hash/path sync only (scroll-based state tracking removed for stability). */
 const INJECT_HASH_SYNC = `(function(){
   try {
     var RN = typeof window !== "undefined" && window.ReactNativeWebView;
     if (!RN || !RN.postMessage) return true;
     var last = "";
-    var debounce = 0;
     function send(k) {
       if (!k || k === last) return;
       last = k;
@@ -62,49 +61,6 @@ const INJECT_HASH_SYNC = `(function(){
       if (h === "insurance" || h === "buyer-advantages" || h === "tracking") return "home";
       return "home";
     }
-    function wireScrollSpy() {
-      var latest = new Map();
-      var map = [];
-      var hero = document.querySelector("main .hero");
-      if (hero) map.push({ el: hero, k: "home" });
-      [["shops","shops"],["bridge-routes","bridge"],["market","market"],["account-access","more"],["settings-hub","more"],["sell","more"],["rewards","market"],["categories","home"]].forEach(function (row) {
-        var el = document.getElementById(row[0]);
-        if (el) map.push({ el: el, k: row[1] });
-      });
-      if (!map.length) return;
-      function pick() {
-        var scores = { home: 0, shops: 0, bridge: 0, market: 0, more: 0 };
-        latest.forEach(function (r, el) {
-          var k = el.getAttribute("data-vc-track");
-          if (k) scores[k] = Math.max(scores[k] || 0, r);
-        });
-        var bestK = "home", bestV = -1;
-        Object.keys(scores).forEach(function (k) {
-          if (scores[k] > bestV) { bestV = scores[k]; bestK = k; }
-        });
-        if (bestV < 0.04) {
-          send(dockFromHash());
-          return;
-        }
-        send(bestK);
-      }
-      function schedule() {
-        if (debounce) clearTimeout(debounce);
-        debounce = setTimeout(pick, 120);
-      }
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) {
-          latest.set(en.target, en.intersectionRatio);
-        });
-        schedule();
-      }, { root: null, rootMargin: "-14% 0px -32% 0px", threshold: [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.45, 0.6, 0.75, 1] });
-      map.forEach(function (m) {
-        try {
-          m.el.setAttribute("data-vc-track", m.k);
-          obs.observe(m.el);
-        } catch (e) {}
-      });
-    }
     send(dockFromHash());
     window.addEventListener("hashchange", function () {
       send(dockFromHash());
@@ -115,11 +71,6 @@ const INJECT_HASH_SYNC = `(function(){
     document.addEventListener("visibilitychange", function () {
       if (!document.hidden) send(dockFromHash());
     });
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", wireScrollSpy);
-    } else {
-      wireScrollSpy();
-    }
   } catch (e) {}
   return true;
 })();`;
