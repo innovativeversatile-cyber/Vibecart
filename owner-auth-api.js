@@ -255,6 +255,9 @@ const COACH_WORKSPACE_AI_MAX = 32;
 const brandonGuideAiHits = new Map();
 const BRANDON_GUIDE_AI_WINDOW_MS = 60 * 60 * 1000;
 const BRANDON_GUIDE_AI_MAX = 48;
+const siteSeoPulseAiHits = new Map();
+const SITE_SEO_PULSE_AI_WINDOW_MS = 60 * 60 * 1000;
+const SITE_SEO_PULSE_AI_MAX = 36;
 const loginHits = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 /** Mutating requests only (GET/HEAD/OPTIONS are not counted). */
@@ -566,6 +569,19 @@ function isBrandonGuideAiRateLimited(ip) {
   item.count += 1;
   brandonGuideAiHits.set(key, item);
   return item.count > BRANDON_GUIDE_AI_MAX;
+}
+
+function isSiteSeoPulseAiRateLimited(ip) {
+  const key = String(ip || "unknown").slice(0, 80);
+  const now = Date.now();
+  const item = siteSeoPulseAiHits.get(key) || { count: 0, start: now };
+  if (now - item.start > SITE_SEO_PULSE_AI_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  siteSeoPulseAiHits.set(key, item);
+  return item.count > SITE_SEO_PULSE_AI_MAX;
 }
 
 function loginRateKey(ip, email) {
@@ -5752,6 +5768,7 @@ async function handlePublicAiGenerate(req, res) {
     "vibecoach_tip",
     "hot_picks_trends",
     "brandon_guide",
+    "site_seo_pulse",
     "mb_studio_suite",
     "provider_dashboard_sections"
   ]);
@@ -5774,6 +5791,15 @@ async function handlePublicAiGenerate(req, res) {
         ok: false,
         code: "RATE_LIMITED",
         message: "Plan workspace AI is temporarily limited for this network. Try again shortly or use the on-page template."
+      });
+    }
+  }
+  if (agent === "site_seo_pulse") {
+    if (isSiteSeoPulseAiRateLimited(ip)) {
+      return sendJson(res, 429, {
+        ok: false,
+        code: "RATE_LIMITED",
+        message: "SEO discovery pulse is temporarily limited for this network. Try again later."
       });
     }
   }

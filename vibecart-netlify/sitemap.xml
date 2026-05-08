@@ -2,248 +2,290 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://vibe-cart.com/</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/policy.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/account-hub.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <priority>0.86</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/terms.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/account-welcome.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.75</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/privacy.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/affiliate-dashboard.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.65</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/shops-europe.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/audience-fit.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/shops-mama-africa.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/best-bargains.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/shops-asia.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/books-study-deals.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/shops-scents.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/bridge-hub.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.86</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/shops-global.html</loc>
-    <lastmod>2026-04-18</lastmod>
+    <loc>https://vibe-cart.com/browse-categories.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/service-provider-hub.html</loc>
-    <lastmod>2026-04-24</lastmod>
+    <loc>https://vibe-cart.com/buy-journey.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/wellbeing.html</loc>
-    <lastmod>2026-04-24</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.76</priority>
+    <priority>0.86</priority>
   </url>
   <url>
     <loc>https://vibe-cart.com/coach-experience.html</loc>
-    <lastmod>2026-04-24</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/seller-boost.html</loc>
-    <lastmod>2026-04-24</lastmod>
+    <loc>https://vibe-cart.com/electronics-deals.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.71</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/sell-journey.html</loc>
-    <lastmod>2026-04-24</lastmod>
+    <loc>https://vibe-cart.com/fashion-deals.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.71</priority>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/fashion-trends.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/global-market.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/global-search.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
   </url>
   <url>
     <loc>https://vibe-cart.com/hot-picks.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.92</priority>
   </url>
   <url>
+    <loc>https://vibe-cart.com/index.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.00</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/insurance.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/lane-welcome.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/legal-settings.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
     <loc>https://vibe-cart.com/live-market-shops.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.92</priority>
   </url>
   <url>
     <loc>https://vibe-cart.com/live-market.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.80</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/account-hub.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <loc>https://vibe-cart.com/marketplace-buy.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.86</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/lane-passport.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <loc>https://vibe-cart.com/my-business.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.78</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/global-search.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <loc>https://vibe-cart.com/my-listings.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/buy-journey.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.82</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/browse-categories.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.74</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/regional-shops.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.86</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/bridge-hub.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.74</priority>
+    <priority>0.70</priority>
   </url>
   <url>
     <loc>https://vibe-cart.com/orders-tracking.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/checkout-details.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/payment-confirmation.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.62</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/world-shop-experience.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.78</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/security-overview.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.68</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/insurance.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.72</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/rewards-hub.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/popular-market.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.74</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/fashion-trends.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.74</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/legal-settings.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.64</priority>
+    <priority>0.70</priority>
   </url>
   <url>
     <loc>https://vibe-cart.com/passport-welcome.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.64</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/account-welcome.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.64</priority>
-  </url>
-  <url>
-    <loc>https://vibe-cart.com/affiliate-dashboard.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.64</priority>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
   </url>
   <url>
     <loc>https://vibe-cart.com/plan-workspace.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.66</priority>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/top-class-checkout.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <loc>https://vibe-cart.com/policy.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.62</priority>
+    <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/audience-fit.html</loc>
-    <lastmod>2026-05-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://vibe-cart.com/popular-market.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://vibe-cart.com/lane-welcome.html</loc>
-    <lastmod>2026-05-01</lastmod>
+    <loc>https://vibe-cart.com/privacy.html</loc>
+    <lastmod>2026-05-08</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.64</priority>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/regional-shops.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.86</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/rewards-hub.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/security-overview.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/sell-journey.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.86</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-boost.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-bridge-toolkit.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-growth-workspace.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-live-preview.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-messages.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-orders.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/seller-payments.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/service-provider-hub.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/shop-hub.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/terms.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/wellbeing.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.80</priority>
+  </url>
+  <url>
+    <loc>https://vibe-cart.com/world-shop-experience.html</loc>
+    <lastmod>2026-05-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.70</priority>
   </url>
 </urlset>

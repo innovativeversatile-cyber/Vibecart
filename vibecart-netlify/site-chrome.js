@@ -305,6 +305,39 @@
     paint();
   }
 
+  /** Off-site http(s) links open a new tab so the VibeCart tab stays active. Add data-vc-same-tab="1" to keep default. */
+  function initOffsiteLinksNewTab() {
+    if (!document.body || document.body.getAttribute("data-vc-offsite-tab") === "1") return;
+    document.body.setAttribute("data-vc-offsite-tab", "1");
+    document.addEventListener(
+      "click",
+      function (event) {
+        if (event.defaultPrevented) return;
+        var anchor = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+        if (!anchor || anchor.getAttribute("data-vc-same-tab") === "1") return;
+        var href = anchor.getAttribute("href");
+        if (!href || href.charAt(0) === "#") return;
+        if (/^javascript:/i.test(href)) return;
+        var rel0 = anchor.getAttribute("rel") || "";
+        if (/\bdownload\b/i.test(rel0)) return;
+        var url;
+        try {
+          url = new URL(anchor.href, window.location.href);
+        } catch {
+          return;
+        }
+        if (url.origin === window.location.origin) return;
+        if (!/^https?:$/i.test(url.protocol)) return;
+        anchor.target = "_blank";
+        var rel = (anchor.getAttribute("rel") || "").trim();
+        if (!/\bnoopener\b/i.test(rel)) {
+          anchor.setAttribute("rel", (rel + " noopener noreferrer").trim());
+        }
+      },
+      true
+    );
+  }
+
   function initDeadEndLinkGuard() {
     if (document.body.getAttribute("data-vc-deadend-guard") === "1") return;
     document.body.setAttribute("data-vc-deadend-guard", "1");
@@ -870,6 +903,7 @@
   initLaneScrollRestore();
   initTopbarAutoHide();
   initBackToTop();
+  initOffsiteLinksNewTab();
   initDeadEndLinkGuard();
   initUnstuckGuard();
   initRecoveryToastAndFetchGuard();
@@ -921,6 +955,143 @@
         loadScript(SHELL, bootBrandon);
       });
     }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
+})();
+
+(function scheduleSeoDiscoveryPulse() {
+  if (typeof window === "undefined" || window.__vcSeoPulseScheduled === "1") {
+    return;
+  }
+  window.__vcSeoPulseScheduled = "1";
+  function mergeKeywords(a, b) {
+    var seen = {};
+    var out = [];
+    function pushPart(s) {
+      String(s || "")
+        .split(/[,;]+/)
+        .forEach(function (x) {
+          var t = String(x || "").trim();
+          if (t.length < 2) return;
+          var low = t.toLowerCase();
+          if (seen[low]) return;
+          seen[low] = true;
+          out.push(t);
+        });
+    }
+    pushPart(a);
+    pushPart(b);
+    return out.join(", ");
+  }
+  var seoPulseTries = 0;
+  function run() {
+    seoPulseTries += 1;
+    if (typeof window.vibecartAiGenerate !== "function") {
+      if (seoPulseTries < 14) {
+        window.setTimeout(run, 2400);
+      }
+      return;
+    }
+    var path = "/";
+    try {
+      path = String(window.location.pathname || "/");
+    } catch {
+      path = "/";
+    }
+    var storageKey = "vc-seo-pulse-cache-v1:" + path.slice(0, 180);
+    try {
+      var raw = window.localStorage.getItem(storageKey);
+      if (raw) {
+        var prev = JSON.parse(raw);
+        if (prev && prev.at && Date.now() - Number(prev.at) < 432e5) return;
+      }
+    } catch {
+      /* ignore */
+    }
+    var meta = document.querySelector('meta[name="keywords"]');
+    var existing = (meta && meta.getAttribute("content")) || "";
+    window
+      .vibecartAiGenerate("site_seo_pulse", {
+        path: path.slice(0, 200),
+        title: String(document.title || "").slice(0, 200),
+        existingKeywords: existing.slice(0, 500)
+      })
+      .then(function (res) {
+        if (!res || !res.keywords) return;
+        var merged = mergeKeywords(existing, res.keywords).slice(0, 960);
+        if (!merged) return;
+        if (!meta) {
+          meta = document.createElement("meta");
+          meta.setAttribute("name", "keywords");
+          if (document.head) document.head.appendChild(meta);
+        }
+        if (meta) meta.setAttribute("content", merged);
+        try {
+          window.localStorage.setItem(storageKey, JSON.stringify({ at: Date.now(), keywords: merged }));
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(function () {
+        /* keep static head when API offline */
+      });
+  }
+  function boot() {
+    window.setTimeout(run, 4400);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+
+(function scheduleVisitorRetention() {
+  if (typeof window === "undefined" || window.__vcVisitorRetentionScheduled === "1") {
+    return;
+  }
+  window.__vcVisitorRetentionScheduled = "1";
+  var src = "./visitor-retention.js?v=20260508ret4";
+  function eligibleForRetention() {
+    try {
+      var p = String(location.pathname || "").toLowerCase();
+      if (
+        /checkout-details|payment-confirmation|coach-payment-recovery|top-class-checkout|admin\.html|admin-app|admin-messages|owner-access-kuda/.test(
+          p
+        )
+      ) {
+        return false;
+      }
+      var b = document.body;
+      if (!b) return false;
+      if (b.classList.contains("shops-lane-page")) return true;
+      if (b.classList.contains("vc-layout-exclusive") || b.classList.contains("vc-premium-unified")) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }
+  function inject() {
+    if (document.querySelector('script[src*="visitor-retention.js"]')) {
+      return;
+    }
+    if (window.__vcVisitorRetentionLoaded === "1") {
+      return;
+    }
+    if (!eligibleForRetention()) return;
+    var s = document.createElement("script");
+    s.src = src;
+    s.async = false;
+    s.defer = false;
+    s.charset = "utf-8";
+    s.onload = function () {
+      window.__vcVisitorRetentionLoaded = "1";
+    };
+    (document.body || document.documentElement).appendChild(s);
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", inject, { once: true });

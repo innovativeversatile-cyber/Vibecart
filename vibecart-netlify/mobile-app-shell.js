@@ -457,7 +457,7 @@
     function setMicro(text) {
       if (!micro) return;
       var next = String(text || "").slice(0, 120);
-      if (next === lastContextLine) return;
+      if (micro.textContent === next) return;
       lastContextLine = next;
       micro.textContent = next;
       lastMicroPromptAt = Date.now();
@@ -465,6 +465,15 @@
 
     function refreshMicroVisibility() {
       if (!micro) return;
+      try {
+        if (document.documentElement.classList.contains("vc-brandon-universal")) {
+          microHidden = false;
+          micro.style.display = "block";
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
       var y = 0;
       try {
         y = Number(window.scrollY || window.pageYOffset || 0);
@@ -1018,10 +1027,25 @@
           ]
         };
       }
-      if (/\b(hello|hi|hey|who are you|brandon|introduce)\b/.test(ask)) {
+      if (
+        /\b(hello|hi|hey|who are you|brandon|introduce|good morning|good afternoon|good evening|howdy|thanks|thank you|you there|are you there)\b/.test(
+          ask
+        )
+      ) {
+        var dn = "";
+        try {
+          dn = String(getUserDisplayName() || "").trim();
+        } catch {
+          dn = "";
+        }
+        var personal =
+          dn && dn.toLowerCase() !== "friend"
+            ? "Hey " + dn.slice(0, 48) + " — great to see you here. "
+            : "Hey — great to have you here. ";
         return {
           reply:
-            "I am Brandon — VibeCart's built-in guide. I map shopper and seller lanes on this site with fast taps. For shops outside VibeCart I link to Google Maps and trusted web search — never invented store URLs. I never handle passwords or payment fields, and I stay off owner admin. Say a goal: buy, sell, track, coach, region, or fashion.",
+            personal +
+            "I am Brandon, VibeCart's guide: I route buyers and sellers to the right page in one or two taps (live market, regional lanes, orders, wellbeing, sell journey). Ask in plain words what you want to do next — buy, sell, track, book a service, or pick a region — and I will line up the best shortcuts. I never collect passwords or card data.",
           actions: [
             { label: "Browse categories", href: "./browse-categories.html" },
             { label: "Regional shops", href: "./regional-shops.html" },
@@ -1307,6 +1331,13 @@
           path: (function () {
             try {
               return String(window.location.pathname || "").slice(0, 200);
+            } catch {
+              return "";
+            }
+          })(),
+          displayName: (function () {
+            try {
+              return String(getUserDisplayName() || "").trim().slice(0, 80);
             } catch {
               return "";
             }
@@ -1654,6 +1685,13 @@
     saveBtn?.addEventListener("click", function () {
       var text = ta && ta.value ? String(ta.value).trim() : "";
       if (!text) {
+        hardPressVibrate();
+        if (reply) {
+          reply.textContent =
+            "I am listening — type a short question (or try hello), then tap Ask Brandon. You can also use the chip buttons above.";
+          reply.hidden = false;
+        }
+        focusBrandonInput();
         return;
       }
       hardPressVibrate();
@@ -4113,7 +4151,6 @@
   function initBrandonGhostAssistMode() {
     var wrap = document.getElementById("vc-mobile-ai");
     if (!wrap) return;
-    wrap.classList.add("vc-mobile-ai--ghost");
     var orb = wrap.querySelector(".vc-mobile-ai__orb");
     var panel = wrap.querySelector(".vc-mobile-ai__panel");
     var micro = wrap.querySelector(".vc-mobile-ai__micro");
@@ -4122,6 +4159,7 @@
       wrap.classList.toggle("vc-mobile-ai--ghost", !!on);
       wrap.classList.toggle("vc-mobile-ai--awake", !on);
     }
+    setGhost(false);
     function pokeAssist(line) {
       setGhost(false);
       if (micro && line) micro.textContent = String(line).slice(0, 120);

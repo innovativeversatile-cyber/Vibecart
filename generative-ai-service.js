@@ -860,9 +860,13 @@ async function generateBrandonGuideLLM(input) {
   const recent = Array.isArray(input.recentQuestions)
     ? input.recentQuestions.map((x) => String(x || "").trim().slice(0, 200)).filter(Boolean).slice(-5)
     : [];
+  const displayName = String(input.displayName || "")
+    .trim()
+    .slice(0, 80);
   const system =
     "You are Brandon, VibeCart's in-app guide for the static marketplace site (buy/sell cross-border, live shop grids, coach lanes). " +
     "You do NOT browse the live web. Answer in clear English for the user's question. " +
+    "When JSON field displayName is a real first name or short name (not empty, not the word friend), greet them once by name in the opening clause, then continue with routing help. " +
     "Be decisively helpful: when several lanes could apply, pick the single clearest next step and the best matching `href` set; only mention a second path if it fits naturally in the same breath. " +
     "Be practical: one tight paragraph in `reply` (max ~820 characters), no markdown, no emojis—concrete next clicks over generic reassurance, present tense, warm and direct without hype. " +
     "If the question is broad, add one clarifying angle inside the same paragraph, then anchor navigation to the strongest destination. " +
@@ -881,6 +885,7 @@ async function generateBrandonGuideLLM(input) {
     currentPageUrl: pageUrl,
     currentPath: path,
     locale,
+    displayName: displayName || undefined,
     recentQuestions: recent,
     diversityNonce: String(Date.now()),
     siteMap: BRANDON_SITE_MAP
@@ -905,6 +910,39 @@ async function generateBrandonGuideLLM(input) {
   return { ok: true, reply: reply.slice(0, 900), actions };
 }
 
+async function generateSiteSeoPulseLLM(input) {
+  if (!isGenerativeAiConfigured()) {
+    return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
+  }
+  const path = String(input.path || "/").trim().slice(0, 200);
+  const title = String(input.title || "").trim().slice(0, 200);
+  const existing = String(input.existingKeywords || "").trim().slice(0, 500);
+  const system =
+    "You are VibeCart's SEO discovery engine for a legal cross-border marketplace (Africa, Europe, Dubai, Asia, secure payments, live shop grids, hot picks, seller tools). " +
+    "Output ONLY compact JSON (no markdown): {\"keywords\":\"...\"} where keywords is one comma-separated line of 22–48 distinct English search phrases. " +
+    "Mix head terms and realistic long-tail buyer/seller intents (cross-border shopping, tracked delivery, marketplace trust, regional lanes). " +
+    "No duplicate near-duplicates, no misleading medical or get-rich claims, no pipe | characters, max 920 characters total. " +
+    "Do not paste URLs. Respect existingKeywords as a hint to avoid total repetition — you may extend and diversify.";
+  const user = JSON.stringify({ path, pageTitle: title, existingKeywords: existing });
+  const r = await openaiChat(
+    [
+      { role: "system", content: system },
+      { role: "user", content: user }
+    ],
+    800,
+    { temperature: 0.88 }
+  );
+  if (!r.ok) {
+    return r;
+  }
+  const parsed = extractJsonObject(r.text);
+  const keywords = String(parsed?.keywords || "").trim().slice(0, 920);
+  if (!keywords) {
+    return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
+  }
+  return { ok: true, keywords };
+}
+
 async function runPublicGenerativeAgent(agent, input) {
   if (agent === "coach_matcher") {
     return generateCoachMatcherAdvice(input || {});
@@ -923,6 +961,9 @@ async function runPublicGenerativeAgent(agent, input) {
   }
   if (agent === "brandon_guide") {
     return generateBrandonGuideLLM(input || {});
+  }
+  if (agent === "site_seo_pulse") {
+    return generateSiteSeoPulseLLM(input || {});
   }
   if (agent === "mb_studio_suite") {
     return generateMbStudioSuiteLLM(input || {});
@@ -1061,6 +1102,7 @@ module.exports = {
   generateVibecoachTipLLM,
   generateHotPicksTrendSlidesLLM,
   generateBrandonGuideLLM,
+  generateSiteSeoPulseLLM,
   generateMbStudioSuiteLLM,
   generateAiOpsRecommendationsLLM,
   generateOwnerSecurityComplianceReviewLLM,

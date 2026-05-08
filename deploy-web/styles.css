@@ -3115,7 +3115,7 @@ body.vc-vip-mode .shop-folder-constellation-line {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   overscroll-behavior-x: contain;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
 }
 
@@ -3481,6 +3481,37 @@ body.vc-seller-skin .shops-lane-main {
   margin-bottom: 1rem;
 }
 
+/* Visitor retention: end-of-page next steps (in-flow; sticky bottom inside lane <main> clipped on some shells). */
+.vc-stay-next {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1rem 1.05rem;
+  border-radius: 14px;
+  border: 1px solid rgba(102, 236, 193, 0.32);
+  background: linear-gradient(165deg, rgba(14, 22, 38, 0.96), rgba(8, 12, 24, 0.9));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.38);
+  position: relative;
+  z-index: 6;
+}
+
+body.shops-lane-page .vc-stay-next--after-main {
+  display: block;
+  max-width: min(1180px, 94vw);
+  margin: 0.85rem auto 2.25rem;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+
+.vc-stay-next .vc-retention-tip {
+  max-width: 44rem;
+}
+
+.vc-retention-inline-tip {
+  border-left: 3px solid rgba(84, 229, 255, 0.45);
+  padding-left: 0.55rem;
+  margin-top: 0.45rem;
+}
+
 /* Lane tools (everywhere except the homepage layout): one strong frame on <main>,
    inner <section> blocks read as simple rows — no second “hero” gradient stack. */
 body.shops-lane-page main.shops-lane-main {
@@ -3551,6 +3582,25 @@ html.vc-brandon-universal body.shops-lane-page main.shops-lane-main {
   isolation: isolate;
 }
 
+/* Lane <main> sits in a high stacking context; fixed HUDs must sit above it (Experience / WOW were painting underneath). */
+body.shops-lane-page .vc-experience-shell {
+  z-index: 20540;
+}
+body.shops-lane-page .vc-simple-wow-sticker {
+  z-index: 20545;
+}
+html.vc-mobile-app body.shops-lane-page:not(.health-coach-page) .vc-mobile-ai,
+html.vc-phone body.shops-lane-page:not(.health-coach-page) .vc-mobile-ai,
+html.vc-brandon-universal body.shops-lane-page:not(.health-coach-page) .vc-mobile-ai {
+  z-index: 20538;
+}
+body.shops-lane-page .vc-quick-action-trigger {
+  z-index: 20536;
+}
+body.shops-lane-page .vc-quick-action-sheet {
+  z-index: 20550;
+}
+
 /* Live market: block external retailer grid until disclaimer is ticked (VibeCart listings stay usable). */
 body.live-market-external-pending .live-market-external-shop-wrap {
   opacity: 0.5;
@@ -3619,7 +3669,7 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
 .vc-live-deal-promo-rail {
   grid-auto-columns: minmax(200px, min(78vw, 280px));
   max-width: 100%;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
@@ -5382,7 +5432,7 @@ body.admin-surface .section {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   scrollbar-width: thin;
 }
 
@@ -6173,7 +6223,7 @@ html.vc-phone .vc-mobile-chapter-deck {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scroll-padding-inline: 0.75rem;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent);
 }
 
@@ -6551,7 +6601,7 @@ html.vc-phone #market-fit .market-pillars {
   padding-bottom: 0.45rem;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   mask-image: linear-gradient(to right, transparent, #000 10px, #000 calc(100% - 10px), transparent);
 }
 
@@ -6572,7 +6622,7 @@ html.vc-phone .vc-bridge-truth-list {
   list-style: none;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   mask-image: linear-gradient(to right, transparent, #000 8px, #000 calc(100% - 8px), transparent);
 }
 
@@ -6733,7 +6783,7 @@ html.vc-phone body:not(.health-coach-page) .vc-mobile-ai,
 html.vc-brandon-universal body:not(.health-coach-page) .vc-mobile-ai {
   left: 12px;
   right: auto;
-  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 234px);
+  top: calc(var(--vc-topbar-clearance, calc(env(safe-area-inset-top, 0px) + 72px)) + 132px);
   bottom: auto;
   align-items: flex-start;
   max-height: min(52vh, 420px);
@@ -7753,6 +7803,8 @@ body.vc-my-business-dashboard #mb-client-service-desk {
   padding: 0.15rem 0 0.35rem;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
 }
 
 .vc-hot-ai-slide {
@@ -11933,7 +11985,7 @@ html.vc-phone .vc-edge-lane::before {
   gap: 0.45rem;
   overflow-x: auto;
   padding-bottom: 0.2rem;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
