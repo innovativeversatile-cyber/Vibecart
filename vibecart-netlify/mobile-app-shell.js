@@ -36,6 +36,14 @@
       } else if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
         root.classList.add("vc-phone");
       }
+      try {
+        var qs = String((window.location && window.location.search) || "");
+        if (/[?&]vcShell=1(?:&|$)/i.test(qs)) {
+          root.classList.add("vc-phone");
+        }
+      } catch {
+        /* ignore */
+      }
     } catch {
       /* ignore */
     }
@@ -4230,8 +4238,22 @@
       /* ignore */
     }
     const root = document.documentElement;
-    const isApp = root.classList.contains("vc-mobile-app");
-    const isPhone = root.classList.contains("vc-phone");
+    var isApp = root.classList.contains("vc-mobile-app");
+    var isPhone = root.classList.contains("vc-phone");
+    if (!isApp && !isPhone) {
+      try {
+        if (
+          window.matchMedia &&
+          window.matchMedia("(max-width: 900px)").matches &&
+          isSimpleWowLandingPage()
+        ) {
+          root.classList.add("vc-phone");
+          isPhone = true;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     if (!isApp && !isPhone) {
       return;
     }
@@ -4252,7 +4274,8 @@
       }
       return;
     }
-    if (isApp) {
+    /* vc-mobile-shell styles WOW entry, hero polish, etc. It must apply for vc-phone web, not only native vc-mobile-app. */
+    if (isApp || isPhone) {
       document.body.classList.add("vc-mobile-shell");
       if (isSimpleWowModeEnabled()) {
         document.body.classList.add("vc-simple-wow-on");
@@ -4261,6 +4284,8 @@
         document.body.classList.remove("vc-simple-wow-on");
         document.body.classList.remove("vc-v3-wow");
       }
+    }
+    if (isApp) {
       initMainSectionRevealForApp();
       ensureAppShopHubLink();
       window.addEventListener(
@@ -4280,6 +4305,9 @@
         },
         { passive: true }
       );
+    } else if (isPhone) {
+      initMainSectionRevealForApp();
+      ensureAppShopHubLink();
     }
     if (isApp || isPhone) {
       runMobileHudPack();
@@ -4319,7 +4347,9 @@
           }
           return;
         }
-        if (root.classList.contains("vc-mobile-app")) {
+        var isAppBf = root.classList.contains("vc-mobile-app");
+        var isPhoneBf = root.classList.contains("vc-phone");
+        if (isAppBf || isPhoneBf) {
           document.body.classList.add("vc-mobile-shell");
           if (isSimpleWowModeEnabled()) {
             document.body.classList.add("vc-simple-wow-on");
@@ -4328,6 +4358,11 @@
             document.body.classList.remove("vc-simple-wow-on");
             document.body.classList.remove("vc-v3-wow");
           }
+        }
+        if (isAppBf) {
+          initMainSectionRevealForApp();
+          ensureAppShopHubLink();
+        } else if (isPhoneBf) {
           initMainSectionRevealForApp();
           ensureAppShopHubLink();
         }
@@ -4369,7 +4404,9 @@
         }
         return;
       }
-      if (root.classList.contains("vc-mobile-app")) {
+      var isAppU = root.classList.contains("vc-mobile-app");
+      var isPhoneU = root.classList.contains("vc-phone");
+      if (isAppU || isPhoneU) {
         document.body.classList.add("vc-mobile-shell");
         if (isSimpleWowModeEnabled()) {
           document.body.classList.add("vc-simple-wow-on");
@@ -4378,6 +4415,11 @@
           document.body.classList.remove("vc-simple-wow-on");
           document.body.classList.remove("vc-v3-wow");
         }
+      }
+      if (isAppU) {
+        initMainSectionRevealForApp();
+        ensureAppShopHubLink();
+      } else if (isPhoneU) {
         initMainSectionRevealForApp();
         ensureAppShopHubLink();
       }
