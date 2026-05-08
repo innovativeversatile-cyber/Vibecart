@@ -85,6 +85,8 @@
   var trendStatus = document.getElementById("hotPicksAiTrendStatus");
   var trendStamp = document.getElementById("hotPicksAiTrendStamp");
   var carouselTimer = null;
+  var carouselIndex = 0;
+  var carouselUserHoldUntil = 0;
   var BLOCKED_HOSTS = {
     "mediamarkt.de": true,
     "currys.co.uk": true,
@@ -249,20 +251,53 @@
       clearInterval(carouselTimer);
       carouselTimer = null;
     }
-    var index = 0;
+    carouselIndex = 0;
     carouselTimer = window.setInterval(function () {
       var slides = trendTrack.querySelectorAll(".vc-hot-ai-slide");
       if (!slides.length) {
         return;
       }
-      index = (index + 1) % slides.length;
-      var el = slides[index];
+      if (Date.now() < carouselUserHoldUntil || document.hidden) {
+        return;
+      }
+      carouselIndex = (carouselIndex + 1) % slides.length;
+      var el = slides[carouselIndex];
       try {
-        el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        var left = el.offsetLeft - Math.max((trendTrack.clientWidth - el.clientWidth) / 2, 0);
+        trendTrack.scrollTo({ left: Math.max(left, 0), behavior: "smooth" });
       } catch {
         /* ignore */
       }
     }, CAROUSEL_STEP_MS);
+  }
+
+  function holdCarouselFor(ms) {
+    var n = Number(ms);
+    if (!Number.isFinite(n) || n <= 0) {
+      n = 6000;
+    }
+    carouselUserHoldUntil = Date.now() + n;
+  }
+
+  function wireCarouselAntiHijack() {
+    if (!trendTrack) {
+      return;
+    }
+    trendTrack.addEventListener("mouseenter", function () {
+      holdCarouselFor(8000);
+    });
+    trendTrack.addEventListener("touchstart", function () {
+      holdCarouselFor(9000);
+    }, { passive: true });
+    trendTrack.addEventListener("pointerdown", function () {
+      holdCarouselFor(9000);
+    }, { passive: true });
+    trendTrack.addEventListener("wheel", function () {
+      holdCarouselFor(8000);
+    }, { passive: true });
+    window.addEventListener("wheel", function () {
+      holdCarouselFor(3500);
+    }, { passive: true });
   }
 
   async function refreshTrendEngine() {
@@ -303,6 +338,7 @@
   }
 
   function scheduleTrendEngine() {
+    wireCarouselAntiHijack();
     refreshTrendEngine().catch(function () {});
     window.setInterval(function () {
       refreshTrendEngine().catch(function () {});

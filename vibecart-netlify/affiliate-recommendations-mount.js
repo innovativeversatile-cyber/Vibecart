@@ -17,10 +17,20 @@
     var d = (cfg && cfg.disclosure) || null;
     if (d && (d.short || d.policyPreamble)) {
       if (d.short) {
+        var disclosureWrap = document.createElement("details");
+        disclosureWrap.className = "vc-affiliate-rec-disclosure-drop";
+        var summary = document.createElement("summary");
+        summary.className = "vc-affiliate-rec-disclosure-toggle";
+        summary.textContent = "Affiliate disclosure (click to open)";
+        disclosureWrap.appendChild(summary);
+        var panel = document.createElement("div");
+        panel.className = "vc-affiliate-rec-disclosure-panel";
         var p1 = document.createElement("p");
         p1.className = "note vc-affiliate-rec-disclosure-short";
         p1.textContent = String(d.short).trim();
-        introEl.appendChild(p1);
+        panel.appendChild(p1);
+        disclosureWrap.appendChild(panel);
+        introEl.appendChild(disclosureWrap);
       }
       if (d.policyPreamble && d.policyHref && d.policyLinkLabel) {
         var p2 = document.createElement("p");

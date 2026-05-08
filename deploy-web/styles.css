@@ -3686,6 +3686,44 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   margin-top: 0;
 }
 
+.vc-affiliate-rec-disclosure-drop {
+  margin: 0.1rem 0 0.45rem;
+  border: 1px solid rgba(232, 163, 23, 0.3);
+  border-radius: 12px;
+  background: rgba(12, 10, 26, 0.66);
+}
+
+.vc-affiliate-rec-disclosure-drop[open] {
+  background: rgba(24, 19, 46, 0.8);
+}
+
+.vc-affiliate-rec-disclosure-toggle {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.58rem 0.74rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: rgba(255, 226, 181, 0.96);
+}
+
+.vc-affiliate-rec-disclosure-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.vc-affiliate-rec-disclosure-toggle::before {
+  content: "▸ ";
+}
+
+.vc-affiliate-rec-disclosure-drop[open] .vc-affiliate-rec-disclosure-toggle::before {
+  content: "▾ ";
+}
+
+.vc-affiliate-rec-disclosure-panel {
+  border-top: 1px solid rgba(232, 163, 23, 0.2);
+  padding: 0.48rem 0.74rem 0.58rem;
+}
+
 .vc-affiliate-rec-section a.vc-affiliate-rec-policy-link {
   color: rgba(255, 214, 150, 0.95);
   font-weight: 650;
@@ -3764,17 +3802,20 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
 
 .vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-img {
   display: block;
-  width: auto;
+  width: 100%;
   max-width: 100%;
-  height: 40px;
-  object-fit: contain;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-caption {
-  font-size: 0.68rem;
-  color: rgba(200, 192, 230, 0.85);
-  margin-top: 0.4rem;
-  text-align: center;
+  font-size: 0.74rem;
+  color: rgba(236, 230, 255, 0.92);
+  margin-top: 0.48rem;
+  text-align: left;
+  font-weight: 650;
 }
 
 @media (min-width: 560px) {
@@ -7666,7 +7707,7 @@ body.vc-my-business-dashboard #mb-client-service-desk {
   display: flex;
   gap: 0.65rem;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   padding: 0.15rem 0 0.35rem;
   scrollbar-width: thin;
 }

@@ -1,104 +1,92 @@
 {
   "title": "Recommended partner picks",
-  "advertiser": "Allegro.sk",
-  "contextLine": "Partner links below open in a new tab so this VibeCart page stays open.",
+  "advertiser": "AliExpress - Global",
+  "contextLine": "Partner links below open in a new browser window/tab so your VibeCart session stays open.",
   "disclosure": {
-    "short": "This site contains affiliate links, which means I may earn a commission if you click and make a purchase, at no extra cost to you.",
-    "policyPreamble": "Our site may contain links to affiliate programs. These links help support my work, and you can read our",
+    "short": "This site contains affiliate links. We may earn a commission if you click and buy, at no extra cost to you.",
+    "policyPreamble": "These partner links support VibeCart operations. You can read our",
     "policyLinkLabel": "full disclosure here",
     "policyHref": "./policy.html#affiliate-disclosure"
   },
   "items": [
     {
-      "linkId": "16981057",
-      "key": "evergreen",
-      "label": "Allegro.sk — shop homepage",
-      "description": "Evergreen link to the advertiser site (deep-link capable).",
-      "href": "https://www.tkqlhce.com/click-101733745-16981057",
+      "linkId": "17242061",
+      "key": "aliexpress-homepage",
+      "label": "AliExpress Homepage (Global)",
+      "description": "Main global storefront for cross-border electronics, fashion, and lifestyle picks.",
+      "href": "https://www.tkqlhce.com/click-101733745-17242061",
       "kind": "text"
     },
     {
-      "linkId": "15878658",
-      "key": "all-categories",
-      "label": "All categories",
-      "description": "Všetky kategórie — browse every department.",
-      "href": "https://www.anrdoezrs.net/click-101733745-15878658",
+      "linkId": "17242082",
+      "key": "phone-electronics",
+      "label": "Phone & Electronics",
+      "description": "Smartphones, accessories, and student-ready devices.",
+      "href": "https://www.kqzyfj.com/click-101733745-17242082",
       "kind": "text"
     },
     {
-      "linkId": "15893701",
-      "key": "electronics",
-      "label": "Electronics",
-      "description": "Elektronika — devices, accessories, and tech.",
-      "href": "https://www.kqzyfj.com/click-101733745-15893701",
+      "linkId": "17242063",
+      "key": "home-furniture",
+      "label": "Home Furniture & Decor",
+      "description": "Furniture, decor, and practical room upgrades for apartment life.",
+      "href": "https://www.anrdoezrs.net/click-101733745-17242063",
       "kind": "text"
     },
     {
-      "linkId": "15893703",
-      "key": "fashion",
-      "label": "Fashion",
-      "description": "Móda — clothing and style.",
-      "href": "https://www.jdoqocy.com/click-101733745-15893703",
-      "kind": "text"
-    },
-    {
-      "linkId": "15893705",
-      "key": "supermarket",
-      "label": "Supermarket",
-      "description": "Groceries and everyday essentials.",
-      "href": "https://www.dpbolvw.net/click-101733745-15893705",
-      "kind": "text"
-    },
-    {
-      "linkId": "15893711",
-      "key": "beauty",
-      "label": "Beauty (Krása)",
-      "description": "Beauty and personal care.",
-      "href": "https://www.dpbolvw.net/click-101733745-15893711",
-      "kind": "text"
-    },
-    {
-      "linkId": "15893699",
-      "key": "home-garden",
-      "label": "Home & garden",
-      "description": "Dom a záhrada — home and outdoor.",
-      "href": "https://www.tkqlhce.com/click-101733745-15893699",
-      "kind": "text"
-    },
-    {
-      "linkId": "15888849",
-      "key": "auto",
-      "label": "Auto & moto",
-      "description": "Auto-moto — parts, accessories, and moto.",
-      "href": "https://www.kqzyfj.com/click-101733745-15888849",
-      "kind": "text"
-    },
-    {
-      "linkId": "15893708",
-      "key": "sport-travel",
-      "label": "Sport & travel",
-      "description": "Šport a cestovanie.",
-      "href": "https://www.dpbolvw.net/click-101733745-15893708",
-      "kind": "text"
-    },
-    {
-      "linkId": "15888846",
-      "key": "collectibles-art",
-      "label": "Collectibles & art",
-      "description": "Zbierky a umenie.",
-      "href": "https://www.dpbolvw.net/click-101733745-15888846",
-      "kind": "text"
-    },
-    {
-      "linkId": "15893693",
-      "key": "logo-banner",
-      "label": "Allegro.sk",
-      "description": "Official partner storefront (banner).",
-      "href": "https://www.anrdoezrs.net/click-101733745-15893693",
+      "linkId": "17242115",
+      "key": "better-choice-banner",
+      "label": "Better Choice on AliExpress",
+      "description": "Featured campaign with broad category picks.",
+      "href": "https://www.tkqlhce.com/click-101733745-17242115",
       "kind": "banner",
-      "bannerImageUrl": "https://www.ftjcfx.com/image-101733745-15893693",
-      "bannerWidth": 150,
-      "bannerHeight": 40
+      "bannerImageUrl": "https://www.ftjcfx.com/image-101733745-17242115",
+      "bannerWidth": 364,
+      "bannerHeight": 138
+    },
+    {
+      "linkId": "17284529",
+      "key": "summer-ready-us",
+      "label": "Summer Ready (US)",
+      "description": "Seasonal trend products (fashion, home, lifestyle).",
+      "href": "https://www.dpbolvw.net/click-101733745-17284529",
+      "kind": "banner",
+      "bannerImageUrl": "https://www.tqlkg.com/image-101733745-17284529",
+      "bannerWidth": 300,
+      "bannerHeight": 250
+    },
+    {
+      "linkId": "17284524",
+      "key": "mothers-day-northern",
+      "label": "Mother's Day Picks",
+      "description": "Gift-ready beauty, fashion, and accessories collections.",
+      "href": "https://www.jdoqocy.com/click-101733745-17284524",
+      "kind": "banner",
+      "bannerImageUrl": "https://www.ftjcfx.com/image-101733745-17284524",
+      "bannerWidth": 300,
+      "bannerHeight": 250
+    },
+    {
+      "linkId": "17242131",
+      "key": "clearance-banner",
+      "label": "Clearance up to 90% OFF",
+      "description": "High-discount inventory for value-focused shoppers.",
+      "href": "https://www.anrdoezrs.net/click-101733745-17242131",
+      "kind": "banner",
+      "bannerImageUrl": "https://www.lduhtrp.net/image-101733745-17242131",
+      "bannerWidth": 873,
+      "bannerHeight": 201
+    },
+    {
+      "linkId": "17242118",
+      "key": "local-shipping-banner",
+      "label": "Local Shipping Deals",
+      "description": "Fast-shipping offers with up to 70% OFF campaigns.",
+      "href": "https://www.jdoqocy.com/click-101733745-17242118",
+      "kind": "banner",
+      "bannerImageUrl": "https://www.lduhtrp.net/image-101733745-17242118",
+      "bannerWidth": 1270,
+      "bannerHeight": 253
     }
   ]
 }
