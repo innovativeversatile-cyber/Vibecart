@@ -12027,6 +12027,10 @@ html.vc-nuclear-mobile-fix .vc-first5-bar {
   overscroll-behavior-x: contain !important;
   touch-action: pan-x !important;
 }
+html.vc-nuclear-mobile-fix .vc-mobile-chapter-deck,
+html.vc-nuclear-mobile-fix .vc-mobile-rail-section {
+  overflow: hidden !important;
+}
 html.vc-nuclear-mobile-fix .vc-mobile-rail-card,
 html.vc-nuclear-mobile-fix .shop-folder-card {
   max-width: calc(100vw - 44px) !important;

@@ -4368,9 +4368,44 @@
       document.querySelectorAll(".vc-post-hero-hidden").forEach(function (el) {
         el.classList.remove("vc-post-hero-hidden");
       });
+      bindRailSwipeGuard();
     } catch {
       /* ignore */
     }
+  }
+
+  function bindRailSwipeGuard() {
+    var rails = Array.from(document.querySelectorAll(".vc-mobile-rail"));
+    rails.forEach(function (rail) {
+      if (!rail || rail.getAttribute("data-vc-swipe-guard") === "1") return;
+      rail.setAttribute("data-vc-swipe-guard", "1");
+      var startX = 0;
+      var startY = 0;
+      var moved = false;
+      rail.addEventListener("touchstart", function (ev) {
+        var t = ev.touches && ev.touches[0];
+        if (!t) return;
+        startX = Number(t.clientX || 0);
+        startY = Number(t.clientY || 0);
+        moved = false;
+      }, { passive: true });
+      rail.addEventListener("touchmove", function (ev) {
+        var t = ev.touches && ev.touches[0];
+        if (!t) return;
+        var dx = Math.abs(Number(t.clientX || 0) - startX);
+        var dy = Math.abs(Number(t.clientY || 0) - startY);
+        if (dx > 8 || dy > 8) {
+          moved = true;
+        }
+      }, { passive: true });
+      rail.addEventListener("click", function (ev) {
+        if (!moved) return;
+        var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+        if (!link) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+      }, true);
+    });
   }
 
   window.addEventListener(
