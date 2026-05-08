@@ -22,46 +22,61 @@
       <p class="note">
         Hot picks routes to verified external shops only. Direct purchase on VibeCart is available for Health Coach packages.
       </p>
-      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem">
+      <p class="hero-actions" style="flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.45rem">
         <a class="btn btn-primary" href="./hot-picks.html">Open Hot picks</a>
-        <a class="btn btn-secondary" href="./hot-picks.html?lane=Electronics">Electronics</a>
-        <a class="btn btn-secondary" href="./hot-picks.html?lane=Fashion">Fashion</a>
-        <a class="btn btn-secondary" href="./hot-picks.html?lane=Books">Books</a>
       </p>
+      <div class="admin-grid" style="max-width: 24rem;">
+        <label for="liveMarketHotPicksLaneSelect">Hot picks lane</label>
+        <select id="liveMarketHotPicksLaneSelect" aria-label="Open Hot picks lane">
+          <option value="./hot-picks.html">All lanes</option>
+          <option value="./hot-picks.html?lane=Electronics">Electronics</option>
+          <option value="./hot-picks.html?lane=Fashion">Fashion</option>
+          <option value="./hot-picks.html?lane=Books">Books</option>
+          <option value="./hot-picks.html?lane=Gaming">Gaming</option>
+        </select>
+      </div>
     </section>
-    <div class="admin-grid" style="max-width:32rem;margin-bottom:0.8rem">
-      <label for="liveMarketRegionSelect">Market region</label>
-      <select id="liveMarketRegionSelect" aria-label="Live market region targeting">
-        <option value="auto">Auto</option>
-        <option value="africa">Africa cross-border</option>
-        <option value="za">South Africa</option>
-        <option value="ke">Kenya</option>
-        <option value="ng">Nigeria</option>
-        <option value="gh">Ghana</option>
-        <option value="eg">Egypt</option>
-        <option value="ma">Morocco</option>
-        <option value="zw">Zimbabwe</option>
-        <option value="eu">Europe</option>
-        <option value="ie">Ireland (Republic &amp; Northern Ireland)</option>
-        <option value="gulf">Gulf</option>
-        <option value="asia">Asia</option>
-      </select>
-    </div>
-    <div class="hero-actions" id="liveMarketCategoryTabs" role="tablist" aria-label="Live market categories">
-      <button type="button" class="btn btn-secondary" data-live-cat="All">All shops</button>
-      <button type="button" class="btn btn-secondary" data-live-cat="Electronics">Electronics</button>
-      <button type="button" class="btn btn-secondary" data-live-cat="Fashion">Fashion</button>
-      <button type="button" class="btn btn-secondary" data-live-cat="Books">Books</button>
-      <button type="button" class="btn btn-secondary" data-live-cat="Gaming">Gaming</button>
-    </div>
-    <div class="admin-grid" style="max-width:42rem;margin-bottom:0.8rem">
-      <label for="liveMarketShopSearch">Search any shop</label>
-      <input id="liveMarketShopSearch" type="text" placeholder="Type shop name, e.g. Amazon, Zara, Steam" />
-    </div>
-    <div class="hero-actions">
-      <button type="button" class="btn btn-secondary" id="liveMarketShopSearchBtn">Search shop</button>
-      <button type="button" class="btn btn-secondary" id="liveMarketShopResetBtn">Reset list</button>
-    </div>
+    <details class="section alt" style="margin-top:0.55rem; padding:0.7rem 0.85rem;">
+      <summary class="vc-affiliate-rec-disclosure-toggle">Market controls (region, category, search)</summary>
+      <div class="vc-affiliate-rec-disclosure-panel">
+        <div class="admin-grid" style="max-width:32rem;margin-bottom:0.8rem">
+          <label for="liveMarketRegionSelect">Market region</label>
+          <select id="liveMarketRegionSelect" aria-label="Live market region targeting">
+            <option value="auto">Auto</option>
+            <option value="africa">Africa cross-border</option>
+            <option value="za">South Africa</option>
+            <option value="ke">Kenya</option>
+            <option value="ng">Nigeria</option>
+            <option value="gh">Ghana</option>
+            <option value="eg">Egypt</option>
+            <option value="ma">Morocco</option>
+            <option value="zw">Zimbabwe</option>
+            <option value="eu">Europe</option>
+            <option value="ie">Ireland (Republic &amp; Northern Ireland)</option>
+            <option value="gulf">Gulf</option>
+            <option value="asia">Asia</option>
+          </select>
+        </div>
+        <div class="admin-grid" style="max-width:24rem;margin-bottom:0.8rem">
+          <label for="liveMarketCategorySelect">Shop category</label>
+          <select id="liveMarketCategorySelect" aria-label="Live market category filter">
+            <option value="All">All shops</option>
+            <option value="Electronics">Electronics</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Books">Books</option>
+            <option value="Gaming">Gaming</option>
+          </select>
+        </div>
+        <div class="admin-grid" style="max-width:42rem;margin-bottom:0.8rem">
+          <label for="liveMarketShopSearch">Search any shop</label>
+          <input id="liveMarketShopSearch" type="text" placeholder="Type shop name, e.g. Amazon, Zara, Steam" />
+        </div>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-secondary" id="liveMarketShopSearchBtn">Search shop</button>
+          <button type="button" class="btn btn-secondary" id="liveMarketShopResetBtn">Reset list</button>
+        </div>
+      </div>
+    </details>
     <div id="dealContextRailWrap" class="section alt live-market-deal-rail-wrap" style="margin-top: 0.55rem; padding: 0.65rem 0.85rem" hidden>
       <p class="note" id="dealContextRailLabel" style="margin-bottom: 0.45rem"></p>
       <div class="vc-fashion-trends-rail vc-live-deal-promo-rail" id="dealContextRail"></div>

@@ -101,6 +101,11 @@
         img.loading = "lazy";
         img.decoding = "async";
         img.referrerPolicy = "no-referrer-when-downgrade";
+        img.addEventListener("error", function () {
+          img.src =
+            "https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=900&h=500&q=75";
+          img.classList.add("vc-affiliate-card__banner-img--fallback");
+        });
         a.appendChild(img);
         var cap = document.createElement("span");
         cap.className = "vc-affiliate-card__banner-caption";

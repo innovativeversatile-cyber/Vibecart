@@ -3812,6 +3812,10 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-img--fallback {
+  object-fit: cover;
+}
+
 .vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-caption {
   font-size: 0.74rem;
   color: rgba(236, 230, 255, 0.92);

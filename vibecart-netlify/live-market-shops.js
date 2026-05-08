@@ -47,7 +47,9 @@
   var searchStatus = document.getElementById("liveMarketShopSearchStatus");
   var worldwideHint = document.getElementById("liveMarketWorldwideHint");
   var tabsWrap = document.getElementById("liveMarketCategoryTabs");
+  var categorySelect = document.getElementById("liveMarketCategorySelect");
   var regionSelect = document.getElementById("liveMarketRegionSelect");
+  var hotPicksLaneSelect = document.getElementById("liveMarketHotPicksLaneSelect");
   var disclaimerAck = document.getElementById("liveMarketDisclaimerAck");
   var fashionAssist = document.getElementById("liveMarketFashionAssist");
   var fashionAdviceBtn = document.getElementById("fashionAdviceBtn");
@@ -378,7 +380,7 @@
       ? "All"
       : categories.indexOf(requested) >= 0
         ? requested
-        : "Electronics";
+        : "All";
   var dealTone = String(params.get("deal") || "").trim().toLowerCase();
   if (dealTone === "fashion" && cat === "All") {
     cat = "Fashion";
@@ -644,7 +646,6 @@
     "mediamarkt.de": true,
     "currys.co.uk": true,
     "eu.shein.com": true,
-    "allegro.pl": true,
     "fnac.com": true,
     "currys.ie": true,
     "littlewoodsireland.ie": true,
@@ -907,6 +908,9 @@
         btn.classList.toggle("btn-secondary", !isActive);
         btn.setAttribute("aria-selected", isActive ? "true" : "false");
       });
+    }
+    if (categorySelect) {
+      categorySelect.value = active;
     }
     if (regionSelect) {
       regionSelect.value = regionMode;
@@ -1225,6 +1229,49 @@
     });
   }
 
+  if (categorySelect) {
+    categorySelect.value = cat;
+    categorySelect.addEventListener("change", function () {
+      var next = String(categorySelect.value || "").trim();
+      if (!next || (next !== "All" && categories.indexOf(next) < 0)) {
+        return;
+      }
+      cat = next;
+      var dealByCat = { Electronics: "electronics", Fashion: "fashion", Books: "books", Gaming: "gaming" };
+      var spLive = new URLSearchParams(window.location.search || "");
+      if (cat === "All") {
+        dealTone = String(spLive.get("deal") || "").trim().toLowerCase();
+      } else {
+        dealTone = dealByCat[cat] || dealTone;
+      }
+      if (searchInput) {
+        searchInput.value = "";
+      }
+      if (worldwideHint) {
+        worldwideHint.textContent = "";
+        worldwideHint.hidden = true;
+      }
+      paintCategoryUi(cat);
+      renderList(listForCategory(cat), "Showing " + cat + " shops.");
+      renderDealContextRail();
+      loadVcProducts();
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set("cat", cat);
+        if (dealTone) {
+          url.searchParams.set("deal", dealTone);
+        } else {
+          url.searchParams.delete("deal");
+        }
+        var br = bridgeRefForLinks();
+        if (br) url.searchParams.set("ref", br);
+        history.replaceState(null, "", url.pathname + "?" + url.searchParams.toString());
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
   paintCategoryUi(cat);
   renderRegionResolutionHint();
   renderList(listForCategory(cat), "Showing " + cat + " shops.");
@@ -1274,6 +1321,15 @@
       var next = String(regionSelect.value || "auto").trim().toLowerCase();
       writeRegionMode(next);
       window.location.reload();
+    });
+  }
+  if (hotPicksLaneSelect) {
+    hotPicksLaneSelect.addEventListener("change", function () {
+      var target = String(hotPicksLaneSelect.value || "").trim();
+      if (!target) {
+        return;
+      }
+      window.location.href = target;
     });
   }
   if (searchBtn) {

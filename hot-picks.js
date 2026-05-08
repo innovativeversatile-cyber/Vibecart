@@ -92,7 +92,6 @@
     "mediamarkt.de": true,
     "currys.co.uk": true,
     "eu.shein.com": true,
-    "allegro.pl": true,
     "fnac.com": true,
     "currys.ie": true,
     "littlewoodsireland.ie": true,
