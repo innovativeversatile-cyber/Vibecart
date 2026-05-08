@@ -3633,106 +3633,14 @@
   }
 
   function initPostHeroScrollPrompt() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    // Disabled: this prompt introduced a scroll gate that could trap touch scroll on phones.
     var existing = document.getElementById("vcPostHeroScrollPrompt");
     if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
     }
-    var row = document.createElement("div");
-    row.id = "vcPostHeroScrollPrompt";
-    row.className = "vc-post-hero-scroll-prompt";
-    row.innerHTML =
-      "<button type='button' class='vc-post-hero-scroll-prompt__trigger' aria-expanded='false'>" +
-      "<span>Continue scrolling</span><strong>Reveal every page</strong>" +
-      "<em>Tap to open full route map</em>" +
-      "</button>" +
-      "<div class='vc-post-hero-scroll-prompt__panel' hidden>" +
-      "<p class='vc-post-hero-scroll-prompt__lead'>Every major VibeCart route is now one tap away.</p>" +
-      "<input id='vcPostHeroRouteSearch' class='vc-post-hero-scroll-prompt__search' type='search' placeholder='Search pages (e.g. orders, coach, market)' />" +
-      "<div class='vc-post-hero-scroll-prompt__grid' id='vcPostHeroRouteGrid'></div>" +
-      "</div>";
-    var links = [
-      ["Home", "./index.html"],
-      ["Global hub", "./global-market.html"],
-      ["Shop hub", "./shop-hub.html"],
-      ["Live market", "./live-market-shops.html?cat=All&view=global&deal=best"],
-      ["Hot picks", "./hot-picks.html"],
-      ["Global search", "./global-search.html"],
-      ["Browse categories", "./browse-categories.html"],
-      ["Fashion deals", "./fashion-deals.html"],
-      ["Electronics deals", "./electronics-deals.html"],
-      ["Books & study", "./books-study-deals.html"],
-      ["Best bargains", "./best-bargains.html"],
-      ["Buy journey", "./buy-journey.html"],
-      ["Messages", "./seller-messages.html"],
-      ["Service providers", "./service-provider-hub.html"],
-      ["Sell journey", "./sell-journey.html"],
-      ["Wellbeing", "./wellbeing.html"],
-      ["Coach experience", "./coach-experience.html"],
-      ["Plan workspace", "./plan-workspace.html"],
-      ["Orders tracking", "./orders-tracking.html"],
-      ["Account hub", "./account-hub.html"],
-      ["Security overview", "./security-overview.html"],
-      ["Regional shops", "./regional-shops.html"],
-      ["Rewards hub", "./rewards-hub.html"],
-      ["Bridge hub", "./bridge-hub.html"],
-      ["Insurance", "./insurance.html"],
-      ["Policy center", "./policy.html"]
-    ];
-    var grid = row.querySelector("#vcPostHeroRouteGrid");
-    if (grid) {
-      grid.innerHTML = links
-        .map(function (pair) {
-          return "<a class='btn btn-secondary' data-route-label='" + String(pair[0] || "").toLowerCase() + "' href='" + pair[1] + "'>" + pair[0] + "</a>";
-        })
-        .join("");
-    }
-    var search = row.querySelector("#vcPostHeroRouteSearch");
-    if (search && grid) {
-      search.addEventListener("input", function () {
-        var q = String(search.value || "").trim().toLowerCase();
-        grid.querySelectorAll("[data-route-label]").forEach(function (el) {
-          var label = String(el.getAttribute("data-route-label") || "");
-          el.style.display = !q || label.indexOf(q) >= 0 ? "" : "none";
-        });
-      });
-    }
-    var trigger = row.querySelector(".vc-post-hero-scroll-prompt__trigger");
-    var panel = row.querySelector(".vc-post-hero-scroll-prompt__panel");
-    if (trigger && panel) {
-      trigger.addEventListener("click", function () {
-        var open = panel.hasAttribute("hidden");
-        if (open) panel.removeAttribute("hidden");
-        else panel.setAttribute("hidden", "hidden");
-        trigger.setAttribute("aria-expanded", open ? "true" : "false");
-        row.classList.toggle("is-open", open);
-      });
-    }
-    if (!document.getElementById("vcCinematicConciergeRail")) {
-      try {
-        initCinematicConciergeRail();
-      } catch {
-        /* ignore */
-      }
-    }
     var rail = document.getElementById("vcCinematicConciergeRail");
-    function revealFrom(node) {
-      if (!node || !node.parentNode) return;
-      var cur = node;
-      while (cur) {
-        if (cur !== row) cur.classList.remove("vc-post-hero-hidden");
-        cur = cur.nextElementSibling;
-      }
-      disableScrollGate();
-    }
-    function hideFrom(node) {
-      if (!node || !node.parentNode) return;
-      var cur = node;
-      while (cur) {
-        if (cur !== row) cur.classList.add("vc-post-hero-hidden");
-        cur = cur.nextElementSibling;
-      }
-      enableScrollGate(row);
+    if (rail && rail.parentNode) {
+      rail.parentNode.removeChild(rail);
     }
     function disableScrollGate() {
       try {
@@ -3772,6 +3680,24 @@
         /* ignore */
       }
       window.__vcScrollGateLenisHandler = null;
+    }
+    disableScrollGate();
+    return;
+    function revealFrom(node) {
+      if (!node || !node.parentNode) return;
+      var cur = node;
+      while (cur) {
+        cur.classList.remove("vc-post-hero-hidden");
+        cur = cur.nextElementSibling;
+      }
+    }
+    function hideFrom(node) {
+      if (!node || !node.parentNode) return;
+      var cur = node;
+      while (cur) {
+        cur.classList.remove("vc-post-hero-hidden");
+        cur = cur.nextElementSibling;
+      }
     }
     function enableScrollGate(anchor) {
       disableScrollGate();
