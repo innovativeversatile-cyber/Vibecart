@@ -3804,10 +3804,12 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   display: block;
   width: 100%;
   max-width: 100%;
-  height: 128px;
-  object-fit: cover;
+  height: auto;
+  max-height: 140px;
+  object-fit: contain;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .vc-affiliate-rec-section a.vc-affiliate-card--banner .vc-affiliate-card__banner-caption {

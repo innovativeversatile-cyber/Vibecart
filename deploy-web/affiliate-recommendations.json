@@ -10,6 +10,38 @@
   },
   "items": [
     {
+      "linkId": "16981057",
+      "key": "allegro-home",
+      "label": "Allegro.sk - Shop Homepage",
+      "description": "Core partner storefront for Europe-focused marketplace discovery.",
+      "href": "https://www.tkqlhce.com/click-101733745-16981057",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893701",
+      "key": "allegro-electronics",
+      "label": "Allegro Electronics",
+      "description": "Niche fit: devices, accessories, and student tech essentials.",
+      "href": "https://www.kqzyfj.com/click-101733745-15893701",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893703",
+      "key": "allegro-fashion",
+      "label": "Allegro Fashion",
+      "description": "Niche fit: style and apparel categories aligned with Hot Picks.",
+      "href": "https://www.jdoqocy.com/click-101733745-15893703",
+      "kind": "text"
+    },
+    {
+      "linkId": "15893711",
+      "key": "allegro-beauty",
+      "label": "Allegro Beauty",
+      "description": "Niche fit: beauty and personal-care offers for trend shoppers.",
+      "href": "https://www.dpbolvw.net/click-101733745-15893711",
+      "kind": "text"
+    },
+    {
       "linkId": "17242061",
       "key": "aliexpress-homepage",
       "label": "AliExpress Homepage (Global)",
@@ -87,6 +119,17 @@
       "bannerImageUrl": "https://www.lduhtrp.net/image-101733745-17242118",
       "bannerWidth": 1270,
       "bannerHeight": 253
+    },
+    {
+      "linkId": "15893693",
+      "key": "allegro-banner",
+      "label": "Allegro.sk",
+      "description": "Official Allegro partner banner.",
+      "href": "https://www.anrdoezrs.net/click-101733745-15893693",
+      "kind": "banner",
+      "bannerImageUrl": "https://www.ftjcfx.com/image-101733745-15893693",
+      "bannerWidth": 150,
+      "bannerHeight": 40
     }
   ]
 }

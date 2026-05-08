@@ -87,6 +87,7 @@
   var carouselTimer = null;
   var carouselIndex = 0;
   var carouselUserHoldUntil = 0;
+  var trendTrackVisible = true;
   var BLOCKED_HOSTS = {
     "mediamarkt.de": true,
     "currys.co.uk": true,
@@ -257,7 +258,7 @@
       if (!slides.length) {
         return;
       }
-      if (Date.now() < carouselUserHoldUntil || document.hidden) {
+      if (Date.now() < carouselUserHoldUntil || document.hidden || !trendTrackVisible) {
         return;
       }
       carouselIndex = (carouselIndex + 1) % slides.length;
@@ -295,9 +296,16 @@
     trendTrack.addEventListener("wheel", function () {
       holdCarouselFor(8000);
     }, { passive: true });
-    window.addEventListener("wheel", function () {
-      holdCarouselFor(3500);
+    trendTrack.addEventListener("scroll", function () {
+      holdCarouselFor(5000);
     }, { passive: true });
+    if (typeof window.IntersectionObserver === "function") {
+      var observer = new IntersectionObserver(function (entries) {
+        var e = entries && entries[0];
+        trendTrackVisible = !!(e && e.isIntersecting && e.intersectionRatio >= 0.45);
+      }, { threshold: [0, 0.45, 0.75, 1] });
+      observer.observe(trendTrack);
+    }
   }
 
   async function refreshTrendEngine() {
