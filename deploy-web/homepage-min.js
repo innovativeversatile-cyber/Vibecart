@@ -2148,7 +2148,7 @@
     if (!("serviceWorker" in navigator)) return;
     // Register for installability + offline shell. Bump ?v= when service-worker.js CACHE_NAME changes.
     navigator.serviceWorker
-      .register("./service-worker.js?v=20260510lean14")
+      .register("./service-worker.js?v=20260510lean15")
       .then(function (reg) {
         try {
           if (reg && typeof reg.update === "function") reg.update();

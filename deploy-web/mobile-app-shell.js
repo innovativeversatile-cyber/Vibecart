@@ -3323,7 +3323,6 @@
     if (document.getElementById("vcSimpleWowEntry")) return;
     var mount = document.querySelector("main") || document.body;
     if (!mount) return;
-    var heroEl = document.querySelector("main .hero") || document.querySelector(".hero");
     var card = document.createElement("section");
     card.id = "vcSimpleWowEntry";
     card.className = "vc-simple-wow-entry";
@@ -3363,12 +3362,8 @@
       "<span>Fast routes by Brandon AI</span>" +
       "<span>Global + local options</span>" +
       "</div>";
-    /* Keep the cinematic hero (density bar, live pulse, trust lane) first — simple grid sits just under it. */
-    if (heroEl && heroEl.parentNode) {
-      heroEl.parentNode.insertBefore(card, heroEl.nextSibling);
-    } else {
-      mount.insertBefore(card, mount.firstChild || null);
-    }
+    /* Ribbon + quick actions first (below global header); full hero follows inside the page group. */
+    mount.insertBefore(card, mount.firstChild || null);
     card.querySelectorAll("[data-vc-wow-intent]").forEach(function (el) {
       el.addEventListener("click", function () {
         try {
