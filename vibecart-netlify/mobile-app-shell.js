@@ -3299,7 +3299,7 @@
   }
 
   function initSimpleWowEntry() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     if (document.getElementById("vcSimpleWowEntry")) return;
     var mount = document.querySelector("main") || document.body;
     if (!mount) return;
@@ -3392,7 +3392,7 @@
   }
 
   function initShockHeroCinematic() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     var hero = document.querySelector(".hero");
     if (!hero || document.getElementById("vcShockHeroAura")) return;
     var fx = document.createElement("div");
@@ -3408,7 +3408,7 @@
   }
 
   function initThreeSecondCinematicOpener() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     if (document.getElementById("vcThreeSecondCinematic")) return;
     try {
       if (sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1") return;
@@ -3633,14 +3633,106 @@
   }
 
   function initPostHeroScrollPrompt() {
-    // Disabled: this prompt introduced a scroll gate that could trap touch scroll on phones.
+    if (!isSimpleWowLandingPage()) return;
     var existing = document.getElementById("vcPostHeroScrollPrompt");
     if (existing && existing.parentNode) {
       existing.parentNode.removeChild(existing);
     }
+    var row = document.createElement("div");
+    row.id = "vcPostHeroScrollPrompt";
+    row.className = "vc-post-hero-scroll-prompt";
+    row.innerHTML =
+      "<button type='button' class='vc-post-hero-scroll-prompt__trigger' aria-expanded='false'>" +
+      "<span>Continue scrolling</span><strong>Reveal every page</strong>" +
+      "<em>Tap to open full route map</em>" +
+      "</button>" +
+      "<div class='vc-post-hero-scroll-prompt__panel' hidden>" +
+      "<p class='vc-post-hero-scroll-prompt__lead'>Every major VibeCart route is now one tap away.</p>" +
+      "<input id='vcPostHeroRouteSearch' class='vc-post-hero-scroll-prompt__search' type='search' placeholder='Search pages (e.g. orders, coach, market)' />" +
+      "<div class='vc-post-hero-scroll-prompt__grid' id='vcPostHeroRouteGrid'></div>" +
+      "</div>";
+    var links = [
+      ["Home", "./index.html"],
+      ["Global hub", "./global-market.html"],
+      ["Shop hub", "./shop-hub.html"],
+      ["Live market", "./live-market-shops.html?cat=All&view=global&deal=best"],
+      ["Hot picks", "./hot-picks.html"],
+      ["Global search", "./global-search.html"],
+      ["Browse categories", "./browse-categories.html"],
+      ["Fashion deals", "./fashion-deals.html"],
+      ["Electronics deals", "./electronics-deals.html"],
+      ["Books & study", "./books-study-deals.html"],
+      ["Best bargains", "./best-bargains.html"],
+      ["Buy journey", "./buy-journey.html"],
+      ["Messages", "./seller-messages.html"],
+      ["Service providers", "./service-provider-hub.html"],
+      ["Sell journey", "./sell-journey.html"],
+      ["Wellbeing", "./wellbeing.html"],
+      ["Coach experience", "./coach-experience.html"],
+      ["Plan workspace", "./plan-workspace.html"],
+      ["Orders tracking", "./orders-tracking.html"],
+      ["Account hub", "./account-hub.html"],
+      ["Security overview", "./security-overview.html"],
+      ["Regional shops", "./regional-shops.html"],
+      ["Rewards hub", "./rewards-hub.html"],
+      ["Bridge hub", "./bridge-hub.html"],
+      ["Insurance", "./insurance.html"],
+      ["Policy center", "./policy.html"]
+    ];
+    var grid = row.querySelector("#vcPostHeroRouteGrid");
+    if (grid) {
+      grid.innerHTML = links
+        .map(function (pair) {
+          return "<a class='btn btn-secondary' data-route-label='" + String(pair[0] || "").toLowerCase() + "' href='" + pair[1] + "'>" + pair[0] + "</a>";
+        })
+        .join("");
+    }
+    var search = row.querySelector("#vcPostHeroRouteSearch");
+    if (search && grid) {
+      search.addEventListener("input", function () {
+        var q = String(search.value || "").trim().toLowerCase();
+        grid.querySelectorAll("[data-route-label]").forEach(function (el) {
+          var label = String(el.getAttribute("data-route-label") || "");
+          el.style.display = !q || label.indexOf(q) >= 0 ? "" : "none";
+        });
+      });
+    }
+    var trigger = row.querySelector(".vc-post-hero-scroll-prompt__trigger");
+    var panel = row.querySelector(".vc-post-hero-scroll-prompt__panel");
+    if (trigger && panel) {
+      trigger.addEventListener("click", function () {
+        var open = panel.hasAttribute("hidden");
+        if (open) panel.removeAttribute("hidden");
+        else panel.setAttribute("hidden", "hidden");
+        trigger.setAttribute("aria-expanded", open ? "true" : "false");
+        row.classList.toggle("is-open", open);
+      });
+    }
+    if (!document.getElementById("vcCinematicConciergeRail")) {
+      try {
+        initCinematicConciergeRail();
+      } catch {
+        /* ignore */
+      }
+    }
     var rail = document.getElementById("vcCinematicConciergeRail");
-    if (rail && rail.parentNode) {
-      rail.parentNode.removeChild(rail);
+    function revealFrom(node) {
+      if (!node || !node.parentNode) return;
+      var cur = node;
+      while (cur) {
+        if (cur !== row) cur.classList.remove("vc-post-hero-hidden");
+        cur = cur.nextElementSibling;
+      }
+      disableScrollGate();
+    }
+    function hideFrom(node) {
+      if (!node || !node.parentNode) return;
+      var cur = node;
+      while (cur) {
+        if (cur !== row) cur.classList.add("vc-post-hero-hidden");
+        cur = cur.nextElementSibling;
+      }
+      enableScrollGate(row);
     }
     function disableScrollGate() {
       try {
@@ -3680,24 +3772,6 @@
         /* ignore */
       }
       window.__vcScrollGateLenisHandler = null;
-    }
-    disableScrollGate();
-    return;
-    function revealFrom(node) {
-      if (!node || !node.parentNode) return;
-      var cur = node;
-      while (cur) {
-        cur.classList.remove("vc-post-hero-hidden");
-        cur = cur.nextElementSibling;
-      }
-    }
-    function hideFrom(node) {
-      if (!node || !node.parentNode) return;
-      var cur = node;
-      while (cur) {
-        cur.classList.remove("vc-post-hero-hidden");
-        cur = cur.nextElementSibling;
-      }
     }
     function enableScrollGate(anchor) {
       disableScrollGate();
@@ -3900,9 +3974,8 @@
     }
     // Concierge rail not present -> do not show this prompt elsewhere.
   }
-
   function initCinematicConciergeRail() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     if (document.getElementById("vcCinematicConciergeRail")) return;
     var hero = document.querySelector(".hero");
     if (!hero || !hero.parentNode) return;
@@ -3940,7 +4013,7 @@
   }
 
   function initMindBlowingCalmFlow() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     document.body.classList.add("vc-one-moment-flow");
     document.body.classList.add("vc-motion-lite");
     var calmTimer = null;
@@ -3969,7 +4042,7 @@
   }
 
   function initGoosebumpsPack() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     if (window.__vcGoosebumpsPackBound) return;
     window.__vcGoosebumpsPackBound = true;
     var root = document.body;
@@ -4190,13 +4263,7 @@
         /* ignore */
       }
     }, 900);
-    // Remove the post-cinematic welcome sheet; keep only wow lane prompt sequence.
-    try {
-      var staleWelcome = document.getElementById("vcMobileWelcomeSheet");
-      if (staleWelcome && staleWelcome.parentNode) staleWelcome.parentNode.removeChild(staleWelcome);
-    } catch {
-      /* ignore */
-    }
+    initDailyWelcomeSheet();
     initFirstFiveWowExperience();
     initBrandonGhostAssistMode();
     var heavy = mountHeavyMobileStickers();
@@ -4219,7 +4286,7 @@
   }
 
   function initCinematicLaneBadge() {
-    if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (!isSimpleWowLandingPage()) return;
     if (document.getElementById("vcCinematicLaneBadge")) return;
     var heroCopy = document.querySelector(".hero-copy");
     if (!heroCopy) return;
@@ -4261,6 +4328,20 @@
   function boot() {
     applyPhoneDocumentClasses();
     try {
+      var root0 = document.documentElement;
+      if (
+        root0 &&
+        !root0.classList.contains("vc-mobile-app") &&
+        !root0.classList.contains("vc-phone") &&
+        window.matchMedia &&
+        window.matchMedia("(max-width: 900px)").matches
+      ) {
+        root0.classList.add("vc-phone");
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
       ensureAiCoach();
     } catch {
       /* ignore */
@@ -4269,11 +4350,6 @@
     const isApp = root.classList.contains("vc-mobile-app");
     const isPhone = root.classList.contains("vc-phone");
     if (!isApp && !isPhone) {
-      return;
-    }
-    if (isApp || isPhone) {
-      applyNuclearMobileStability();
-      registerNativePushIfAvailable();
       return;
     }
     /* Health & coach lane: skip heavy HUD (Quick / mission / streak / deal rail) so checkout + matcher stay tappable.
@@ -4328,86 +4404,6 @@
     registerNativePushIfAvailable();
   }
 
-  function applyNuclearMobileStability() {
-    try {
-      var root = document.documentElement;
-      if (root.classList.contains("vc-nuclear-mobile-fix")) {
-        return;
-      }
-      root.classList.add("vc-nuclear-mobile-fix");
-      if (document.body) {
-        document.body.classList.add("vc-mobile-shell");
-        document.body.classList.remove("vc-simple-wow-on");
-        document.body.classList.remove("vc-v3-wow");
-      }
-      try {
-        var lenis = window.__vibecartLenis;
-        if (lenis) {
-          if (typeof lenis.stop === "function") lenis.stop();
-          if (typeof lenis.destroy === "function") lenis.destroy();
-        }
-      } catch {
-        /* ignore */
-      }
-      var removeIds = [
-        "vc-mobile-ai",
-        "vcCinematicLaneBadge",
-        "vcCinematicConciergeRail",
-        "vcPostHeroScrollPrompt",
-        "vcActionHub",
-        "vcMissionHud",
-        "vcFirst5Bar",
-        "vcQuickActionTrigger",
-        "vcDealDraftComposer",
-        "vcQuickActionSheet"
-      ];
-      removeIds.forEach(function (id) {
-        var node = document.getElementById(id);
-        if (node && node.parentNode) node.parentNode.removeChild(node);
-      });
-      document.querySelectorAll(".vc-post-hero-hidden").forEach(function (el) {
-        el.classList.remove("vc-post-hero-hidden");
-      });
-      bindRailSwipeGuard();
-    } catch {
-      /* ignore */
-    }
-  }
-
-  function bindRailSwipeGuard() {
-    var rails = Array.from(document.querySelectorAll(".vc-mobile-rail"));
-    rails.forEach(function (rail) {
-      if (!rail || rail.getAttribute("data-vc-swipe-guard") === "1") return;
-      rail.setAttribute("data-vc-swipe-guard", "1");
-      var startX = 0;
-      var startY = 0;
-      var moved = false;
-      rail.addEventListener("touchstart", function (ev) {
-        var t = ev.touches && ev.touches[0];
-        if (!t) return;
-        startX = Number(t.clientX || 0);
-        startY = Number(t.clientY || 0);
-        moved = false;
-      }, { passive: true });
-      rail.addEventListener("touchmove", function (ev) {
-        var t = ev.touches && ev.touches[0];
-        if (!t) return;
-        var dx = Math.abs(Number(t.clientX || 0) - startX);
-        var dy = Math.abs(Number(t.clientY || 0) - startY);
-        if (dx > 8 || dy > 8) {
-          moved = true;
-        }
-      }, { passive: true });
-      rail.addEventListener("click", function (ev) {
-        if (!moved) return;
-        var link = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
-        if (!link) return;
-        ev.preventDefault();
-        ev.stopPropagation();
-      }, true);
-    });
-  }
-
   window.addEventListener(
     "pageshow",
     function (ev) {
@@ -4425,9 +4421,6 @@
         if (!root.classList.contains("vc-mobile-app") && !root.classList.contains("vc-phone")) {
           return;
         }
-        applyNuclearMobileStability();
-        registerNativePushIfAvailable();
-        return;
         if (document.body && document.body.classList.contains("health-coach-page")) {
           if (root.classList.contains("vc-mobile-app")) {
             document.body.classList.add("vc-mobile-shell");
@@ -4478,9 +4471,6 @@
       if (!(root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone"))) {
         return;
       }
-      applyNuclearMobileStability();
-      registerNativePushIfAvailable();
-      return;
       if (document.body && document.body.classList.contains("health-coach-page")) {
         if (root.classList.contains("vc-mobile-app")) {
           document.body.classList.add("vc-mobile-shell");

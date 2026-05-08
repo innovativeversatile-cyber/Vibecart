@@ -22,14 +22,9 @@ import type { WebView as WebViewType } from "react-native-webview";
 
 const INSTALL_STORAGE_KEY = "vibecart.mobile.installId";
 const DISCLAIMER_STORAGE_KEY = "vibecart.mobile.disclaimerAccepted.v1";
-const DOCK_COACH_DISMISSED_KEY = "vibecart.dock.coach.dismissed.v1";
+const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','50px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='430px';b.style.margin='0 auto';b.style.minHeight='100dvh';b.style.overflowX='clip';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover');}var s=document.getElementById('vc-mobile-frame-fix');if(!s){s=document.createElement('style');s.id='vc-mobile-frame-fix';s.textContent='html.vc-mobile-app,html.vc-mobile-app body{overscroll-behavior-y:none!important;overscroll-behavior-x:none!important;-webkit-overflow-scrolling:auto;scroll-behavior:auto!important;}html.vc-mobile-app *{scroll-behavior:auto!important;}html.vc-mobile-app [class*=\"rail\"],html.vc-mobile-app [class*=\"deck\"],html.vc-mobile-app [class*=\"story\"]{scroll-snap-type:none!important;}';(document.head||d).appendChild(s);}}catch(e){}})();true;`;
 
-const INJECT_MOBILE_CLASS = `(function(){try{var d=document.documentElement,b=document.body||null;d.classList.add('vc-mobile-app');d.style.setProperty('--vc-mobile-tab-h','50px');d.style.width='100%';d.style.maxWidth='100%';if(b){b.classList.add('vc-mobile-shell');b.style.width='100%';b.style.maxWidth='100%';}var m=document.querySelector('meta[name="viewport"]');if(m){m.setAttribute('content','width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover');}}catch(e){}})();true;`;
-
-/**
- * Hash + scroll intelligence: dock follows the section actually in view (IntersectionObserver),
- * with hash/deep-link as bootstrap. Feels "alive" while scrolling — not just URL string matching.
- */
+/** Hash + scroll intelligence: dock follows the section in view (IntersectionObserver). */
 const INJECT_HASH_SYNC = `(function(){
   try {
     var RN = typeof window !== "undefined" && window.ReactNativeWebView;
@@ -250,10 +245,6 @@ export default function App(): JSX.Element {
   const [resumePulseVisible, setResumePulseVisible] = useState(false);
   const [webViewKey, setWebViewKey] = useState(0);
   const [dockActive, setDockActive] = useState<DockKey>("home");
-  const [dockCoachVisible, setDockCoachVisible] = useState(false);
-  const [coachTipLine, setCoachTipLine] = useState(
-    "Lanes, bridge routes, and trust stack move as one — tap a dock tab when you change intent."
-  );
   const webViewRef = useRef<WebViewType>(null);
   const sceneHapticTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastHapticScene = useRef<string>("");
@@ -334,59 +325,6 @@ export default function App(): JSX.Element {
       })
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (!acceptedDisclaimer) {
-      return;
-    }
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    AsyncStorage.getItem(DOCK_COACH_DISMISSED_KEY)
-      .then((v) => {
-        if (v === "1") {
-          return;
-        }
-        setDockCoachVisible(true);
-        timer = setTimeout(() => {
-          setDockCoachVisible(false);
-          AsyncStorage.setItem(DOCK_COACH_DISMISSED_KEY, "1").catch(() => {});
-        }, 10000);
-      })
-      .catch(() => {});
-    return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    };
-  }, [acceptedDisclaimer]);
-
-  useEffect(() => {
-    if (!dockCoachVisible || !apiBaseUrl) {
-      return;
-    }
-    const ac = new AbortController();
-    const t = setTimeout(() => {
-      fetch(`${apiBaseUrl}/api/public/ai/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agent: "vibecoach_tip",
-          input: { path: "/mobile-app-dock", mode: "mobile_app", category: "", partner: "" }
-        }),
-        signal: ac.signal
-      })
-        .then(async (r) => {
-          const data = (await r.json().catch(() => null)) as { ok?: boolean; result?: { tip?: string } } | null;
-          if (data?.ok && data.result?.tip) {
-            setCoachTipLine(String(data.result.tip));
-          }
-        })
-        .catch(() => {});
-    }, 2800);
-    return () => {
-      clearTimeout(t);
-      ac.abort();
-    };
-  }, [dockCoachVisible, apiBaseUrl]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next) => {
@@ -723,7 +661,7 @@ export default function App(): JSX.Element {
         <Pressable
           style={[
             styles.disclaimerChip,
-            { bottom: (dockCoachVisible ? 118 : 62) + QUICK_CHROME_HEIGHT + bottomPad }
+            { bottom: 62 + QUICK_CHROME_HEIGHT + bottomPad }
           ]}
           onPress={() => setDisclaimerPeek((v) => !v)}
         >
@@ -734,7 +672,7 @@ export default function App(): JSX.Element {
         <View
           style={[
             styles.disclaimerPop,
-            { bottom: (dockCoachVisible ? 158 : 102) + QUICK_CHROME_HEIGHT + bottomPad }
+            { bottom: 102 + QUICK_CHROME_HEIGHT + bottomPad }
           ]}
         >
           <Text style={styles.disclaimerPopText}>
@@ -777,11 +715,6 @@ export default function App(): JSX.Element {
       )}
       {acceptedDisclaimer && !isLoading && (
         <View style={[styles.dockShell, { paddingBottom: bottomPad }]}>
-          {dockCoachVisible ? (
-            <View style={styles.dockCoach}>
-              <Text style={styles.dockCoachText}>{coachTipLine}</Text>
-            </View>
-          ) : null}
           <View style={styles.quickChrome} accessibilityRole="toolbar">
             <Pressable
               accessibilityRole="button"
@@ -1112,24 +1045,6 @@ const styles = StyleSheet.create({
     color: "#e8dcc8",
     fontSize: 10,
     fontWeight: "700"
-  },
-  dockCoach: {
-    paddingHorizontal: 14,
-    paddingTop: 6,
-    paddingBottom: 4,
-    alignItems: "center",
-    backgroundColor: "rgba(6, 3, 14, 0.55)"
-  },
-  dockCoachText: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: "#c9bdd8",
-    textAlign: "center",
-    fontWeight: "600",
-    letterSpacing: 0.15,
-    maxWidth: 520,
-    alignSelf: "center",
-    paddingHorizontal: 8
   },
   dock: {
     flexDirection: "row",

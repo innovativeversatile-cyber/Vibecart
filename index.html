@@ -61,7 +61,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./vendor/lenis.css?v=20260423phone1" />
-    <link rel="stylesheet" href="./styles.css?v=20260508phonefix7" />
+    <link rel="stylesheet" href="./styles.css?v=20260508seenfix1" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -96,7 +96,7 @@
       }
     </script>
   </head>
-  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260507-prodhub">
+  <body class="vc-layout-exclusive vc-premium-unified" data-site-revision="deploy-20260508-seenfix1">
     <script>
       (function () {
         try {
@@ -2392,130 +2392,14 @@
 
     <div id="vcSealedToast" class="vc-sealed-toast" role="status" aria-live="polite" data-i18n="sealed.word">Sealed.</div>
 
-    <!-- Staged rebuild: re-enable i18n only; interaction scripts stay disabled for stability. -->
     <script src="./i18n.js?v=20260502authflow1" ></script>
     <script src="./session-device.js?v=20260501sess1"></script>
     <script src="./password-toggle.js?v=20260502pw1"></script>
     <script src="./analytics-visit.js?v=20260501visit1" defer></script>
-    <script>
-      (function () {
-        try {
-          var isMobileRuntime =
-            document.documentElement.classList.contains("vc-mobile-app") ||
-            document.documentElement.classList.contains("vc-phone") ||
-            (window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
-          if (isMobileRuntime) return;
-          var s = document.createElement("script");
-          s.src = "./script-safe.js?v=20260506sellerboost1";
-          document.body.appendChild(s);
-        } catch (e) {}
-      })();
-    </script>
+    <script src="./script-safe.js?v=20260508seenfix1"></script>
     <script src="./vibecart-ai-client.js?v=20260430genai1" defer></script>
-    <script>
-      (function () {
-        try {
-          var isMobileRuntime =
-            document.documentElement.classList.contains("vc-mobile-app") ||
-            document.documentElement.classList.contains("vc-phone") ||
-            (window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
-          if (isMobileRuntime) {
-            document.documentElement.classList.add("vc-hard-mobile-stable");
-            var st = document.createElement("style");
-            st.textContent =
-              "html.vc-hard-mobile-stable,html.vc-hard-mobile-stable body{overflow-x:clip!important;overscroll-behavior:none!important;}" +
-              "html.vc-hard-mobile-stable main,html.vc-hard-mobile-stable .section,html.vc-hard-mobile-stable .alt,html.vc-hard-mobile-stable .hero,html.vc-hard-mobile-stable .vc-mobile-rail-section,html.vc-hard-mobile-stable .vc-mobile-chapter-deck{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}" +
-              "html.vc-hard-mobile-stable .vc-horizontal-only{display:block!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-ai,html.vc-hard-mobile-stable .vc-cinematic-lane-badge{display:none!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail,html.vc-hard-mobile-stable .vc-story-rail,html.vc-hard-mobile-stable .vc-hot-ai-track,html.vc-hard-mobile-stable .shop-folder-landing{width:100%!important;max-width:100%!important;overflow-x:auto!important;touch-action:auto!important;overscroll-behavior-x:contain!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail-card,html.vc-hard-mobile-stable .shop-folder-card{max-width:min(82vw,262px)!important;}" +
-              "html.vc-hard-mobile-stable .section{border-radius:18px!important;border:1px solid rgba(255,255,255,.08)!important;background:linear-gradient(160deg,rgba(21,16,36,.88),rgba(12,10,24,.92))!important;box-shadow:0 10px 24px rgba(0,0,0,.24)!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail-card{border-radius:18px!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:0 10px 24px rgba(0,0,0,.32)!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-chip{border-color:rgba(232,163,23,.42)!important;background:linear-gradient(135deg,rgba(74,44,130,.88),rgba(19,14,38,.96))!important;color:#f7f0ff!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail-title{letter-spacing:.01em!important;color:#f4edff!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail-sub{color:rgba(221,210,240,.88)!important;}" +
-              "html.vc-hard-mobile-stable h1,html.vc-hard-mobile-stable h2,html.vc-hard-mobile-stable h3{color:#fff7ef!important;text-shadow:0 1px 0 rgba(0,0,0,.28)!important;letter-spacing:.01em!important;}" +
-              "html.vc-hard-mobile-stable p,html.vc-hard-mobile-stable .note,html.vc-hard-mobile-stable li{color:rgba(229,219,245,.94)!important;}" +
-              "html.vc-hard-mobile-stable .btn-primary{background:linear-gradient(90deg,#6d36ff,#ff4ec4)!important;border:none!important;color:#1a0a24!important;box-shadow:0 10px 24px rgba(109,54,255,.38)!important;}" +
-              "html.vc-hard-mobile-stable .btn-secondary{background:rgba(35,27,56,.85)!important;border-color:rgba(255,255,255,.2)!important;color:#efe8ff!important;}" +
-              "html.vc-hard-mobile-stable .hero{position:relative!important;overflow:hidden!important;}" +
-              "html.vc-hard-mobile-stable .hero:before{content:'';position:absolute;inset:-30% -20% auto -20%;height:70%;pointer-events:none;background:radial-gradient(circle at 30% 40%,rgba(109,54,255,.25),transparent 62%),radial-gradient(circle at 70% 20%,rgba(255,78,196,.18),transparent 58%);filter:blur(16px);}"+
-              "html.vc-hard-mobile-stable .vc-mobile-rail-card-label{color:#efe8ff!important;letter-spacing:.08em!important;}" +
-              "html.vc-hard-mobile-stable .btn,html.vc-hard-mobile-stable .vc-mobile-chip,html.vc-hard-mobile-stable .vc-mobile-rail-card{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease,opacity .18s ease!important;}" +
-              "html.vc-hard-mobile-stable .btn:active,html.vc-hard-mobile-stable .vc-mobile-chip:active{transform:scale(.97)!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail-card:active{transform:translateY(1px) scale(.992)!important;}" +
-              "html.vc-hard-mobile-stable .section{animation:vcHardFadeIn .28s ease-out both!important;}" +
-              "@keyframes vcHardFadeIn{from{opacity:.92;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}" +
-              "html.vc-hard-mobile-stable .topbar{background:linear-gradient(180deg,rgba(8,10,22,.94),rgba(8,10,22,.78))!important;border-bottom:1px solid rgba(255,255,255,.12)!important;backdrop-filter:blur(6px)!important;}" +
-              "html.vc-hard-mobile-stable .topbar .brand-mark{box-shadow:0 0 0 1px rgba(255,255,255,.2),0 8px 22px rgba(109,54,255,.35)!important;border-radius:12px!important;}" +
-              "html.vc-hard-mobile-stable .section{position:relative!important;}" +
-              "html.vc-hard-mobile-stable .section:after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;border:1px solid rgba(255,255,255,.04)!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail{scrollbar-width:none!important;}" +
-              "html.vc-hard-mobile-stable .vc-mobile-rail::-webkit-scrollbar{display:none!important;}";
-            document.head.appendChild(st);
-            var chip = document.createElement("div");
-            chip.textContent = "Stable mobile v16";
-            chip.style.cssText = "position:fixed;right:8px;bottom:8px;z-index:2147483647;background:rgba(12,12,24,.82);color:#cfd8ff;border:1px solid rgba(255,255,255,.2);padding:4px 8px;border-radius:999px;font:600 11px/1.2 system-ui;";
-            document.body.appendChild(chip);
-            var rails = document.querySelectorAll(".vc-mobile-rail,.vc-story-rail,.vc-hot-ai-track,.shop-folder-landing");
-            rails.forEach(function (rail) {
-              var sx = 0, sy = 0, locked = "";
-              rail.addEventListener("touchstart", function (ev) {
-                var t = ev.touches && ev.touches[0];
-                if (!t) return;
-                sx = Number(t.clientX || 0);
-                sy = Number(t.clientY || 0);
-                locked = "";
-                rail.style.overflowX = "auto";
-              }, { passive: true });
-              rail.addEventListener("touchmove", function (ev) {
-                var t = ev.touches && ev.touches[0];
-                if (!t) return;
-                var dx = Math.abs(Number(t.clientX || 0) - sx);
-                var dy = Math.abs(Number(t.clientY || 0) - sy);
-                if (!locked && (dx > 8 || dy > 8)) {
-                  locked = dx > dy ? "x" : "y";
-                }
-                if (locked === "y") {
-                  rail.style.overflowX = "hidden";
-                } else if (locked === "x") {
-                  rail.style.overflowX = "auto";
-                }
-              }, { passive: true });
-              rail.addEventListener("touchend", function () {
-                rail.style.overflowX = "auto";
-              }, { passive: true });
-              rail.addEventListener("touchcancel", function () {
-                rail.style.overflowX = "auto";
-              }, { passive: true });
-            });
-            return;
-          }
-          var s = document.createElement("script");
-          s.src = "./mobile-app-shell.js?v=20260508phonefix10";
-          s.defer = true;
-          document.body.appendChild(s);
-        } catch (e) {}
-      })();
-    </script>
-    <script>
-      (function () {
-        try {
-          var isMobileRuntime =
-            document.documentElement.classList.contains("vc-mobile-app") ||
-            document.documentElement.classList.contains("vc-phone") ||
-            (window.matchMedia && window.matchMedia("(max-width: 900px)").matches);
-          if (isMobileRuntime) return;
-          var a = document.createElement("script");
-          a.src = "./homepage-min.js?v=20260508force1";
-          a.defer = true;
-          document.body.appendChild(a);
-          var b = document.createElement("script");
-          b.src = "./runtime-killswitch-20260429a.js?v=20260429hardpass1";
-          b.defer = true;
-          document.body.appendChild(b);
-        } catch (e) {}
-      })();
-    </script>
+    <script src="./homepage-min.js?v=20260508force1" defer></script>
+    <script src="./mobile-app-shell.js?v=20260508seenfix1" defer></script>
+    <script src="./runtime-killswitch-20260429a.js?v=20260429hardpass1" defer></script>
   </body>
 </html>
