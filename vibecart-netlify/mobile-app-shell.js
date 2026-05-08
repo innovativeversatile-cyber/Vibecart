@@ -4271,6 +4271,11 @@
     if (!isApp && !isPhone) {
       return;
     }
+    if (isApp || isPhone) {
+      applyNuclearMobileStability();
+      registerNativePushIfAvailable();
+      return;
+    }
     /* Health & coach lane: skip heavy HUD (Quick / mission / streak / deal rail) so checkout + matcher stay tappable.
        Still mount Brandon + reveal sections so the coach lane matches the rest of the app shell. */
     if (document.body && document.body.classList.contains("health-coach-page")) {
@@ -4323,6 +4328,51 @@
     registerNativePushIfAvailable();
   }
 
+  function applyNuclearMobileStability() {
+    try {
+      var root = document.documentElement;
+      if (root.classList.contains("vc-nuclear-mobile-fix")) {
+        return;
+      }
+      root.classList.add("vc-nuclear-mobile-fix");
+      if (document.body) {
+        document.body.classList.add("vc-mobile-shell");
+        document.body.classList.remove("vc-simple-wow-on");
+        document.body.classList.remove("vc-v3-wow");
+      }
+      try {
+        var lenis = window.__vibecartLenis;
+        if (lenis) {
+          if (typeof lenis.stop === "function") lenis.stop();
+          if (typeof lenis.destroy === "function") lenis.destroy();
+        }
+      } catch {
+        /* ignore */
+      }
+      var removeIds = [
+        "vc-mobile-ai",
+        "vcCinematicLaneBadge",
+        "vcCinematicConciergeRail",
+        "vcPostHeroScrollPrompt",
+        "vcActionHub",
+        "vcMissionHud",
+        "vcFirst5Bar",
+        "vcQuickActionTrigger",
+        "vcDealDraftComposer",
+        "vcQuickActionSheet"
+      ];
+      removeIds.forEach(function (id) {
+        var node = document.getElementById(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+      });
+      document.querySelectorAll(".vc-post-hero-hidden").forEach(function (el) {
+        el.classList.remove("vc-post-hero-hidden");
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
   window.addEventListener(
     "pageshow",
     function (ev) {
@@ -4340,6 +4390,9 @@
         if (!root.classList.contains("vc-mobile-app") && !root.classList.contains("vc-phone")) {
           return;
         }
+        applyNuclearMobileStability();
+        registerNativePushIfAvailable();
+        return;
         if (document.body && document.body.classList.contains("health-coach-page")) {
           if (root.classList.contains("vc-mobile-app")) {
             document.body.classList.add("vc-mobile-shell");
@@ -4390,6 +4443,9 @@
       if (!(root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone"))) {
         return;
       }
+      applyNuclearMobileStability();
+      registerNativePushIfAvailable();
+      return;
       if (document.body && document.body.classList.contains("health-coach-page")) {
         if (root.classList.contains("vc-mobile-app")) {
           document.body.classList.add("vc-mobile-shell");
