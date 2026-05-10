@@ -1041,12 +1041,18 @@ async function handlePublicSellerListings(req, res) {
 async function handlePublicSellerListingUpdate(req, res) {
   const session = await requirePublicSessionRole(req, res, VC_SELLER_LISTING_ROLES);
   if (!session) return;
-  const body = await readJson(req);
+  let body;
+  try {
+    body = await readJson(req);
+  } catch {
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON", message: "Request body must be valid JSON." });
+  }
   const productId = Number(body.productId || 0);
   const nextStatusRaw = String(body.status || "").trim().toLowerCase();
   const stockRaw = body.stock;
   const basePriceRaw = body.basePrice;
-  const remove = Boolean(body.remove || body.archive || body.delete);
+  const hardDelete = Boolean(body.hardDelete || body.permanentDelete || body.purge);
+  const remove = !hardDelete && Boolean(body.remove || body.archive || body.delete);
   if (!productId) {
     return sendJson(res, 400, { ok: false, code: "INVALID_PRODUCT_ID" });
   }
@@ -1059,7 +1065,65 @@ async function handlePublicSellerListingUpdate(req, res) {
     [productId, Number(session.user_id)]
   );
   if (!ownedRows.length) {
-    return sendJson(res, 403, { ok: false, code: "LISTING_FORBIDDEN" });
+    return sendJson(res, 403, {
+      ok: false,
+      code: "LISTING_FORBIDDEN",
+      message: "This product is not in your active shop (ownership mismatch). Refresh after switching accounts."
+    });
+  }
+  if (hardDelete) {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [oiRows] = await conn.execute(
+        `SELECT COUNT(*) AS c FROM order_items WHERE product_id = ?`,
+        [productId]
+      );
+      const orderItemCount = Number(oiRows[0]?.c || 0);
+      if (orderItemCount > 0) {
+        await conn.rollback();
+        return sendJson(res, 409, {
+          ok: false,
+          code: "PRODUCT_HAS_ORDER_HISTORY",
+          message:
+            "This listing appears on at least one order. It cannot be erased from the database. Use “Remove from marketplace” to hide it from buyers instead."
+        });
+      }
+      await ensureSellerSaleNotificationsTable();
+      await conn.execute(`DELETE FROM seller_sale_notifications WHERE product_id = ?`, [productId]);
+      try {
+        await conn.execute(`DELETE FROM product_launches WHERE product_id = ?`, [productId]);
+      } catch {
+        /* optional table in some deployments */
+      }
+      try {
+        await conn.execute(`UPDATE compliance_checks SET product_id = NULL WHERE product_id = ?`, [productId]);
+      } catch {
+        /* optional table or FK layout */
+      }
+      await conn.execute(`DELETE FROM product_images WHERE product_id = ?`, [productId]);
+      const [delResult] = await conn.execute(`DELETE FROM products WHERE id = ? LIMIT 1`, [productId]);
+      await conn.commit();
+      const affected = Number((delResult && delResult.affectedRows) || 0);
+      if (affected < 1) {
+        return sendJson(res, 500, { ok: false, code: "DELETE_FAILED", message: "Product row was not removed." });
+      }
+      return sendJson(res, 200, { ok: true, deleted: true, permanent: true });
+    } catch (e) {
+      try {
+        await conn.rollback();
+      } catch {
+        /* ignore */
+      }
+      const code = e && e.code ? String(e.code) : "HARD_DELETE_FAILED";
+      return sendJson(res, 400, {
+        ok: false,
+        code,
+        message: String((e && e.message) || "Permanent delete failed (database constraint).")
+      });
+    } finally {
+      conn.release();
+    }
   }
   if (remove) {
     /* Schema ENUM is draft|active|suspended|sold_out — use draft for seller-hidden listings */

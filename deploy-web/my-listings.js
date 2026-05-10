@@ -3,6 +3,34 @@
 
   var TOKEN_KEY = "vibecart-public-auth-token";
   var USER_KEY = "vibecart-public-auth-user";
+  var SHOW_REMOVED_KEY = "vcListingsShowRemoved";
+  var lastRawListings = [];
+
+  function readShowRemovedPref() {
+    try {
+      return sessionStorage.getItem(SHOW_REMOVED_KEY) === "1";
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function writeShowRemovedPref(on) {
+    try {
+      if (on) sessionStorage.setItem(SHOW_REMOVED_KEY, "1");
+      else sessionStorage.removeItem(SHOW_REMOVED_KEY);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function filterListingsForDisplay(items) {
+    if (readShowRemovedPref()) {
+      return items;
+    }
+    return (items || []).filter(function (it) {
+      return String((it && it.status) || "").toLowerCase() !== "draft";
+    });
+  }
 
   function readAuth() {
     var token = String(localStorage.getItem(TOKEN_KEY) || "").trim();
@@ -33,7 +61,15 @@
             if (!r.ok || json.ok === false) {
               var code = String((json && json.code) || "");
               var msg = String((json && (json.message || json.code)) || "HTTP_" + r.status);
-              if (code === "ROLE_FORBIDDEN" || r.status === 403) {
+              if (code === "LISTING_FORBIDDEN") {
+                msg =
+                  String((json && json.message) || "").trim() ||
+                  "That listing is not linked to your shop. Refresh if you switched accounts, or sign in with the account that owns this shop.";
+              } else if (code === "PRODUCT_HAS_ORDER_HISTORY") {
+                msg =
+                  String((json && json.message) || "").trim() ||
+                  "This listing has order history and cannot be permanently deleted. Use Remove from marketplace to archive it.";
+              } else if (code === "ROLE_FORBIDDEN") {
                 msg =
                   "ROLE_FORBIDDEN — open Account hub → Active lane → choose Seller (or stay Buyer if you publish from a shop), then refresh.";
               }
@@ -188,6 +224,7 @@
       '<button type="button" class="btn btn-secondary" data-action="pause">Pause</button>' +
       '<button type="button" class="btn btn-primary" data-action="relist">Relist</button>' +
       '<button type="button" class="btn btn-secondary" data-action="remove" style="border-color:rgba(255,120,120,.45)">Remove from marketplace</button>' +
+      '<button type="button" class="btn btn-secondary" data-action="purge" style="border-color:rgba(255,80,80,.55)">Delete permanently</button>' +
       "</div>";
     var tIn = wrapper.querySelector("#vcEdTitle-" + item.id);
     var dIn = wrapper.querySelector("#vcEdDesc-" + item.id);
@@ -199,13 +236,20 @@
   function renderListings(items) {
     var root = document.getElementById("vcListingsGrid");
     if (!root) return;
+    lastRawListings = Array.isArray(items) ? items.slice() : [];
+    var visible = filterListingsForDisplay(lastRawListings);
     root.innerHTML = "";
-    if (!Array.isArray(items) || !items.length) {
-      root.innerHTML =
-        '<article class="vc-listing-card"><p class="note">No listings yet. Publish from the <a href="./sell-journey.html">selling checklist</a>.</p></article>';
+    if (!visible.length) {
+      if (lastRawListings.length && !readShowRemovedPref()) {
+        root.innerHTML =
+          '<article class="vc-listing-card"><p class="note">No active listings in view. Removed items are hidden — turn on <strong>Show removed listings</strong> below to relist or review them.</p></article>';
+      } else {
+        root.innerHTML =
+          '<article class="vc-listing-card"><p class="note">No listings yet. Publish from the <a href="./sell-journey.html">selling checklist</a>.</p></article>';
+      }
       return;
     }
-    items.forEach(function (item) {
+    visible.forEach(function (item) {
       root.appendChild(cardForListing(item));
     });
   }
@@ -337,11 +381,56 @@
         body: JSON.stringify({ productId: productId, remove: true })
       })
         .then(function () {
-          setStatus("Listing removed from marketplace.");
+          setStatus(
+            "Listing removed from the live marketplace (archived). It disappears from this list unless you enable “Show removed listings” to relist."
+          );
           return loadAll();
         })
         .catch(function (err) {
           setStatus("Remove failed: " + err.message);
+        });
+      return;
+    }
+    if (action === "purge") {
+      var ordN = 0;
+      try {
+        var chips = card.querySelectorAll(".vc-stat-chip");
+        for (var ci = 0; ci < chips.length; ci++) {
+          var tx = String((chips[ci] && chips[ci].textContent) || "");
+          if (/^Orders:\s*/i.test(tx)) {
+            ordN = Number(tx.replace(/^Orders:\s*/i, "").trim() || 0);
+            break;
+          }
+        }
+      } catch (_) {
+        ordN = 0;
+      }
+      var warnOrders =
+        ordN > 0
+          ? " This listing shows " +
+            ordN +
+            " marketplace order(s) — permanent delete will be rejected until those records are gone from our side (use Remove from marketplace instead).\n\n"
+          : "";
+      if (
+        !window.confirm(
+          warnOrders +
+            "Permanently DELETE this listing from the database? Photos and stats go with it. This cannot be undone. (Not allowed if the item ever appeared on an order.)"
+        )
+      ) {
+        return;
+      }
+      setStatus("Deleting permanently…");
+      api("/api/public/seller/listings/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: productId, hardDelete: true })
+      })
+        .then(function () {
+          setStatus("Listing permanently deleted.");
+          return loadAll();
+        })
+        .catch(function (err) {
+          setStatus("Permanent delete failed: " + err.message);
         });
       return;
     }
@@ -438,6 +527,27 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    var grid = document.getElementById("vcListingsGrid");
+    if (grid && !document.getElementById("vcListingsFilterBar")) {
+      var bar = document.createElement("p");
+      bar.className = "hero-actions";
+      bar.id = "vcListingsFilterBar";
+      bar.style.marginTop = "0.35rem";
+      bar.innerHTML =
+        '<label class="note" style="display:inline-flex;align-items:center;gap:.45rem;cursor:pointer;user-select:none">' +
+        '<input type="checkbox" id="vcShowRemovedListings" /> Show removed listings (paused / archived — use Relist)</label>';
+      if (grid.parentNode) {
+        grid.parentNode.insertBefore(bar, grid);
+      }
+      var cb = document.getElementById("vcShowRemovedListings");
+      if (cb) {
+        cb.checked = readShowRemovedPref();
+        cb.addEventListener("change", function () {
+          writeShowRemovedPref(Boolean(cb.checked));
+          renderListings(lastRawListings);
+        });
+      }
+    }
     var refreshBtn = document.getElementById("vcListingsRefreshBtn");
     if (refreshBtn) refreshBtn.addEventListener("click", loadAll);
     document.body.addEventListener("click", onAction);

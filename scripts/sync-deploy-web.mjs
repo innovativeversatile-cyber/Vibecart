@@ -147,7 +147,15 @@ function syncMobileApp() {
   const dst = path.join(DEPLOY, "mobile-app");
   if (!exists(src)) return 0;
   if (exists(dst)) {
-    fs.rmSync(dst, { recursive: true, force: true });
+    try {
+      fs.rmSync(dst, { recursive: true, force: true });
+    } catch (e) {
+      console.warn(
+        "sync-deploy-web: could not remove deploy-web/mobile-app (folder in use?). Skipping mobile copy this run.",
+        e && e.message ? String(e.message) : e
+      );
+      return 0;
+    }
   }
   const filter = (_abs, rel, isDir) => {
     return !String(rel || "").split(path.sep).includes("node_modules");
