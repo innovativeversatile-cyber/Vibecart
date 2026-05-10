@@ -96,7 +96,7 @@
     sec.setAttribute("aria-labelledby", "vcStayNextTitle");
     sec.innerHTML =
       '<h2 id="vcStayNextTitle" class="shops-lane-title" style="font-size:1.05rem">Where to next on VibeCart</h2>' +
-      '<p class="note vc-retention-tip">Plan here, explore in a new tab when a card opens an external shop, then come back to this tab for orders and search.</p>' +
+      '<p class="note vc-retention-tip">Keep this tab as HQ — internal VibeCart links and partner shops open in new tabs so you can return here for orders, search, and account.</p>' +
       '<div class="hero-actions vc-stay-next__actions" style="flex-wrap:wrap;gap:0.45rem;margin-top:0.5rem">' +
       '<a class="btn btn-primary" href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best">Live market</a>' +
       '<a class="btn btn-secondary" href="./global-search.html">Search</a>' +
@@ -182,4 +182,34 @@
     kick();
   }
   window.addEventListener("load", run, { once: true });
+})();
+
+(function scheduleVcGlobalUx() {
+  if (typeof window === "undefined" || window.__vcGlobalUxScheduled === "1") {
+    return;
+  }
+  window.__vcGlobalUxScheduled = "1";
+  function thinFlow() {
+    try {
+      var p = String(window.location.pathname || "").toLowerCase();
+      return /checkout-details|payment-confirmation|coach-payment-recovery|top-class-checkout|admin\.html|admin-app|admin-messages|owner-access-kuda/.test(
+        p
+      );
+    } catch {
+      return false;
+    }
+  }
+  function inject() {
+    if (thinFlow()) return;
+    if (document.querySelector('script[src*="vc-global-ux.js"]')) return;
+    var s = document.createElement("script");
+    s.src = "./vc-global-ux.js?v=20260510ux1";
+    s.defer = true;
+    (document.head || document.documentElement).appendChild(s);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
 })();

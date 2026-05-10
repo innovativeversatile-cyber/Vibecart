@@ -101,7 +101,8 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "books-study-deals.js",
   "marketplace-buy.js",
   "affiliate-recommendations-mount.js",
-  "visitor-retention.js"
+  "visitor-retention.js",
+  "vc-global-ux.js"
 ]);
 
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */

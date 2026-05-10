@@ -3844,6 +3844,12 @@ body.shops-lane-page main.shops-lane-main .section .section.alt {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.vc-affiliate-rec-section .vc-affiliate-card__product-img.vc-affiliate-card__product-img--contain {
+  object-fit: contain;
+  padding: 0.4rem 0.55rem;
+  background: rgba(255, 255, 255, 0.07);
+}
+
 .vc-affiliate-rec-section .vc-affiliate-card__desc {
   font-size: 0.72rem;
   line-height: 1.35;
@@ -12233,4 +12239,214 @@ body.vc-warp-out {
 @keyframes vcWarpOut {
   0% { opacity: 1; filter: saturate(1); }
   100% { opacity: 0.2; filter: saturate(1.15) blur(1px); transform: scale(1.015); }
+}
+
+/* ——— Desktop arrival & lane UX (20260510) ——— */
+.vc-ux-context-strip {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(130, 230, 255, 0.28);
+  background: linear-gradient(125deg, rgba(109, 54, 255, 0.22), rgba(12, 214, 255, 0.12), rgba(255, 63, 159, 0.1));
+  box-shadow: 0 12px 36px rgba(6, 4, 20, 0.35);
+}
+.vc-ux-context-strip p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: rgba(245, 238, 255, 0.96);
+}
+.vc-ux-context-strip--buyer {
+  border-color: rgba(255, 214, 142, 0.35);
+  background: linear-gradient(120deg, rgba(255, 214, 142, 0.14), rgba(84, 229, 255, 0.12), rgba(111, 43, 255, 0.14));
+}
+
+.vc-arrival-orbit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.65rem;
+  min-height: 2.1rem;
+}
+.vc-arrival-orbit__ring {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #0cd6ff;
+  border-right-color: #ff3f9f;
+  flex-shrink: 0;
+}
+.vc-arrival-orbit__dot {
+  position: absolute;
+  left: 0.72rem;
+  top: 50%;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: -0.22rem 0 0 -0.22rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #0cd6ff 55%, transparent 70%);
+  box-shadow: 0 0 14px rgba(12, 214, 255, 0.85);
+}
+.vc-arrival-orbit__label {
+  font-family: var(--vc-font-display, Syne, system-ui, sans-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(200, 235, 255, 0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.vc-arrival-on .vc-arrival-orbit__ring {
+  animation: vcArrivalSpin 4.8s cubic-bezier(0.4, 0.1, 0.2, 1) forwards;
+}
+html.vc-arrival-on .vc-arrival-orbit__dot {
+  animation: vcArrivalPulse 1.1s ease-in-out 4;
+}
+html.vc-arrival-on .vc-arrival-orbit__label {
+  animation: vcArrivalLabel 0.9s ease-out 0.15s both;
+}
+
+html.vc-arrival-phase-b .hero-master-line--a {
+  animation: vcArrivalDash 5s ease-in-out forwards;
+}
+html.vc-arrival-phase-b .vc-route-primary {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: vcArrivalStroke 4.5s ease-out 0.2s both;
+}
+
+html.vc-arrival-on .hero-copy > .badge,
+html.vc-arrival-on .hero-copy > h1,
+html.vc-arrival-on .hero-copy > #heroSubtitle,
+html.vc-arrival-on .hero-copy > .hero-actions,
+html.vc-arrival-on .hero-copy > .hero-quick-lanes {
+  animation: vcArrivalRise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html.vc-arrival-on .hero-copy > .badge {
+  animation-delay: 0.08s;
+}
+html.vc-arrival-on .hero-copy > h1 {
+  animation-delay: 0.14s;
+}
+html.vc-arrival-on .hero-copy > #heroSubtitle {
+  animation-delay: 0.22s;
+}
+html.vc-arrival-on .hero-copy > .hero-actions {
+  animation-delay: 0.3s;
+}
+html.vc-arrival-on .hero-copy > .hero-quick-lanes {
+  animation-delay: 0.38s;
+}
+
+html.vc-arrival-first-session .hero {
+  animation: vcArrivalHeroGlow 5.2s ease-out forwards;
+}
+
+html.vc-arrival-settled .vc-arrival-orbit__ring,
+html.vc-arrival-settled .vc-arrival-orbit__dot {
+  animation: none;
+}
+
+html.vc-arrival-reduced .vc-arrival-orbit__ring,
+html.vc-arrival-reduced .vc-arrival-orbit__dot,
+html.vc-arrival-reduced .vc-arrival-orbit__label {
+  animation: none !important;
+}
+
+@media (max-width: 900px) {
+  .vc-arrival-orbit__label {
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+@keyframes vcArrivalSpin {
+  0% { transform: rotate(-120deg); opacity: 0.3; }
+  18% { opacity: 1; }
+  100% { transform: rotate(520deg); opacity: 1; }
+}
+@keyframes vcArrivalPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+@keyframes vcArrivalLabel {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes vcArrivalRise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes vcArrivalHeroGlow {
+  0% {
+    box-shadow: var(--vc-shadow, 0 18px 70px rgba(9, 4, 28, 0.45));
+  }
+  35% {
+    box-shadow:
+      0 0 0 1px rgba(12, 214, 255, 0.35),
+      0 22px 80px rgba(111, 43, 255, 0.42),
+      0 0 120px rgba(255, 63, 159, 0.12);
+  }
+  100% {
+    box-shadow: var(--vc-shadow, 0 18px 70px rgba(9, 4, 28, 0.45));
+  }
+}
+@keyframes vcArrivalDash {
+  0% {
+    stroke-dashoffset: 80;
+    opacity: 0.5;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+@keyframes vcArrivalStroke {
+  from {
+    stroke-dashoffset: 1000;
+    opacity: 0.35;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.vc-arrival-on .hero-copy > .badge,
+  html.vc-arrival-on .hero-copy > h1,
+  html.vc-arrival-on .hero-copy > #heroSubtitle,
+  html.vc-arrival-on .hero-copy > .hero-actions,
+  html.vc-arrival-on .hero-copy > .hero-quick-lanes,
+  html.vc-arrival-phase-b .hero-master-line--a,
+  html.vc-arrival-phase-b .vc-route-primary,
+  html.vc-arrival-first-session .hero {
+    animation: none !important;
+  }
 }

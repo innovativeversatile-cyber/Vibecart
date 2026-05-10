@@ -1055,7 +1055,7 @@
     return;
   }
   window.__vcVisitorRetentionScheduled = "1";
-  var src = "./visitor-retention.js?v=20260508ret4";
+  var src = "./visitor-retention.js?v=20260510ret5";
   function eligibleForRetention() {
     try {
       var p = String(location.pathname || "").toLowerCase();
@@ -1141,6 +1141,37 @@
     s.onload = function () {
       window.__vcAnalyticsVisitLoaded = "1";
     };
+    (document.head || document.documentElement).appendChild(s);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
+})();
+
+(function scheduleVcGlobalUxChrome() {
+  if (typeof window === "undefined" || window.__vcGlobalUxChromeScheduled === "1") {
+    return;
+  }
+  window.__vcGlobalUxChromeScheduled = "1";
+  var src = "./vc-global-ux.js?v=20260510ux1";
+  function thinFlow() {
+    try {
+      var p = String(window.location.pathname || "").toLowerCase();
+      return /checkout-details|payment-confirmation|coach-payment-recovery|top-class-checkout|admin\.html|admin-app|admin-messages|owner-access-kuda/.test(
+        p
+      );
+    } catch {
+      return false;
+    }
+  }
+  function inject() {
+    if (thinFlow()) return;
+    if (document.querySelector('script[src*="vc-global-ux.js"]')) return;
+    var s = document.createElement("script");
+    s.src = src;
+    s.defer = true;
     (document.head || document.documentElement).appendChild(s);
   }
   if (document.readyState === "loading") {
