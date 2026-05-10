@@ -181,7 +181,7 @@ const PAYPAL_CLIENT_SECRET = String(process.env.PAYPAL_CLIENT_SECRET || "").trim
 const PAYPAL_API_BASE = String(process.env.PAYPAL_API_BASE || "https://api-m.paypal.com").trim().replace(/\/$/, "");
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 /** Bump when shipping payment/coach fixes so `/api/health` proves Railway picked up the deploy. */
-const PUBLIC_API_BUILD_TAG = "20260206-coach-v2";
+const PUBLIC_API_BUILD_TAG = "20260510-prod-bind-discovery";
 /** When unset: ON. Set AI_AUTOPILOT_ENABLED=false|0|off|no to disable. Set true|1|on|yes to force enable. */
 const AI_AUTOPILOT_ENABLED = (() => {
   const raw = process.env.AI_AUTOPILOT_ENABLED;
@@ -241,6 +241,7 @@ const pool = mysql.createPool({
   password: DB_PASSWORD,
   database: DB_NAME,
   connectionLimit: 10,
+  connectTimeout: Math.max(3000, Number(process.env.DB_CONNECT_TIMEOUT_MS || 15000)),
   ...(_useMysqlSsl ? { ssl: { rejectUnauthorized: false } } : {})
 });
 
@@ -1527,6 +1528,48 @@ async function ensureClientEventLogsTable() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
   );
   clientEventLogsTableEnsured = true;
+}
+
+let externalShopClickStatsTableEnsured = false;
+async function ensureExternalShopClickStatsTable() {
+  if (externalShopClickStatsTableEnsured) {
+    return;
+  }
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS external_shop_click_stats (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      host VARCHAR(253) NOT NULL,
+      click_count INT UNSIGNED NOT NULL DEFAULT 0,
+      last_click_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_external_shop_host (host),
+      KEY idx_ext_shop_last (last_click_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+  );
+  externalShopClickStatsTableEnsured = true;
+}
+
+function recordExternalShopClickIfExternal(safeTargetUrl) {
+  (async () => {
+    try {
+      const u = new URL(String(safeTargetUrl || ""));
+      const h = String(u.hostname || "").toLowerCase();
+      if (!h || h === "localhost" || /^127\./.test(h)) {
+        return;
+      }
+      if (h === "vibe-cart.com" || h.endsWith(".vibe-cart.com")) {
+        return;
+      }
+      await ensureExternalShopClickStatsTable();
+      await pool.execute(
+        `INSERT INTO external_shop_click_stats (host, click_count, last_click_at)
+         VALUES (?, 1, UTC_TIMESTAMP())
+         ON DUPLICATE KEY UPDATE click_count = click_count + 1, last_click_at = UTC_TIMESTAMP()`,
+        [h.slice(0, 253)]
+      );
+    } catch {
+      /* ignore — never block redirects */
+    }
+  })();
 }
 
 let gdprPrivacyRequestTableEnsured = false;
@@ -5312,9 +5355,40 @@ async function handlePublicShopRedirect(req, res) {
   } catch {
     /* ignore */
   }
+  recordExternalShopClickIfExternal(safeTarget);
   res.statusCode = 302;
   res.setHeader("Location", safeTarget);
   res.end();
+}
+
+async function handlePublicTrendingShopHosts(req, res) {
+  const urlObj = new URL(req.url, "http://localhost");
+  let limit = Number(urlObj.searchParams.get("limit") || 12);
+  if (!Number.isFinite(limit) || limit < 1) {
+    limit = 12;
+  }
+  limit = Math.min(40, Math.floor(limit));
+  try {
+    await ensureExternalShopClickStatsTable();
+    const [rows] = await pool.execute(
+      `SELECT host, click_count AS clicks, last_click_at AS lastClickAt
+       FROM external_shop_click_stats
+       ORDER BY click_count DESC, last_click_at DESC
+       LIMIT ?`,
+      [limit]
+    );
+    const list = (Array.isArray(rows) ? rows : []).map((r) => ({
+      host: String(r.host || ""),
+      clicks: Number(r.clicks || 0),
+      lastClickAt: r.lastClickAt ? String(r.lastClickAt) : null,
+      mapsSearchUrl:
+        "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(String(r.host || "").replace(/^www\./i, "")),
+      webSearchUrl: "https://duckduckgo.com/?q=" + encodeURIComponent(String(r.host || ""))
+    }));
+    return sendJson(res, 200, { ok: true, buildTag: PUBLIC_API_BUILD_TAG, hosts: list });
+  } catch {
+    return sendJson(res, 200, { ok: true, buildTag: PUBLIC_API_BUILD_TAG, hosts: [] });
+  }
 }
 
 async function handlePublicAffiliateReferralsList(req, res) {
@@ -9209,6 +9283,9 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && pathname === "/api/public/shop/redirect") {
       return await handlePublicShopRedirect(req, res);
     }
+    if (req.method === "GET" && pathname === "/api/public/discovery/trending-shop-hosts") {
+      return await handlePublicTrendingShopHosts(req, res);
+    }
     if (req.method === "GET" && pathname === "/api/public/affiliate/referrals") {
       return await handlePublicAffiliateReferralsList(req, res);
     }
@@ -9509,15 +9586,24 @@ attachBakeryBookingChatWss(server, { validate: validateBakeryChatWsToken });
 attachBakeryProviderDeskWss(server, { validate: validateBakeryProviderDeskWsToken });
 
 async function startOwnerAuthApiServer() {
-  try {
-    await ensurePublicSessionDeviceColumns();
-  } catch (err) {
+  const BIND_HOST = String(process.env.BIND_HOST || "0.0.0.0").trim() || "0.0.0.0";
+  await new Promise((resolve, reject) => {
+    function onListenErr(err) {
+      server.off("error", onListenErr);
+      reject(err);
+    }
+    server.on("error", onListenErr);
+    server.listen(PORT, BIND_HOST, () => {
+      server.off("error", onListenErr);
+      // eslint-disable-next-line no-console
+      console.log(`Owner auth API listening on http://${BIND_HOST}:${PORT}`);
+      resolve();
+    });
+  });
+  ensurePublicSessionDeviceColumns().catch((err) => {
     // eslint-disable-next-line no-console
     console.warn("[vibecart] ensurePublicSessionDeviceColumns:", String((err && err.message) || err));
-  }
-  server.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Owner auth API running on http://localhost:${PORT}`);
+  });
   if (PROMO_SCOUT_ENABLED) {
     runPromotionScoutCycle();
     const promoIntervalMs = PROMO_SCOUT_INTERVAL_MINUTES * 60 * 1000;
@@ -9542,7 +9628,6 @@ async function startOwnerAuthApiServer() {
     // eslint-disable-next-line no-console
     console.log(`AI autopilot enabled. Interval: every ${AI_AUTOPILOT_INTERVAL_MINUTES} minutes.`);
   }
-  });
 }
 
 startOwnerAuthApiServer();

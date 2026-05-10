@@ -335,12 +335,12 @@
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
           <strong>Brandon</strong>
-          <span class="vc-mobile-ai__sub">VibeCart-first routing · auto-hides on passwords, cards &amp; checkout screens</span>
+          <span class="vc-mobile-ai__sub">Ask anything in plain language — buying, selling, regions, orders, wellbeing. I open the right page or a real Maps / search link. Hidden on password, card, and checkout fields.</span>
         </div>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
-        <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Ask Brandon or tell a preference</label>
-        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="2" maxlength="400" placeholder="Try: Tokyo bookstores, Paris bakeries, track order, sell — Maps &amp; web links appear below. No passwords or card data."></textarea>
-        <button type="button" class="btn btn-primary vc-mobile-ai__save">Ask Brandon</button>
+        <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Message Brandon (anything about VibeCart or where to shop)</label>
+        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="3" maxlength="500" placeholder="Examples: track my order, Ireland electronics, open seller boost, book a haircut, Nairobi shops — short phrases work best. Never paste passwords, PINs, CVV, or OTPs."></textarea>
+        <button type="button" class="btn btn-primary vc-mobile-ai__save">Send to Brandon</button>
         <p id="vc-mobile-ai-reply" class="note vc-mobile-ai__saved" hidden></p>
         <p id="vc-mobile-ai-saved" class="note vc-mobile-ai__saved" hidden>Saved locally — thank you.</p>
       </div>
@@ -1326,7 +1326,7 @@
       }
       return window
         .vibecartAiGenerate("brandon_guide", {
-          question: trimmed.slice(0, 400),
+          question: trimmed.slice(0, 500),
           pageUrl: typeof location !== "undefined" ? String(location.href || "").slice(0, 500) : "",
           path: (function () {
             try {

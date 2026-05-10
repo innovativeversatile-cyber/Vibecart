@@ -79,7 +79,7 @@
     { title: "Passport welcome", url: "./passport-welcome.html", keywords: "welcome citizen passport signup" },
     { title: "Lane passport", url: "./lane-passport.html", keywords: "passport register sign up create account login email password" },
     { title: "My Business — beauty & services", url: "./my-business.html", keywords: "my business my hustle beauty service booking hair barber nails makeup bakery baker portfolio my-business beauty-services" },
-    { title: "Service provider hub", url: "./service-provider-hub.html", keywords: "provider business booking payment deposit barber salon bakery hairdresser hair nails makeup" },
+    { title: "Service provider hub", url: "./service-provider-hub.html", keywords: "provider business booking payment deposit barber salon bakery hairdresser hair nails makeup citizen" },
     { title: "Fashion trends lane", url: "./fashion-trends.html", keywords: "fashion trends outfits style runway clothes shoes" },
     { title: "Live market shops", url: "./live-market-shops.html", keywords: "market shops fashion electronics books gaming affiliate ireland dublin belfast northern ireland ROI" },
     { title: "World shop experience", url: "./world-shop-experience.html", keywords: "world shop experience preview lanes" },
@@ -116,7 +116,6 @@
     { title: "Security overview", url: "./security-overview.html", keywords: "security fraud audit safety" },
     { title: "Insurance audience fit", url: "./audience-fit.html", keywords: "audience insurance fit" },
     { title: "Lane welcome", url: "./lane-welcome.html", keywords: "lane welcome onboarding" },
-    { title: "Affiliate dashboard", url: "./affiliate-dashboard.html", keywords: "affiliate referrals owner dashboard" },
     { title: "Policy", url: "./policy.html", keywords: "policy rules marketplace" },
     { title: "Terms", url: "./terms.html", keywords: "terms conditions legal" },
     { title: "Privacy", url: "./privacy.html", keywords: "privacy data protection" }
@@ -127,6 +126,7 @@
   var status = document.getElementById("globalSearchStatus");
   var results = document.getElementById("globalSearchSiteResults");
   var worldwideEl = document.getElementById("globalWorldwideShopLinks");
+  var trendingEl = document.getElementById("globalTrendingHosts");
   var webBtn = document.getElementById("globalWebSearchBtn");
   var googleBtn = document.getElementById("globalGoogleSearchBtn");
 
@@ -139,37 +139,181 @@
     }
   }
 
+  function resolveDirectNavigation(raw) {
+    var s = String(raw || "").trim();
+    if (!s) {
+      return null;
+    }
+    if (/^https?:\/\//i.test(s)) {
+      try {
+        return new URL(s).toString();
+      } catch {
+        return null;
+      }
+    }
+    if (/^www\.vibe-cart\.com/i.test(s)) {
+      return "https://" + s.replace(/^\/+/, "");
+    }
+    if (/^vibe-cart\.com\//i.test(s)) {
+      return "https://" + s;
+    }
+    var looksLocal =
+      /\.html(\?|#|$)/i.test(s) ||
+      /^\.\//.test(s) ||
+      /^(\w[\w-]*)\.(html|htm)(\?|#|$)/i.test(s);
+    if (looksLocal) {
+      var path = s.replace(/^\.\//, "");
+      if (!/^\.\//.test(path) && !/^https?:/i.test(path)) {
+        path = "./" + path;
+      }
+      return path;
+    }
+    return null;
+  }
+
+  function rankSiteMatches(rawQuery, items) {
+    var q = String(rawQuery || "").trim().toLowerCase();
+    if (!q) {
+      return [];
+    }
+    var words = q.split(/\s+/).filter(function (w) {
+      return w.length >= 2;
+    });
+    var scored = items
+      .map(function (item) {
+        var hay = (item.title + " " + item.keywords + " " + item.url).toLowerCase();
+        var score = 0;
+        if (hay.indexOf(q) >= 0) {
+          score += 48;
+        }
+        words.forEach(function (w) {
+          if (hay.indexOf(w) >= 0) {
+            score += 12;
+          }
+        });
+        var file = String(item.url || "").split("?")[0].replace(/^\.\//, "").toLowerCase();
+        if (file && (q === file.replace(/\.html$/, "") || q + ".html" === file)) {
+          score += 40;
+        }
+        return { item: item, score: score };
+      })
+      .filter(function (x) {
+        return x.score > 0;
+      });
+    scored.sort(function (a, b) {
+      return b.score - a.score;
+    });
+    return scored;
+  }
+
+  function jumpTargetForQuery(query) {
+    var direct = resolveDirectNavigation(query);
+    if (direct) {
+      return direct;
+    }
+    var ranked = rankSiteMatches(query, siteIndex);
+    if (!ranked.length) {
+      return null;
+    }
+    if (ranked.length === 1) {
+      return ranked[0].item.url;
+    }
+    var top = ranked[0];
+    var second = ranked[1];
+    if (top.score >= 56 && top.score >= second.score * 2) {
+      return top.item.url;
+    }
+    return null;
+  }
+
+  function paintTrendingHosts(container) {
+    if (!container) {
+      return;
+    }
+    var base = "";
+    try {
+      if (typeof window.__VC_API_BASE__ === "string" && window.__VC_API_BASE__) {
+        base = String(window.__VC_API_BASE__).replace(/\/$/, "");
+      }
+    } catch {
+      base = "";
+    }
+    var url = (base || "") + "/api/public/discovery/trending-shop-hosts?limit=10";
+    fetch(url, { credentials: "omit" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.hosts) || !data.hosts.length) {
+          container.innerHTML = "";
+          return;
+        }
+        var head = document.createElement("p");
+        head.className = "note";
+        head.style.marginTop = "0.5rem";
+        head.innerHTML =
+          "<strong>Trending destinations</strong> — built automatically from real outbound shop clicks (no invented stores). Open Maps or web search for each host.";
+        container.appendChild(head);
+        var box = document.createElement("div");
+        box.className = "hero-actions";
+        box.style.flexWrap = "wrap";
+        data.hosts.forEach(function (row) {
+          var h = String(row.host || "");
+          if (!h) {
+            return;
+          }
+          var a = document.createElement("a");
+          a.className = "btn btn-secondary";
+          a.href = row.mapsSearchUrl || "https://duckduckgo.com/?q=" + encodeURIComponent(h);
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.textContent = h.replace(/^www\./i, "");
+          box.appendChild(a);
+        });
+        container.appendChild(box);
+      })
+      .catch(function () {
+        container.innerHTML = "";
+      });
+  }
+
   function paint(query) {
     if (!results || !status) {
       return;
     }
-    var q = String(query || "").trim().toLowerCase();
+    var raw = String(query || "").trim();
+    var q = raw.toLowerCase();
     if (!q) {
-      results.innerHTML = "<div class='msg msg-buyer'>Enter a keyword to search website and web.</div>";
+      results.innerHTML = "<div class='msg msg-buyer'>Enter a keyword, paste a link, or try Brandon on any page.</div>";
       status.textContent = "";
       if (worldwideEl) {
         worldwideEl.innerHTML = "";
       }
+      if (trendingEl) {
+        trendingEl.innerHTML = "";
+      }
+      paintTrendingHosts(trendingEl);
       return;
     }
-    var matches = siteIndex.filter(function (item) {
-      var hay = (item.title + " " + item.keywords + " " + item.url).toLowerCase();
-      return hay.indexOf(q) >= 0;
+    var ranked = rankSiteMatches(raw, siteIndex);
+    var matches = ranked.map(function (x) {
+      return x.item;
     });
     status.textContent = matches.length
-      ? matches.length + " VibeCart results found."
-      : "No direct site match. Use web search buttons below.";
+      ? matches.length + " VibeCart page match(es). Tap a row to open — or use web buttons."
+      : "No VibeCart page match. Paste a full https:// link to go directly, or use web search below.";
     results.innerHTML = "";
-    matches.forEach(function (item) {
-      var row = document.createElement("a");
-      row.className = "msg msg-seller";
-      row.href = item.url;
-      row.textContent = item.title + " | " + item.url;
-      results.appendChild(row);
+    ranked.forEach(function (row) {
+      var item = row.item;
+      var a = document.createElement("a");
+      a.className = "msg msg-seller";
+      a.href = item.url;
+      a.textContent = item.title + " → " + item.url;
+      results.appendChild(a);
     });
-    renderWorldwideShopLinks(worldwideEl, String(query || "").trim());
-    var ddgWorld = "https://duckduckgo.com/?q=" + encodeURIComponent(String(query || "").trim() + " shop OR store");
-    var ggWorld = "https://www.google.com/search?q=" + encodeURIComponent(String(query || "").trim() + " shop store");
+    renderWorldwideShopLinks(worldwideEl, raw);
+    var ddgWorld = "https://duckduckgo.com/?q=" + encodeURIComponent(raw + " shop OR store");
+    var ggWorld = "https://www.google.com/search?q=" + encodeURIComponent(raw + " shop store");
     if (webBtn) {
       webBtn.href = ddgWorld;
       webBtn.textContent = "DuckDuckGo (worldwide shops)";
@@ -178,12 +322,18 @@
       googleBtn.href = ggWorld;
       googleBtn.textContent = "Google (worldwide shops)";
     }
+    paintTrendingHosts(trendingEl);
   }
 
   if (form && input) {
     form.addEventListener("submit", function (event) {
       event.preventDefault();
       var query = String(input.value || "").trim();
+      var jump = jumpTargetForQuery(query);
+      if (jump) {
+        window.location.assign(jump);
+        return;
+      }
       var next = "./global-search.html?q=" + encodeURIComponent(query);
       window.history.replaceState(null, "", next);
       paint(query);
@@ -191,6 +341,13 @@
   }
 
   var initial = readQueryFromUrl();
-  if (input) input.value = initial;
-  paint(initial);
+  if (input) {
+    input.value = initial;
+  }
+  var initialJump = initial ? jumpTargetForQuery(initial) : null;
+  if (initialJump) {
+    window.location.replace(initialJump);
+  } else {
+    paint(initial);
+  }
 })();
