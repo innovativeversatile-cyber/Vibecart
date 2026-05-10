@@ -69,6 +69,10 @@
                 msg =
                   String((json && json.message) || "").trim() ||
                   "This listing has order history and cannot be permanently deleted. Use Remove from marketplace to archive it.";
+              } else if (code === "LISTING_NOT_FOUND") {
+                msg =
+                  String((json && json.message) || "").trim() ||
+                  "That listing is no longer in the database. Refresh the page.";
               } else if (code === "ROLE_FORBIDDEN") {
                 msg =
                   "ROLE_FORBIDDEN — open Account hub → Active lane → choose Seller (or stay Buyer if you publish from a shop), then refresh.";
@@ -160,6 +164,7 @@
     var wrapper = document.createElement("article");
     wrapper.className = "vc-listing-card";
     wrapper.dataset.productId = String(item.id);
+    wrapper.dataset.orderCount = String(Number((item.stats && item.stats.orders) || 0));
     var desc = String(item.description || "");
     wrapper.innerHTML =
       '<div class="vc-listing-head">' +
@@ -392,24 +397,12 @@
       return;
     }
     if (action === "purge") {
-      var ordN = 0;
-      try {
-        var chips = card.querySelectorAll(".vc-stat-chip");
-        for (var ci = 0; ci < chips.length; ci++) {
-          var tx = String((chips[ci] && chips[ci].textContent) || "");
-          if (/^Orders:\s*/i.test(tx)) {
-            ordN = Number(tx.replace(/^Orders:\s*/i, "").trim() || 0);
-            break;
-          }
-        }
-      } catch (_) {
-        ordN = 0;
-      }
+      var ordN = Number(card.dataset.orderCount || 0);
       var warnOrders =
         ordN > 0
           ? " This listing shows " +
             ordN +
-            " marketplace order(s) — permanent delete will be rejected until those records are gone from our side (use Remove from marketplace instead).\n\n"
+            " marketplace order(s) — permanent delete is blocked while orders reference it. Use Remove from marketplace to archive it instead.\n\n"
           : "";
       if (
         !window.confirm(

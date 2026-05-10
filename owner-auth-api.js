@@ -1051,8 +1051,18 @@ async function handlePublicSellerListingUpdate(req, res) {
   const nextStatusRaw = String(body.status || "").trim().toLowerCase();
   const stockRaw = body.stock;
   const basePriceRaw = body.basePrice;
-  const hardDelete = Boolean(body.hardDelete || body.permanentDelete || body.purge);
-  const remove = !hardDelete && Boolean(body.remove || body.archive || body.delete);
+  /** Avoid Boolean("false") === true when clients send string flags. */
+  const jsonTruthy = (v) => {
+    if (v === true || v === 1) return true;
+    if (v === false || v === 0 || v == null) return false;
+    if (typeof v === "string") {
+      const s = v.trim().toLowerCase();
+      return s === "1" || s === "true" || s === "yes";
+    }
+    return false;
+  };
+  const hardDelete = jsonTruthy(body.hardDelete) || jsonTruthy(body.permanentDelete) || jsonTruthy(body.purge);
+  const remove = !hardDelete && (jsonTruthy(body.remove) || jsonTruthy(body.archive) || jsonTruthy(body.delete));
   if (!productId) {
     return sendJson(res, 400, { ok: false, code: "INVALID_PRODUCT_ID" });
   }
@@ -1093,21 +1103,31 @@ async function handlePublicSellerListingUpdate(req, res) {
       await conn.execute(`DELETE FROM seller_sale_notifications WHERE product_id = ?`, [productId]);
       try {
         await conn.execute(`DELETE FROM product_launches WHERE product_id = ?`, [productId]);
-      } catch {
-        /* optional table in some deployments */
+      } catch (e) {
+        if (String(e && e.code) !== "ER_NO_SUCH_TABLE") {
+          throw e;
+        }
       }
       try {
         await conn.execute(`UPDATE compliance_checks SET product_id = NULL WHERE product_id = ?`, [productId]);
-      } catch {
-        /* optional table or FK layout */
+      } catch (e) {
+        const ign = new Set(["ER_NO_SUCH_TABLE", "ER_BAD_FIELD_ERROR", "42S02", "42S22"]);
+        if (!ign.has(String(e && e.code))) {
+          throw e;
+        }
       }
       await conn.execute(`DELETE FROM product_images WHERE product_id = ?`, [productId]);
       const [delResult] = await conn.execute(`DELETE FROM products WHERE id = ? LIMIT 1`, [productId]);
-      await conn.commit();
       const affected = Number((delResult && delResult.affectedRows) || 0);
       if (affected < 1) {
-        return sendJson(res, 500, { ok: false, code: "DELETE_FAILED", message: "Product row was not removed." });
+        await conn.rollback();
+        return sendJson(res, 404, {
+          ok: false,
+          code: "LISTING_NOT_FOUND",
+          message: "That listing is no longer in the database (it may have already been deleted). Refresh the page."
+        });
       }
+      await conn.commit();
       return sendJson(res, 200, { ok: true, deleted: true, permanent: true });
     } catch (e) {
       try {
