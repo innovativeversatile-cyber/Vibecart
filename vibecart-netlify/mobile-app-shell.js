@@ -1386,6 +1386,7 @@
 
     function isSensitiveElement(el) {
       if (!el || !el.closest) return false;
+      if (el.closest("#vc-mobile-ai, .vc-mobile-ai")) return false;
       var field = el.closest("input,textarea,select");
       if (!field) return false;
       var type = String(field.getAttribute("type") || "").toLowerCase();
@@ -1409,6 +1410,14 @@
     }
 
     function setSensitiveMode(on) {
+      try {
+        var active = document.activeElement;
+        if (active && active.closest && active.closest("#vc-mobile-ai, .vc-mobile-ai")) {
+          on = false;
+        }
+      } catch {
+        /* ignore */
+      }
       wrap.classList.toggle("vc-mobile-ai--hidden", !!on);
       if (on) {
         panel?.setAttribute("hidden", "hidden");
