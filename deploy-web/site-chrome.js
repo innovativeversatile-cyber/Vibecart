@@ -923,38 +923,19 @@
     return;
   }
   window.__vcBrandonUniversalScheduled = "1";
-  var SHELL = "./mobile-app-shell.js?v=20260510prod1";
-  var CLIENT = "./vibecart-ai-client.js?v=20260430genai1";
-  function skip() {
-    if (!document.body) return true;
-    if (document.body.classList.contains("vc-no-brandon")) return true;
-    var p = String((typeof location !== "undefined" && location.pathname) || "").toLowerCase();
-    if (p.indexOf("admin-app") >= 0) return true;
-    return false;
-  }
   function inject() {
-    if (document.getElementById("vc-mobile-ai")) return;
-    if (document.querySelector('script[src*="mobile-app-shell"]')) return;
-    if (skip()) return;
-    function loadScript(src, onload) {
-      var s = document.createElement("script");
-      s.src = src;
-      s.defer = true;
-      if (onload) s.onload = onload;
-      (document.body || document.head).appendChild(s);
+    if (typeof window.vcBootstrapBrandon === "function") {
+      window.vcBootstrapBrandon();
+      return;
     }
-    function bootBrandon() {
-      if (typeof window.vibeCartBootBrandonUniversal === "function") {
-        window.vibeCartBootBrandonUniversal();
-      }
-    }
-    if (typeof window.vibecartAiGenerate === "function") {
-      loadScript(SHELL, bootBrandon);
-    } else {
-      loadScript(CLIENT, function () {
-        loadScript(SHELL, bootBrandon);
-      });
-    }
+    if (document.querySelector('script[src*="brandon-bootstrap.js"]')) return;
+    var s = document.createElement("script");
+    s.src = "./brandon-bootstrap.js?v=20260513brandon2";
+    s.defer = true;
+    s.onload = function () {
+      if (typeof window.vcBootstrapBrandon === "function") window.vcBootstrapBrandon();
+    };
+    (document.body || document.head).appendChild(s);
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", inject, { once: true });

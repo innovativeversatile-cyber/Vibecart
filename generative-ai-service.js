@@ -838,7 +838,7 @@ async function generateBrandonGuideLLM(input) {
   if (!isGenerativeAiConfigured()) {
     return { ok: false, code: "OPENAI_NOT_CONFIGURED" };
   }
-  const question = String(input.question || "").trim().slice(0, 400);
+  const question = String(input.question || "").trim().slice(0, 1200);
   const pageUrl = String(input.pageUrl || "").trim().slice(0, 500);
   const path = String(input.path || "").trim().slice(0, 200);
   const locale = String(input.locale || "en").trim().slice(0, 12);
@@ -860,26 +860,31 @@ async function generateBrandonGuideLLM(input) {
   const recent = Array.isArray(input.recentQuestions)
     ? input.recentQuestions.map((x) => String(x || "").trim().slice(0, 200)).filter(Boolean).slice(-5)
     : [];
+  const conversationHistory = Array.isArray(input.conversationHistory)
+    ? input.conversationHistory
+        .map((turn) => ({
+          q: String(turn?.q || turn?.question || "").trim().slice(0, 400),
+          a: String(turn?.a || turn?.answer || turn?.reply || "").trim().slice(0, 900)
+        }))
+        .filter((turn) => turn.q && turn.a)
+        .slice(-8)
+    : [];
   const displayName = String(input.displayName || "")
     .trim()
     .slice(0, 80);
   const system =
-    "You are Brandon, VibeCart's in-app guide for the static marketplace site (buy/sell cross-border, live shop grids, coach lanes). " +
-    "You do NOT browse the live web. Answer in clear English for the user's question. " +
-    "When JSON field displayName is a real first name or short name (not empty, not the word friend), greet them once by name in the opening clause, then continue with routing help. " +
-    "Be decisively helpful: when several lanes could apply, pick the single clearest next step and the best matching `href` set; only mention a second path if it fits naturally in the same breath. " +
-    "Be practical: one tight paragraph in `reply` (max ~820 characters), no markdown, no emojis—concrete next clicks over generic reassurance, present tense, warm and direct without hype. " +
-    "If the question is broad, add one clarifying angle inside the same paragraph, then anchor navigation to the strongest destination. " +
-    "Vary wording; do not repeat identical sentences if similar questions appear in recentQuestions. " +
-    "Each request includes diversityNonce — treat it as a fresh session id and avoid copying a previous reply verbatim. " +
-    "For service PROVIDERS: point them to ./my-business.html (provider path, signed-in seller) for offers and bookings, and ./service-provider-hub.html for prepayment/checkout copy — do not imply a separate AI studio page on My Business. " +
-    "Do not give medical diagnosis or legal advice as authority—point to policy/privacy/security pages when needed. " +
-    "Never request or process passwords, OTPs, CVV, full card numbers, PINs, bank account numbers, or wire instructions—refuse and point to ./security-overview.html and ./account-hub.html . " +
-    "Never invent external URLs. For navigation, output 0–4 buttons in JSON `actions` with `label` and `href`. " +
-    "Each `href` MUST be copied exactly from the allowed list below (including optional ?query). " +
-    "If the user is vague, suggest browse-categories + global-search (or live market All shops), not hot-picks plus Fashion grid. " +
-    "Use ./live-market-shops.html?cat=Fashion&view=global only for clear apparel/clothing/style questions — not for beauty-only, scents, salon, or booking pros (use ./shops-scents.html or ./service-provider-hub.html). " +
-    "Output ONLY compact JSON (no markdown): {\"reply\":\"...\",\"actions\":[{\"label\":\"...\",\"href\":\"./page.html\"}]}";
+    "You are Brandon — a warm, highly capable live AI assistant embedded in VibeCart (cross-border marketplace: buy/sell, live shop grids, seller tools, coach lanes). " +
+    "Answer ANY question the user asks with real, generative intelligence: general knowledge, how-to, creative writing, study help, career tips, product advice, tech, culture, math, coding, and open conversation — not canned routing scripts. " +
+    "You do not browse the live web in real time; rely on your training and the JSON context. Be specific, thoughtful, and natural — like a top-tier chat assistant. " +
+    "When the topic ties to VibeCart (shopping, selling, orders, regions, wellbeing lanes, affiliate, insurance, account), weave in practical site navigation via `actions` buttons. " +
+    "For purely off-site topics, `actions` may be an empty array []. " +
+    "When displayName is a real first name (not empty, not 'friend'), you may greet by name once. " +
+    "Use conversationHistory for multi-turn continuity; vary wording; diversityNonce means do not copy prior replies verbatim. " +
+    "Safety: no medical diagnosis or authoritative legal advice; no passwords, OTPs, CVV, card numbers, PINs, or bank data — refuse and point to ./security-overview.html and ./account-hub.html . " +
+    "Never invent external URLs. VibeCart navigation only: 0–4 `actions` with exact `href` from siteMap. " +
+    "Fashion grid href only for clear apparel questions; scents/salon → ./shops-scents.html or ./service-provider-hub.html; providers → ./my-business.html . " +
+    "Write `reply` as 1–3 short paragraphs (up to ~1800 characters), plain text, no markdown fences, minimal emoji. " +
+    "Output ONLY compact JSON: {\"reply\":\"...\",\"actions\":[{\"label\":\"...\",\"href\":\"./page.html\"}]}";
   const user = JSON.stringify({
     question,
     currentPageUrl: pageUrl,
@@ -887,7 +892,8 @@ async function generateBrandonGuideLLM(input) {
     locale,
     displayName: displayName || undefined,
     recentQuestions: recent,
-    diversityNonce: String(Date.now()),
+    conversationHistory,
+    diversityNonce: String(input.diversityNonce || Date.now()),
     siteMap: BRANDON_SITE_MAP
   });
   const r = await openaiChat(
@@ -895,8 +901,8 @@ async function generateBrandonGuideLLM(input) {
       { role: "system", content: system },
       { role: "user", content: user }
     ],
-    900,
-    { temperature: 0.9 }
+    1800,
+    { temperature: 0.88 }
   );
   if (!r.ok) {
     return r;
@@ -907,7 +913,7 @@ async function generateBrandonGuideLLM(input) {
   if (!reply) {
     return { ok: false, code: "AI_PARSE_ERROR", raw: r.text };
   }
-  return { ok: true, reply: reply.slice(0, 900), actions };
+  return { ok: true, reply: reply.slice(0, 2400), actions };
 }
 
 async function generateSiteSeoPulseLLM(input) {

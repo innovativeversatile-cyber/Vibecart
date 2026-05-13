@@ -213,3 +213,29 @@
     inject();
   }
 })();
+
+(function scheduleBrandonUniversal() {
+  if (typeof window === "undefined" || window.__vcBrandonUniversalScheduled === "1") {
+    return;
+  }
+  window.__vcBrandonUniversalScheduled = "1";
+  function inject() {
+    if (typeof window.vcBootstrapBrandon === "function") {
+      window.vcBootstrapBrandon();
+      return;
+    }
+    if (document.querySelector('script[src*="brandon-bootstrap.js"]')) return;
+    var s = document.createElement("script");
+    s.src = "./brandon-bootstrap.js?v=20260513brandon2";
+    s.defer = true;
+    s.onload = function () {
+      if (typeof window.vcBootstrapBrandon === "function") window.vcBootstrapBrandon();
+    };
+    (document.body || document.head || document.documentElement).appendChild(s);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
+})();

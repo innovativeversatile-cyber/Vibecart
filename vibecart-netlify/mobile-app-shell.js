@@ -335,11 +335,11 @@
       <div id="vc-mobile-ai-panel" class="vc-mobile-ai__panel" hidden>
         <div class="vc-mobile-ai__head">
           <strong>Brandon</strong>
-          <span class="vc-mobile-ai__sub">Ask anything in plain language — buying, selling, regions, orders, wellbeing. I open the right page or a real Maps / search link. Hidden on password, card, and checkout fields.</span>
+          <span class="vc-mobile-ai__sub">Live AI — ask anything (shopping, life, study, ideas). I answer from a real model. For VibeCart tasks I can open the right page. Hidden on password and card fields.</span>
         </div>
         <div id="vc-mobile-ai-actions" class="hero-actions" style="margin:.35rem 0 .6rem"></div>
-        <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Message Brandon (anything about VibeCart or where to shop)</label>
-        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="3" maxlength="500" placeholder="Examples: track my order, Ireland electronics, open seller boost, book a haircut, Nairobi shops — short phrases work best. Never paste passwords, PINs, CVV, or OTPs."></textarea>
+        <label class="vc-mobile-ai__lab" for="vc-mobile-ai-feedback">Message Brandon</label>
+        <textarea id="vc-mobile-ai-feedback" class="vc-mobile-ai__ta" rows="4" maxlength="1200" placeholder="Ask anything — VibeCart help, general questions, advice, explanations… Press Enter to send. Never paste passwords, PINs, CVV, or OTPs."></textarea>
         <button type="button" class="btn btn-primary vc-mobile-ai__save">Send to Brandon</button>
         <p id="vc-mobile-ai-reply" class="note vc-mobile-ai__saved" hidden></p>
         <p id="vc-mobile-ai-saved" class="note vc-mobile-ai__saved" hidden>Saved locally — thank you.</p>
@@ -369,13 +369,14 @@
     function loadAiProfile() {
       try {
         var parsed = JSON.parse(localStorage.getItem(aiProfileKey()) || "{}");
-        if (!parsed || typeof parsed !== "object") return { visits: 0, topIntent: "global", notes: [] };
+        if (!parsed || typeof parsed !== "object") return { visits: 0, topIntent: "global", notes: [], thread: [] };
         parsed.visits = Number(parsed.visits || 0);
         parsed.topIntent = String(parsed.topIntent || "global");
         parsed.notes = Array.isArray(parsed.notes) ? parsed.notes.slice(-20) : [];
+        parsed.thread = Array.isArray(parsed.thread) ? parsed.thread.slice(-12) : [];
         return parsed;
       } catch {
-        return { visits: 0, topIntent: "global", notes: [] };
+        return { visits: 0, topIntent: "global", notes: [], thread: [] };
       }
     }
 
@@ -1308,12 +1309,49 @@
         }
       }
       if (!list.length) {
-        return [
-          { label: "Browse categories", href: "./browse-categories.html" },
-          { label: "Global search", href: "./global-search.html" }
-        ];
+        return [];
       }
       return list.slice(0, 4);
+    }
+
+    function brandonLiveUnavailableMessage() {
+      return {
+        reply:
+          "I could not reach the live AI brain just now. Check your connection and tap Send again — I answer from a real model, not fixed scripts. If this keeps happening, refresh the page.",
+        actions: [
+          { label: "Browse categories", href: "./browse-categories.html" },
+          { label: "Global search", href: "./global-search.html" },
+          { label: "Account hub", href: "./account-hub.html" }
+        ]
+      };
+    }
+
+    function waitForVibecartAiGenerate(maxMs) {
+      return new Promise(function (resolve) {
+        if (typeof window.vibecartAiGenerate === "function") {
+          resolve(true);
+          return;
+        }
+        if (typeof window.vcBootstrapBrandon === "function") {
+          try {
+            window.vcBootstrapBrandon();
+          } catch {
+            /* ignore */
+          }
+        }
+        var deadline = Date.now() + (Number(maxMs) || 8000);
+        (function poll() {
+          if (typeof window.vibecartAiGenerate === "function") {
+            resolve(true);
+            return;
+          }
+          if (Date.now() >= deadline) {
+            resolve(false);
+            return;
+          }
+          window.setTimeout(poll, 120);
+        })();
+      });
     }
 
     function tryBrandonLlmThenRules(text) {
@@ -1321,50 +1359,50 @@
       if (brandonAskIsSensitiveCredentialsTopic(trimmed)) {
         return Promise.resolve(generateBrandonResponse(trimmed));
       }
-      if (!brandonCloudAssistEnabled() || typeof window.vibecartAiGenerate !== "function") {
+      if (!brandonCloudAssistEnabled()) {
         return Promise.resolve(generateBrandonResponse(trimmed));
       }
-      return window
-        .vibecartAiGenerate("brandon_guide", {
-          question: trimmed.slice(0, 500),
-          pageUrl: typeof location !== "undefined" ? String(location.href || "").slice(0, 500) : "",
-          path: (function () {
-            try {
-              return String(window.location.pathname || "").slice(0, 200);
-            } catch {
-              return "";
+      return waitForVibecartAiGenerate(9000).then(function (ready) {
+        if (!ready || typeof window.vibecartAiGenerate !== "function") {
+          return brandonLiveUnavailableMessage();
+        }
+        var profile = loadAiProfile();
+        return window
+          .vibecartAiGenerate("brandon_guide", {
+            question: trimmed.slice(0, 1200),
+            pageUrl: typeof location !== "undefined" ? String(location.href || "").slice(0, 500) : "",
+            path: (function () {
+              try {
+                return String(window.location.pathname || "").slice(0, 200);
+              } catch {
+                return "";
+              }
+            })(),
+            displayName: (function () {
+              try {
+                return String(getUserDisplayName() || "").trim().slice(0, 80);
+              } catch {
+                return "";
+              }
+            })(),
+            locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12),
+            recentQuestions: Array.isArray(profile.notes) ? profile.notes.slice(-5) : [],
+            conversationHistory: Array.isArray(profile.thread) ? profile.thread.slice(-8) : [],
+            diversityNonce: String(Date.now())
+          })
+          .then(function (res) {
+            if (res && String(res.reply || "").trim()) {
+              return {
+                reply: String(res.reply || "").trim().slice(0, 2400),
+                actions: finalizeBrandonLlmActionsForQuestion(text, res.actions)
+              };
             }
-          })(),
-          displayName: (function () {
-            try {
-              return String(getUserDisplayName() || "").trim().slice(0, 80);
-            } catch {
-              return "";
-            }
-          })(),
-          locale: (document.documentElement.lang || navigator.language || "en").slice(0, 12),
-          recentQuestions: (function () {
-            try {
-              var p = loadAiProfile();
-              return Array.isArray(p.notes) ? p.notes.slice(-5) : [];
-            } catch {
-              return [];
-            }
-          })(),
-          diversityNonce: String(Date.now())
-        })
-        .then(function (res) {
-          if (res && String(res.reply || "").trim()) {
-            return {
-              reply: String(res.reply || "").trim().slice(0, 1200),
-              actions: finalizeBrandonLlmActionsForQuestion(text, res.actions)
-            };
-          }
-          return generateBrandonResponse(text);
-        })
-        .catch(function () {
-          return generateBrandonResponse(text);
-        });
+            return brandonLiveUnavailableMessage();
+          })
+          .catch(function () {
+            return brandonLiveUnavailableMessage();
+          });
+      });
     }
 
     function detectInteractiveContext() {
@@ -1697,7 +1735,7 @@
         hardPressVibrate();
         if (reply) {
           reply.textContent =
-            "I am listening — type a short question (or try hello), then tap Ask Brandon. You can also use the chip buttons above.";
+            "I am listening — type your question, then tap Send to Brandon (or press Enter).";
           reply.hidden = false;
         }
         focusBrandonInput();
@@ -1722,7 +1760,7 @@
       }
 
         if (reply) {
-        reply.textContent = "Thinking…";
+        reply.textContent = "Thinking live…";
         reply.hidden = false;
       }
       if (saveBtn) {
@@ -1731,24 +1769,33 @@
       tryBrandonLlmThenRules(textForLog)
         .then(function (result) {
           if (reply) {
-          reply.textContent = result.reply;
-          renderActionSuggestions(result.actions);
-          paintBrandonWorldwideSlot(textForLog);
-          reply.hidden = false;
-        }
-          if (ta) {
-        ta.value = "";
+            reply.textContent = result.reply;
+            renderActionSuggestions(result.actions);
+            paintBrandonWorldwideSlot(textForLog);
+            reply.hidden = false;
           }
-        if (saved) {
-          saved.hidden = false;
+          try {
+            var profileAfter = loadAiProfile();
+            profileAfter.thread = (profileAfter.thread || []).concat([
+              { q: textForLog.slice(0, 400), a: String(result.reply || "").slice(0, 900) }
+            ]).slice(-12);
+            saveAiProfile(profileAfter);
+          } catch {
+            /* ignore */
+          }
+          if (ta) {
+            ta.value = "";
+          }
+          if (saved) {
+            saved.hidden = false;
             window.setTimeout(function () {
-            saved.hidden = true;
-          }, 2400);
-        }
+              saved.hidden = true;
+            }, 2400);
+          }
         })
         .catch(function () {
           if (reply) {
-            var fb = generateBrandonResponse(textForLog);
+            var fb = brandonLiveUnavailableMessage();
             reply.textContent = fb.reply;
             renderActionSuggestions(fb.actions);
             paintBrandonWorldwideSlot(textForLog);
@@ -1781,6 +1828,12 @@
           body: JSON.stringify(payload)
         }).catch(function () {});
       }
+    });
+
+    ta?.addEventListener("keydown", function (ev) {
+      if (!ev || ev.key !== "Enter" || ev.shiftKey) return;
+      ev.preventDefault();
+      saveBtn?.click();
     });
   }
 
