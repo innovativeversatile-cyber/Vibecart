@@ -181,7 +181,7 @@ const PAYPAL_CLIENT_SECRET = String(process.env.PAYPAL_CLIENT_SECRET || "").trim
 const PAYPAL_API_BASE = String(process.env.PAYPAL_API_BASE || "https://api-m.paypal.com").trim().replace(/\/$/, "");
 const stripe = STRIPE_SECRET_KEY ? new Stripe(STRIPE_SECRET_KEY) : null;
 /** Bump when shipping payment/coach fixes so `/api/health` proves Railway picked up the deploy. */
-const PUBLIC_API_BUILD_TAG = "20260510-prod-bind-discovery";
+const PUBLIC_API_BUILD_TAG = "20260513-analytics-overview-fix";
 /** When unset: ON. Set AI_AUTOPILOT_ENABLED=false|0|off|no to disable. Set true|1|on|yes to force enable. */
 const AI_AUTOPILOT_ENABLED = (() => {
   const raw = process.env.AI_AUTOPILOT_ENABLED;
@@ -6256,11 +6256,11 @@ async function handleOwnerAnalyticsOverview(req, res) {
       ok: true,
       generatedAt: new Date().toISOString(),
       visits: {
-        allTime: Number(allTimeRow[0]?.n || 0),
-        last7Days: Number(d7Row[0]?.n || 0),
-        last30Days: Number(d30Row[0]?.n || 0),
-        uniqueVisitorsApprox7d: Number(uniq7Row[0]?.n || 0),
-        uniqueVisitorsApprox30d: Number(uniq30Row[0]?.n || 0)
+        allTime: Number(allTimeRow?.n || 0),
+        last7Days: Number(d7Row?.n || 0),
+        last30Days: Number(d30Row?.n || 0),
+        uniqueVisitorsApprox7d: Number(uniq7Row?.n || 0),
+        uniqueVisitorsApprox30d: Number(uniq30Row?.n || 0)
       },
       visitsByCountry: (countryVisitRows || []).map((row) => ({
         countryCode: row.country_code ? String(row.country_code) : "UNKNOWN",
