@@ -675,6 +675,23 @@ function setStatus(text) {
   }
 }
 
+function setOwnerAuthStatus(text) {
+  const node = document.getElementById("statusMsgOwnerAuth");
+  if (node) {
+    node.textContent = text || "";
+    if (text) {
+      try {
+        node.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  if (text) {
+    setStatus(text);
+  }
+}
+
 function renderAdminReadinessReport(rows) {
   const reportNode = document.getElementById("adminReadinessReport");
   if (!reportNode) {
@@ -3553,7 +3570,7 @@ async function unlockPanelInner() {
 async function updateOwnerAuthFromPanel() {
   const session = getSession();
   if (!session.token) {
-    setStatus("No active owner session.");
+    setOwnerAuthStatus("No active owner session. Unlock the panel first.");
     return;
   }
 
@@ -3562,40 +3579,51 @@ async function updateOwnerAuthFromPanel() {
   const newPhrase = document.getElementById("newOwnerPhrase").value.trim();
 
   if (!newEmail || !newEmail.includes("@")) {
-    setStatus("Enter a valid new owner email.");
+    setOwnerAuthStatus("Enter a valid new owner email.");
     return;
   }
   if (!newPass || newPass.length < 10) {
-    setStatus("New password must be at least 10 characters.");
+    setOwnerAuthStatus("New password must be at least 10 characters.");
     return;
   }
   if (!newPhrase || newPhrase.length < 10) {
-    setStatus("New security phrase must be at least 10 characters.");
+    setOwnerAuthStatus("New security phrase is required and must be at least 10 characters.");
     return;
   }
 
-  const response = await fetch(`${getApiBase()}/api/owner/auth/rotate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      token: session.token,
-      nextEmail: newEmail,
-      nextPassword: newPass,
-      nextSecurityPhrase: newPhrase
-    })
-  });
+  setOwnerAuthStatus("Saving owner email and password…");
+  let response;
+  try {
+    response = await fetch(`${getApiBase()}/api/owner/auth/rotate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: session.token,
+        nextEmail: newEmail,
+        nextPassword: newPass,
+        nextSecurityPhrase: newPhrase
+      })
+    });
+  } catch (error) {
+    setOwnerAuthStatus(`Update failed: ${String(error?.message || error || "network error")}`);
+    return;
+  }
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload.ok) {
     const code = String(payload.code || "UNKNOWN_ERROR");
     if (code === "EMAIL_ALREADY_EXISTS") {
-      setStatus("Update failed: that owner email already exists. Use another email.");
+      setOwnerAuthStatus("Update failed: that owner email already exists. Use another email.");
       return;
     }
     if (code === "OWNER_AUTH_UPDATE_FAILED") {
-      setStatus("Update failed: backend could not save owner credentials right now.");
+      setOwnerAuthStatus("Update failed: backend could not save owner credentials right now.");
       return;
     }
-    setStatus(`Update failed: ${code}`);
+    if (code === "INVALID_SESSION") {
+      setOwnerAuthStatus("Session expired. Log out and unlock the panel again.");
+      return;
+    }
+    setOwnerAuthStatus(`Update failed: ${code}`);
     return;
   }
 
@@ -3608,7 +3636,7 @@ async function updateOwnerAuthFromPanel() {
     email: newEmail
   });
   fillOwnerAuthForm();
-  setStatus("Owner email and password updated.");
+  setOwnerAuthStatus("Owner email and password updated successfully.");
 }
 
 async function logoutOwner() {
@@ -3902,7 +3930,9 @@ bindClick("saveSettings", () => {
 });
 bindClick("resetSettings", resetSettings);
 bindClick("updateOwnerAuth", () => {
-  updateOwnerAuthFromPanel().catch(() => setStatus("Could not update owner authentication."));
+  updateOwnerAuthFromPanel().catch((error) =>
+    setOwnerAuthStatus(`Could not update owner authentication: ${String(error?.message || error)}`)
+  );
 });
 bindClick("logoutOwner", () => {
   logoutOwner().catch(() => setStatus("Could not logout."));

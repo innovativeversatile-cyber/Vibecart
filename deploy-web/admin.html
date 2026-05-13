@@ -194,7 +194,7 @@
 
         <hr />
         <h3>Owner Login Settings</h3>
-        <p class="note">You can change your owner email and password anytime.</p>
+        <p class="note">You can change your owner email and password anytime. All three fields below are required (password and security phrase must each be at least 10 characters).</p>
         <div class="admin-grid">
           <label>Current Owner Email</label>
           <input id="currentOwnerEmail" type="email" readonly />
@@ -217,6 +217,7 @@
         <div class="hero-actions">
           <button id="updateOwnerAuth" type="button" class="btn btn-secondary">Update Email and Password</button>
         </div>
+        <p id="statusMsgOwnerAuth" class="note" role="status" aria-live="polite"></p>
         <hr />
         <h3>AI Assistant Link</h3>
         <p class="note">
@@ -818,7 +819,7 @@
     </main>
 
     <script src="./password-toggle.js?v=20260502pw1"></script>
-    <script src="./admin.js?v=20260508uxharden1"></script>
+    <script src="./admin.js?v=20260513ownerauth1"></script>
     <script src="./nav-autohide-global.js?v=20260429navglobal2" defer></script>
   </body>
 </html>
