@@ -12450,3 +12450,153 @@ html.vc-arrival-reduced .vc-arrival-orbit__label {
     animation: none !important;
   }
 }
+
+/* SKECHERS affiliate lane + homepage partner promo */
+.vc-skechers-affiliate-page .vc-skechers-hero {
+  margin-bottom: 0.5rem;
+}
+.vc-skechers-hero-visual {
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #fff;
+  min-height: 220px;
+}
+.vc-skechers-hero-stage {
+  grid-template-columns: minmax(200px, 1fr) minmax(220px, 1.1fr);
+}
+.vc-skechers-hero-badge {
+  display: inline-block;
+  margin: 0 0 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 182, 193, 0.2);
+  color: #ffd6e8;
+}
+.vc-skechers-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.vc-skechers-product-card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+.vc-skechers-product-card__index {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  z-index: 1;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.55);
+}
+.vc-skechers-product-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: #fff;
+  padding: 0.75rem;
+}
+.vc-skechers-product-card__body {
+  padding: 0.85rem 0.95rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.vc-skechers-product-card__badge {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffb6c1;
+}
+.vc-skechers-product-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+.vc-skechers-product-card__sku {
+  margin: 0;
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+.vc-affiliate-promo {
+  margin: 1rem 0 0;
+  padding: 0.85rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 182, 193, 0.25);
+  background: linear-gradient(135deg, rgba(40, 12, 36, 0.72), rgba(18, 24, 48, 0.82));
+}
+.vc-affiliate-promo__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+.vc-affiliate-promo__head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.vc-affiliate-promo__stage {
+  display: grid;
+  grid-template-columns: minmax(120px, 140px) 1fr;
+  gap: 0.85rem;
+  align-items: center;
+}
+.vc-affiliate-promo__visual {
+  min-height: 110px;
+  border-radius: 12px;
+  background: #fff center/contain no-repeat;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.vc-affiliate-promo__copy p {
+  margin: 0.25rem 0 0.65rem;
+  font-size: 0.88rem;
+  opacity: 0.92;
+}
+.vc-affiliate-promo__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.vc-affiliate-promo-dots {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+.vc-affiliate-promo-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+}
+.vc-affiliate-promo-dot.is-active {
+  background: #ffb6c1;
+  transform: scale(1.15);
+}
+@media (max-width: 640px) {
+  .vc-skechers-hero-stage,
+  .vc-affiliate-promo__stage {
+    grid-template-columns: 1fr;
+  }
+}
