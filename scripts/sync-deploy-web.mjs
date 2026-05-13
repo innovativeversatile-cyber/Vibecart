@@ -77,7 +77,8 @@ function copyRootHtmlAndStatics() {
     "sitemap.xml",
     "manifest.json",
     "service-worker.js",
-    "affiliate-recommendations.json"
+    "affiliate-recommendations.json",
+    "skechers-affiliate.json"
   ]) {
     const src = path.join(ROOT, name);
     if (exists(src)) {
@@ -101,6 +102,8 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "books-study-deals.js",
   "marketplace-buy.js",
   "affiliate-recommendations-mount.js",
+  "affiliate-promo-slideshow.js",
+  "skechers-affiliate.js",
   "visitor-retention.js",
   "vc-global-ux.js"
 ]);
@@ -186,7 +189,7 @@ function main() {
   const b = copyRootHtmlAndStatics();
   const c = syncExistingRootJs();
   let d = 0;
-  for (const dir of ["media", "vendor"]) {
+  for (const dir of ["media", "vendor", "assets"]) {
     d += copyDirFiltered(path.join(ROOT, dir), path.join(DEPLOY, dir), null);
   }
   d += syncMobileApp();

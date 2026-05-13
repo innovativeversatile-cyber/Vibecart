@@ -1,0 +1,55 @@
+{
+  "title": "SKECHERS Poland — partner picks",
+  "advertiser": "SKECHERS PL (affiliate)",
+  "programId": "16958906",
+  "contextLine": "Partner buy links open the official Skechers Poland store in a new tab. VibeCart stays open here.",
+  "disclosure": {
+    "short": "Affiliate links: we may earn a commission if you buy on Skechers.pl — at no extra cost to you.",
+    "policyPreamble": "Read our",
+    "policyLinkLabel": "affiliate disclosure",
+    "policyHref": "./policy.html#affiliate-disclosure"
+  },
+  "promoBadge": "Hands-free Slip-ins · Glide Step · Cozy Fit",
+  "items": [
+    {
+      "key": "uno-glide-air-gliders-pnk",
+      "sku": "190115_PNK",
+      "label": "Slip-ins Uno Glide-Step — Air Gliders",
+      "color": "Pink",
+      "tagline": "Hands-free entry with Glide-Step cushioning and visible Skech-Air heel.",
+      "badge": "Slip-ins",
+      "imageUrl": "./assets/affiliate/skechers/190115-pnk.png",
+      "href": "https://www.anrdoezrs.net/click-101733745-16958906?url=https%3A%2F%2Fwww.skechers.pl%2Fkobiety%2Fbuty%2Fsneakersy-casual%2Fskechers-slip-ins-uno-glide-step---air-gliders%2F190115_PNK.html"
+    },
+    {
+      "key": "uno-ctl-airloom-ofwt",
+      "sku": "177812_OFWT",
+      "label": "Uno CTL — Airloom",
+      "color": "Off White",
+      "tagline": "Chunky platform profile with knit upper and heel air window.",
+      "badge": "UNO",
+      "imageUrl": "./assets/affiliate/skechers/177812-ofwt.png",
+      "href": "https://www.anrdoezrs.net/click-101733745-16958906?url=https%3A%2F%2Fwww.skechers.pl%2Funo-ctl--%25C2%25A0airloom%2F177812_OFWT.html"
+    },
+    {
+      "key": "bobs-sport-squad-chaos-ofwt",
+      "sku": "117497_OFWT",
+      "label": "Slip-ins BOBS Sport Squad Chaos",
+      "color": "Off White",
+      "tagline": "BOBS sport casual with slip-in heel and decorative laces.",
+      "badge": "BOBS",
+      "imageUrl": "./assets/affiliate/skechers/117497-ofwt.png",
+      "href": "https://www.jdoqocy.com/click-101733745-16958906?url=https%3A%2F%2Fwww.skechers.pl%2Fkobiety%2Fbuty%2Fsneakersy-casual%2Fskechers-slip-ins-bobs-sport-squad-chaos%2F117497_OFWT.html"
+    },
+    {
+      "key": "contour-foam-sweet-embrace-lav",
+      "sku": "150409_LAV",
+      "label": "Contour Foam — Cozy Fit Sweet Embrace",
+      "color": "Lavender",
+      "tagline": "Open-back mule comfort with Contour Foam midsole.",
+      "badge": "Cozy Fit",
+      "imageUrl": "./assets/affiliate/skechers/150409-lav.png",
+      "href": "https://www.kqzyfj.com/click-101733745-16958906?url=https%3A%2F%2Fwww.skechers.pl%2Fkobiety%2Fbuty%2Fsneakersy-casual%2Fcontour-foam---cozy-fit-sweet-embrace%2F150409_LAV.html"
+    }
+  ]
+}
