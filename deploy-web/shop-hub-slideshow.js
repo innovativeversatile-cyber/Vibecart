@@ -301,6 +301,63 @@
     if (!hint) return;
     hint.textContent = String(msg || "Tick the affiliate disclaimer to open partner links.");
     hint.hidden = false;
+    try {
+      var gate = document.getElementById("vcShopNowDisclaimerAck");
+      if (gate && gate.scrollIntoView) {
+        gate.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function isNativeWebView() {
+    try {
+      return !!(window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage === "function");
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isExternalHttpUrl(href) {
+    var url = String(href || "").trim();
+    if (!/^https?:\/\//i.test(url)) return false;
+    try {
+      return new URL(url).origin !== window.location.origin;
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function openSlideUrl(href, slide, event) {
+    var url = String(href || "").trim();
+    if (!url || url === "#") {
+      if (event) event.preventDefault();
+      return;
+    }
+    if (slide && slide.sponsored && !disclaimerAccepted()) {
+      if (event) event.preventDefault();
+      showDisclaimerHint("Tick the affiliate disclaimer before opening partner shop links.");
+      return;
+    }
+    if (slide && slide.internal) {
+      return;
+    }
+    if (!isExternalHttpUrl(url)) {
+      return;
+    }
+    if (event) event.preventDefault();
+    if (isNativeWebView()) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ vcOpenUrl: url, src: "vc" }));
+      return;
+    }
+    var opened = null;
+    try {
+      opened = window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e2) {
+      opened = null;
+    }
+    if (!opened) {
+      window.location.assign(url);
+    }
   }
 
   function boot() {
@@ -336,11 +393,7 @@
     if (ctaEl && !ctaEl.dataset.vcGateBound) {
       ctaEl.dataset.vcGateBound = "1";
       ctaEl.addEventListener("click", function (e) {
-        var slide = ctaEl._vcActiveSlide;
-        if (slide && slide.sponsored && !disclaimerAccepted()) {
-          e.preventDefault();
-          showDisclaimerHint("Tick the affiliate disclaimer before opening partner shop links.");
-        }
+        openSlideUrl(ctaEl.href, ctaEl._vcActiveSlide, e);
       });
     }
 
@@ -395,9 +448,12 @@
           if (slide.internal) {
             ctaEl.removeAttribute("target");
             ctaEl.removeAttribute("rel");
-          } else {
+          } else if (isExternalHttpUrl(slide.href)) {
             ctaEl.target = "_blank";
             ctaEl.rel = "noopener noreferrer" + (slide.sponsored ? " sponsored" : "");
+          } else {
+            ctaEl.removeAttribute("target");
+            ctaEl.removeAttribute("rel");
           }
           ctaEl.textContent = slide.internal
             ? (tight ? "Coach →" : "Explore on VibeCart →")

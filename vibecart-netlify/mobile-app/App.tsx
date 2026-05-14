@@ -171,9 +171,10 @@ function parseVcWebViewPayload(data: string): {
   dock: DockKey | null;
   scene: VcSceneId | null;
   flowHaptic: VcFlowHaptic | null;
+  openUrl: string | null;
 } {
   try {
-    const o = JSON.parse(data) as { vcDock?: string; vcScene?: string; vcFlowHaptic?: string };
+    const o = JSON.parse(data) as { vcDock?: string; vcScene?: string; vcFlowHaptic?: string; vcOpenUrl?: string };
     const dk = String(o.vcDock || "");
     const dock = DOCK_KEYS.includes(dk as DockKey) ? (dk as DockKey) : null;
     const rawScene = String(o.vcScene || "").trim();
@@ -181,9 +182,11 @@ function parseVcWebViewPayload(data: string): {
     const fh = String(o.vcFlowHaptic || "").trim().toLowerCase();
     const flowHaptic: VcFlowHaptic | null =
       fh === "next" || fh === "prev" || fh === "done" ? (fh as VcFlowHaptic) : null;
-    return { dock, scene, flowHaptic };
+    const rawOpen = String(o.vcOpenUrl || "").trim();
+    const openUrl = /^https?:\/\//i.test(rawOpen) ? rawOpen : null;
+    return { dock, scene, flowHaptic, openUrl };
   } catch {
-    return { dock: null, scene: null, flowHaptic: null };
+    return { dock: null, scene: null, flowHaptic: null, openUrl: null };
   }
 }
 
@@ -498,7 +501,10 @@ export default function App(): JSX.Element {
           } catch {
             /* ignore */
           }
-          const { dock, scene, flowHaptic } = parseVcWebViewPayload(raw);
+          const { dock, scene, flowHaptic, openUrl } = parseVcWebViewPayload(raw);
+          if (openUrl) {
+            void Linking.openURL(openUrl).catch(() => {});
+          }
           if (dock) {
             setDockActive(dock);
           }
@@ -545,6 +551,13 @@ export default function App(): JSX.Element {
           setErrorText(event.nativeEvent.description || "Could not load VibeCart.");
         }}
         onShouldStartLoadWithRequest={(request) => isAllowedUrl(request.url, allowedHost)}
+        setSupportMultipleWindows
+        onOpenWindow={(event) => {
+          const target = String(event?.nativeEvent?.targetUrl || "").trim();
+          if (/^https?:\/\//i.test(target)) {
+            void Linking.openURL(target).catch(() => {});
+          }
+        }}
       />
       {resumePulseVisible && (
         <View pointerEvents="none" style={styles.resumePulseLayer}>
