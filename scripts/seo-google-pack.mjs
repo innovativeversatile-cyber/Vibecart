@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const ORIGIN = "https://vibe-cart.com";
-const LASTMOD = "2026-05-08";
+const LASTMOD = "2026-05-14";
 
 /** Also process these deploy-only HTML if present (synced into root). */
 const EXTRA_ROOT_HTML = [];
@@ -21,6 +21,15 @@ const FORCE_NOINDEX_HTML = new Set([
   "payment-confirmation.html",
   "coach-payment-recovery.html",
   "top-class-checkout.html"
+]);
+
+/** Regional folder lanes: noindex but need canonical to avoid duplicate signals in GSC. */
+const REGIONAL_NOINDEX_HTML = new Set([
+  "shops-europe.html",
+  "shops-mama-africa.html",
+  "shops-asia.html",
+  "shops-scents.html",
+  "shops-global.html"
 ]);
 
 function headSlice(html) {
@@ -70,7 +79,7 @@ const DESCRIPTION_FALLBACK = {
   "global-market.html":
     "Jump into VibeCart’s global market shortcuts: categories, featured external stores, and a direct line into the live marketplace without hunting through the whole homepage.",
   "shop-hub.html":
-    "Explore VibeCart’s shop hub for discount lanes, curated retailer cards, and quick paths to hot picks and the live marketplace—built for faster lane-first shopping.",
+    "Cinematic shop-now on VibeCart: auto slideshow of real affiliate promos from SHEIN, Allegro, AliExpress and regional retailers — plus Health Coach checkout.",
   "browse-categories.html":
     "Pick a VibeCart category and land in the live marketplace with that filter already applied—less friction from intent to the right shop grid.",
   "live-market.html":
@@ -267,7 +276,7 @@ function packHtml(filename, html) {
 
 function priorityFor(path) {
   if (path === "index.html" || path === "/") return 1.0;
-  if (/hot-picks|live-market-shops|index/.test(path)) return 0.92;
+  if (/hot-picks|live-market-shops|shop-hub/.test(path)) return 0.92;
   if (/policy|terms|privacy/.test(path)) return 0.75;
   if (/regional-shops|account-hub|sell-journey|buy-journey|bridge-hub/.test(path)) return 0.86;
   if (/wellbeing|service-provider|global-search|live-market\.html/.test(path)) return 0.8;
@@ -275,7 +284,7 @@ function priorityFor(path) {
 }
 
 function changefreqFor(path) {
-  if (/hot-picks|live-market-shops|index/.test(path)) return "daily";
+  if (/hot-picks|live-market-shops|shop-hub|index/.test(path)) return "daily";
   if (/policy|terms|privacy|security|legal-settings|payment|checkout|coach-payment|top-class/.test(path)) return "monthly";
   return "weekly";
 }
@@ -334,7 +343,7 @@ for (const name of htmlFiles) {
   if (name === "index.html") {
     continue;
   }
-  if (isNoindex(html) && !FORCE_NOINDEX_HTML.has(name)) continue;
+  if (isNoindex(html) && !FORCE_NOINDEX_HTML.has(name) && !REGIONAL_NOINDEX_HTML.has(name)) continue;
   const next = packHtml(name, html);
   if (next !== html) {
     fs.writeFileSync(abs, next, "utf8");

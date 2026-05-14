@@ -3,40 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Shop now · deals, promos &amp; VibeCart listings</title>
-  <meta name="description" content="Discount lanes, curated retailer cards, and quick paths to VibeCart hot picks and the live marketplace." />
-  <meta name="keywords" content="VibeCart shop hub, discount lanes curated retailers, hot picks navigation, marketplace shop shortcuts" />
+  <title>Shop now · live deals, promos &amp; bargains near you</title>
+  <meta name="description" content="Cinematic shop-now experience: real affiliate promos from SHEIN, Allegro, AliExpress and regional retailers — plus VibeCart Health Coach. Offers tuned to your region." />
+  <meta name="keywords" content="VibeCart shop now, SHEIN deals, Allegro bargains, AliExpress promos, regional shopping, affiliate deals, health coach" />
 
-  
   <!-- seo-google-pack -->
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://vibe-cart.com/shop-hub.html" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://vibe-cart.com/shop-hub.html" />
-  <meta property="og:title" content="Shop now · deals, promos &amp; VibeCart listings" />
-  <meta property="og:description" content="Discount lanes, curated retailer cards, and quick paths to VibeCart hot picks and the live marketplace." />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="Shop now · deals, promos &amp; VibeCart listings" />
-  <meta name="twitter:description" content="Discount lanes, curated retailer cards, and quick paths to VibeCart hot picks and the live marketplace." />
+  <meta property="og:title" content="Shop now · live deals, promos &amp; bargains near you" />
+  <meta property="og:description" content="Real product imagery from partner shops — automatic slideshow of the best offers in your country, plus VibeCart Health Coach." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Shop now · live deals, promos &amp; bargains near you" />
+  <meta name="twitter:description" content="Real affiliate promos from SHEIN, Allegro, AliExpress and more — tuned to your region." />
   <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"Shop now · deals, promos & VibeCart listings","description":"Discount lanes, curated retailer cards, and quick paths to VibeCart hot picks and the live marketplace.","url":"https://vibe-cart.com/shop-hub.html","isPartOf":{"@type":"WebSite","name":"VibeCart","url":"https://vibe-cart.com/"},"publisher":{"@type":"Organization","name":"VibeCart","url":"https://vibe-cart.com/"}}
+{"@context":"https://schema.org","@type":"CollectionPage","name":"Shop now · live deals, promos & bargains","description":"Cinematic shop-now hub with regional affiliate offers and VibeCart Health Coach.","url":"https://vibe-cart.com/shop-hub.html","isPartOf":{"@type":"WebSite","name":"VibeCart","url":"https://vibe-cart.com/"},"publisher":{"@type":"Organization","name":"VibeCart","url":"https://vibe-cart.com/"}}
   </script>
 
-  <link rel="stylesheet" href="./styles.css?v=20260510aston1" />
+  
+  <!-- seo-google-pack -->
+  <script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Shop now · live deals, promos & bargains near you","description":"Cinematic shop-now experience: real affiliate promos from SHEIN, Allegro, AliExpress and regional retailers — plus VibeCart Health Coach. Offers tuned to your region.","url":"https://vibe-cart.com/shop-hub.html","isPartOf":{"@type":"WebSite","name":"VibeCart","url":"https://vibe-cart.com/"},"publisher":{"@type":"Organization","name":"VibeCart","url":"https://vibe-cart.com/"}}
+  </script>
+
+  <link rel="stylesheet" href="./styles.css?v=20260514shop1" />
 </head>
-<body class="shops-lane-page vc-deals-hub">
+<body class="shops-lane-page vc-deals-hub vc-shop-now-page">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← Home</a>
     <a class="btn btn-primary" href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best">Live marketplace</a>
   </header>
+
+  <section class="vc-shop-now-epic" id="vcShopNowEpic" hidden aria-label="Featured deals slideshow">
+    <div class="vc-shop-now-epic__aurora" aria-hidden="true"></div>
+    <div class="vc-shop-now-epic__grain" aria-hidden="true"></div>
+    <div class="vc-shop-now-epic__vignette" aria-hidden="true"></div>
+
+    <div class="vc-shop-now-epic__stage">
+      <div class="vc-shop-now-slide" id="vcShopNowSlideA" aria-hidden="true"></div>
+      <div class="vc-shop-now-slide" id="vcShopNowSlideB" aria-hidden="true"></div>
+    </div>
+
+    <div class="vc-shop-now-epic__hud">
+      <div class="vc-shop-now-epic__hud-top">
+        <p class="vc-shop-now-epic__eyebrow">
+          <span class="vc-shop-now-epic__pulse" aria-hidden="true"></span>
+          Live offers · <strong id="vcShopNowRegion">Worldwide</strong>
+        </p>
+        <p class="vc-shop-now-epic__count"><span id="vcShopNowCount">—</span> deals rotating</p>
+      </div>
+
+      <div class="vc-shop-now-epic__copy">
+        <p class="vc-shop-now-epic__shop" id="vcShopNowShop"></p>
+        <p class="vc-shop-now-epic__tag" id="vcShopNowTag"></p>
+        <h1 class="vc-shop-now-epic__title" id="vcShopNowTitle">Shop now</h1>
+        <p class="vc-shop-now-epic__desc" id="vcShopNowDesc">Loading the best bargains and promos for your region…</p>
+        <div class="vc-shop-now-epic__actions">
+          <a class="btn btn-primary vc-shop-now-epic__cta" id="vcShopNowCta" href="./live-market-shops.html">Shop this deal →</a>
+          <a class="btn btn-secondary" href="./wellbeing.html">Health coach</a>
+        </div>
+      </div>
+
+      <div class="vc-shop-now-progress" id="vcShopNowProgress" aria-hidden="true"></div>
+      <div class="vc-shop-now-dots" id="vcShopNowDots" role="tablist" aria-label="Offer slides"></div>
+    </div>
+
+    <div class="vc-shop-now-ticker" aria-hidden="true">
+      <div class="vc-shop-now-ticker__track" id="vcShopNowTicker"></div>
+    </div>
+  </section>
+
   <main class="section alt shops-lane-main">
-    <h1 class="shops-lane-title">Shop now</h1>
-    <p class="note shops-lane-intro">
-      Swipe the promo row for different layouts, then dive into external deals or VibeCart-native listings. External shops always open in a new tab on the retailer’s domain — and internal VibeCart hops open in a new tab too so this hub stays open for your next move.
-    </p>
+    <section class="vc-shop-now-coach-spot" aria-labelledby="vcCoachSpotTitle">
+      <div class="vc-shop-now-coach-spot__glow" aria-hidden="true"></div>
+      <div class="vc-shop-now-coach-spot__grid">
+        <div class="vc-shop-now-coach-spot__visual">
+          <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50e?auto=format&amp;fit=crop&amp;w=900&amp;h=600&amp;q=80" alt="Health and fitness coaching" loading="lazy" decoding="async" width="900" height="600" />
+        </div>
+        <div class="vc-shop-now-coach-spot__copy">
+          <p class="badge">VibeCart exclusive</p>
+          <h2 id="vcCoachSpotTitle">Health &amp; fitness coach — direct on VibeCart</h2>
+          <p class="note">While partner shops open on their own sites, your coach packages checkout right here. Weekly workouts, meal plans, wearable sync — private to your session.</p>
+          <ul class="buyer-adv-list">
+            <li>Starter from EUR 10.5/month — real weekly routines</li>
+            <li>AI Home + Meals — adaptive nutrition and no-equipment workouts</li>
+            <li>Preview plans before checkout on wellbeing</li>
+          </ul>
+          <p class="hero-actions">
+            <a class="btn btn-primary" href="./wellbeing.html">Meet your coach</a>
+            <a class="btn btn-secondary" href="./coach-experience.html?flow=coach&amp;plan=starter">Preview experience</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section
+      class="section alt vc-affiliate-rec-section"
+      id="shopHubAffiliateRecRoot"
+      hidden
+      aria-labelledby="shopHubAffiliateRecTitle"
+      data-vc-affiliate-auto
+    >
+      <h2 class="shops-lane-title vc-affiliate-rec__title" id="shopHubAffiliateRecTitle" style="font-size: 1.12rem">Partner picks with real imagery</h2>
+      <div class="note vc-affiliate-rec-intro vc-affiliate-rec__intro" id="shopHubAffiliateRecIntro"></div>
+      <div class="vc-affiliate-rec-grid vc-affiliate-rec__grid" id="shopHubAffiliateRecGrid" role="list"></div>
+    </section>
 
     <h2 class="vc-mobile-rail-title" style="margin-top:0.75rem;">Promos &amp; lanes</h2>
-    <p class="note" style="margin-top:-0.25rem;">Horizontal strip — optimized for thumb scrolling on phones.</p>
+    <p class="note" style="margin-top:-0.25rem;">Swipe for bargain grids — external shops open in a new tab.</p>
     <div class="vc-shop-hub-promo-rail" aria-label="Featured promotions">
       <a class="vc-shop-hub-promo vc-shop-hub-promo--wide" href="./best-bargains.html">
         <span class="vc-shop-hub-promo__tag">External</span>
@@ -56,28 +131,32 @@
         <p class="vc-shop-hub-promo__body">Amazon electronics, Newegg, Best Buy, Currys, MediaMarkt, Samsung.</p>
         <span class="vc-shop-hub-promo__cta">Browse tech →</span>
       </a>
-      <a class="vc-shop-hub-promo" href="./books-study-deals.html">
-        <span class="vc-shop-hub-promo__tag">Study</span>
-        <h3 class="vc-shop-hub-promo__title">Books &amp; study</h3>
-        <p class="vc-shop-hub-promo__body">AbeBooks, ThriftBooks, Wordery, Blackwell’s, Bookshop.org, Open Library.</p>
-        <span class="vc-shop-hub-promo__cta">Browse books →</span>
-      </a>
-      <a class="vc-shop-hub-promo vc-shop-hub-promo--wide" href="./hot-picks.html">
+      <a class="vc-shop-hub-promo" href="./hot-picks.html">
         <span class="vc-shop-hub-promo__tag">VibeCart</span>
         <h3 class="vc-shop-hub-promo__title">Hot picks</h3>
-        <p class="vc-shop-hub-promo__body">Native listings and lanes — the bridge between discovery and your cart on supported flows.</p>
+        <p class="vc-shop-hub-promo__body">Native listings and AI-refreshed trend carousel.</p>
         <span class="vc-shop-hub-promo__cta">Open hot picks →</span>
+      </a>
+      <a class="vc-shop-hub-promo vc-shop-hub-promo--wide" href="./skechers-affiliate.html">
+        <span class="vc-shop-hub-promo__tag">Partner</span>
+        <h3 class="vc-shop-hub-promo__title">SKECHERS slideshow</h3>
+        <p class="vc-shop-hub-promo__body">Real product photos with tracked Skechers Poland links.</p>
+        <span class="vc-shop-hub-promo__cta">Open partner lane →</span>
       </a>
     </div>
 
-    <h2 class="shops-lane-title" style="font-size:1.15rem;margin-top:1rem;">Global structure</h2>
+    <h2 class="shops-lane-title" style="font-size:1.15rem;margin-top:1rem;">Explore more</h2>
     <p class="hero-actions" style="flex-wrap:wrap;">
       <a class="btn btn-primary" href="./global-market.html">Global market hub</a>
       <a class="btn btn-secondary" href="./browse-categories.html">Category browser</a>
       <a class="btn btn-secondary" href="./global-search.html">Global search</a>
     </p>
   </main>
+
+  <script src="./shop-hub-slideshow.js?v=20260514shop1" defer></script>
+  <script src="./affiliate-recommendations-mount.js?v=20260514shop1" defer></script>
   <script src="./analytics-visit.js?v=20260501visit1" defer></script>
   <script src="./visitor-retention.js?v=20260510ret5" defer></script>
+  <script src="./site-chrome.js?v=20260510ret5" defer></script>
 </body>
 </html>
