@@ -40,7 +40,7 @@ const INJECT_HASH_SYNC = `(function(){
     function dockFromPath() {
       var p = (location.pathname || "").split("/").pop() || "";
       p = p.toLowerCase();
-      if (/^regional-shops|shops-/.test(p)) return "shops";
+      if (/^shop-hub|regional-shops|shops-/.test(p)) return "shops";
       if (/^bridge-hub/.test(p)) return "bridge";
       if (/^hot-picks|buy-journey/.test(p)) return "market";
       if (/^account-hub|legal-settings|sell-journey|rewards-hub|insurance|wellbeing|orders-tracking|security-overview|browse-categories|lane-welcome|audience-fit|seller-boost/.test(p)) return "more";
@@ -394,7 +394,7 @@ export default function App(): JSX.Element {
     const root = baseUrl.replace(/\/$/, "");
     const map: Record<DockKey, string> = {
       home: `${root}/`,
-      shops: `${root}/regional-shops.html`,
+      shops: `${root}/shop-hub.html`,
       bridge: `${root}/bridge-hub.html`,
       market: `${root}/hot-picks.html`,
       more: `${root}/account-hub.html`

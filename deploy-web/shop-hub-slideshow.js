@@ -52,13 +52,31 @@
 
   var COACH_SLIDE = {
     shop: "VibeCart Coach",
-    tag: "Direct checkout",
-    title: "Your private health & fitness coach",
-    desc: "Weekly workouts, meal plans, wearable sync — checkout stays on VibeCart.",
+    tag: "On VibeCart",
+    title: "Health & fitness coach",
+    desc: "Workouts + meals — checkout here.",
     href: "./wellbeing.html",
     img: "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=1400&h=900&q=80",
     internal: true
   };
+
+  function isMobileCompact() {
+    try {
+      var root = document.documentElement;
+      if (root && (root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone"))) {
+        return true;
+      }
+      return window.innerWidth > 0 && window.innerWidth <= 720;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function clipText(value, max) {
+    var t = String(value || "").trim();
+    if (!t || t.length <= max) return t;
+    return t.slice(0, Math.max(1, max - 1)).trim() + "…";
+  }
 
   function detectRegion() {
     try {
@@ -180,6 +198,13 @@
     var regionEl = document.getElementById("vcShopNowRegion");
     if (regionEl) regionEl.textContent = REGION_LABELS[region] || REGION_LABELS.global;
 
+    var compact = isMobileCompact();
+    if (compact) {
+      root.classList.add("vc-shop-now-epic--compact");
+      var descBoot = document.getElementById("vcShopNowDesc");
+      if (descBoot) descBoot.textContent = "Loading deals near you…";
+    }
+
     var stageA = document.getElementById("vcShopNowSlideA");
     var stageB = document.getElementById("vcShopNowSlideB");
     var titleEl = document.getElementById("vcShopNowTitle");
@@ -203,6 +228,9 @@
 
       paintTicker(tickerEl, slides);
       if (countEl) countEl.textContent = String(slides.length);
+      if (compact && countEl && countEl.parentElement) {
+        countEl.parentElement.hidden = true;
+      }
 
       var active = 0;
       var frontIsA = true;
@@ -215,10 +243,14 @@
       }
 
       function paintMeta(slide) {
+        var tight = compact || isMobileCompact();
         if (shopEl) shopEl.textContent = slide.shop || "";
-        if (tagEl) tagEl.textContent = slide.tag || "Deal";
-        titleEl.textContent = slide.title || "";
-        if (descEl) descEl.textContent = slide.desc || "";
+        if (tagEl) tagEl.textContent = tight ? clipText(slide.tag || "Deal", 16) : (slide.tag || "Deal");
+        titleEl.textContent = tight ? clipText(slide.title || "", 38) : (slide.title || "");
+        if (descEl) {
+          var d = String(slide.desc || "");
+          descEl.textContent = tight ? clipText(d, 48) : d;
+        }
         ctaEl.href = slide.href || "#";
         if (slide.internal) {
           ctaEl.removeAttribute("target");
@@ -227,7 +259,9 @@
           ctaEl.target = "_blank";
           ctaEl.rel = "noopener noreferrer" + (slide.sponsored ? " sponsored" : "");
         }
-        ctaEl.textContent = slide.internal ? "Explore on VibeCart →" : "Shop this deal →";
+        ctaEl.textContent = slide.internal
+          ? (tight ? "Coach →" : "Explore on VibeCart →")
+          : (tight ? "Open deal →" : "Shop this deal →");
       }
 
       function paintDots(idx) {

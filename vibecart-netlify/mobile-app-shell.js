@@ -1,6 +1,7 @@
 /* VibeCart mobile WebView shell — runs when the native app sets class `vc-mobile-app` on <html>. */
 (function () {
   const AI_ID = "vc-mobile-ai";
+  const VC_SHOP_NOW_HREF = "./shop-hub.html";
   function detectPhoneLikeContext() {
     try {
       var ua = String((navigator && navigator.userAgent) || "").toLowerCase();
@@ -1127,7 +1128,7 @@
           actions: [
             { label: "Buy journey", href: "./buy-journey.html" },
             { label: "Hot picks", href: "./hot-picks.html" },
-            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global&deal=best" }
+            { label: "Shop now slideshow", href: VC_SHOP_NOW_HREF },
           ]
         };
       }
@@ -1135,7 +1136,7 @@
         return {
           reply: "Live market: pick a category tab (All shops shows every category), acknowledge the disclaimer, then tap a trusted retailer card.",
           actions: [
-            { label: "Live market shops", href: "./live-market-shops.html?cat=All&view=global&deal=best" },
+            { label: "Shop now", href: VC_SHOP_NOW_HREF },
             { label: "Live market folders", href: "./live-market.html" }
           ]
         };
@@ -1302,7 +1303,7 @@
           .toLowerCase();
         if (only === "./hot-picks.html" || only.indexOf("./hot-picks.html?") === 0) {
           list = list.concat([
-            { label: "Live market (all shops)", href: "./live-market-shops.html?cat=All&view=global&deal=best" },
+            { label: "Shop now slideshow", href: VC_SHOP_NOW_HREF },,
             { label: "Global search", href: "./global-search.html" }
           ]);
           list = dedupe(list);
@@ -2112,7 +2113,7 @@
           title: "Deals, bakers, barbers, and beauty — trusted checkout in seconds.",
           sub: "Buyer mode on. Brandon will prioritize quick deals, safe payments, and fast routes.",
           cta: "Show me best deals now",
-          href: "./live-market-shops.html?cat=All&view=global&deal=best"
+          href: VC_SHOP_NOW_HREF
         },
         sell: {
           title: "Launch your selling lane and grow faster.",
@@ -2369,7 +2370,7 @@
           }
           if (intent === "buy") {
             closeSplash("intent", intent);
-            warpTo("./live-market-shops.html?cat=All&view=global&deal=best");
+            warpTo(VC_SHOP_NOW_HREF);
             return;
           }
           if (intent === "sell") {
@@ -2543,7 +2544,7 @@
       "<p class='badge'>Quick actions</p>" +
       "<h3>One-thumb speed lane</h3>" +
       "<div class='hero-actions'>" +
-      "<a class='btn btn-primary' href='./live-market-shops.html?cat=All&view=global&deal=best'>Best offers</a>" +
+      "<a class='btn btn-primary' href='" + VC_SHOP_NOW_HREF + "'>Best offers</a>" +
       "<a class='btn btn-secondary' href='./hot-picks.html'>Hot picks</a>" +
       "<a class='btn btn-secondary' href='./orders-tracking.html'>Track order</a>" +
       "<button type='button' class='btn btn-secondary' id='vcQuickActionClose'>Close</button>" +
@@ -2973,7 +2974,7 @@
     bar.id = "vcFirst5Bar";
     bar.className = "vc-first5-bar";
     bar.innerHTML =
-      "<a class='vc-first5-pill' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
+      "<a class='vc-first5-pill' href='" + VC_SHOP_NOW_HREF + "'>Deals in 1 tap</a>" +
       "<a class='vc-first5-pill' href='./hot-picks.html'>Hot picks</a>" +
       "<a class='vc-first5-pill' href='./my-business.html?flow=book'>I want to Book</a>" +
       "<a class='vc-first5-pill' href='./sell-journey.html'>Start hustle</a>";
@@ -3031,7 +3032,7 @@
     wrap.innerHTML =
       "<button type='button' class='vc-action-hub__fab' id='vcActionHubFab' aria-expanded='false' aria-label='Open quick action hub'>Spark</button>" +
       "<div class='vc-action-hub__panel' id='vcActionHubPanel' hidden>" +
-      "<a class='vc-action-hub__item' href='./live-market-shops.html?cat=All&view=global&deal=best'>Deals in 1 tap</a>" +
+      "<a class='vc-action-hub__item' href='" + VC_SHOP_NOW_HREF + "'>Deals in 1 tap</a>" +
       "<a class='vc-action-hub__item' href='./hot-picks.html'>Hot picks</a>" +
       "<a class='vc-action-hub__item' href='./my-business.html?flow=book'>I want to Book</a>" +
       "<a class='vc-action-hub__item' href='./sell-journey.html'>Start hustle</a>" +
@@ -3339,7 +3340,7 @@
 
   function initSmartPrefetch() {
     var urls = [
-      "./live-market-shops.html?cat=All&view=global&deal=best",
+      VC_SHOP_NOW_HREF,
       "./hot-picks.html",
       "./sell-journey.html",
       "./orders-tracking.html"
@@ -3452,7 +3453,7 @@
       "<h2>" + title + "</h2>" +
       "<p>" + note + "</p>" +
       "<div class='vc-simple-wow-entry__actions'>" +
-      "<a class='btn btn-primary' data-vc-wow-intent='buy' href='./live-market-shops.html?cat=All&view=global&deal=best'>Shop now</a>" +
+      "<a class='btn btn-primary' data-vc-wow-intent='buy' href='" + VC_SHOP_NOW_HREF + "'>Shop now</a>" +
       "<a class='btn btn-secondary' data-vc-wow-intent='fast' href='./hot-picks.html'>Hot picks</a>" +
       "<a class='btn btn-secondary' data-vc-wow-intent='book' href='./my-business.html?flow=book'>Book services</a>" +
       "<a class='btn btn-secondary' data-vc-wow-intent='sell' href='./sell-journey.html'>Start selling</a>" +
@@ -4063,7 +4064,7 @@
     rail.id = "vcCinematicConciergeRail";
     rail.className = "vc-cinematic-concierge-rail";
     rail.innerHTML =
-      "<a href='./live-market-shops.html?cat=All&view=global&deal=best' class='btn btn-secondary'>Live market</a>" +
+      "<a href='" + VC_SHOP_NOW_HREF + "' class='btn btn-secondary'>Shop now</a>" +
       "<a href='./seller-messages.html' class='btn btn-secondary'>Messages</a>" +
       "<a href='./sell-journey.html' class='btn btn-secondary'>Sell lane</a>" +
       "<a href='./wellbeing.html' class='btn btn-secondary'>Wellbeing</a>" +
