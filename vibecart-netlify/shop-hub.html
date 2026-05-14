@@ -21,7 +21,7 @@
 {"@context":"https://schema.org","@type":"CollectionPage","name":"Shop now · live deals, promos & bargains","description":"Cinematic shop-now hub with regional affiliate offers and VibeCart Health Coach.","url":"https://vibe-cart.com/shop-hub.html","isPartOf":{"@type":"WebSite","name":"VibeCart","url":"https://vibe-cart.com/"},"publisher":{"@type":"Organization","name":"VibeCart","url":"https://vibe-cart.com/"}}
   </script>
 
-  <link rel="stylesheet" href="./styles.css?v=20260514shop2" />
+  <link rel="stylesheet" href="./styles.css?v=20260514shop3" />
 </head>
 <body class="shops-lane-page vc-deals-hub vc-shop-now-page">
   <header class="shops-lane-topbar vc-shop-now-topbar">
@@ -69,12 +69,29 @@
     </div>
   </section>
 
+  <section class="vc-shop-now-affiliate-gate" aria-labelledby="vcShopNowDisclaimerTitle">
+    <h2 class="vc-shop-now-affiliate-gate__title" id="vcShopNowDisclaimerTitle">Partner links</h2>
+    <label class="vc-shop-now-affiliate-gate__row" for="vcShopNowDisclaimerAck">
+      <input id="vcShopNowDisclaimerAck" type="checkbox" />
+      <span>I accept affiliate &amp; marketplace disclosures before opening external partner shops.</span>
+    </label>
+    <details class="vc-affiliate-rec-disclosure-drop vc-shop-now-affiliate-gate__details">
+      <summary class="vc-affiliate-rec-disclosure-toggle">Affiliate disclosure (tap to read)</summary>
+      <div class="vc-affiliate-rec-disclosure-panel">
+        <p class="note">This site contains affiliate links. We may earn a commission if you click and buy, at no extra cost to you.</p>
+        <p class="note">These partner links support VibeCart operations. External shops open in a new tab on the retailer&apos;s domain.</p>
+        <p class="note"><a href="./policy.html#affiliate-disclosure">Read full disclosure policy</a></p>
+      </div>
+    </details>
+    <p class="note vc-shop-now-affiliate-gate__hint" id="vcShopNowDisclaimerHint" hidden aria-live="polite"></p>
+  </section>
+
   <main class="section alt shops-lane-main vc-shop-now-below">
     <section class="vc-shop-now-coach-spot" aria-labelledby="vcCoachSpotTitle">
       <div class="vc-shop-now-coach-spot__glow" aria-hidden="true"></div>
       <div class="vc-shop-now-coach-spot__grid">
         <div class="vc-shop-now-coach-spot__visual">
-          <img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50e?auto=format&amp;fit=crop&amp;w=900&amp;h=600&amp;q=80" alt="" loading="lazy" decoding="async" width="900" height="600" />
+          <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&amp;fit=crop&amp;w=900&amp;h=600&amp;q=80" alt="Health and fitness coaching" loading="lazy" decoding="async" width="900" height="600" />
         </div>
         <div class="vc-shop-now-coach-spot__copy">
           <p class="badge">VibeCart</p>
@@ -109,31 +126,36 @@
     <h2 class="vc-mobile-rail-title vc-shop-now-lanes-title">Lanes</h2>
     <p class="note vc-shop-now-verbose" style="margin-top:-0.25rem;">Swipe for bargain grids — external shops open in a new tab.</p>
     <div class="vc-shop-hub-promo-rail vc-shop-now-lanes" aria-label="Shop lanes">
-      <a class="vc-shop-hub-promo vc-shop-hub-promo--wide" href="./best-bargains.html">
+      <a class="vc-shop-hub-promo vc-shop-hub-promo--wide vc-shop-hub-promo--has-thumb" href="./best-bargains.html">
+        <img class="vc-shop-hub-promo__thumb" src="https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&amp;fit=crop&amp;w=600&amp;h=360&amp;q=75" alt="" loading="lazy" decoding="async" width="600" height="360" />
         <span class="vc-shop-hub-promo__tag">Deals</span>
         <h3 class="vc-shop-hub-promo__title">Bargains</h3>
         <p class="vc-shop-hub-promo__body vc-shop-now-verbose">Amazon, eBay, Takealot, Jumia, Argos, Newegg — fixed cards with real links.</p>
         <span class="vc-shop-hub-promo__cta">Open →</span>
       </a>
-      <a class="vc-shop-hub-promo" href="./fashion-deals.html">
+      <a class="vc-shop-hub-promo vc-shop-hub-promo--has-thumb" href="./fashion-deals.html">
+        <img class="vc-shop-hub-promo__thumb" src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&amp;fit=crop&amp;w=600&amp;h=360&amp;q=75" alt="" loading="lazy" decoding="async" width="600" height="360" />
         <span class="vc-shop-hub-promo__tag">Style</span>
         <h3 class="vc-shop-hub-promo__title">Fashion</h3>
         <p class="vc-shop-hub-promo__body vc-shop-now-verbose">Zalando, ASOS, Nike, H&amp;M, Zara.</p>
         <span class="vc-shop-hub-promo__cta">Open →</span>
       </a>
-      <a class="vc-shop-hub-promo vc-shop-hub-promo--accent" href="./electronics-deals.html">
+      <a class="vc-shop-hub-promo vc-shop-hub-promo--accent vc-shop-hub-promo--has-thumb" href="./electronics-deals.html">
+        <img class="vc-shop-hub-promo__thumb" src="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&amp;fit=crop&amp;w=600&amp;h=360&amp;q=75" alt="" loading="lazy" decoding="async" width="600" height="360" />
         <span class="vc-shop-hub-promo__tag">Tech</span>
         <h3 class="vc-shop-hub-promo__title">Electronics</h3>
         <p class="vc-shop-hub-promo__body vc-shop-now-verbose">Amazon, Newegg, Best Buy, Currys.</p>
         <span class="vc-shop-hub-promo__cta">Open →</span>
       </a>
-      <a class="vc-shop-hub-promo" href="./hot-picks.html">
+      <a class="vc-shop-hub-promo vc-shop-hub-promo--has-thumb" href="./hot-picks.html">
+        <img class="vc-shop-hub-promo__thumb" src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&amp;fit=crop&amp;w=600&amp;h=360&amp;q=75" alt="" loading="lazy" decoding="async" width="600" height="360" />
         <span class="vc-shop-hub-promo__tag">VibeCart</span>
         <h3 class="vc-shop-hub-promo__title">Hot picks</h3>
         <p class="vc-shop-hub-promo__body vc-shop-now-verbose">Native listings and AI trend carousel.</p>
         <span class="vc-shop-hub-promo__cta">Open →</span>
       </a>
-      <a class="vc-shop-hub-promo" href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best">
+      <a class="vc-shop-hub-promo vc-shop-hub-promo--has-thumb" href="./live-market-shops.html?cat=All&amp;view=global&amp;deal=best">
+        <img class="vc-shop-hub-promo__thumb" src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&amp;fit=crop&amp;w=600&amp;h=360&amp;q=75" alt="" loading="lazy" decoding="async" width="600" height="360" />
         <span class="vc-shop-hub-promo__tag">Grid</span>
         <h3 class="vc-shop-hub-promo__title">All shops</h3>
         <p class="vc-shop-hub-promo__body vc-shop-now-verbose">Full live marketplace grid.</p>
@@ -148,8 +170,8 @@
     </p>
   </main>
 
-  <script src="./shop-hub-slideshow.js?v=20260514shop2" defer></script>
-  <script src="./affiliate-recommendations-mount.js?v=20260514shop2" defer></script>
+  <script src="./shop-hub-slideshow.js?v=20260514shop3" defer></script>
+  <script src="./affiliate-recommendations-mount.js?v=20260514shop3" defer></script>
   <script src="./analytics-visit.js?v=20260501visit1" defer></script>
   <script src="./visitor-retention.js?v=20260510ret5" defer></script>
   <script src="./site-chrome.js?v=20260510ret5" defer></script>
