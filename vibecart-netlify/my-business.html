@@ -289,7 +289,7 @@
   </style>
   <script>
     (function () {
-      var BUILD = "20260515-cake-desk4";
+      var BUILD = "20260515-cake-desk5";
       try {
         var url = new URL(window.location.href);
         if (!url.searchParams.get("vcbuild")) {
@@ -543,6 +543,30 @@
         <button type="button" class="btn btn-secondary" id="mbProviderClearRequests">Clear request list</button>
       </p>
       <div id="bakeryBookingList" class="vc-booking-list"></div>
+      <div id="mbProvFocusRoot" class="vc-mb-prov-focus" data-mb-show="provider" hidden>
+        <div class="vc-mb-prov-focus-head">
+          <div>
+            <h3 style="margin:0" id="mbProvFocusTitle">Booking request</h3>
+            <p class="note" id="mbProvFocusSummary" style="margin:0.25rem 0 0"></p>
+          </div>
+          <button type="button" class="btn btn-secondary" id="mbProvFocusClose">Close</button>
+        </div>
+        <p id="mbProvFocusClosedBanner" class="vc-mb-prov-closed-banner note" hidden></p>
+        <div id="mbProvFocusDetails" class="vc-mb-prov-focus-details"></div>
+        <p class="hero-actions" id="mbProvFocusActions" style="margin-top:0.65rem">
+          <button type="button" class="btn btn-primary" data-booking-status="confirmed">Accept</button>
+          <button type="button" class="btn btn-secondary" data-booking-status="declined">Decline</button>
+          <button type="button" class="btn btn-primary" data-booking-status="completed">Mark complete</button>
+        </p>
+        <div id="mbProvFocusChatWrap" class="vc-mb-chat-panel" hidden>
+          <p class="note" id="mbProvFocusChatNote">Messages unlock after you accept this booking.</p>
+          <div id="mbProvChatList" class="vc-mb-chat-list"></div>
+          <div class="vc-biz-row" style="margin-top:0.5rem">
+            <input id="mbProvChatInput" type="text" placeholder="Type a message…" maxlength="2000" />
+            <button type="button" class="btn btn-primary" id="mbProvChatSend">Send</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="vc-biz-card vc-provider-compact" style="margin-top:.95rem;" data-mb-show="provider">
@@ -733,7 +757,7 @@
       }, 1800);
     })();
   </script>
-  <script src="./my-business.js?v=20260515cakeflow2" defer></script>
+  <script src="./my-business.js?v=20260515cakeflow3" defer></script>
   <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
   <script src="./visitor-retention.js?v=20260508ret4" defer></script>
 

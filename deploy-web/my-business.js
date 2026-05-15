@@ -2090,6 +2090,11 @@
     if (!root || !providerFocusBookingId) return;
     root.removeAttribute("hidden");
     root.setAttribute("data-booking-id", String(providerFocusBookingId));
+    try {
+      root.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (_) {
+      /* ignore */
+    }
     api("/api/public/bakery/bookings/detail?bookingId=" + encodeURIComponent(String(providerFocusBookingId)))
       .then(function (res) {
         fillProviderFocusFromBooking(res.booking || {});
@@ -2158,6 +2163,15 @@
       }
       if (b.styleTheme) {
         parts.push("<p><strong>Style / theme</strong> · " + escapeHtml(String(b.styleTheme)) + "</p>");
+      }
+      if (b.selectedFlavor) {
+        parts.push("<p><strong>Flavor</strong> · " + escapeHtml(String(b.selectedFlavor)) + "</p>");
+      }
+      if (b.selectedSize) {
+        parts.push("<p><strong>Size</strong> · " + escapeHtml(String(b.selectedSize)) + "</p>");
+      }
+      if (b.specialRequests) {
+        parts.push("<p><strong>Special requests</strong> · " + escapeHtml(String(b.specialRequests)) + "</p>");
       }
       parts.push("<p><strong>Request</strong></p><p class=\"note\">" + escapeHtml(String(b.requestDetails || "")) + "</p>");
       det.innerHTML = parts.join("");
@@ -3670,6 +3684,18 @@
       }
       return;
     }
+    var bookingRow = e.target.closest && e.target.closest(".vc-mb-booking-row[data-booking-id]");
+    if (
+      bookingRow &&
+      !e.target.closest("a") &&
+      !e.target.closest("[data-booking-status]")
+    ) {
+      var rowBid = Number(bookingRow.getAttribute("data-booking-id") || 0);
+      if (rowBid) {
+        loadProviderFocus(rowBid);
+        return;
+      }
+    }
     var resumeClient = e.target.closest && e.target.closest("[data-mb-resume-client-booking]");
     if (resumeClient) {
       var rid = Number(resumeClient.getAttribute("data-mb-resume-client-booking") || 0);
@@ -3735,10 +3761,15 @@
       }
       var payload = { bookingId: bookingId, status: status };
       if (status === "confirmed") {
-        var rawDur = window.prompt("Accepted. Enter booking duration in minutes (e.g. 60):", "60");
-        var dur = Number(rawDur || 0);
-        if (Number.isFinite(dur) && dur >= 15 && dur <= 480) {
-          payload.durationMinutes = Math.round(dur);
+        var cfgConfirm = loadMbConfig();
+        if (isCakeBakeryLine(cfgConfirm && cfgConfirm.service)) {
+          payload.durationMinutes = 60;
+        } else {
+          var rawDur = window.prompt("Accepted. Enter booking duration in minutes (e.g. 60):", "60");
+          var dur = Number(rawDur || 0);
+          if (Number.isFinite(dur) && dur >= 15 && dur <= 480) {
+            payload.durationMinutes = Math.round(dur);
+          }
         }
       }
       api("/api/public/bakery/bookings/status/update", {
