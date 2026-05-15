@@ -1946,7 +1946,7 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   const styleTheme = String(body.styleTheme || "").trim().slice(0, 180);
   const requirementsText = String(body.requirementsText || "").trim().slice(0, 4000);
   let imageUrl = String(body.imageUrl || "").trim().slice(0, 500);
-  const currency = String(body.currency || "USD").trim().toUpperCase().slice(0, 8) || "USD";
+  const currency = String(body.currency || "").trim().toUpperCase().slice(0, 8);
   const basePrice = Number.isFinite(Number(body.basePrice)) ? Math.max(0, Number(Number(body.basePrice).toFixed(2))) : 0;
   const galleryJson = sanitizeBakeryGalleryInput(body.gallery);
   const galleryArr = galleryJson ? parseBakeryGalleryJson(galleryJson) : [];
@@ -2177,10 +2177,63 @@ async function handlePublicBakerySpotlight(req, res) {
       imageUrl: hero.url,
       providerLogoUrl: mapped.providerLogoUrl,
       gallery: mapped.gallery.filter((x) => x && x.kind === "image").slice(0, 6),
-      bookUrl: `${resolvePublicWebBaseUrl(req)}/my-business.html?flow=book&line=${encodeURIComponent("Bakery / custom cakes")}&providerServiceId=${mapped.id}`
+      bookUrl: `${resolvePublicWebBaseUrl(req)}/book-bakery.html?sid=${mapped.id}`,
+      shareUrl: `${resolvePublicWebBaseUrl(req)}/book-bakery.html?sid=${mapped.id}`
     });
   }
   return sendJson(res, 200, { ok: true, spotlight: items });
+}
+
+async function handlePublicBakeryBookLanding(req, res) {
+  await ensureBakeryServicesTable();
+  await ensureBakeryServiceGalleryColumn();
+  await ensureBakeryServiceMenuOptionsColumn();
+  await ensureBakeryServiceLogoColumn();
+  let serviceId = 0;
+  try {
+    const urlObj = new URL(req.url, "http://localhost");
+    serviceId = Number(urlObj.searchParams.get("serviceId") || urlObj.searchParams.get("sid") || 0);
+  } catch {
+    serviceId = 0;
+  }
+  if (!serviceId) {
+    return sendJson(res, 400, { ok: false, code: "SERVICE_ID_REQUIRED" });
+  }
+  const [rows] = await pool.execute(
+    `SELECT bs.id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.menu_options_json, bs.provider_logo_url, bs.is_active, u.full_name
+     FROM bakery_services bs
+     JOIN users u ON u.id = bs.baker_user_id
+     WHERE bs.id = ?
+     LIMIT 1`,
+    [serviceId]
+  );
+  const row = rows[0];
+  if (!row || Number(row.is_active || 0) !== 1) {
+    return sendJson(res, 404, { ok: false, code: "SERVICE_NOT_FOUND" });
+  }
+  const mapped = bakeryServiceRowForApi(row);
+  const serviceLine = extractBakeryServiceLineFromRow(row);
+  const bookUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html?flow=book&line=${encodeURIComponent(serviceLine || "Bakery / custom cakes")}&providerServiceId=${mapped.id}`;
+  const shareUrl = `${resolvePublicWebBaseUrl(req)}/book-bakery.html?sid=${mapped.id}`;
+  return sendJson(res, 200, {
+    ok: true,
+    service: {
+      id: mapped.id,
+      businessName: mapped.businessName,
+      workTitle: mapped.workTitle,
+      bakerName: mapped.bakerName,
+      basePrice: mapped.basePrice,
+      currency: mapped.currency,
+      requirementsText: mapped.requirementsText,
+      imageUrl: mapped.imageUrl,
+      providerLogoUrl: mapped.providerLogoUrl,
+      gallery: mapped.gallery,
+      menuOptions: mapped.menuOptions,
+      serviceLine,
+      bookUrl,
+      shareUrl
+    }
+  });
 }
 
 async function handlePublicBakeryServiceToggle(req, res) {
@@ -2630,7 +2683,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     return sendJson(res, 400, { ok: false, code: "INVALID_BOOKING_STATUS" });
   }
   const [beforeRows] = await pool.execute(
-    `SELECT b.id, b.service_id, b.event_date, b.occasion_type, b.requested_start_time, b.buyer_user_id, b.booking_status, s.work_title, s.slot_duration_minutes
+    `SELECT b.id, b.service_id, b.event_date, b.occasion_type, b.requested_start_time, b.buyer_user_id, b.booking_status, b.service_line, s.work_title, s.slot_duration_minutes
      FROM bakery_bookings b
      JOIN bakery_services s ON s.id = b.service_id
      WHERE b.id = ? AND b.baker_user_id = ?
@@ -2697,7 +2750,8 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
     /* ignore audit failures */
   }
   const mbUrl = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
-  const mbClientDeep = `${mbUrl}#mb-client-service-desk`;
+  const clientLine = extractBakeryServiceLineFromRow(before);
+  const mbClientDeep = buildMbClientBookingDeepLink(req, bookingId, clientLine);
   const buyerId = Number(before.buyer_user_id || 0);
   if (buyerId && (status === "confirmed" || status === "declined")) {
     try {
@@ -2706,7 +2760,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
         title: status === "confirmed" ? "Booking confirmed" : "Booking update",
         message:
           status === "confirmed"
-            ? `Your booking #${bookingId} for "${String(before.work_title || "service")}" was accepted. You can message your provider in My Business.`
+            ? `Your booking #${bookingId} for "${String(before.work_title || "service")}" was accepted. Open My Business to message your provider.`
             : `Your booking request #${bookingId} was declined. Pick another time or provider when you are ready.`,
         deepLink: mbClientDeep,
         eventType: "bakery_booking_status"
@@ -2722,15 +2776,15 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
           "Your booking was accepted",
           [
             `Good news — booking #${bookingId} for "${String(before.work_title || "service")}" was accepted.`,
-            "You can message your provider in My Business after you open your client session.",
-            mbUrl
+            "Open My Business to message your provider on this booking.",
+            mbClientDeep
           ].join("\n")
         );
       } else {
         queueUserTransactionalEmail(
           buyerEmail,
           "Booking update",
-          [`Your booking request #${bookingId} was declined. You can send a new request when you are ready.`, mbUrl].join("\n")
+          [`Your booking request #${bookingId} was declined. You can send a new request when you are ready.`, mbClientDeep].join("\n")
         );
       }
     }
@@ -2754,7 +2808,7 @@ async function handlePublicBakeryBookingStatusUpdate(req, res) {
         "Booking completed",
         [
           `Your provider marked booking #${bookingId} for "${String(before.work_title || "service")}" as complete.`,
-          mbUrl
+          mbClientDeep
         ].join("\n")
       );
     }
@@ -2922,7 +2976,11 @@ async function handlePublicBakeryBookingMessagesPost(req, res) {
   await ensureBakeryBookingsTable();
   await ensureBakeryBookingMessagesTable();
   const [bRows] = await pool.execute(
-    `SELECT id, baker_user_id, buyer_user_id, booking_status FROM bakery_bookings WHERE id = ? LIMIT 1`,
+    `SELECT b.id, b.baker_user_id, b.buyer_user_id, b.booking_status, b.service_line, s.work_title, s.business_name, s.style_theme
+     FROM bakery_bookings b
+     JOIN bakery_services s ON s.id = b.service_id
+     WHERE b.id = ?
+     LIMIT 1`,
     [bookingId]
   );
   const b = bRows[0];
@@ -2942,17 +3000,35 @@ async function handlePublicBakeryBookingMessagesPost(req, res) {
   );
   const other =
     Number(b.baker_user_id) === uid ? Number(b.buyer_user_id || 0) : Number(b.baker_user_id);
+  const senderName = String(session.full_name || session.email || "Someone").trim();
+  const preview = text.length > 120 ? `${text.slice(0, 117)}…` : text;
+  const clientLine = extractBakeryServiceLineFromRow(b);
+  const msgDeepLink = buildMbClientBookingDeepLink(req, bookingId, clientLine);
   if (other) {
     try {
       await sendPushToUser(pool, {
         userId: other,
         title: "New booking message",
-        message: `You have a new message on booking #${bookingId}.`,
-        deepLink: `${resolvePublicWebBaseUrl(req)}/my-business.html`,
+        message: `${senderName} on booking #${bookingId}: ${preview}`,
+        deepLink: msgDeepLink,
         eventType: "bakery_booking_message"
       });
     } catch {
       /* ignore */
+    }
+    const otherEmail = await getUserEmailById(other);
+    if (otherEmail) {
+      queueUserTransactionalEmail(
+        otherEmail,
+        `New message · booking #${bookingId}`,
+        [
+          `${senderName} sent a message on booking #${bookingId} for "${String(b.work_title || "your service")}".`,
+          preview,
+          "",
+          "Open My Business to reply:",
+          msgDeepLink
+        ].join("\n")
+      );
     }
   }
   try {
@@ -3964,6 +4040,24 @@ function isCakeDeliveryServiceLine(serviceLine) {
   return s.includes("bakery") || s.includes("cake") || s.includes("barkery");
 }
 
+function extractBakeryServiceLineFromRow(row) {
+  const direct = String(row?.service_line || "").trim();
+  if (direct) return direct;
+  const st = String(row?.style_theme || "").trim();
+  if (!st) return "";
+  const parts = st.split("·");
+  return String(parts[0] || "").trim();
+}
+
+function buildMbClientBookingDeepLink(req, bookingId, serviceLine) {
+  const base = `${resolvePublicWebBaseUrl(req)}/my-business.html`;
+  const qs = new URLSearchParams();
+  qs.set("mbBookingId", String(bookingId));
+  const line = String(serviceLine || "").trim();
+  if (line) qs.set("line", line);
+  return `${base}?${qs.toString()}#mb-client-service-desk`;
+}
+
 function bakeryServiceRowForApi(row) {
   return {
     id: Number(row.id),
@@ -3973,7 +4067,7 @@ function bakeryServiceRowForApi(row) {
     workTitle: String(row.work_title || ""),
     styleTheme: String(row.style_theme || ""),
     basePrice: Number(row.base_price || 0),
-    currency: String(row.currency || "USD"),
+    currency: String(row.currency || "").trim().toUpperCase(),
     requirementsText: String(row.requirements_text || ""),
     imageUrl: String(row.image_url || ""),
     gallery: galleryArrayForApi(row.gallery_json),
@@ -9356,6 +9450,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && pathname === "/api/public/bakery/spotlight") {
       return await handlePublicBakerySpotlight(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/bakery/book-landing") {
+      return await handlePublicBakeryBookLanding(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/services/toggle") {
       return await handlePublicBakeryServiceToggle(req, res);

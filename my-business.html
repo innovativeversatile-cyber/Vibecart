@@ -286,10 +286,23 @@
       backdrop-filter: blur(8px);
       background: rgba(8, 10, 20, 0.82);
     }
+    .vc-mb-client-booking-row {
+      cursor: pointer;
+    }
+    .vc-mb-client-booking-row:focus {
+      outline: 2px solid rgba(129, 187, 255, 0.55);
+      outline-offset: 2px;
+    }
+    .vc-mb-share-url {
+      padding: 0.45rem 0.55rem;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
   </style>
   <script>
     (function () {
-      var BUILD = "20260515-cake-desk5";
+      var BUILD = "20260515-cake-desk6";
       try {
         var url = new URL(window.location.href);
         if (!url.searchParams.get("vcbuild")) {
@@ -435,7 +448,7 @@
         <div id="mbCliProviderMediaPreview" class="vc-mb-cli-media" hidden></div>
         <div class="vc-biz-row" style="margin-top:0.5rem">
           <input id="mbCliCustName" type="text" placeholder="Your full name" autocomplete="name" />
-          <input id="mbCliCustPhone" type="tel" placeholder="Phone / WhatsApp" autocomplete="tel" />
+          <input id="mbCliCustPhone" type="tel" placeholder="Phone (optional)" autocomplete="tel" />
         </div>
       </div>
       <div id="mbClientStep2" class="vc-mb-client-step" hidden>
@@ -579,6 +592,23 @@
           <input id="bakeryBusinessName" type="text" placeholder="Business or artist name (e.g. Sweet Crumbs)" />
           <input id="bakeryStyleTheme" type="text" placeholder="Style / theme (minimal, floral, luxury…)" />
           <input id="bakeryBasePrice" type="number" min="0" step="0.01" placeholder="Base price" />
+          <div>
+            <label for="bakeryCurrency">Currency for your prices</label>
+            <select id="bakeryCurrency" aria-label="Currency">
+              <option value="">Choose currency</option>
+              <option value="USD">USD — US dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British pound</option>
+              <option value="ZAR">ZAR — South African rand</option>
+              <option value="NGN">NGN — Nigerian naira</option>
+              <option value="KES">KES — Kenyan shilling</option>
+              <option value="GHS">GHS — Ghanaian cedi</option>
+              <option value="CAD">CAD — Canadian dollar</option>
+              <option value="AUD">AUD — Australian dollar</option>
+              <option value="INR">INR — Indian rupee</option>
+              <option value="AED">AED — UAE dirham</option>
+            </select>
+          </div>
         </div>
         <input id="bakeryWorkTitle" type="hidden" value="" />
         <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
@@ -603,11 +633,19 @@
           <img id="bakeryLogoPreview" alt="" hidden />
           <input type="hidden" id="bakeryLogoUrl" value="" />
         </div>
+        <section id="mbProvShareLinkBlock" class="vc-mb-share-block" hidden data-mb-show="provider">
+          <h3 style="margin:0.85rem 0 0.35rem;font-size:1.05rem;">Share your booking link</h3>
+          <p class="note" style="margin:0.35rem 0">Clients see your logo and name, then book on VibeCart. Share on Instagram, Facebook, or with friends.</p>
+          <p class="note vc-mb-share-url" id="mbProvShareUrl" style="word-break:break-all;margin:0.5rem 0"></p>
+          <p class="hero-actions" style="margin-top:0.35rem">
+            <button type="button" class="btn btn-primary" id="mbProvShareCopy">Copy link</button>
+            <a class="btn btn-secondary" id="mbProvSharePreview" href="#" target="_blank" rel="noopener noreferrer">Preview</a>
+          </p>
+        </section>
         <details id="mbProvAdvancedDetails" data-mb-non-cake>
-          <summary>More options (currency)</summary>
+          <summary>More options</summary>
           <p class="note" style="margin:0.45rem 0;">Optional fields for richer cards and media.</p>
           <div class="vc-biz-row">
-            <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
             <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
             <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
           </div>
@@ -757,7 +795,7 @@
       }, 1800);
     })();
   </script>
-  <script src="./my-business.js?v=20260515cakeflow3" defer></script>
+  <script src="./my-business.js?v=20260515cakeflow4" defer></script>
   <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
   <script src="./visitor-retention.js?v=20260508ret4" defer></script>
 

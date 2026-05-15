@@ -174,6 +174,63 @@
     }
     syncCakeClientDeskBlocks();
     applyCakeDashboardBackdrop();
+    updateProviderShareLink();
+  }
+
+  function formatMbPrice(amount, currency) {
+    var n = Number(amount || 0);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    var cur = String(currency || "").trim().toUpperCase();
+    return cur ? n + " " + cur : String(n);
+  }
+
+  function buildProviderSharePageUrl(serviceId) {
+    var sid = Number(serviceId || 0);
+    if (!sid) return "";
+    try {
+      return new URL("./book-bakery.html?sid=" + encodeURIComponent(String(sid)), window.location.href).toString();
+    } catch (_) {
+      return "./book-bakery.html?sid=" + sid;
+    }
+  }
+
+  function updateProviderShareLink() {
+    var block = document.getElementById("mbProvShareLinkBlock");
+    if (!block) return;
+    var cfg = loadMbConfig();
+    var cake = cfg && isCakeBakeryLine(cfg.service);
+    block.hidden = !cake;
+    if (!cake) return;
+    var editId = Number((document.getElementById("bakeryEditServiceId") || {}).value || 0);
+    var sid = editId;
+    if (!sid && Array.isArray(mbLastProviderServices)) {
+      mbLastProviderServices.some(function (s) {
+        if (s && Number(s.id) > 0 && Number(s.isActive)) {
+          sid = Number(s.id);
+          return true;
+        }
+        return false;
+      });
+      if (!sid) {
+        mbLastProviderServices.some(function (s) {
+          if (s && Number(s.id) > 0) {
+            sid = Number(s.id);
+            return true;
+          }
+          return false;
+        });
+      }
+    }
+    var urlEl = document.getElementById("mbProvShareUrl");
+    var preview = document.getElementById("mbProvSharePreview");
+    if (!sid) {
+      if (urlEl) urlEl.textContent = "Save and publish your bakery card to generate your link.";
+      if (preview) preview.setAttribute("href", "#");
+      return;
+    }
+    var shareUrl = buildProviderSharePageUrl(sid);
+    if (urlEl) urlEl.textContent = shareUrl;
+    if (preview) preview.setAttribute("href", shareUrl);
   }
 
   function applyCakeDashboardBackdrop() {
@@ -849,6 +906,70 @@
     }
   }
 
+  function openClientBookingFromDeepLinkIfAny(cfg) {
+    if (!cfg || !isClientLikePersona(cfg.persona)) return;
+    var bid = parseProviderBookingIdFromUrl();
+    if (!bid) return;
+    openClientBookingInDesk(bid, "Opened booking #" + bid + " from your notification.");
+  }
+
+  function openClientBookingInDesk(bookingId, statusMsg) {
+    var bid = Number(bookingId || 0);
+    if (!bid) return;
+    try {
+      sessionStorage.setItem("vibecart-mb-last-booking", String(bid));
+    } catch (_) {
+      /* ignore */
+    }
+    clientActiveBookingId = bid;
+    tryResumeLastClientBooking();
+    if (statusMsg) setStatus(statusMsg);
+    var panel = document.getElementById("mbClientChatPanel");
+    var wait = document.getElementById("mbClientWaitBanner");
+    var focusEl = panel && !panel.hidden ? panel : wait;
+    if (focusEl) {
+      try {
+        focusEl.focus({ preventScroll: true });
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  }
+
+  function notifyClientBrowser(title, body) {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    try {
+      new Notification(title, { body: body, icon: "./icon.svg" });
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function passportReturnUrl() {
+    try {
+      return location.pathname + location.search + location.hash;
+    } catch (_) {
+      return "./my-business.html";
+    }
+  }
+
+  function promptSignInForReserve() {
+    setStatus("Create or sign in to your VibeCart account before sending a reservation.");
+    try {
+      sessionStorage.setItem("vibecart-mb-pending-reserve", "1");
+    } catch (_) {
+      /* ignore */
+    }
+    var go =
+      "./lane-passport.html?next=" +
+      encodeURIComponent(passportReturnUrl()) +
+      "&hint=" +
+      encodeURIComponent("Sign in to send your booking request");
+    if (window.confirm("You need a VibeCart account so we can notify you when your provider accepts.\n\nOpen sign-in / create account now?")) {
+      window.location.href = go;
+    }
+  }
+
   function revealMainAndLoad(cfg) {
     checkMbBookingPaidFromUrl();
     pendingProviderDeepLinkBookingId = parseProviderBookingIdFromUrl();
@@ -864,12 +985,33 @@
       })
       .then(function () {
         openProviderBookingFromDeepLinkIfAny(cfg);
+        openClientBookingFromDeepLinkIfAny(cfg);
+        resumePendingReserveAfterSignIn();
       });
+  }
+
+  function resumePendingReserveAfterSignIn() {
+    var pending = false;
+    try {
+      pending = sessionStorage.getItem("vibecart-mb-pending-reserve") === "1";
+    } catch (_) {
+      pending = false;
+    }
+    if (!pending || !getToken()) return;
+    try {
+      sessionStorage.removeItem("vibecart-mb-pending-reserve");
+    } catch (_) {
+      /* ignore */
+    }
+    clientWizardStep = 2;
+    renderClientWizardStep();
+    setStatus("You're signed in — review and tap Send reservation request when ready.");
   }
 
   function scrollToBeautyHashIfAllowed(cfg) {
     var raw = String(location.hash || "").replace(/\/$/, "");
     if (raw !== "#beauty-services" && raw !== "#mb-client-service-desk") return;
+    if (parseProviderBookingIdFromUrl() > 0) return;
     if (cfg && !isClientLikePersona(cfg.persona)) return;
     var el =
       raw === "#mb-client-service-desk"
@@ -975,7 +1117,9 @@
         var st = escapeHtml(b.bookingStatus || "pending");
         var line = b.serviceLine ? escapeHtml(String(b.serviceLine)) + " · " : "";
         return (
-          '<article class="vc-booking-item vc-mb-client-booking-row">' +
+          '<article class="vc-booking-item vc-mb-client-booking-row" data-client-booking-id="' +
+          Number(b.id) +
+          '" tabindex="0" role="button">' +
           "<h3>" +
           line +
           "#" +
@@ -1442,7 +1586,7 @@
     }
     setStatus("Send clicked. Validating...");
     if (!getToken()) {
-      setStatus("Sign in with your VibeCart account (Account / passport) to send a reservation.");
+      promptSignInForReserve();
       return Promise.resolve();
     }
     var cfg = loadMbConfig();
@@ -1511,7 +1655,7 @@
     setStatus("Validated. Checking session...");
     return refreshMbSessionUser().then(function () {
       if (!mbSessionUserId) {
-        setStatus("Sign in with your VibeCart account to send a reservation.");
+        promptSignInForReserve();
         return;
       }
       setStatus("Session OK. Posting reservation...");
@@ -1590,6 +1734,11 @@
             connectMbClientChatWs(clientActiveBookingId);
             maybeShowClientPayRow(res.booking || {});
             clearClientPoll();
+            setStatus("Your provider accepted booking #" + clientActiveBookingId + "!");
+            notifyClientBrowser(
+              "Booking accepted",
+              "Your provider accepted booking #" + clientActiveBookingId + ". Tap to open messages."
+            );
             if (clientWizardStep === 1) {
               loadClientSlotsForCurrentStep();
             }
@@ -1806,7 +1955,9 @@
       hideGate();
       applyDashboard(cfgBook);
       refreshMbSessionUser().then(function () {
-        loadAll();
+        loadAll().then(function () {
+          resumePendingReserveAfterSignIn();
+        });
       });
       return;
     }
@@ -2552,7 +2703,7 @@
     var bp = document.getElementById("bakeryBasePrice");
     if (bp) bp.value = s.basePrice != null ? String(s.basePrice) : "";
     var cur = document.getElementById("bakeryCurrency");
-    if (cur) cur.value = s.currency || "USD";
+    if (cur) cur.value = String(s.currency || "").trim().toUpperCase();
     var img = document.getElementById("bakeryImageUrl");
     if (img) img.value = s.imageUrl || "";
     var req = document.getElementById("bakeryRequirements");
@@ -2718,7 +2869,9 @@
       workTitle: workTitle,
       styleTheme: styleTheme,
       basePrice: Number(document.getElementById("bakeryBasePrice").value || 0),
-      currency: document.getElementById("bakeryCurrency").value || "USD",
+      currency: String((document.getElementById("bakeryCurrency") || {}).value || "")
+        .trim()
+        .toUpperCase(),
       imageUrl: document.getElementById("bakeryImageUrl").value,
       requirementsText: document.getElementById("bakeryRequirements").value,
       slotDurationMinutes: Number.isFinite(rawDur) ? rawDur : 60,
@@ -3118,7 +3271,7 @@
                   workTitle: targetTitle,
                   styleTheme: String(pick.styleTheme || (line + " · Availability board")),
                   basePrice: Number(pick.basePrice || 0) || 0,
-                  currency: String(pick.currency || "USD"),
+                  currency: String(pick.currency || ""),
                   imageUrl: String(pick.imageUrl || ""),
                   requirementsText:
                     String(pick.requirementsText || "").trim() ||
@@ -3144,7 +3297,7 @@
               workTitle: mainCardTitle(line),
               styleTheme: line + " · Availability board",
               basePrice: Number(frm.basePrice || 0) || 0,
-              currency: String(frm.currency || "USD"),
+              currency: String(frm.currency || ""),
               imageUrl: String(frm.imageUrl || ""),
               requirementsText: String(frm.requirementsText || "").trim() || "Main availability card for this service line.",
               slotDurationMinutes: Number(frm.slotDurationMinutes || 60) || 60
@@ -3238,9 +3391,7 @@
         escapeHtml(s.styleTheme || "No style yet") +
         "</p>" +
         '<p class="note">Price: ' +
-        Number(s.basePrice || 0).toFixed(2) +
-        " " +
-        escapeHtml(s.currency || "USD") +
+        escapeHtml(formatMbPrice(s.basePrice, s.currency) || "On request") +
         "</p>" +
         '<p class="note">Requirements: ' +
         escapeHtml(s.requirementsText || "None") +
@@ -3276,13 +3427,6 @@
       return;
     }
     root.innerHTML = providerBookingsCache.map(function (b) {
-      var phoneDigits = String(b.customerPhone || "").replace(/[^\d+]/g, "");
-      var waUrl = phoneDigits
-        ? "https://wa.me/" +
-          encodeURIComponent(phoneDigits.replace(/^\+/, "")) +
-          "?text=" +
-          encodeURIComponent("Hi " + (b.customerName || "") + ", about your VibeCart booking #" + Number(b.id || 0))
-        : "";
       var st = escapeHtml(b.bookingStatus || "pending");
       var stRaw = String(b.bookingStatus || "pending").toLowerCase();
       var prefTime = String(b.preferredTime || b.requestedStartTime || "").trim();
@@ -3317,11 +3461,6 @@
         escapeHtml(b.businessName || "") +
         "</p>" +
         '<p class="hero-actions">' +
-        (waUrl
-          ? '<a class="btn btn-secondary" target="_blank" rel="noopener noreferrer" href="' +
-            escapeHtml(waUrl) +
-            '">WhatsApp</a>'
-          : "") +
         '<button type="button" class="btn btn-primary" data-mb-focus-booking="' +
         Number(b.id) +
         '">Open</button>' +
@@ -3539,6 +3678,7 @@
           loadProviderFocus(providerFocusBookingId);
         }
         applyCakeLineModeUi(line);
+        updateProviderShareLink();
         setStatus("Cake desk updated");
         return;
       }
@@ -3569,6 +3709,10 @@
     if (body.serviceId === 0) {
       delete body.serviceId;
     }
+    if (Number(body.basePrice) > 0 && !body.currency) {
+      setStatus("Choose a currency for your prices before saving.");
+      return Promise.resolve();
+    }
     return api("/api/public/bakery/services/upsert", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3581,6 +3725,7 @@
         hid.value = String(Number(res.serviceId) || 0);
       }
       return loadAll().then(function () {
+        updateProviderShareLink();
         return savedId;
       });
     }).catch(function (err) {
@@ -3705,14 +3850,17 @@
         } catch (_) {
           /* ignore */
         }
-        clientActiveBookingId = rid;
-        tryResumeLastClientBooking();
-        var desk = document.getElementById("mb-client-service-desk");
-        if (desk) {
-          desk.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
+        openClientBookingInDesk(rid, "Showing booking #" + rid + " — messages and status below.");
       }
       return;
+    }
+    var clientBookingRow = e.target.closest && e.target.closest(".vc-mb-client-booking-row[data-client-booking-id]");
+    if (clientBookingRow && !e.target.closest("[data-mb-resume-client-booking]")) {
+      var cbid = Number(clientBookingRow.getAttribute("data-client-booking-id") || 0);
+      if (cbid) {
+        openClientBookingInDesk(cbid, "Showing booking #" + cbid + ".");
+        return;
+      }
     }
     var purgeCal = e.target.closest && e.target.closest("[data-mb-purge-calendar-date]");
     if (purgeCal) {
@@ -3861,6 +4009,29 @@
     var btnSavePublishBakery = document.getElementById("bakerySavePublishBtn");
     var btnPayout = document.getElementById("savePayoutAccountBtn");
     if (btnRefresh) btnRefresh.addEventListener("click", loadAll);
+    var shareCopy = document.getElementById("mbProvShareCopy");
+    if (shareCopy) {
+      shareCopy.addEventListener("click", function () {
+        var urlEl = document.getElementById("mbProvShareUrl");
+        var text = urlEl ? String(urlEl.textContent || "").trim() : "";
+        if (!text || text.indexOf("book-bakery") < 0) {
+          setStatus("Save and publish your bakery card first to get a share link.");
+          return;
+        }
+        function done() {
+          setStatus("Booking link copied — share it on socials or with friends.");
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {
+            window.prompt("Copy your booking link:", text);
+            done();
+          });
+        } else {
+          window.prompt("Copy your booking link:", text);
+          done();
+        }
+      });
+    }
     var btnClientBookings = document.getElementById("mbClientBookingsRefresh");
     if (btnClientBookings) btnClientBookings.addEventListener("click", loadClientDashboard);
     var calPurgeAll = document.getElementById("mbCalendarPurgeAllClosed");

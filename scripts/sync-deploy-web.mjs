@@ -104,6 +104,7 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "affiliate-recommendations-mount.js",
   "affiliate-promo-slideshow.js",
   "bakery-spotlight.js",
+  "book-bakery.js",
   "shop-hub-slideshow.js",
   "skechers-affiliate.js",
   "brandon-bootstrap.js",
