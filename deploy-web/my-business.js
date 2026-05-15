@@ -36,8 +36,8 @@
       lead: "Barber-only desk. Your request goes to the provider you select — no other service lines on this screen."
     },
     "Bakery / custom cakes": {
-      title: "Bakery & custom cakes · client reservation",
-      lead: "Cake and bakery requests only. Describe servings, flavours, and date — your baker confirms before payment where required."
+      title: "Order a custom cake",
+      lead: "Pick your baker, choose flavour and size, then when you want it delivered. Add special requests — your baker confirms before payment where required."
     },
     Nails: {
       title: "Nails · client reservation",
@@ -76,6 +76,158 @@
   var mbWorkGallery = [];
   var mbDiscoverServiceById = {};
   var mbSlotChipTimes = [];
+  var clientSelectedFlavor = "";
+  var clientSelectedSize = "";
+
+  function isCakeBakeryLine(service) {
+    var s = String(service || "").toLowerCase();
+    return s.indexOf("bakery") >= 0 || s.indexOf("cake") >= 0 || s.indexOf("barkery") >= 0;
+  }
+
+  function parseLinesFromTextarea(id) {
+    var el = document.getElementById(id);
+    if (!el) return [];
+    return String(el.value || "")
+      .split(/\r?\n/)
+      .map(function (x) {
+        return String(x || "").trim();
+      })
+      .filter(Boolean);
+  }
+
+  function readMenuOptionsFromForm() {
+    return {
+      flavors: parseLinesFromTextarea("bakeryFlavorsList"),
+      sizes: parseLinesFromTextarea("bakerySizesList")
+    };
+  }
+
+  function writeMenuOptionsToForm(menu) {
+    var m = menu && typeof menu === "object" ? menu : {};
+    var fl = document.getElementById("bakeryFlavorsList");
+    var sz = document.getElementById("bakerySizesList");
+    if (fl) fl.value = (Array.isArray(m.flavors) ? m.flavors : []).join("\n");
+    if (sz) sz.value = (Array.isArray(m.sizes) ? m.sizes : []).join("\n");
+  }
+
+  function applyCakeLineModeUi(service) {
+    var cake = isCakeBakeryLine(service);
+    document.body.classList.toggle("mb-cake-line", cake);
+    var menuEd = document.getElementById("mbCakeMenuEditor");
+    var logoBlk = document.getElementById("mbCakeLogoBlock");
+    if (menuEd) menuEd.hidden = !cake;
+    if (logoBlk) logoBlk.hidden = !cake;
+    var portHead = document.getElementById("mbPortfolioHead");
+    var portLead = document.getElementById("mbPortfolioLead");
+    if (cake && portHead) portHead.textContent = "Your bakery";
+    if (cake && portLead) {
+      portLead.textContent =
+        "Add flavours, sizes, photos, and your logo. Clients pick options and delivery time — no slot publishing needed.";
+    }
+    var hero = document.getElementById("mbProviderOverviewHero");
+    if (hero && cake) {
+      var h1 = hero.querySelector(".shops-lane-title");
+      if (h1) h1.textContent = "Your cake desk";
+      var note = hero.querySelector(".note");
+      if (note) note.textContent = "Incoming orders and your menu — keep it simple.";
+    }
+    syncCakeClientDeskBlocks();
+    applyCakeDashboardBackdrop();
+  }
+
+  function applyCakeDashboardBackdrop() {
+    var backdrop = document.getElementById("mbCakeDashBackdrop");
+    if (!backdrop) return;
+    var logo = "";
+    (mbLastProviderServices || []).some(function (s) {
+      if (s && s.providerLogoUrl) {
+        logo = String(s.providerLogoUrl);
+        return true;
+      }
+      return false;
+    });
+    if (!logo) {
+      var hid = document.getElementById("bakeryLogoUrl");
+      if (hid && hid.value) logo = String(hid.value);
+    }
+    if (logo && isAllowedPublicMediaUrl(logo)) {
+      backdrop.style.backgroundImage = 'url("' + logo.replace(/"/g, "") + '")';
+      backdrop.hidden = false;
+    } else {
+      backdrop.style.backgroundImage = "";
+      backdrop.hidden = true;
+    }
+  }
+
+  function syncCakeClientDeskBlocks() {
+    var cfg = loadMbConfig();
+    var cake = cfg && isCakeBakeryLine(cfg.service);
+    var menuBlk = document.getElementById("mbCliCakeMenuBlock");
+    var delBlk = document.getElementById("mbCliCakeDeliveryBlock");
+    var salonBlk = document.getElementById("mbCliSalonSlotsBlock");
+    var specLbl = document.getElementById("mbCliSpecialRequestsLabel");
+    var specTa = document.getElementById("mbCliSpecialRequests");
+    var dateLbl = document.getElementById("mbCliDateLabel");
+    var detLbl = document.getElementById("mbCliDetailsLabel");
+    var detTa = document.getElementById("mbCliDetails");
+    if (menuBlk) menuBlk.hidden = !cake;
+    if (delBlk) delBlk.hidden = !cake;
+    if (salonBlk) salonBlk.hidden = !!cake;
+    if (specLbl) specLbl.style.display = cake ? "block" : "none";
+    if (specTa) specTa.hidden = !cake;
+    if (dateLbl) dateLbl.textContent = cake ? "Delivery date" : "Preferred date";
+    if (detLbl) detLbl.textContent = cake ? "Anything else we should know?" : "What do you need? (details for your provider)";
+    if (detTa && cake) {
+      detTa.placeholder = "Occasion, servings, theme, allergies…";
+    }
+    if (cake) renderClientCakeMenuChips();
+  }
+
+  function renderClientCakeMenuChips() {
+    var sid = Number((document.getElementById("mbCliProviderSelect") && document.getElementById("mbCliProviderSelect").value) || 0);
+    var svc = mbDiscoverServiceById[sid];
+    var menu = (svc && svc.menuOptions) || { flavors: [], sizes: [] };
+    var flRoot = document.getElementById("mbCliFlavorChips");
+    var szRoot = document.getElementById("mbCliSizeChips");
+    function paint(root, list, kind) {
+      if (!root) return;
+      var items = Array.isArray(list) ? list.filter(Boolean) : [];
+      if (!items.length) {
+        root.innerHTML = '<p class="note" style="margin:0">No options listed yet — ask your baker or add them in your dashboard.</p>';
+        return;
+      }
+      root.innerHTML = items
+        .map(function (label) {
+          var sel =
+            (kind === "flavor" && clientSelectedFlavor === label) || (kind === "size" && clientSelectedSize === label)
+              ? " is-selected"
+              : "";
+          return (
+            '<button type="button" class="vc-cake-chip' +
+            sel +
+            '" data-cake-kind="' +
+            kind +
+            '" data-cake-val="' +
+            escapeHtml(label) +
+            '">' +
+            escapeHtml(label) +
+            "</button>"
+          );
+        })
+        .join("");
+      root.querySelectorAll("[data-cake-val]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var k = String(btn.getAttribute("data-cake-kind") || "");
+          var v = String(btn.getAttribute("data-cake-val") || "");
+          if (k === "flavor") clientSelectedFlavor = v;
+          if (k === "size") clientSelectedSize = v;
+          renderClientCakeMenuChips();
+        });
+      });
+    }
+    paint(flRoot, menu.flavors, "flavor");
+    paint(szRoot, menu.sizes, "size");
+  }
 
   function getToken() {
     return String(localStorage.getItem(TOKEN_KEY) || "").trim();
@@ -559,6 +711,8 @@
         "Reservations require a signed-in VibeCart account so we can notify you, show your requests below, and unlock chat after acceptance.";
     }
 
+    applyCakeLineModeUi(service);
+
     if (persona === "client") {
       clearProviderDeskPoll();
       disconnectMbProviderDeskWs();
@@ -705,6 +859,8 @@
     disconnectMbClientChatWs();
     clientWizardStep = 0;
     clientSelectedSlot = "";
+    clientSelectedFlavor = "";
+    clientSelectedSize = "";
     clientActiveBookingId = 0;
     var prevCfg = loadMbConfig();
     var prevPersona = prevCfg && prevCfg.persona ? String(prevCfg.persona) : "client";
@@ -729,6 +885,8 @@
     if (l) l.textContent = meta.lead;
     clientWizardStep = 0;
     clientSelectedSlot = "";
+    clientSelectedFlavor = "";
+    clientSelectedSize = "";
     clientActiveBookingId = 0;
     clearClientPoll();
     var wait = document.getElementById("mbClientWaitBanner");
@@ -878,7 +1036,11 @@
       if (pick) {
         pick.innerHTML =
           '<option value="">' +
-          (list.length ? "Choose a provider service" : "No provider services yet — ask provider to publish slots") +
+          (list.length
+            ? "Choose your baker"
+            : isCakeBakeryLine(line)
+              ? "No bakers listed yet — publish your bakery card as a provider"
+              : "No provider services yet — ask provider to publish slots") +
           "</option>" +
           list
             .map(function (s) {
@@ -917,7 +1079,11 @@
     if (s1) s1.hidden = clientWizardStep !== 0;
     if (s2) s2.hidden = clientWizardStep !== 1;
     if (s3) s3.hidden = clientWizardStep !== 2;
-    var labels = ["Step 1 of 3 · Your details", "Step 2 of 3 · Date & time", "Step 3 of 3 · Pay preference & request"];
+    var cfg = loadMbConfig();
+    var cake = cfg && isCakeBakeryLine(cfg.service);
+    var labels = cake
+      ? ["Step 1 of 3 · Baker & contact", "Step 2 of 3 · Cake & delivery time", "Step 3 of 3 · Pay & special requests"]
+      : ["Step 1 of 3 · Your details", "Step 2 of 3 · Date & time", "Step 3 of 3 · Pay preference & request"];
     if (pill) pill.textContent = labels[clientWizardStep] || labels[0];
     if (back) back.disabled = false;
     if (next) {
@@ -926,7 +1092,8 @@
     }
     if (sub) sub.hidden = clientWizardStep < 2;
     if (clientWizardStep === 1) {
-      loadClientSlotsForCurrentStep();
+      syncCakeClientDeskBlocks();
+      if (!cake) loadClientSlotsForCurrentStep();
     }
   }
 
@@ -1243,7 +1410,11 @@
     var phone = String(document.getElementById("mbCliCustPhone") && document.getElementById("mbCliCustPhone").value || "").trim();
     var date = String(document.getElementById("mbCliDate") && document.getElementById("mbCliDate").value || "").trim();
     var details = String(document.getElementById("mbCliDetails") && document.getElementById("mbCliDetails").value || "").trim();
-    var slotPref = syncClientSelectedSlotFromDom();
+    var cakeMode = cfg && isCakeBakeryLine(cfg.service);
+    var slotPref = cakeMode
+      ? normalizeHHMM(String((document.getElementById("mbCliDeliveryTime") || {}).value || "").trim())
+      : syncClientSelectedSlotFromDom();
+    var specialReq = String((document.getElementById("mbCliSpecialRequests") || {}).value || "").trim();
     if (!sid) {
       setStatus("Choose a provider service.");
       return Promise.resolve();
@@ -1253,14 +1424,27 @@
       return Promise.resolve();
     }
     if (!date) {
-      setStatus("Pick a preferred date.");
+      setStatus(cakeMode ? "Pick your delivery date." : "Pick a preferred date.");
       return Promise.resolve();
     }
-    if (!slotPref) {
+    if (cakeMode) {
+      if (!clientSelectedFlavor) {
+        setStatus("Pick a flavour.");
+        return Promise.resolve();
+      }
+      if (!clientSelectedSize) {
+        setStatus("Pick a size.");
+        return Promise.resolve();
+      }
+      if (!slotPref) {
+        setStatus("Pick a delivery / pickup time.");
+        return Promise.resolve();
+      }
+    } else if (!slotPref) {
       slotPref = "flexible";
     }
     if (details.length < 8) {
-      setStatus("Add a short description of what you need (8+ characters).");
+      setStatus("Add a short description (8+ characters).");
       return Promise.resolve();
     }
     var pay = getClientPaymentPref();
@@ -1277,7 +1461,11 @@
       budgetAmount: 0,
       requestDetails: details,
       paymentPreference: pay,
-      serviceLine: line
+      serviceLine: line,
+      cakeDeliveryMode: cakeMode,
+      selectedFlavor: clientSelectedFlavor,
+      selectedSize: clientSelectedSize,
+      specialRequests: specialReq
     };
     setStatus("Validated. Checking session...");
     return refreshMbSessionUser().then(function () {
@@ -1286,6 +1474,16 @@
         return;
       }
       setStatus("Session OK. Posting reservation...");
+      function postBooking() {
+        return api("/api/public/bakery/bookings/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      }
+      if (cakeMode) {
+        return postBooking();
+      }
       return api(
         "/api/public/bakery/schedule/slots?serviceId=" +
           encodeURIComponent(String(sid)) +
@@ -1293,18 +1491,13 @@
           encodeURIComponent(date) +
           "&_=" +
           String(Date.now())
-      )
-        .then(function (slotRes) {
-          var live = Array.isArray(slotRes && slotRes.slots) ? slotRes.slots : [];
-          if (slotPref !== "flexible" && live.indexOf(slotPref) < 0) {
-            throw new Error("That time is no longer available. Pick another slot and try again.");
-          }
-          return api("/api/public/bakery/bookings/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-          });
-        });
+      ).then(function (slotRes) {
+        var live = Array.isArray(slotRes && slotRes.slots) ? slotRes.slots : [];
+        if (slotPref !== "flexible" && live.indexOf(slotPref) < 0) {
+          throw new Error("That time is no longer available. Pick another slot and try again.");
+        }
+        return postBooking();
+      });
     })
       .then(function (res) {
         if (!res || !res.bookingId) {
@@ -2060,14 +2253,32 @@
           return;
         }
         if (clientWizardStep === 1) {
+          var cfgStep = loadMbConfig();
+          var cakeStep = cfgStep && isCakeBakeryLine(cfgStep.service);
           var date = String(
             (document.getElementById("mbCliDate") && document.getElementById("mbCliDate").value) || ""
           ).trim();
           if (!date) {
-            setStatus("Pick a preferred date.");
+            setStatus(cakeStep ? "Pick your delivery date." : "Pick a preferred date.");
             return;
           }
-          if (!syncClientSelectedSlotFromDom()) {
+          if (cakeStep) {
+            if (!clientSelectedFlavor) {
+              setStatus("Pick a flavour.");
+              return;
+            }
+            if (!clientSelectedSize) {
+              setStatus("Pick a size.");
+              return;
+            }
+            var delTime = normalizeHHMM(
+              String((document.getElementById("mbCliDeliveryTime") || {}).value || "").trim()
+            );
+            if (!delTime) {
+              setStatus("Pick a delivery / pickup time.");
+              return;
+            }
+          } else if (!syncClientSelectedSlotFromDom()) {
             setStatus("Pick a preferred time slot.");
             return;
           }
@@ -2243,6 +2454,15 @@
     if (sdm) sdm.value = "60";
     mbWorkGallery = [];
     refreshMbWorkGalleryUi();
+    writeMenuOptionsToForm({ flavors: [], sizes: [] });
+    var logoHid = document.getElementById("bakeryLogoUrl");
+    var logoPrev = document.getElementById("bakeryLogoPreview");
+    if (logoHid) logoHid.value = "";
+    if (logoPrev) {
+      logoPrev.removeAttribute("src");
+      logoPrev.hidden = true;
+    }
+    applyCakeDashboardBackdrop();
     setStatus("Form cleared — add a new work card.");
   }
 
@@ -2284,6 +2504,21 @@
       mbWorkGallery.push({ kind: "image", url: String(s.imageUrl).trim() });
     }
     refreshMbWorkGalleryUi();
+    writeMenuOptionsToForm(s.menuOptions || { flavors: [], sizes: [] });
+    var logoUrl = String(s.providerLogoUrl || "").trim();
+    var logoHid = document.getElementById("bakeryLogoUrl");
+    var logoPrev = document.getElementById("bakeryLogoPreview");
+    if (logoHid) logoHid.value = logoUrl;
+    if (logoPrev) {
+      if (logoUrl && isAllowedPublicMediaUrl(logoUrl)) {
+        logoPrev.src = logoUrl;
+        logoPrev.hidden = false;
+      } else {
+        logoPrev.removeAttribute("src");
+        logoPrev.hidden = true;
+      }
+    }
+    applyCakeDashboardBackdrop();
     var cat = document.getElementById("bakeryServiceCategory");
     if (cat && s.styleTheme) {
       var head = String(s.styleTheme).split("·")[0].trim();
@@ -2329,11 +2564,26 @@
     var pick = document.getElementById("mbCliProviderSelect");
     var root = document.getElementById("mbCliProviderMediaPreview");
     if (!root) return;
-    // Requested: remove UI offers/preview block from provider offer area.
-    root.innerHTML = "";
+    var sid = Number((pick && pick.value) || 0);
+    var svc = mbDiscoverServiceById[sid];
+    if (!svc) {
+      root.innerHTML = "";
+      root.hidden = true;
+      return;
+    }
     root.hidden = false;
-    root.hidden = true;
-    if (pick) pick.setAttribute("data-offer-ui-hidden", "1");
+    if (pick) pick.removeAttribute("data-offer-ui-hidden");
+    var bits = [];
+    if (svc.businessName) bits.push("<p class=\"note\" style=\"margin:0\"><strong>" + escapeHtml(svc.businessName) + "</strong></p>");
+    if (svc.requirementsText) bits.push("<p class=\"note\">" + escapeHtml(svc.requirementsText) + "</p>");
+    bits.push(renderServiceCardMediaHtml(svc));
+    root.innerHTML = bits.join("");
+    root.querySelectorAll("img").forEach(function (img) {
+      img.addEventListener("click", function () {
+        openMbClientImageLightbox(img.getAttribute("src"));
+      });
+    });
+    renderClientCakeMenuChips();
   }
 
   function openMbClientImageLightbox(src) {
@@ -2402,7 +2652,9 @@
       currency: document.getElementById("bakeryCurrency").value || "USD",
       imageUrl: document.getElementById("bakeryImageUrl").value,
       requirementsText: document.getElementById("bakeryRequirements").value,
-      slotDurationMinutes: Number.isFinite(rawDur) ? rawDur : 60
+      slotDurationMinutes: Number.isFinite(rawDur) ? rawDur : 60,
+      menuOptions: readMenuOptionsFromForm(),
+      providerLogoUrl: String((document.getElementById("bakeryLogoUrl") || {}).value || "").trim()
     };
   }
 
@@ -3170,6 +3422,12 @@
           renderProvSlotServiceSelect(mbLastProviderServices);
           ensureProviderSlotDateDefault();
           renderBookings(bookFiltered);
+          applyCakeDashboardBackdrop();
+          if (isCakeBakeryLine(lineCit)) {
+            if (providerFocusBookingId) loadProviderFocus(providerFocusBookingId);
+            setStatus("Citizen cake desk · " + lineCit);
+            return;
+          }
           return fetchProviderSlotDateCounts(svcFiltered).then(function (slotCounts) {
             renderCalendar(bookFiltered, slotCounts);
             return loadProvScheduleSlotsFromServer().catch(function () {});
@@ -3201,6 +3459,14 @@
       renderProvSlotServiceSelect(mbLastProviderServices);
       ensureProviderSlotDateDefault();
       renderBookings(bookFiltered);
+      applyCakeDashboardBackdrop();
+      if (isCakeBakeryLine(line)) {
+        if (providerFocusBookingId) {
+          loadProviderFocus(providerFocusBookingId);
+        }
+        setStatus("Cake desk updated");
+        return;
+      }
       return fetchProviderSlotDateCounts(svcFiltered).then(function (slotCounts) {
         renderCalendar(bookFiltered, slotCounts);
         return loadProvScheduleSlotsFromServer().catch(function () {});
@@ -3594,6 +3860,33 @@
             });
         }
         next();
+      });
+    }
+    var bakeryLogoPick = document.getElementById("bakeryLogoPick");
+    if (bakeryLogoPick) {
+      bakeryLogoPick.addEventListener("change", function () {
+        var files = bakeryLogoPick.files;
+        if (!files || !files[0]) return;
+        setStatus("Uploading logo…");
+        uploadBakeryMediaFile(files[0])
+          .then(function (res) {
+            if (!res || !res.url) throw new Error("No URL returned");
+            var hid = document.getElementById("bakeryLogoUrl");
+            var prev = document.getElementById("bakeryLogoPreview");
+            if (hid) hid.value = res.url;
+            if (prev) {
+              prev.src = res.url;
+              prev.hidden = false;
+            }
+            applyCakeDashboardBackdrop();
+            setStatus("Logo uploaded — save your work card to keep it.");
+          })
+          .catch(function (err) {
+            setStatus(err.message || "Logo upload failed");
+          })
+          .finally(function () {
+            bakeryLogoPick.value = "";
+          });
       });
     }
     var bakeryClear = document.getElementById("bakeryClearWorkForm");

@@ -1937,6 +1937,8 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
   await ensureBakeryServiceSlotDurationColumn();
+  await ensureBakeryServiceMenuOptionsColumn();
+  await ensureBakeryServiceLogoColumn();
   const body = await readJson(req);
   const serviceId = Number(body.serviceId || 0);
   const businessName = String(body.businessName || "").trim().slice(0, 160);
@@ -1948,9 +1950,14 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   const basePrice = Number.isFinite(Number(body.basePrice)) ? Math.max(0, Number(Number(body.basePrice).toFixed(2))) : 0;
   const galleryJson = sanitizeBakeryGalleryInput(body.gallery);
   const galleryArr = galleryJson ? parseBakeryGalleryJson(galleryJson) : [];
+  const menuOptionsJson = sanitizeBakeryMenuOptionsInput(body.menuOptions);
+  let providerLogoUrl = String(body.providerLogoUrl || "").trim().slice(0, 500);
   const firstImg = galleryArr.find((x) => x && x.kind === "image" && typeof x.url === "string");
   if (firstImg && firstImg.url) {
     imageUrl = String(firstImg.url).trim().slice(0, 500);
+  }
+  if (!providerLogoUrl && imageUrl) {
+    providerLogoUrl = imageUrl;
   }
   const rawDur = Number(body.slotDurationMinutes);
   const slotDurationMinutes = Number.isFinite(rawDur)
@@ -1962,7 +1969,7 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   if (serviceId > 0) {
     await pool.execute(
       `UPDATE bakery_services
-       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?, gallery_json = ?, slot_duration_minutes = ?
+       SET business_name = ?, work_title = ?, style_theme = ?, base_price = ?, currency = ?, requirements_text = ?, image_url = ?, gallery_json = ?, slot_duration_minutes = ?, menu_options_json = ?, provider_logo_url = ?
        WHERE id = ? AND baker_user_id = ?
        LIMIT 1`,
       [
@@ -1975,6 +1982,8 @@ async function handlePublicBakeryServiceUpsert(req, res) {
         imageUrl || null,
         galleryJson,
         slotDurationMinutes,
+        menuOptionsJson,
+        providerLogoUrl || null,
         serviceId,
         Number(session.user_id)
       ]
@@ -1983,8 +1992,8 @@ async function handlePublicBakeryServiceUpsert(req, res) {
   }
   const [inserted] = await pool.execute(
     `INSERT INTO bakery_services (
-      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, slot_duration_minutes, is_active
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      baker_user_id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, slot_duration_minutes, menu_options_json, provider_logo_url, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
     [
       Number(session.user_id),
       businessName,
@@ -1995,7 +2004,9 @@ async function handlePublicBakeryServiceUpsert(req, res) {
       requirementsText || null,
       imageUrl || null,
       galleryJson,
-      slotDurationMinutes
+      slotDurationMinutes,
+      menuOptionsJson,
+      providerLogoUrl || null
     ]
   );
   return sendJson(res, 200, { ok: true, serviceId: Number(inserted.insertId || 0) });
@@ -2007,8 +2018,10 @@ async function handlePublicBakeryServicesMine(req, res) {
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
   await ensureBakeryServiceSlotDurationColumn();
+  await ensureBakeryServiceMenuOptionsColumn();
+  await ensureBakeryServiceLogoColumn();
   const [rows] = await pool.execute(
-    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, slot_duration_minutes, is_active, created_at, updated_at
+    `SELECT id, business_name, work_title, style_theme, base_price, currency, requirements_text, image_url, gallery_json, slot_duration_minutes, menu_options_json, provider_logo_url, is_active, created_at, updated_at
      FROM bakery_services
      WHERE baker_user_id = ?
      ORDER BY id DESC
@@ -2017,21 +2030,26 @@ async function handlePublicBakeryServicesMine(req, res) {
   );
   return sendJson(res, 200, {
     ok: true,
-    services: rows.map((row) => ({
-      id: Number(row.id),
-      businessName: String(row.business_name || ""),
-      workTitle: String(row.work_title || ""),
-      styleTheme: String(row.style_theme || ""),
-      basePrice: Number(row.base_price || 0),
-      currency: String(row.currency || "USD"),
-      requirementsText: String(row.requirements_text || ""),
-      imageUrl: String(row.image_url || ""),
-      gallery: galleryArrayForApi(row.gallery_json),
-      slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60,
-      isActive: Boolean(Number(row.is_active || 0)),
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
-    }))
+    services: rows.map((row) => {
+      const mapped = bakeryServiceRowForApi(row);
+      return {
+        id: mapped.id,
+        businessName: mapped.businessName,
+        workTitle: mapped.workTitle,
+        styleTheme: mapped.styleTheme,
+        basePrice: mapped.basePrice,
+        currency: mapped.currency,
+        requirementsText: mapped.requirementsText,
+        imageUrl: mapped.imageUrl,
+        gallery: mapped.gallery,
+        slotDurationMinutes: mapped.slotDurationMinutes,
+        menuOptions: mapped.menuOptions,
+        providerLogoUrl: mapped.providerLogoUrl,
+        isActive: mapped.isActive,
+        createdAt: mapped.createdAt,
+        updatedAt: mapped.updatedAt
+      };
+    })
   });
 }
 
@@ -2039,12 +2057,15 @@ async function handlePublicBakeryServicesDiscover(req, res) {
   await ensureBakeryServicesTable();
   await ensureBakeryServiceGalleryColumn();
   await ensureBakeryServiceSlotDurationColumn();
+  await ensureBakeryServiceMenuOptionsColumn();
+  await ensureBakeryServiceLogoColumn();
   await ensureBakeryScheduleSlotsTable();
   const urlObj = new URL(req.url, "http://localhost");
   const q = String(urlObj.searchParams.get("q") || "").trim().toLowerCase();
   const line = String(urlObj.searchParams.get("line") || "").trim().toLowerCase();
+  const cakeLine = isCakeDeliveryServiceLine(line);
   const [rows] = await pool.execute(
-    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.slot_duration_minutes, bs.is_active,
+    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.slot_duration_minutes, bs.menu_options_json, bs.provider_logo_url, bs.is_active,
             u.full_name,
             COUNT(CASE WHEN bss.slot_date >= CURDATE() THEN 1 END) AS future_slot_count
      FROM bakery_services bs
@@ -2080,24 +2101,86 @@ async function handlePublicBakeryServicesDiscover(req, res) {
     if (!q) return true;
     return text.includes(q);
   });
+  const visible = cakeLine
+    ? filtered.filter((row) => Number(row.is_active || 0) === 1)
+    : filtered;
   return sendJson(res, 200, {
     ok: true,
-    services: filtered.map((row) => ({
-      id: Number(row.id),
-      bakerUserId: Number(row.baker_user_id),
-      bakerName: String(row.full_name || "Baker"),
-      businessName: String(row.business_name || ""),
-      workTitle: String(row.work_title || ""),
-      styleTheme: String(row.style_theme || ""),
-      basePrice: Number(row.base_price || 0),
-      currency: String(row.currency || "USD"),
-      requirementsText: String(row.requirements_text || ""),
-      imageUrl: String(row.image_url || ""),
-      gallery: galleryArrayForApi(row.gallery_json),
-      slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60,
-      hasFutureSlots: Number(row.future_slot_count || 0) > 0
-    }))
+    services: visible.map((row) => {
+      const mapped = bakeryServiceRowForApi(row);
+      return {
+        id: mapped.id,
+        bakerUserId: mapped.bakerUserId,
+        bakerName: mapped.bakerName,
+        businessName: mapped.businessName,
+        workTitle: mapped.workTitle,
+        styleTheme: mapped.styleTheme,
+        basePrice: mapped.basePrice,
+        currency: mapped.currency,
+        requirementsText: mapped.requirementsText,
+        imageUrl: mapped.imageUrl,
+        gallery: mapped.gallery,
+        slotDurationMinutes: mapped.slotDurationMinutes,
+        menuOptions: mapped.menuOptions,
+        providerLogoUrl: mapped.providerLogoUrl,
+        hasFutureSlots: mapped.hasFutureSlots
+      };
+    })
   });
+}
+
+async function handlePublicBakerySpotlight(req, res) {
+  await ensureBakeryServicesTable();
+  await ensureBakeryServiceGalleryColumn();
+  await ensureBakeryServiceMenuOptionsColumn();
+  await ensureBakeryServiceLogoColumn();
+  const urlObj = new URL(req.url, "http://localhost");
+  const limit = Math.min(24, Math.max(1, Number(urlObj.searchParams.get("limit") || 8)));
+  const [rows] = await pool.execute(
+    `SELECT bs.id, bs.baker_user_id, bs.business_name, bs.work_title, bs.style_theme, bs.base_price, bs.currency, bs.requirements_text, bs.image_url, bs.gallery_json, bs.menu_options_json, bs.provider_logo_url, bs.is_active, u.full_name
+     FROM bakery_services bs
+     JOIN users u ON u.id = bs.baker_user_id
+     WHERE bs.is_active = 1
+       AND (
+         (bs.gallery_json IS NOT NULL AND bs.gallery_json <> '')
+         OR (bs.image_url IS NOT NULL AND bs.image_url <> '')
+         OR (bs.provider_logo_url IS NOT NULL AND bs.provider_logo_url <> '')
+       )
+     ORDER BY bs.updated_at DESC, bs.id DESC
+     LIMIT ?`,
+    [limit]
+  );
+  const items = [];
+  for (const row of rows) {
+    const bizName = String(row.business_name || "").toLowerCase();
+    const workTitle = String(row.work_title || "").toLowerCase();
+    if (bizName.includes("hardpass") || workTitle.includes("hardpass") || bizName.includes("ui studio")) {
+      continue;
+    }
+    const style = String(row.style_theme || "").toLowerCase();
+    if (!style.includes("bakery") && !style.includes("cake") && !style.includes("barkery")) {
+      continue;
+    }
+    const mapped = bakeryServiceRowForApi(row);
+    const hero =
+      mapped.gallery.find((x) => x && x.kind === "image" && x.url) ||
+      (mapped.imageUrl ? { kind: "image", url: mapped.imageUrl } : null) ||
+      (mapped.providerLogoUrl ? { kind: "image", url: mapped.providerLogoUrl } : null);
+    if (!hero || !hero.url) continue;
+    items.push({
+      id: mapped.id,
+      businessName: mapped.businessName,
+      workTitle: mapped.workTitle,
+      styleTheme: mapped.styleTheme,
+      basePrice: mapped.basePrice,
+      currency: mapped.currency,
+      imageUrl: hero.url,
+      providerLogoUrl: mapped.providerLogoUrl,
+      gallery: mapped.gallery.filter((x) => x && x.kind === "image").slice(0, 6),
+      bookUrl: `${resolvePublicWebBaseUrl(req)}/my-business.html?flow=book&line=${encodeURIComponent("Bakery / custom cakes")}&providerServiceId=${mapped.id}`
+    });
+  }
+  return sendJson(res, 200, { ok: true, spotlight: items });
 }
 
 async function handlePublicBakeryServiceToggle(req, res) {
@@ -2193,13 +2276,22 @@ async function handlePublicBakeryBookingCreate(req, res) {
   const budgetAmount = Number.isFinite(Number(body.budgetAmount)) ? Number(Number(body.budgetAmount).toFixed(2)) : null;
   const paymentPreference = String(body.paymentPreference || "").trim().slice(0, 32) || null;
   const serviceLine = String(body.serviceLine || "").trim().slice(0, 120) || null;
+  const selectedFlavor = String(body.selectedFlavor || "").trim().slice(0, 80) || null;
+  const selectedSize = String(body.selectedSize || "").trim().slice(0, 80) || null;
+  const specialRequests = String(body.specialRequests || "").trim().slice(0, 2000) || null;
+  const cakeDeliveryMode =
+    Boolean(body.cakeDeliveryMode) || isCakeDeliveryServiceLine(serviceLine) || isCakeDeliveryServiceLine(styleTheme);
   if (!serviceId || !customerName || !eventDate || !requestDetails) {
     return sendJson(res, 400, { ok: false, code: "BOOKING_FIELDS_REQUIRED" });
   }
   if (!preferredSlot) {
     preferredSlot = extractTimePreferenceFromOccasion(occasionTypeRaw) || "";
   }
-  if (!wantsTimeFlexible && (!preferredSlot || !/^[0-2]\d:[0-5]\d$/.test(preferredSlot))) {
+  if (
+    !cakeDeliveryMode &&
+    !wantsTimeFlexible &&
+    (!preferredSlot || !/^[0-2]\d:[0-5]\d$/.test(preferredSlot))
+  ) {
     try {
       await ensureBakeryScheduleSlotsTable();
       const [firstSlotRows] = await pool.execute(
@@ -2217,6 +2309,14 @@ async function handlePublicBakeryBookingCreate(req, res) {
   }
   if (!preferredSlot || !/^[0-2]\d:[0-5]\d$/.test(preferredSlot)) {
     preferredSlot = "";
+  }
+  let requestDetailsFinal = requestDetails;
+  const cakeBits = [];
+  if (selectedFlavor) cakeBits.push(`Flavor: ${selectedFlavor}`);
+  if (selectedSize) cakeBits.push(`Size: ${selectedSize}`);
+  if (specialRequests) cakeBits.push(`Special requests: ${specialRequests}`);
+  if (cakeBits.length) {
+    requestDetailsFinal = `${requestDetails}\n\n${cakeBits.join(" · ")}`.trim().slice(0, 4000);
   }
   const occasionTypeStored = buildBakeryOccasionTypeStored(paymentPreference, preferredSlot);
   const requestedStartForRow = preferredSlot || null;
@@ -2242,7 +2342,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
     return sendJson(res, 404, { ok: false, code: "BAKERY_SERVICE_NOT_FOUND" });
   }
   await ensureBakeryScheduleSlotsTable();
-  if (preferredSlot) {
+  if (preferredSlot && !cakeDeliveryMode) {
     const [slotRows] = await pool.execute(
       `SELECT slot_time FROM bakery_schedule_slots WHERE service_id = ? AND slot_date = ?`,
       [serviceId, eventDate]
@@ -2251,6 +2351,13 @@ async function handlePublicBakeryBookingCreate(req, res) {
     if (!hasSlot) {
       return sendJson(res, 409, { ok: false, code: "SLOT_UNAVAILABLE", message: "That slot is no longer available." });
     }
+  }
+  if (cakeDeliveryMode && !preferredSlot) {
+    return sendJson(res, 400, {
+      ok: false,
+      code: "DELIVERY_TIME_REQUIRED",
+      message: "Pick when you want the cake delivered (date and time)."
+    });
   }
   const buyerId = Number(session.user_id);
   const [inserted] = await pool.execute(
@@ -2266,7 +2373,7 @@ async function handlePublicBakeryBookingCreate(req, res) {
       eventDate,
       occasionTypeStored || null,
       styleTheme || null,
-      requestDetails,
+      requestDetailsFinal,
       budgetAmount,
       paymentPreference,
       serviceLine,
@@ -3782,6 +3889,102 @@ async function ensureBakeryServiceSlotDurationColumn() {
     }
   }
   bakerySlotDurationColumnEnsured = true;
+}
+
+let bakeryMenuOptionsColumnEnsured = false;
+async function ensureBakeryServiceMenuOptionsColumn() {
+  if (bakeryMenuOptionsColumnEnsured) {
+    return;
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_services ADD COLUMN menu_options_json MEDIUMTEXT NULL AFTER slot_duration_minutes");
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (!/Duplicate column name/i.test(m)) {
+      /* ignore only duplicate-column */
+    }
+  }
+  bakeryMenuOptionsColumnEnsured = true;
+}
+
+let bakeryLogoColumnEnsured = false;
+async function ensureBakeryServiceLogoColumn() {
+  if (bakeryLogoColumnEnsured) {
+    return;
+  }
+  try {
+    await pool.execute("ALTER TABLE bakery_services ADD COLUMN provider_logo_url VARCHAR(500) NULL AFTER menu_options_json");
+  } catch (e) {
+    const m = String((e && e.message) || e);
+    if (!/Duplicate column name/i.test(m)) {
+      /* ignore only duplicate-column */
+    }
+  }
+  bakeryLogoColumnEnsured = true;
+}
+
+function sanitizeBakeryMenuOptionsInput(raw) {
+  const flavors = [];
+  const sizes = [];
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    for (const item of Array.isArray(raw.flavors) ? raw.flavors : []) {
+      const t = String(item || "").trim().slice(0, 80);
+      if (t && flavors.indexOf(t) < 0) flavors.push(t);
+    }
+    for (const item of Array.isArray(raw.sizes) ? raw.sizes : []) {
+      const t = String(item || "").trim().slice(0, 80);
+      if (t && sizes.indexOf(t) < 0) sizes.push(t);
+    }
+  }
+  if (!flavors.length && !sizes.length) {
+    return null;
+  }
+  return JSON.stringify({ flavors: flavors.slice(0, 40), sizes: sizes.slice(0, 40) });
+}
+
+function parseBakeryMenuOptionsJson(text) {
+  if (!text) return { flavors: [], sizes: [] };
+  try {
+    const v = JSON.parse(String(text));
+    if (!v || typeof v !== "object") return { flavors: [], sizes: [] };
+    const flavors = Array.isArray(v.flavors) ? v.flavors.map((x) => String(x || "").trim()).filter(Boolean) : [];
+    const sizes = Array.isArray(v.sizes) ? v.sizes.map((x) => String(x || "").trim()).filter(Boolean) : [];
+    return { flavors: flavors.slice(0, 40), sizes: sizes.slice(0, 40) };
+  } catch {
+    return { flavors: [], sizes: [] };
+  }
+}
+
+function menuOptionsForApi(text) {
+  return parseBakeryMenuOptionsJson(text);
+}
+
+function isCakeDeliveryServiceLine(serviceLine) {
+  const s = String(serviceLine || "").toLowerCase();
+  return s.includes("bakery") || s.includes("cake") || s.includes("barkery");
+}
+
+function bakeryServiceRowForApi(row) {
+  return {
+    id: Number(row.id),
+    bakerUserId: Number(row.baker_user_id || 0),
+    bakerName: String(row.full_name || row.bakerName || "Provider"),
+    businessName: String(row.business_name || ""),
+    workTitle: String(row.work_title || ""),
+    styleTheme: String(row.style_theme || ""),
+    basePrice: Number(row.base_price || 0),
+    currency: String(row.currency || "USD"),
+    requirementsText: String(row.requirements_text || ""),
+    imageUrl: String(row.image_url || ""),
+    gallery: galleryArrayForApi(row.gallery_json),
+    slotDurationMinutes: Number(row.slot_duration_minutes || 60) || 60,
+    menuOptions: menuOptionsForApi(row.menu_options_json),
+    providerLogoUrl: String(row.provider_logo_url || ""),
+    isActive: Boolean(Number(row.is_active || 0)),
+    hasFutureSlots: Number(row.future_slot_count || 0) > 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
 }
 
 function detectBakeryMediaMime(buf) {
@@ -9150,6 +9353,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "GET" && req.url.startsWith("/api/public/bakery/services/discover")) {
       return await handlePublicBakeryServicesDiscover(req, res);
+    }
+    if (req.method === "GET" && pathname === "/api/public/bakery/spotlight") {
+      return await handlePublicBakerySpotlight(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/bakery/services/toggle") {
       return await handlePublicBakeryServiceToggle(req, res);

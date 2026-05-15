@@ -103,6 +103,7 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "marketplace-buy.js",
   "affiliate-recommendations-mount.js",
   "affiliate-promo-slideshow.js",
+  "bakery-spotlight.js",
   "shop-hub-slideshow.js",
   "skechers-affiliate.js",
   "brandon-bootstrap.js",

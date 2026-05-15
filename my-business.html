@@ -185,6 +185,69 @@
       margin-top: 0 !important;
       padding-top: 0.25rem !important;
     }
+    body.mb-cake-line #mbMainDashboard {
+      position: relative;
+    }
+    body.mb-cake-line #mbCakeDashBackdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.14;
+      filter: blur(2px) saturate(1.15);
+    }
+    body.mb-cake-line #mbMainDashboard > *:not(#mbCakeDashBackdrop) {
+      position: relative;
+      z-index: 1;
+    }
+    body.mb-cake-line [data-mb-non-cake] {
+      display: none !important;
+    }
+    .vc-cake-hero {
+      border-radius: 18px;
+      padding: 1.1rem 1.15rem;
+      background: linear-gradient(135deg, rgba(255, 198, 120, 0.22), rgba(255, 120, 180, 0.16));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+    }
+    .vc-cake-chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.45rem;
+    }
+    .vc-cake-chip {
+      border-radius: 999px;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.28);
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+    }
+    .vc-cake-chip.is-selected {
+      background: linear-gradient(135deg, rgba(255, 180, 90, 0.55), rgba(255, 120, 170, 0.45));
+      border-color: rgba(255, 255, 255, 0.45);
+      font-weight: 700;
+    }
+    .vc-cake-menu-editor .vc-biz-row input {
+      width: 100%;
+    }
+    #bakeryLogoPreview {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      margin-top: 0.35rem;
+    }
+    body.mb-cake-line .vc-biz-card {
+      backdrop-filter: blur(8px);
+      background: rgba(8, 10, 20, 0.82);
+    }
   </style>
   <script>
     (function () {
@@ -294,6 +357,7 @@
   </header>
 
   <main id="mbMainDashboard" class="section alt shops-lane-main vc-biz-shell">
+    <div id="mbCakeDashBackdrop" aria-hidden="true" hidden></div>
     <div id="mbDisclaimerClient" class="vc-mb-disclaimer" hidden data-mb-disclaimer="client">
       <strong>Client disclaimer.</strong> Bookings here are requests until a provider confirms availability and pricing. Prepayment routes are shown when a provider requires a deposit — always read totals before you pay. VibeCart is a marketplace layer, not the salon, bakery, or barbershop itself.
     </div>
@@ -337,10 +401,24 @@
         </div>
       </div>
       <div id="mbClientStep2" class="vc-mb-client-step" hidden>
-        <label for="mbCliDate">Preferred date</label>
+        <div id="mbCliCakeMenuBlock" hidden>
+          <p class="note" style="margin-top:0">Choose a flavour and size from this baker.</p>
+          <p class="note" style="margin:0.35rem 0 0"><strong>Flavours</strong></p>
+          <div id="mbCliFlavorChips" class="vc-cake-chip-grid" role="group" aria-label="Cake flavour"></div>
+          <p class="note" style="margin:0.65rem 0 0"><strong>Sizes</strong></p>
+          <div id="mbCliSizeChips" class="vc-cake-chip-grid" role="group" aria-label="Cake size"></div>
+        </div>
+        <label for="mbCliDate" id="mbCliDateLabel">When do you want the cake?</label>
         <input id="mbCliDate" type="date" />
-        <p class="note" style="margin-top:0.5rem">Pick a time. Only slots your provider has published for this date appear here.</p>
-        <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
+        <div id="mbCliCakeDeliveryBlock" hidden>
+          <label for="mbCliDeliveryTime" style="margin-top:0.55rem;display:block">Delivery / pickup time</label>
+          <input id="mbCliDeliveryTime" type="time" step="300" />
+          <p class="note" style="margin-top:0.35rem">Your baker confirms this time before payment where required.</p>
+        </div>
+        <div id="mbCliSalonSlotsBlock">
+          <p class="note" style="margin-top:0.5rem">Pick a time. Only slots your provider has published for this date appear here.</p>
+          <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
+        </div>
       </div>
       <div id="mbClientStep3" class="vc-mb-client-step" hidden>
         <p class="note">How would you like to pay when the booking is accepted?</p>
@@ -351,6 +429,8 @@
         </div>
         <label for="mbCliDetails" style="margin-top:0.65rem">What do you need? (details for your provider)</label>
         <textarea id="mbCliDetails" rows="4" placeholder="Describe the service, timing constraints, allergies, references, etc."></textarea>
+        <label for="mbCliSpecialRequests" id="mbCliSpecialRequestsLabel" style="margin-top:0.65rem;display:none">Special requests (optional)</label>
+        <textarea id="mbCliSpecialRequests" rows="3" placeholder="Writing on the cake, dietary needs, delivery notes…" hidden></textarea>
       </div>
       <p class="note vc-mb-client-desk-status" id="mbClientDeskStatus" aria-live="polite" style="margin-top:0.65rem;min-height:1.35em"></p>
       <p class="hero-actions vc-mb-client-nav">
@@ -386,7 +466,7 @@
       <div id="mbClientBookingsList" class="vc-mb-client-bookings-list"></div>
     </div>
 
-    <div id="beauty-services" class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
+    <div id="beauty-services" data-mb-non-cake class="vc-biz-card" style="margin-top:0;position:relative;overflow:hidden;" tabindex="-1" data-mb-show="provider">
       <h2 style="margin-top:0;" id="mbBeautySectionTitle">Slots preview</h2>
       <p class="note" id="mbBeautySectionLead">
         Pick a service line and date, then open checkout when you are ready to require prepayment.
@@ -408,7 +488,7 @@
       </p>
     </div>
 
-    <div class="vc-biz-hero" style="margin-top:0.85rem;" data-mb-show="provider">
+    <div class="vc-biz-hero vc-cake-hero" style="margin-top:0.85rem;" data-mb-show="provider" id="mbProviderOverviewHero">
       <h1 class="shops-lane-title">Overview</h1>
       <p class="note">Listings and pending requests for this service line.</p>
       <p class="hero-actions">
@@ -440,6 +520,27 @@
         </div>
         <input id="bakeryWorkTitle" type="hidden" value="" />
         <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
+        <details class="vc-cake-menu-editor" id="mbCakeMenuEditor" hidden>
+          <summary>Flavours &amp; sizes (clients pick from these)</summary>
+          <p class="note" style="margin:0.45rem 0">One flavour or size per line.</p>
+          <div class="vc-biz-row">
+            <div>
+              <label for="bakeryFlavorsList">Flavours</label>
+              <textarea id="bakeryFlavorsList" rows="4" placeholder="Vanilla&#10;Chocolate&#10;Red velvet"></textarea>
+            </div>
+            <div>
+              <label for="bakerySizesList">Sizes</label>
+              <textarea id="bakerySizesList" rows="4" placeholder="6 inch · 8 servings&#10;8 inch · 12 servings"></textarea>
+            </div>
+          </div>
+        </details>
+        <div id="mbCakeLogoBlock" hidden>
+          <label for="bakeryLogoPick">Your logo (dashboard backdrop)</label>
+          <p class="note" style="margin-top:0.15rem">Square logo recommended. Shown subtly behind your desk.</p>
+          <input id="bakeryLogoPick" type="file" accept="image/jpeg,image/png,image/webp" />
+          <img id="bakeryLogoPreview" alt="" hidden />
+          <input type="hidden" id="bakeryLogoUrl" value="" />
+        </div>
         <details>
           <summary>Advanced options</summary>
           <p class="note" style="margin:0.45rem 0;">Optional fields for richer cards and media.</p>
@@ -448,7 +549,7 @@
             <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
             <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
           </div>
-          <label for="bakeryMediaPick">Photos &amp; videos (clients see these)</label>
+          <label for="bakeryMediaPick" id="bakeryMediaPickLabel">Photos of your cakes (clients &amp; homepage spotlight)</label>
           <p class="note" style="margin-top:0.15rem">
             Upload from your phone or computer (JPEG/PNG/WebP up to 12 MB, MP4 up to 25 MB), or paste a public image/video link below. Up to 12 items.
           </p>
@@ -476,7 +577,7 @@
         </p>
       </div>
       <div id="bakeryWorkList" class="vc-work-list"></div>
-      <h3 style="margin:.2rem 0;">Slot creation</h3>
+      <h3 style="margin:.2rem 0;" data-mb-non-cake>Slot creation</h3>
         <p class="note">Create and update availability using only start/end times (times auto-generate).</p>
         <div class="vc-biz-form">
         <div class="vc-biz-row">
@@ -499,7 +600,7 @@
           <button type="button" class="btn btn-secondary" id="mbProvSlotCancel">Cancel date slots</button>
         </p>
         </div>
-      <h3 style="margin:.2rem 0;">AI provider sections</h3>
+      <h3 style="margin:.2rem 0;" data-mb-non-cake>AI provider sections</h3>
         <p class="note">AI helps generate custom dashboard sections and flows.</p>
         <textarea id="mbAiRequirements" rows="3" placeholder="Example: build a hairstylist dashboard with VIP queue, retention nudges, no-show recovery, and sales goals."></textarea>
       <p class="hero-actions" style="margin-top:0.35rem">
@@ -512,10 +613,10 @@
           <button class="btn btn-primary" id="mbAiGenerateBtn" type="button">Generate AI sections</button>
         </p>
         <div id="mbAiSectionsOut" class="ai-result"></div>
-      <h3 style="margin:.2rem 0;">Policy section</h3>
+      <h3 style="margin:.2rem 0;" data-mb-non-cake>Policy section</h3>
         <p class="note">Set your business policy (late cancellation, no-show, hygiene, deposit rules).</p>
         <textarea id="mbProviderPolicy" rows="3" placeholder="Example: late cancellation within 24h loses deposit."></textarea>
-      <h3 style="margin:.2rem 0;">Automatic payout setup</h3>
+      <h3 style="margin:.2rem 0;" data-mb-non-cake>Automatic payout setup</h3>
       <p class="note">Connect Stripe account ID (`acct_...`) for automatic payout flow.</p>
       <div class="vc-biz-row">
         <input id="sellerStripeAccountId" type="text" placeholder="acct_1234..." />
@@ -523,7 +624,7 @@
       </div>
     </div>
 
-    <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider">
+    <div class="vc-biz-card" style="margin-top:.95rem;" data-mb-show="provider" data-mb-non-cake>
       <h2 style="margin-top:0;">Calendar view (slot dates)</h2>
       <p class="note">Dates with created slots are highlighted. Remove declined and completed rows from your view when you no longer need them.</p>
       <p class="hero-actions" style="margin-top:0.35rem">
@@ -592,7 +693,7 @@
       }, 1800);
     })();
   </script>
-  <script src="./my-business.js?v=20260513slotclienttime1" defer></script>
+  <script src="./my-business.js?v=20260515cakeflow1" defer></script>
   <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
   <script src="./visitor-retention.js?v=20260508ret4" defer></script>
 
