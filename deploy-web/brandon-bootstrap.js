@@ -2,7 +2,7 @@
 (function (global) {
   "use strict";
 
-  var SHELL = "./mobile-app-shell.js?v=20260515intro2";
+  var SHELL = "./mobile-app-shell.js?v=20260515welcome1";
   var CLIENT = "./vibecart-ai-client.js?v=20260513brandon2";
 
   function skipBrandonPage() {
