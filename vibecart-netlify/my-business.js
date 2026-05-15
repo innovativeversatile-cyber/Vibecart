@@ -37,7 +37,7 @@
     },
     "Bakery / custom cakes": {
       title: "Order a custom cake",
-      lead: "Pick your baker, choose flavour and size, then when you want it delivered. Add special requests — your baker confirms before payment where required."
+      lead: "Choose your baker below — their menu and logo appear as you book."
     },
     Nails: {
       title: "Nails · client reservation",
@@ -231,6 +231,105 @@
     var shareUrl = buildProviderSharePageUrl(sid);
     if (urlEl) urlEl.textContent = shareUrl;
     if (preview) preview.setAttribute("href", shareUrl);
+  }
+
+  function resolveProviderBrandLogoUrl(svc) {
+    if (!svc) return "";
+    var logo = String(svc.providerLogoUrl || svc.imageUrl || "").trim();
+    if (logo && isAllowedPublicMediaUrl(logo)) return logo;
+    if (Array.isArray(svc.gallery)) {
+      var i;
+      for (i = 0; i < svc.gallery.length; i++) {
+        var g = svc.gallery[i];
+        if (g && g.kind === "image" && g.url && isAllowedPublicMediaUrl(g.url)) {
+          return String(g.url).trim();
+        }
+      }
+    }
+    return "";
+  }
+
+  function providerBrandInitials(name) {
+    var parts = String(name || "B")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!parts.length) return "B";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  function applyClientDeskBackdrop(svc) {
+    var shell = document.getElementById("mb-client-service-desk");
+    var backdrop = document.getElementById("mbClientDeskBackdrop");
+    if (!shell || !backdrop) return;
+    var logo = resolveProviderBrandLogoUrl(svc);
+    if (logo) {
+      backdrop.style.backgroundImage = 'url("' + logo.replace(/"/g, "") + '")';
+      shell.classList.add("has-provider-brand");
+    } else {
+      backdrop.style.backgroundImage = "";
+      shell.classList.remove("has-provider-brand");
+    }
+  }
+
+  function syncClientProviderBrand(svc) {
+    var hero = document.getElementById("mbClientProviderHero");
+    var nameEl = document.getElementById("mbClientProviderName");
+    var tagEl = document.getElementById("mbClientProviderTagline");
+    var img = document.getElementById("mbClientProviderLogo");
+    var ph = document.getElementById("mbClientProviderLogoPh");
+    var lead = document.getElementById("mbSvcDeskLead");
+    if (!svc) {
+      if (hero) hero.hidden = true;
+      applyClientDeskBackdrop(null);
+      return;
+    }
+    var biz = String(svc.businessName || "Your provider").trim();
+    var work = String(svc.workTitle || "").trim();
+    if (hero) hero.hidden = false;
+    if (nameEl) nameEl.textContent = biz;
+    if (tagEl) {
+      tagEl.textContent = work || "Ready for your booking";
+    }
+    if (lead) {
+      lead.textContent = "Booking with " + biz + (work ? " · " + work : "") + ".";
+    }
+    var logo = resolveProviderBrandLogoUrl(svc);
+    if (logo && img) {
+      img.src = logo;
+      img.alt = biz + " logo";
+      img.hidden = false;
+      if (ph) ph.hidden = true;
+    } else {
+      if (img) {
+        img.hidden = true;
+        img.removeAttribute("src");
+      }
+      if (ph) {
+        ph.hidden = false;
+        ph.textContent = providerBrandInitials(biz);
+      }
+    }
+    applyClientDeskBackdrop(svc);
+  }
+
+  function updateClientStepProgress() {
+    var root = document.getElementById("mbClientStepProgress");
+    if (!root) return;
+    root.querySelectorAll(".vc-mb-client-progress-seg").forEach(function (seg) {
+      var step = Number(seg.getAttribute("data-step") || 0);
+      seg.classList.remove("is-done", "is-active");
+      if (step < clientWizardStep) seg.classList.add("is-done");
+      if (step === clientWizardStep) seg.classList.add("is-active");
+    });
+  }
+
+  function updateClientQuickStartVisibility() {
+    var qs = document.getElementById("mbClientQuickStart");
+    if (!qs) return;
+    var pick = document.getElementById("mbCliProviderSelect");
+    var hasProvider = pick && Number(pick.value || 0) > 0;
+    qs.hidden = clientWizardStep > 0 || hasProvider;
   }
 
   function applyCakeDashboardBackdrop() {
@@ -805,8 +904,7 @@
       signHint.textContent =
         "Sign in to book, message providers, or publish offers. Buyer-only accounts still use the booking desk; seller tools appear when your account has the seller role.";
     } else if (signHint && persona === "client") {
-      signHint.textContent =
-        "Reservations require a signed-in VibeCart account so we can notify you, show your requests below, and unlock chat after acceptance.";
+      signHint.textContent = "Sign in before sending so we can notify you and save your requests.";
     }
 
     applyCakeLineModeUi(service);
@@ -1091,6 +1189,7 @@
     if (d) d.value = "";
     var det = document.getElementById("mbCliDetails");
     if (det) det.value = "";
+    syncClientProviderBrand(null);
     renderClientWizardStep();
     loadDiscoverForClientLine(service)
       .catch(function () {})
@@ -1109,12 +1208,20 @@
     var root = document.getElementById("mbClientBookingsList");
     if (!root) return;
     if (!Array.isArray(bookings) || !bookings.length) {
-      root.innerHTML = '<p class="note">No signed-in requests yet. Send one from the booking desk above.</p>';
+      root.innerHTML =
+        '<p class="note" style="margin:0;padding:0.65rem 0.75rem;border-radius:12px;background:rgba(129,187,255,0.1);border:1px solid rgba(129,187,255,0.2)">No requests yet — complete the steps above to send your first booking.</p>';
       return;
     }
     root.innerHTML = bookings
       .map(function (b) {
-        var st = escapeHtml(b.bookingStatus || "pending");
+        var stRaw = String(b.bookingStatus || "pending").toLowerCase();
+        var st = escapeHtml(stRaw);
+        var pillClass =
+          stRaw === "confirmed"
+            ? "vc-pill"
+            : stRaw === "pending"
+              ? "vc-pill"
+              : "vc-pill";
         var line = b.serviceLine ? escapeHtml(String(b.serviceLine)) + " · " : "";
         return (
           '<article class="vc-booking-item vc-mb-client-booking-row" data-client-booking-id="' +
@@ -1126,17 +1233,20 @@
           Number(b.id) +
           " · " +
           escapeHtml(b.workTitle || "Service") +
-          '</h3><p class="note">' +
+          ' <span class="' +
+          pillClass +
+          '">' +
+          st +
+          "</span></h3><p class=\"note\">" +
           escapeHtml(b.businessName || "") +
           " · " +
           escapeHtml(String(b.eventDate || "")) +
-          " · " +
-          st +
           "</p>" +
-          '<p class="hero-actions">' +
+          '<p class="note" style="margin:0.35rem 0 0;opacity:0.85">Tap to open messages</p>' +
+          '<p class="hero-actions" style="margin-top:0.45rem">' +
           '<button type="button" class="btn btn-secondary" data-mb-resume-client-booking="' +
           Number(b.id) +
-          '">Open in desk &amp; messages</button>' +
+          '">Open</button>' +
           "</p>" +
           "</article>"
         );
@@ -1267,15 +1377,21 @@
     var cfg = loadMbConfig();
     var cake = cfg && isCakeBakeryLine(cfg.service);
     var labels = cake
-      ? ["Step 1 of 3 · Baker & contact", "Step 2 of 3 · Cake & delivery time", "Step 3 of 3 · Pay & special requests"]
-      : ["Step 1 of 3 · Your details", "Step 2 of 3 · Date & time", "Step 3 of 3 · Pay preference & request"];
+      ? ["Step 1 of 3 · Choose baker", "Step 2 of 3 · Cake & delivery", "Step 3 of 3 · Review & send"]
+      : ["Step 1 of 3 · Choose provider", "Step 2 of 3 · Date & time", "Step 3 of 3 · Review & send"];
     if (pill) pill.textContent = labels[clientWizardStep] || labels[0];
     if (back) back.disabled = false;
     if (next) {
       next.hidden = clientWizardStep >= 2;
-      next.textContent = clientWizardStep >= 2 ? "Continue" : "Continue";
+      next.textContent = "Continue";
     }
     if (sub) sub.hidden = clientWizardStep < 2;
+    var signHint = document.getElementById("mbClientSigninHint");
+    if (signHint) {
+      signHint.hidden = !(clientWizardStep >= 2 && !getToken());
+    }
+    updateClientStepProgress();
+    updateClientQuickStartVisibility();
     if (clientWizardStep === 1) {
       syncCakeClientDeskBlocks();
       if (!cake) loadClientSlotsForCurrentStep();
@@ -2789,13 +2905,17 @@
     if (!svc) {
       root.innerHTML = "";
       root.hidden = true;
+      syncClientProviderBrand(null);
+      updateClientQuickStartVisibility();
       return;
     }
+    syncClientProviderBrand(svc);
     root.hidden = false;
     if (pick) pick.removeAttribute("data-offer-ui-hidden");
     var bits = [];
-    if (svc.businessName) bits.push("<p class=\"note\" style=\"margin:0\"><strong>" + escapeHtml(svc.businessName) + "</strong></p>");
-    if (svc.requirementsText) bits.push("<p class=\"note\">" + escapeHtml(svc.requirementsText) + "</p>");
+    if (svc.requirementsText) {
+      bits.push("<p class=\"note\" style=\"margin-top:0\">" + escapeHtml(svc.requirementsText) + "</p>");
+    }
     bits.push(renderServiceCardMediaHtml(svc));
     root.innerHTML = bits.join("");
     root.querySelectorAll("img").forEach(function (img) {
@@ -2804,6 +2924,7 @@
       });
     });
     renderClientCakeMenuChips();
+    updateClientQuickStartVisibility();
   }
 
   function openMbClientImageLightbox(src) {

@@ -299,10 +299,144 @@
       background: rgba(0, 0, 0, 0.25);
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
+    .vc-mb-client-desk-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.32);
+    }
+  #mbClientDeskBackdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-size: cover;
+      background-position: center top;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      filter: blur(4px) saturate(1.12);
+    }
+    .vc-mb-client-desk-shell.has-provider-brand #mbClientDeskBackdrop {
+      opacity: 1;
+    }
+    .vc-mb-client-desk-shell.has-provider-brand::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: linear-gradient(165deg, rgba(8, 12, 24, 0.72) 0%, rgba(8, 10, 20, 0.94) 55%, rgba(8, 10, 20, 0.98) 100%);
+    }
+    .vc-mb-client-desk-inner {
+      position: relative;
+      z-index: 1;
+      padding: 1.1rem 1.15rem 1.2rem;
+    }
+    .vc-mb-client-hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.85rem;
+      margin: 0.65rem 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .vc-mb-client-hero[hidden] {
+      display: none !important;
+    }
+    .vc-mb-client-hero-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 16px;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      flex-shrink: 0;
+    }
+    .vc-mb-client-hero-logo--ph {
+      display: grid;
+      place-items: center;
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: #c8dcff;
+      background: linear-gradient(135deg, rgba(129, 187, 255, 0.35), rgba(255, 160, 120, 0.25));
+    }
+    .vc-mb-client-hero-text h3 {
+      margin: 0 0 0.2rem;
+      font-size: 1.2rem;
+    }
+    .vc-mb-client-hero-text p {
+      margin: 0;
+      font-size: 0.92rem;
+      opacity: 0.9;
+    }
+    .vc-mb-client-progress {
+      display: flex;
+      gap: 0.35rem;
+      margin: 0.5rem 0 0.85rem;
+    }
+    .vc-mb-client-progress-seg {
+      flex: 1;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      transition: background 0.25s ease, transform 0.25s ease;
+    }
+    .vc-mb-client-progress-seg.is-done {
+      background: linear-gradient(90deg, rgba(129, 187, 255, 0.85), rgba(100, 220, 160, 0.75));
+    }
+    .vc-mb-client-progress-seg.is-active {
+      background: linear-gradient(90deg, rgba(255, 190, 120, 0.9), rgba(255, 130, 170, 0.85));
+      transform: scaleY(1.35);
+    }
+    .vc-mb-client-quickstart {
+      margin: 0 0 1rem;
+      padding: 0.65rem 0.85rem 0.65rem 1.35rem;
+      border-radius: 12px;
+      background: rgba(129, 187, 255, 0.1);
+      border: 1px solid rgba(129, 187, 255, 0.22);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .vc-mb-client-quickstart[hidden] {
+      display: none !important;
+    }
+    .vc-mb-client-quickstart li {
+      margin: 0.2rem 0;
+    }
+    .vc-mb-client-step-panel {
+      padding: 0.15rem 0 0.35rem;
+    }
+    .vc-mb-client-desk .vc-mb-client-step label {
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+    .vc-mb-client-bookings.vc-biz-card {
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 12, 22, 0.55);
+    }
+    .vc-mb-client-bookings-list .vc-booking-item {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.75rem 0.85rem;
+      background: rgba(0, 0, 0, 0.22);
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .vc-mb-client-bookings-list .vc-booking-item:hover {
+      border-color: rgba(129, 187, 255, 0.35);
+      background: rgba(129, 187, 255, 0.08);
+    }
+    body.mb-cake-line .vc-mb-client-desk-shell.has-provider-brand #mbClientDeskBackdrop {
+      filter: blur(3px) saturate(1.2);
+    }
   </style>
   <script>
     (function () {
-      var BUILD = "20260515-cake-desk6";
+      var BUILD = "20260515-client-desk1";
       try {
         var url = new URL(window.location.href);
         if (!url.searchParams.get("vcbuild")) {
@@ -431,27 +565,46 @@
       </p>
     </div>
 
-    <div id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk" style="margin-top:0" tabindex="-1" data-mb-show="client">
+    <div id="mb-client-service-desk" class="vc-biz-card vc-mb-client-desk vc-mb-client-desk-shell" style="margin-top:0" tabindex="-1" data-mb-show="client">
+      <div id="mbClientDeskBackdrop" aria-hidden="true"></div>
+      <div class="vc-mb-client-desk-inner">
       <p class="note" style="margin-top:0">
-        <button type="button" class="btn btn-secondary" id="mbClientChangeService">← Change service line</button>
+        <button type="button" class="btn btn-secondary" id="mbClientChangeService">← Change service</button>
       </p>
-      <h2 style="margin-top:0" id="mbSvcDeskTitle">Service booking</h2>
-      <p class="note" id="mbSvcDeskLead"></p>
-      <p class="note vc-mb-signin-hint" id="mbClientSigninHint">
-        Reservations require a signed-in VibeCart account so we can notify you, show your requests below, and unlock chat after acceptance.
+      <h2 style="margin-top:0.35rem;margin-bottom:0.25rem" id="mbSvcDeskTitle">Book a service</h2>
+      <p class="note" id="mbSvcDeskLead" style="margin-top:0">Three quick steps — we notify you when your provider responds.</p>
+      <p class="note vc-mb-signin-hint" id="mbClientSigninHint" hidden>
+        Sign in before sending so we can notify you and save your requests.
       </p>
-      <p class="vc-pill" id="mbClientStepPill" aria-live="polite">Step 1 of 3 · Your details</p>
-      <div id="mbClientStep1" class="vc-mb-client-step">
-        <p class="note">Choose a live provider offer for this service, then add how we should reach you.</p>
-        <label for="mbCliProviderSelect">Provider offer</label>
+      <div class="vc-mb-client-progress" id="mbClientStepProgress" aria-hidden="true">
+        <span class="vc-mb-client-progress-seg is-active" data-step="0"></span>
+        <span class="vc-mb-client-progress-seg" data-step="1"></span>
+        <span class="vc-mb-client-progress-seg" data-step="2"></span>
+      </div>
+      <p class="vc-pill" id="mbClientStepPill" aria-live="polite">Step 1 of 3 · Choose baker</p>
+      <div class="vc-mb-client-hero" id="mbClientProviderHero" hidden>
+        <img id="mbClientProviderLogo" class="vc-mb-client-hero-logo" alt="" hidden />
+        <div id="mbClientProviderLogoPh" class="vc-mb-client-hero-logo vc-mb-client-hero-logo--ph" hidden aria-hidden="true"></div>
+        <div class="vc-mb-client-hero-text">
+          <h3 id="mbClientProviderName">Your baker</h3>
+          <p id="mbClientProviderTagline"></p>
+        </div>
+      </div>
+      <ul class="vc-mb-client-quickstart" id="mbClientQuickStart">
+        <li>Choose who you want to book</li>
+        <li>Pick date, options, and time</li>
+        <li>Send your request — get notified when they accept</li>
+      </ul>
+      <div id="mbClientStep1" class="vc-mb-client-step vc-mb-client-step-panel">
+        <label for="mbCliProviderSelect">Who are you booking with?</label>
         <select id="mbCliProviderSelect"></select>
         <div id="mbCliProviderMediaPreview" class="vc-mb-cli-media" hidden></div>
         <div class="vc-biz-row" style="margin-top:0.5rem">
-          <input id="mbCliCustName" type="text" placeholder="Your full name" autocomplete="name" />
+          <input id="mbCliCustName" type="text" placeholder="Your name" autocomplete="name" />
           <input id="mbCliCustPhone" type="tel" placeholder="Phone (optional)" autocomplete="tel" />
         </div>
       </div>
-      <div id="mbClientStep2" class="vc-mb-client-step" hidden>
+      <div id="mbClientStep2" class="vc-mb-client-step vc-mb-client-step-panel" hidden>
         <div id="mbCliCakeMenuBlock" hidden>
           <p class="note" style="margin-top:0">Choose a flavour and size from this baker.</p>
           <p class="note" style="margin:0.35rem 0 0"><strong>Flavours</strong></p>
@@ -471,12 +624,12 @@
           <div id="mbCliSlots" class="vc-mb-slot-grid" role="group" aria-label="Preferred time"></div>
         </div>
       </div>
-      <div id="mbClientStep3" class="vc-mb-client-step" hidden>
-        <p class="note">How would you like to pay when the booking is accepted?</p>
+      <div id="mbClientStep3" class="vc-mb-client-step vc-mb-client-step-panel" hidden>
+        <p class="note" style="margin-top:0">Payment preference (when your provider accepts)</p>
         <div class="vc-mb-pay-choice">
-          <label><input type="radio" name="mbCliPay" value="pay_full" checked /> Pay in full online (Stripe when available)</label>
+          <label><input type="radio" name="mbCliPay" value="pay_full" checked /> Pay in full online</label>
           <label><input type="radio" name="mbCliPay" value="deposit" /> Pay a deposit online</label>
-          <label><input type="radio" name="mbCliPay" value="pay_at_venue" /> Pay at the appointment</label>
+          <label><input type="radio" name="mbCliPay" value="pay_at_venue" /> Pay at pickup / appointment</label>
         </div>
         <label for="mbCliDetails" style="margin-top:0.65rem">What do you need? (details for your provider)</label>
         <textarea id="mbCliDetails" rows="4" placeholder="Describe the service, timing constraints, allergies, references, etc."></textarea>
@@ -506,11 +659,12 @@
           </p>
         </div>
       </div>
+      </div>
     </div>
 
     <div id="mb-client-my-bookings" class="vc-biz-card vc-mb-client-bookings" data-mb-show="client" style="margin-top:0.85rem;">
       <h2 style="margin-top:0;">Your requests</h2>
-      <p class="note">Reservations you sent while signed in. Push and email (when enabled) notify you when the provider responds.</p>
+      <p class="note">Tap a request to see messages. We notify you when the provider accepts.</p>
       <p class="hero-actions" style="margin-top:0.35rem;">
         <button type="button" class="btn btn-secondary" id="mbClientBookingsRefresh">Refresh list</button>
       </p>
@@ -795,7 +949,7 @@
       }, 1800);
     })();
   </script>
-  <script src="./my-business.js?v=20260515cakeflow4" defer></script>
+  <script src="./my-business.js?v=20260515clientdesk1" defer></script>
   <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
   <script src="./visitor-retention.js?v=20260508ret4" defer></script>
 
