@@ -84,6 +84,37 @@
     return s.indexOf("bakery") >= 0 || s.indexOf("cake") >= 0 || s.indexOf("barkery") >= 0;
   }
 
+  function syncMbConfigServiceFromUrl() {
+    try {
+      var qs = new URLSearchParams(window.location.search || "");
+      var line = String(qs.get("line") || qs.get("service") || "").trim();
+      if (!line) return null;
+      var cfg = loadMbConfig();
+      if (!cfg) return null;
+      if (cfg.service === line) return cfg;
+      cfg.service = line;
+      saveMbConfig(cfg);
+      return cfg;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function ensureCakeConfigForBakeryProvider(services) {
+    var cfg = loadMbConfig();
+    if (!cfg || cfg.persona !== "provider") return cfg;
+    if (isCakeBakeryLine(cfg.service)) return cfg;
+    var hasBakery = (services || []).some(function (s) {
+      return isCakeBakeryLine(String((s && s.styleTheme) || ""));
+    });
+    if (hasBakery) {
+      cfg.service = "Bakery / custom cakes";
+      saveMbConfig(cfg);
+      setStatus("Switched your desk to Bakery / cakes.");
+    }
+    return cfg;
+  }
+
   function parseLinesFromTextarea(id) {
     var el = document.getElementById(id);
     if (!el) return [];
@@ -115,8 +146,18 @@
     document.body.classList.toggle("mb-cake-line", cake);
     var menuEd = document.getElementById("mbCakeMenuEditor");
     var logoBlk = document.getElementById("mbCakeLogoBlock");
-    if (menuEd) menuEd.hidden = !cake;
-    if (logoBlk) logoBlk.hidden = !cake;
+    if (menuEd) {
+      menuEd.hidden = !cake;
+      if (cake) menuEd.removeAttribute("hidden");
+    }
+    if (logoBlk) {
+      logoBlk.hidden = !cake;
+      if (cake) logoBlk.removeAttribute("hidden");
+    }
+    var adv = document.getElementById("mbProvAdvancedDetails");
+    if (adv && cake) {
+      adv.open = true;
+    }
     var portHead = document.getElementById("mbPortfolioHead");
     var portLead = document.getElementById("mbPortfolioLead");
     if (cake && portHead) portHead.textContent = "Your bakery";
@@ -1732,6 +1773,7 @@
   }
 
   function bootGate() {
+    syncMbConfigServiceFromUrl();
     var cfg = loadMbConfig();
     if (cfg && cfg.persona === "provider") {
       clearSessionUnlock();
@@ -2374,6 +2416,19 @@
   function renderKpis(listings, services, bookings) {
     var node = document.getElementById("bizKpis");
     if (!node) return;
+    var cfgKpi = loadMbConfig();
+    if (cfgKpi && isCakeBakeryLine(cfgKpi.service)) {
+      var pendingCake = (bookings || []).filter(function (x) {
+        return String(x.bookingStatus || "") === "pending";
+      }).length;
+      node.innerHTML =
+        '<article class="vc-biz-card"><span class="vc-pill">Cake orders</span><h3>' +
+        Number((bookings || []).length) +
+        '</h3><p class="note">Pending: ' +
+        pendingCake +
+        "</p></article>";
+      return;
+    }
     var activeListings = (listings || []).filter(function (x) { return String(x.status || "") === "active"; }).length;
     var activeBakery = (services || []).filter(function (x) { return !!x.isActive; }).length;
     var pendingBookings = (bookings || []).filter(function (x) { return String(x.bookingStatus || "") === "pending"; }).length;
@@ -3454,6 +3509,11 @@
       var svcFiltered = filterServicesForLine(svcAll, line);
       var bookFiltered = filterBookingsForLine(bookAll, line, svcFiltered);
       mbLastProviderServices = svcFiltered;
+      var cfgAfter = ensureCakeConfigForBakeryProvider(svcFiltered) || cfg;
+      if (cfgAfter && cfgAfter.service !== line) {
+        line = String(cfgAfter.service || line);
+        applyCakeLineModeUi(line);
+      }
       renderKpis(results[0].listings || [], svcFiltered, bookFiltered);
       renderServices(svcFiltered);
       renderProvSlotServiceSelect(mbLastProviderServices);
@@ -3464,6 +3524,7 @@
         if (providerFocusBookingId) {
           loadProviderFocus(providerFocusBookingId);
         }
+        applyCakeLineModeUi(line);
         setStatus("Cake desk updated");
         return;
       }
@@ -3474,6 +3535,7 @@
         if (providerFocusBookingId) {
           loadProviderFocus(providerFocusBookingId);
         }
+        applyCakeLineModeUi(line);
         setStatus("Dashboard updated");
       });
     }).catch(function (err) {

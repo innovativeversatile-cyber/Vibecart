@@ -206,6 +206,44 @@
     body.mb-cake-line [data-mb-non-cake] {
       display: none !important;
     }
+    body.mb-cake-line #mbCakeMenuEditor {
+      display: block !important;
+    }
+    body.mb-cake-line #mbCakeMenuEditor[hidden] {
+      display: block !important;
+    }
+    body.mb-cake-line #mbProvAdvancedDetails[data-mb-non-cake] {
+      display: block !important;
+    }
+    body.mb-cake-line #mbProvAdvancedDetails {
+      display: block !important;
+      border: 0;
+      padding: 0;
+      margin-top: 0.5rem;
+    }
+    body.mb-cake-line #mbProvAdvancedDetails summary {
+      display: none;
+    }
+    body.mb-cake-line #mbProvAdvancedDetails > .note:first-of-type {
+      display: none;
+    }
+    body.mb-cake-line #mbProvAdvancedDetails > .vc-biz-row {
+      display: none;
+    }
+    body.mb-cake-line #mbProviderOverviewHero .vc-biz-grid {
+      display: none;
+    }
+    body.mb-cake-line #mbCakeProviderDeskBanner {
+      display: block;
+    }
+    #mbCakeProviderDeskBanner {
+      display: none;
+      margin-bottom: 0.85rem;
+      padding: 0.85rem 1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 200, 120, 0.35);
+      background: linear-gradient(135deg, rgba(255, 198, 120, 0.2), rgba(255, 120, 180, 0.12));
+    }
     .vc-cake-hero {
       border-radius: 18px;
       padding: 1.1rem 1.15rem;
@@ -251,7 +289,7 @@
   </style>
   <script>
     (function () {
-      var BUILD = "20260505-mb-nuclear-hardpass1";
+      var BUILD = "20260515-cake-desk4";
       try {
         var url = new URL(window.location.href);
         if (!url.searchParams.get("vcbuild")) {
@@ -520,8 +558,8 @@
         </div>
         <input id="bakeryWorkTitle" type="hidden" value="" />
         <textarea id="bakeryRequirements" rows="3" placeholder="Requirements (lead time, allergies info, delivery area, deposit rules)"></textarea>
-        <details class="vc-cake-menu-editor" id="mbCakeMenuEditor" hidden>
-          <summary>Flavours &amp; sizes (clients pick from these)</summary>
+        <section class="vc-cake-menu-editor" id="mbCakeMenuEditor" hidden>
+          <h3 style="margin:0.65rem 0 0.35rem;font-size:1.05rem;">Flavours &amp; sizes (clients pick these)</h3>
           <p class="note" style="margin:0.45rem 0">One flavour or size per line.</p>
           <div class="vc-biz-row">
             <div>
@@ -533,7 +571,7 @@
               <textarea id="bakerySizesList" rows="4" placeholder="6 inch · 8 servings&#10;8 inch · 12 servings"></textarea>
             </div>
           </div>
-        </details>
+        </section>
         <div id="mbCakeLogoBlock" hidden>
           <label for="bakeryLogoPick">Your logo (dashboard backdrop)</label>
           <p class="note" style="margin-top:0.15rem">Square logo recommended. Shown subtly behind your desk.</p>
@@ -541,8 +579,8 @@
           <img id="bakeryLogoPreview" alt="" hidden />
           <input type="hidden" id="bakeryLogoUrl" value="" />
         </div>
-        <details>
-          <summary>Advanced options</summary>
+        <details id="mbProvAdvancedDetails" data-mb-non-cake>
+          <summary>More options (currency)</summary>
           <p class="note" style="margin:0.45rem 0;">Optional fields for richer cards and media.</p>
           <div class="vc-biz-row">
             <input id="bakeryCurrency" type="text" maxlength="8" placeholder="Currency (USD/ZAR/EUR)" />
@@ -577,7 +615,8 @@
         </p>
       </div>
       <div id="bakeryWorkList" class="vc-work-list"></div>
-      <h3 style="margin:.2rem 0;" data-mb-non-cake>Slot creation</h3>
+      <div id="mbProvNonCakeExtras" data-mb-non-cake>
+      <h3 style="margin:.2rem 0;">Slot creation</h3>
         <p class="note">Create and update availability using only start/end times (times auto-generate).</p>
         <div class="vc-biz-form">
         <div class="vc-biz-row">
@@ -621,6 +660,7 @@
       <div class="vc-biz-row">
         <input id="sellerStripeAccountId" type="text" placeholder="acct_1234..." />
         <button class="btn btn-secondary" id="savePayoutAccountBtn" type="button">Save payout account</button>
+      </div>
       </div>
     </div>
 
@@ -693,7 +733,7 @@
       }, 1800);
     })();
   </script>
-  <script src="./my-business.js?v=20260515cakeflow1" defer></script>
+  <script src="./my-business.js?v=20260515cakeflow2" defer></script>
   <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
   <script src="./visitor-retention.js?v=20260508ret4" defer></script>
 
