@@ -177,6 +177,31 @@
     updateProviderShareLink();
   }
 
+  function ensureBakeryCurrencyOption(code) {
+    var cur = document.getElementById("bakeryCurrency");
+    if (!cur) return;
+    var c = String(code || "")
+      .trim()
+      .toUpperCase()
+      .slice(0, 8);
+    if (!c) {
+      cur.value = "";
+      return;
+    }
+    var i;
+    for (i = 0; i < cur.options.length; i++) {
+      if (String(cur.options[i].value || "").toUpperCase() === c) {
+        cur.value = c;
+        return;
+      }
+    }
+    var opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c + " — " + c;
+    cur.appendChild(opt);
+    cur.value = c;
+  }
+
   function formatMbPrice(amount, currency) {
     var n = Number(amount || 0);
     if (!Number.isFinite(n) || n <= 0) return "";
@@ -2818,8 +2843,7 @@
     }
     var bp = document.getElementById("bakeryBasePrice");
     if (bp) bp.value = s.basePrice != null ? String(s.basePrice) : "";
-    var cur = document.getElementById("bakeryCurrency");
-    if (cur) cur.value = String(s.currency || "").trim().toUpperCase();
+    ensureBakeryCurrencyOption(s.currency || "");
     var img = document.getElementById("bakeryImageUrl");
     if (img) img.value = s.imageUrl || "";
     var req = document.getElementById("bakeryRequirements");
