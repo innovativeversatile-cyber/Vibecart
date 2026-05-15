@@ -258,16 +258,34 @@
     if (preview) preview.setAttribute("href", shareUrl);
   }
 
+  function normalizePublicMediaUrl(url) {
+    var s = String(url || "").trim();
+    if (!s) return "";
+    if (/^\/api\//i.test(s)) return s;
+    if (/^https?:\/\//i.test(s)) {
+      try {
+        var u = new URL(s);
+        if (u.pathname.indexOf("/api/public/bakery-media/") === 0) {
+          return u.pathname + (u.search || "");
+        }
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    return s;
+  }
+
   function resolveProviderBrandLogoUrl(svc) {
     if (!svc) return "";
-    var logo = String(svc.providerLogoUrl || svc.imageUrl || "").trim();
+    var logo = normalizePublicMediaUrl(String(svc.providerLogoUrl || svc.imageUrl || "").trim());
     if (logo && isAllowedPublicMediaUrl(logo)) return logo;
     if (Array.isArray(svc.gallery)) {
       var i;
       for (i = 0; i < svc.gallery.length; i++) {
         var g = svc.gallery[i];
-        if (g && g.kind === "image" && g.url && isAllowedPublicMediaUrl(g.url)) {
-          return String(g.url).trim();
+        if (g && g.kind === "image" && g.url) {
+          var gu = normalizePublicMediaUrl(g.url);
+          if (gu && isAllowedPublicMediaUrl(gu)) return gu;
         }
       }
     }
@@ -461,10 +479,8 @@
     if (node) node.textContent = t;
     var cliDesk = document.getElementById("mbClientDeskStatus");
     if (cliDesk) cliDesk.textContent = t;
-    var signHint = document.getElementById("mbClientSigninHint");
-    if (signHint && t) signHint.textContent = t;
     if (!t) return;
-    if (!node && !cliDesk && !signHint) {
+    if (!node && !cliDesk) {
       try {
         window.alert(t);
       } catch (_) {
@@ -605,6 +621,22 @@
     });
   }
 
+  function resolvePublicApiUrl(path) {
+    var p = String(path || "").trim();
+    if (!p) return p;
+    if (/^https?:\/\//i.test(p)) return p;
+    try {
+      var meta = document.querySelector('meta[name="vibecart-api-base"]');
+      var base = meta && meta.getAttribute("content");
+      if (base && String(base).trim() && !/^disabled$/i.test(String(base).trim())) {
+        return String(base).trim().replace(/\/$/, "") + (p.charAt(0) === "/" ? p : "/" + p);
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    return p;
+  }
+
   function api(path, options) {
     var base = Object.assign({}, (options && options.headers) || {});
     var token = getToken();
@@ -612,12 +644,23 @@
       token && window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.merge === "function"
         ? window.VibeCartSessionDevice.merge(token, base)
         : Object.assign({}, base, token ? { Authorization: "Bearer " + token } : {});
-    return fetch(path, Object.assign({}, options || {}, { headers: headers })).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (json) {
-        if (!r.ok || json.ok === false) throw new Error(String((json && (json.message || json.code)) || ("HTTP_" + r.status)));
-        return json;
+    var url = resolvePublicApiUrl(path);
+    return fetch(url, Object.assign({}, options || {}, { headers: headers }))
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (json) {
+          if (!r.ok || json.ok === false) {
+            throw new Error(String((json && (json.message || json.code)) || ("HTTP_" + r.status)));
+          }
+          return json;
+        });
+      })
+      .catch(function (err) {
+        var msg = String((err && err.message) || err || "");
+        if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+          throw new Error("Could not reach VibeCart servers. Check your connection and try again.");
+        }
+        throw err;
       });
-    });
   }
 
   function refreshMbSessionUser() {
@@ -1170,16 +1213,21 @@
     clientActiveBookingId = 0;
     var prevCfg = loadMbConfig();
     var prevPersona = prevCfg && prevCfg.persona ? String(prevCfg.persona) : "client";
-    clearMbConfig();
-    clearSessionUnlock();
+    try {
+      sessionStorage.removeItem("vibecart-mb-last-booking");
+    } catch (_) {
+      /* ignore */
+    }
     draftPersona =
       prevPersona === "provider" ? "provider" : prevPersona === "citizen" ? "citizen" : "client";
     draftService = "";
+    setStatus("");
     document.body.classList.add("mb-boot-pending");
     var main = document.getElementById("mbMainDashboard");
     if (main) main.setAttribute("aria-hidden", "true");
     showGate();
     showServiceStep();
+    setGateStatus("mbGateStatusService", "Pick a service line, then continue.", false);
   }
 
   function initClientServiceDesk(service) {

@@ -3,11 +3,23 @@
 
   function apiBase() {
     if (window.VC_API_BASE) return String(window.VC_API_BASE).replace(/\/$/, "");
+    try {
+      var meta = document.querySelector('meta[name="vibecart-api-base"]');
+      var fromMeta = meta && meta.getAttribute("content");
+      if (fromMeta && String(fromMeta).trim() && !/^disabled$/i.test(String(fromMeta).trim())) {
+        return String(fromMeta).trim().replace(/\/$/, "");
+      }
+    } catch (_) {
+      /* ignore */
+    }
     var host = window.location.hostname || "";
     if (host === "localhost" || host === "127.0.0.1") {
       return "http://localhost:8787";
     }
-    return "https://vibecart-api-production.up.railway.app";
+    if (host && /^https?:$/i.test(String(window.location.protocol || ""))) {
+      return String(window.location.origin || "").replace(/\/$/, "");
+    }
+    return "";
   }
 
   function qs() {
@@ -33,9 +45,22 @@
   }
 
   function absUrl(path) {
-    if (!path) return "";
-    if (/^https?:\/\//i.test(path)) return path;
-    return apiBase() + (path.charAt(0) === "/" ? path : "/" + path);
+    var s = String(path || "").trim();
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s)) {
+      try {
+        var u = new URL(s);
+        if (u.pathname.indexOf("/api/public/bakery-media/") === 0) {
+          return u.pathname + (u.search || "");
+        }
+      } catch (_) {
+        /* ignore */
+      }
+      return s;
+    }
+    if (s.charAt(0) === "/") return s;
+    var base = apiBase();
+    return base ? base + "/" + s.replace(/^\//, "") : "/" + s.replace(/^\//, "");
   }
 
   function run() {
@@ -46,7 +71,11 @@
       return;
     }
     setStatus("Loading…");
-    fetch(apiBase() + "/api/public/bakery/book-landing?serviceId=" + encodeURIComponent(String(sid)))
+    var apiUrl =
+      (apiBase() ? apiBase() : "") +
+      "/api/public/bakery/book-landing?serviceId=" +
+      encodeURIComponent(String(sid));
+    fetch(apiUrl)
       .then(function (r) {
         return r.json().then(function (data) {
           if (!r.ok) throw new Error((data && data.message) || "Could not load");
@@ -100,7 +129,12 @@
         setStatus("");
       })
       .catch(function (err) {
-        setStatus(err.message || "This booking link is not available.");
+        var msg = String((err && err.message) || "");
+        if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+          setStatus("Could not reach VibeCart. Check your connection and try again.");
+        } else {
+          setStatus(msg || "This booking link is not available.");
+        }
       });
   }
 
