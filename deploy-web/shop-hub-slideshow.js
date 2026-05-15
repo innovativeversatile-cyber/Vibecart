@@ -102,7 +102,8 @@
       title: "Fragrance & cosmetics deals",
       desc: "Germany · official offers and outlet — imagery is illustrative; products update on Notino.",
       href: "https://www.notino.de/angebote/",
-      img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1400&h=900&q=80"
+      img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1400&h=900&q=80",
+      sponsored: true
     },
     {
       key: "notino-uk",
@@ -111,7 +112,8 @@
       title: "UK beauty & scents offers",
       desc: "United Kingdom · official sale and new-in pages — see site for current discounts.",
       href: "https://www.notino.co.uk/offers/",
-      img: "https://images.unsplash.com/photo-1522335780783-f51121c2e48d?auto=format&fit=crop&w=1400&h=900&q=80"
+      img: "https://images.unsplash.com/photo-1522335780783-f51121c2e48d?auto=format&fit=crop&w=1400&h=900&q=80",
+      sponsored: true
     },
     {
       key: "lookfantastic-offers",
@@ -120,7 +122,8 @@
       title: "Skincare & haircare promos",
       desc: "Official offers listing — brands and prices change with retailer campaigns.",
       href: "https://www.lookfantastic.com/offers/dynamic_offer.list",
-      img: "https://images.unsplash.com/photo-1570172619644-dfd94350a836?auto=format&fit=crop&w=1400&h=900&q=80"
+      img: "https://images.unsplash.com/photo-1570172619644-dfd94350a836?auto=format&fit=crop&w=1400&h=900&q=80",
+      sponsored: true
     },
     {
       key: "boots-offers",
@@ -129,7 +132,8 @@
       title: "Offers & points events",
       desc: "Boots UK promotions page — mix includes cosmetics and fragrance.",
       href: "https://www.boots.com/offers",
-      img: "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=1400&h=900&q=80"
+      img: "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=1400&h=900&q=80",
+      sponsored: true
     },
     {
       key: "sephora-offers",
@@ -138,7 +142,8 @@
       title: "Makeup & fragrance offers",
       desc: "Sephora US beauty offers hub — inventory and discounts are on Sephora.",
       href: "https://www.sephora.com/beauty/beauty-offers",
-      img: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1400&h=900&q=80"
+      img: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1400&h=900&q=80",
+      sponsored: true
     },
     {
       key: "douglas-sale",
@@ -147,7 +152,8 @@
       title: "Perfume & cosmetics sale",
       desc: "Douglas DE sale category — see retailer for live SKUs and prices.",
       href: "https://www.douglas.de/de/c/sale",
-      img: "https://images.unsplash.com/photo-1595425970377-c970029bffed?auto=format&fit=crop&w=1400&h=900&q=80"
+      img: "https://images.unsplash.com/photo-1595425970377-c970029bffed?auto=format&fit=crop&w=1400&h=900&q=80",
+      sponsored: true
     }
   ];
 
@@ -278,12 +284,17 @@
     });
   }
 
-  function buildSlides(region, affiliateCfg, skechersCfg) {
-    var slides = [];
+  function buildCosmeticsSlides() {
+    var out = [];
     COSMETICS_SCENTS_SLIDES.forEach(function (row) {
       var s = normalizeSlide(row);
-      if (s) slides.push(s);
+      if (s) out.push(s);
     });
+    return out;
+  }
+
+  function buildSlides(region, affiliateCfg, skechersCfg) {
+    var slides = [];
     var retailers = REGION_RETAILERS[region] || REGION_RETAILERS.global;
     retailers.forEach(function (r) {
       var s = normalizeSlide(r);
@@ -422,6 +433,161 @@
     }
   }
 
+  /**
+   * @param {object} els — DOM refs: root, stageA, stageB, titleEl, tagEl, shopEl, descEl, ctaEl, dotsEl, progressEl, tickerEl, countEl, regionEl
+   * @param {object[]} slides
+   * @param {boolean} compact
+   * @param {string} [regionEyebrowText] — if set, written to regionEl when present
+   */
+  function runEpicCarousel(els, slides, compact, regionEyebrowText) {
+    var root = els.root;
+    var stageA = els.stageA;
+    var stageB = els.stageB;
+    var titleEl = els.titleEl;
+    var tagEl = els.tagEl;
+    var shopEl = els.shopEl;
+    var descEl = els.descEl;
+    var ctaEl = els.ctaEl;
+    var dotsEl = els.dotsEl;
+    var progressEl = els.progressEl;
+    var tickerEl = els.tickerEl;
+    var countEl = els.countEl;
+    var regionEl = els.regionEl;
+
+    if (!root || !stageA || !stageB || !titleEl || !ctaEl) return Promise.resolve();
+
+    if (!slides.length) {
+      root.classList.add("vc-shop-now-epic--empty");
+      return Promise.resolve();
+    }
+
+    if (regionEl && regionEyebrowText) {
+      regionEl.textContent = regionEyebrowText;
+    }
+
+    if (ctaEl && !ctaEl.dataset.vcGateBound) {
+      ctaEl.dataset.vcGateBound = "1";
+      ctaEl.addEventListener("click", function (e) {
+        openSlideUrl(ctaEl.href, ctaEl._vcActiveSlide, e);
+      });
+    }
+
+    return preloadImages(slides).then(function () {
+      paintTicker(tickerEl, slides);
+      if (countEl) countEl.textContent = String(slides.length);
+      if (compact && countEl && countEl.parentElement) {
+        countEl.parentElement.hidden = true;
+      }
+
+      var active = 0;
+      var frontIsA = true;
+      var timer = null;
+      var holdUntil = 0;
+
+      function applyToStage(stage, slide) {
+        var img = ensureSlideImg(stage);
+        var url = resolveHero(slide);
+        img.onerror = function () {
+          img.onerror = null;
+          img.src = FALLBACK_HERO;
+        };
+        img.src = url;
+        stage.setAttribute("data-shop", slide.shop || "");
+      }
+
+      function paintMeta(slide) {
+        var tight = compact || isMobileCompact();
+        if (shopEl) shopEl.textContent = slide.shop || "";
+        if (tagEl) tagEl.textContent = tight ? clipText(slide.tag || "Deal", 16) : (slide.tag || "Deal");
+        titleEl.textContent = tight ? clipText(slide.title || "", 38) : (slide.title || "");
+        if (descEl) {
+          var d = String(slide.desc || "");
+          descEl.textContent = tight ? clipText(d, 48) : d;
+        }
+        ctaEl.href = slide.href || "#";
+        ctaEl._vcActiveSlide = slide;
+        if (slide.internal) {
+          ctaEl.removeAttribute("target");
+          ctaEl.removeAttribute("rel");
+        } else if (isExternalHttpUrl(slide.href)) {
+          ctaEl.target = "_blank";
+          ctaEl.rel = "noopener noreferrer" + (slide.sponsored ? " sponsored" : "");
+        } else {
+          ctaEl.removeAttribute("target");
+          ctaEl.removeAttribute("rel");
+        }
+        ctaEl.textContent = slide.internal
+          ? (tight ? "Coach →" : "Explore on VibeCart →")
+          : (tight ? "Open deal →" : "Shop this deal →");
+      }
+
+      function paintDots(idx) {
+        if (!dotsEl) return;
+        dotsEl.innerHTML = "";
+        slides.forEach(function (_, i) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "vc-shop-now-dot" + (i === idx ? " is-active" : "");
+          b.setAttribute("aria-label", "Offer slide " + (i + 1));
+          b.addEventListener("click", function () {
+            holdUntil = Date.now() + AUTO_MS * 2;
+            goTo(i);
+          });
+          dotsEl.appendChild(b);
+        });
+      }
+
+      function restartProgress() {
+        if (!progressEl) return;
+        progressEl.classList.remove("vc-shop-now-progress--run");
+        void progressEl.offsetWidth;
+        progressEl.classList.add("vc-shop-now-progress--run");
+      }
+
+      function goTo(i) {
+        var next = (i + slides.length) % slides.length;
+        var slide = slides[next];
+        var incoming = frontIsA ? stageB : stageA;
+        var outgoing = frontIsA ? stageA : stageB;
+        applyToStage(incoming, slide);
+        incoming.classList.add("is-visible");
+        outgoing.classList.remove("is-visible");
+        frontIsA = !frontIsA;
+        active = next;
+        paintMeta(slide);
+        paintDots(active);
+        restartProgress();
+      }
+
+      applyToStage(stageA, slides[0]);
+      applyToStage(stageB, slides[Math.min(1, slides.length - 1)]);
+      stageA.classList.add("is-visible");
+      paintMeta(slides[0]);
+      paintDots(0);
+      restartProgress();
+      root.hidden = false;
+      root.classList.add("vc-shop-now-epic--ready");
+
+      function tick() {
+        if (Date.now() < holdUntil) return;
+        goTo(active + 1);
+      }
+
+      timer = window.setInterval(tick, AUTO_MS);
+
+      root.addEventListener("mouseenter", function () {
+        if (timer) { window.clearInterval(timer); timer = null; }
+        if (progressEl) progressEl.classList.remove("vc-shop-now-progress--run");
+      });
+      root.addEventListener("mouseleave", function () {
+        if (!timer) {
+          restartProgress();
+          timer = window.setInterval(tick, AUTO_MS);
+        }
+      });
+    });
+  }
+
   function boot() {
     var root = document.getElementById("vcShopNowEpic");
     if (!root) return;
@@ -437,155 +603,59 @@
       if (descBoot) descBoot.textContent = "Loading deals near you…";
     }
 
-    var stageA = document.getElementById("vcShopNowSlideA");
-    var stageB = document.getElementById("vcShopNowSlideB");
-    var titleEl = document.getElementById("vcShopNowTitle");
-    var tagEl = document.getElementById("vcShopNowTag");
-    var shopEl = document.getElementById("vcShopNowShop");
-    var descEl = document.getElementById("vcShopNowDesc");
-    var ctaEl = document.getElementById("vcShopNowCta");
-    var dotsEl = document.getElementById("vcShopNowDots");
-    var progressEl = document.getElementById("vcShopNowProgress");
-    var tickerEl = document.getElementById("vcShopNowTicker");
-    var countEl = document.getElementById("vcShopNowCount");
-    var disclaimerAck = document.getElementById("vcShopNowDisclaimerAck");
-
-    if (!stageA || !stageB || !titleEl || !ctaEl) return;
-
-    if (ctaEl && !ctaEl.dataset.vcGateBound) {
-      ctaEl.dataset.vcGateBound = "1";
-      ctaEl.addEventListener("click", function (e) {
-        openSlideUrl(ctaEl.href, ctaEl._vcActiveSlide, e);
-      });
+    var cosRoot = document.getElementById("vcShopCosmeticsEpic");
+    if (cosRoot && compact) {
+      cosRoot.classList.add("vc-shop-now-epic--compact");
+      var cosDescBoot = document.getElementById("vcShopCosDesc");
+      if (cosDescBoot) cosDescBoot.textContent = "Loading beauty promos…";
     }
 
-    if (disclaimerAck) {
+    var disclaimerAck = document.getElementById("vcShopNowDisclaimerAck");
+    if (disclaimerAck && !disclaimerAck.dataset.vcHintBound) {
+      disclaimerAck.dataset.vcHintBound = "1";
       disclaimerAck.addEventListener("change", function () {
         var hint = document.getElementById("vcShopNowDisclaimerHint");
         if (hint && disclaimerAck.checked) hint.hidden = true;
       });
     }
 
+    var elsMain = {
+      root: root,
+      stageA: document.getElementById("vcShopNowSlideA"),
+      stageB: document.getElementById("vcShopNowSlideB"),
+      titleEl: document.getElementById("vcShopNowTitle"),
+      tagEl: document.getElementById("vcShopNowTag"),
+      shopEl: document.getElementById("vcShopNowShop"),
+      descEl: document.getElementById("vcShopNowDesc"),
+      ctaEl: document.getElementById("vcShopNowCta"),
+      dotsEl: document.getElementById("vcShopNowDots"),
+      progressEl: document.getElementById("vcShopNowProgress"),
+      tickerEl: document.getElementById("vcShopNowTicker"),
+      countEl: document.getElementById("vcShopNowCount"),
+      regionEl: null
+    };
+
     Promise.all([fetchJson(AFFILIATE_URL), fetchJson(SKECHERS_URL)]).then(function (res) {
       var slides = buildSlides(region, res[0], res[1]);
-      if (!slides.length) {
-        root.classList.add("vc-shop-now-epic--empty");
-        return;
-      }
-
-      return preloadImages(slides).then(function () {
-        paintTicker(tickerEl, slides);
-        if (countEl) countEl.textContent = String(slides.length);
-        if (compact && countEl && countEl.parentElement) {
-          countEl.parentElement.hidden = true;
-        }
-
-        var active = 0;
-        var frontIsA = true;
-        var timer = null;
-        var holdUntil = 0;
-
-        function applyToStage(stage, slide) {
-          var img = ensureSlideImg(stage);
-          var url = resolveHero(slide);
-          img.onerror = function () {
-            img.onerror = null;
-            img.src = FALLBACK_HERO;
-          };
-          img.src = url;
-          stage.setAttribute("data-shop", slide.shop || "");
-        }
-
-        function paintMeta(slide) {
-          var tight = compact || isMobileCompact();
-          if (shopEl) shopEl.textContent = slide.shop || "";
-          if (tagEl) tagEl.textContent = tight ? clipText(slide.tag || "Deal", 16) : (slide.tag || "Deal");
-          titleEl.textContent = tight ? clipText(slide.title || "", 38) : (slide.title || "");
-          if (descEl) {
-            var d = String(slide.desc || "");
-            descEl.textContent = tight ? clipText(d, 48) : d;
-          }
-          ctaEl.href = slide.href || "#";
-          ctaEl._vcActiveSlide = slide;
-          if (slide.internal) {
-            ctaEl.removeAttribute("target");
-            ctaEl.removeAttribute("rel");
-          } else if (isExternalHttpUrl(slide.href)) {
-            ctaEl.target = "_blank";
-            ctaEl.rel = "noopener noreferrer" + (slide.sponsored ? " sponsored" : "");
-          } else {
-            ctaEl.removeAttribute("target");
-            ctaEl.removeAttribute("rel");
-          }
-          ctaEl.textContent = slide.internal
-            ? (tight ? "Coach →" : "Explore on VibeCart →")
-            : (tight ? "Open deal →" : "Shop this deal →");
-        }
-
-        function paintDots(idx) {
-          if (!dotsEl) return;
-          dotsEl.innerHTML = "";
-          slides.forEach(function (_, i) {
-            var b = document.createElement("button");
-            b.type = "button";
-            b.className = "vc-shop-now-dot" + (i === idx ? " is-active" : "");
-            b.setAttribute("aria-label", "Offer slide " + (i + 1));
-            b.addEventListener("click", function () {
-              holdUntil = Date.now() + AUTO_MS * 2;
-              goTo(i);
-            });
-            dotsEl.appendChild(b);
-          });
-        }
-
-        function restartProgress() {
-          if (!progressEl) return;
-          progressEl.classList.remove("vc-shop-now-progress--run");
-          void progressEl.offsetWidth;
-          progressEl.classList.add("vc-shop-now-progress--run");
-        }
-
-        function goTo(i) {
-          var next = (i + slides.length) % slides.length;
-          var slide = slides[next];
-          var incoming = frontIsA ? stageB : stageA;
-          var outgoing = frontIsA ? stageA : stageB;
-          applyToStage(incoming, slide);
-          incoming.classList.add("is-visible");
-          outgoing.classList.remove("is-visible");
-          frontIsA = !frontIsA;
-          active = next;
-          paintMeta(slide);
-          paintDots(active);
-          restartProgress();
-        }
-
-        applyToStage(stageA, slides[0]);
-        applyToStage(stageB, slides[Math.min(1, slides.length - 1)]);
-        stageA.classList.add("is-visible");
-        paintMeta(slides[0]);
-        paintDots(0);
-        restartProgress();
-        root.hidden = false;
-        root.classList.add("vc-shop-now-epic--ready");
-
-        function tick() {
-          if (Date.now() < holdUntil) return;
-          goTo(active + 1);
-        }
-
-        timer = window.setInterval(tick, AUTO_MS);
-
-        root.addEventListener("mouseenter", function () {
-          if (timer) { window.clearInterval(timer); timer = null; }
-          if (progressEl) progressEl.classList.remove("vc-shop-now-progress--run");
-        });
-        root.addEventListener("mouseleave", function () {
-          if (!timer) {
-            restartProgress();
-            timer = window.setInterval(tick, AUTO_MS);
-          }
-        });
+      return runEpicCarousel(elsMain, slides, compact, "").then(function () {
+        if (!cosRoot) return;
+        var cosSlides = buildCosmeticsSlides();
+        var elsCos = {
+          root: cosRoot,
+          stageA: document.getElementById("vcShopCosSlideA"),
+          stageB: document.getElementById("vcShopCosSlideB"),
+          titleEl: document.getElementById("vcShopCosTitle"),
+          tagEl: document.getElementById("vcShopCosTag"),
+          shopEl: document.getElementById("vcShopCosShop"),
+          descEl: document.getElementById("vcShopCosDesc"),
+          ctaEl: document.getElementById("vcShopCosCta"),
+          dotsEl: document.getElementById("vcShopCosDots"),
+          progressEl: document.getElementById("vcShopCosProgress"),
+          tickerEl: document.getElementById("vcShopCosTicker"),
+          countEl: document.getElementById("vcShopCosCount"),
+          regionEl: document.getElementById("vcShopCosRegion")
+        };
+        return runEpicCarousel(elsCos, cosSlides, compact, "Beauty & fragrance");
       });
     });
   }

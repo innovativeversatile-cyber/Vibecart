@@ -12630,6 +12630,17 @@ body.vc-shop-now-page .shops-lane-topbar {
   border-bottom: 1px solid rgba(255, 182, 193, 0.18);
   background: #08060f;
 }
+/* Second full-size epic (cosmetics) below coach: break out of padded main so width matches top hero */
+body.vc-shop-now-page main.vc-shop-now-below > .vc-shop-now-epic--in-main {
+  width: 100vw;
+  max-width: none;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 1rem;
+  margin-bottom: 0.25rem;
+  z-index: 1;
+}
 .vc-shop-now-epic__aurora {
   position: absolute;
   inset: -20% -10%;
