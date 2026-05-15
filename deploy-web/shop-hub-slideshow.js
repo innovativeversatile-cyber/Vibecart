@@ -372,14 +372,28 @@
   function showDisclaimerHint(msg) {
     var hint = document.getElementById("vcShopNowDisclaimerHint");
     if (!hint) return;
-    hint.textContent = String(msg || "Tick the affiliate disclaimer to open partner links.");
+    hint.textContent = String(msg || "Tick the affiliate disclaimer to open partner shop links.");
     hint.hidden = false;
     try {
+      var panel = document.querySelector(".vc-shop-now-affiliate-gate");
       var gate = document.getElementById("vcShopNowDisclaimerAck");
-      if (gate && gate.scrollIntoView) {
-        gate.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      var scrollTarget = panel || gate;
+      if (!scrollTarget || !scrollTarget.getBoundingClientRect) return;
+      var r = scrollTarget.getBoundingClientRect();
+      var vh = window.innerHeight || 0;
+      var overlap = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+      var visibleEnough = overlap > 96;
+      if (!visibleEnough) {
+        scrollTarget.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
       }
-    } catch (e) { /* ignore */ }
+      try {
+        if (gate && gate.focus) gate.focus({ preventScroll: true });
+      } catch (fe) {
+        /* ignore */
+      }
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   function isNativeWebView() {
@@ -470,6 +484,24 @@
       ctaEl.addEventListener("click", function (e) {
         openSlideUrl(ctaEl.href, ctaEl._vcActiveSlide, e);
       });
+    }
+
+    if (root && !root.dataset.vcStageClickBound) {
+      root.dataset.vcStageClickBound = "1";
+      root.addEventListener(
+        "click",
+        function (ev) {
+          if (ev.defaultPrevented) return;
+          if (ev.target.closest(".vc-shop-now-epic__hud")) return;
+          if (ev.target.closest(".vc-shop-now-ticker")) return;
+          if (ev.target.closest("a[href]")) return;
+          var slide = ctaEl._vcActiveSlide;
+          if (!slide || !slide.href) return;
+          ev.preventDefault();
+          openSlideUrl(slide.href, slide, ev);
+        },
+        false
+      );
     }
 
     return preloadImages(slides).then(function () {

@@ -12702,6 +12702,9 @@ body.vc-shop-now-page main.vc-shop-now-below > .vc-shop-now-epic--in-main {
   transform: scale(1);
   z-index: 1;
 }
+.vc-shop-now-slide:not(.is-visible) {
+  pointer-events: none;
+}
 .vc-shop-now-epic__hud {
   position: relative;
   z-index: 5;
