@@ -93,6 +93,64 @@
     internal: true
   };
 
+  /** Real retailer promo / sale hubs (live product mix changes on their site). Opens in a new tab after disclaimer. */
+  var COSMETICS_SCENTS_SLIDES = [
+    {
+      key: "notino-deals",
+      shop: "Notino",
+      tag: "Outlet & promos",
+      title: "Fragrance & cosmetics deals",
+      desc: "Germany · official offers and outlet — imagery is illustrative; products update on Notino.",
+      href: "https://www.notino.de/angebote/",
+      img: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=1400&h=900&q=80"
+    },
+    {
+      key: "notino-uk",
+      shop: "Notino UK",
+      tag: "Sale hub",
+      title: "UK beauty & scents offers",
+      desc: "United Kingdom · official sale and new-in pages — see site for current discounts.",
+      href: "https://www.notino.co.uk/offers/",
+      img: "https://images.unsplash.com/photo-1522335780783-f51121c2e48d?auto=format&fit=crop&w=1400&h=900&q=80"
+    },
+    {
+      key: "lookfantastic-offers",
+      shop: "Lookfantastic",
+      tag: "Beauty offers",
+      title: "Skincare & haircare promos",
+      desc: "Official offers listing — brands and prices change with retailer campaigns.",
+      href: "https://www.lookfantastic.com/offers/dynamic_offer.list",
+      img: "https://images.unsplash.com/photo-1570172619644-dfd94350a836?auto=format&fit=crop&w=1400&h=900&q=80"
+    },
+    {
+      key: "boots-offers",
+      shop: "Boots",
+      tag: "UK health & beauty",
+      title: "Offers & points events",
+      desc: "Boots UK promotions page — mix includes cosmetics and fragrance.",
+      href: "https://www.boots.com/offers",
+      img: "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=1400&h=900&q=80"
+    },
+    {
+      key: "sephora-offers",
+      shop: "Sephora US",
+      tag: "Beauty deals",
+      title: "Makeup & fragrance offers",
+      desc: "Sephora US beauty offers hub — inventory and discounts are on Sephora.",
+      href: "https://www.sephora.com/beauty/beauty-offers",
+      img: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1400&h=900&q=80"
+    },
+    {
+      key: "douglas-sale",
+      shop: "Douglas",
+      tag: "Sale · DACH",
+      title: "Perfume & cosmetics sale",
+      desc: "Douglas DE sale category — see retailer for live SKUs and prices.",
+      href: "https://www.douglas.de/de/c/sale",
+      img: "https://images.unsplash.com/photo-1595425970377-c970029bffed?auto=format&fit=crop&w=1400&h=900&q=80"
+    }
+  ];
+
   function isMobileCompact() {
     try {
       var root = document.documentElement;
@@ -222,6 +280,10 @@
 
   function buildSlides(region, affiliateCfg, skechersCfg) {
     var slides = [];
+    COSMETICS_SCENTS_SLIDES.forEach(function (row) {
+      var s = normalizeSlide(row);
+      if (s) slides.push(s);
+    });
     var retailers = REGION_RETAILERS[region] || REGION_RETAILERS.global;
     retailers.forEach(function (r) {
       var s = normalizeSlide(r);

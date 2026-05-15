@@ -99,8 +99,43 @@
     }
     .vc-mb-cli-media {
       margin-top: 0.65rem;
+    }
+    .vc-mb-cli-media-preview {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    .vc-mb-cli-media-preview--single {
+      grid-template-columns: 1fr;
+      max-width: 12rem;
+    }
+    .vc-mb-cli-gallery-more {
+      margin-top: 0.55rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .vc-mb-cli-gallery-more summary {
+      cursor: pointer;
+      padding: 0.5rem 0.65rem;
+      font-size: 0.9rem;
+      list-style: none;
+      user-select: none;
+    }
+    .vc-mb-cli-gallery-more summary::-webkit-details-marker {
+      display: none;
+    }
+    .vc-mb-cli-gallery-more summary::before {
+      content: "▸ ";
+      opacity: 0.75;
+    }
+    .vc-mb-cli-gallery-more[open] summary::before {
+      content: "▾ ";
+    }
+    .vc-mb-cli-gallery-more .vc-mb-cli-gallery-rest {
+      padding: 0 0.65rem 0.65rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
       gap: 0.45rem;
     }
     .vc-mb-cli-media img,
@@ -185,9 +220,11 @@
       margin-top: 0 !important;
       padding-top: 0.25rem !important;
     }
+    body.mb-provider-branded #mbMainDashboard,
     body.mb-cake-line #mbMainDashboard {
       position: relative;
     }
+    body.mb-provider-branded #mbCakeDashBackdrop,
     body.mb-cake-line #mbCakeDashBackdrop {
       display: block;
       position: fixed;
@@ -199,9 +236,15 @@
       opacity: 0.14;
       filter: blur(2px) saturate(1.15);
     }
+    body.mb-provider-branded #mbMainDashboard > *:not(#mbCakeDashBackdrop),
     body.mb-cake-line #mbMainDashboard > *:not(#mbCakeDashBackdrop) {
       position: relative;
       z-index: 1;
+    }
+    .vc-mb-provider-media {
+      margin-top: 0.65rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
     body.mb-cake-line [data-mb-non-cake] {
       display: none !important;
@@ -212,23 +255,8 @@
     body.mb-cake-line #mbCakeMenuEditor[hidden] {
       display: block !important;
     }
-    body.mb-cake-line #mbProvAdvancedDetails[data-mb-non-cake] {
-      display: block !important;
-    }
     body.mb-cake-line #mbProvAdvancedDetails {
-      display: block !important;
-      border: 0;
-      padding: 0;
-      margin-top: 0.5rem;
-    }
-    body.mb-cake-line #mbProvAdvancedDetails summary {
-      display: none;
-    }
-    body.mb-cake-line #mbProvAdvancedDetails > .note:first-of-type {
-      display: none;
-    }
-    body.mb-cake-line #mbProvAdvancedDetails > .vc-biz-row {
-      display: none;
+      display: none !important;
     }
     body.mb-cake-line #mbProviderOverviewHero .vc-biz-grid {
       display: none;
@@ -282,6 +310,7 @@
       border: 2px solid rgba(255, 255, 255, 0.35);
       margin-top: 0.35rem;
     }
+    body.mb-provider-branded .vc-biz-card,
     body.mb-cake-line .vc-biz-card {
       backdrop-filter: blur(8px);
       background: rgba(8, 10, 20, 0.82);
@@ -430,13 +459,40 @@
       border-color: rgba(129, 187, 255, 0.35);
       background: rgba(129, 187, 255, 0.08);
     }
-    body.mb-cake-line .vc-mb-client-desk-shell.has-provider-brand #mbClientDeskBackdrop {
+    .vc-mb-client-desk-shell.has-provider-brand #mbClientDeskBackdrop {
       filter: blur(3px) saturate(1.2);
+    }
+    .vc-mb-client-auth-panel {
+      margin-top: 1rem;
+      padding: 1rem 1rem 1.1rem;
+      border-radius: 14px;
+      border: 1px solid rgba(129, 187, 255, 0.28);
+      background: rgba(12, 18, 28, 0.92);
+    }
+    .vc-mb-client-auth-panel h3 {
+      margin: 0 0 0.35rem;
+      font-size: 1.05rem;
+    }
+    .vc-mb-client-auth-modes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0.65rem 0 0.85rem;
+    }
+    .vc-mb-client-auth-block label {
+      display: block;
+      margin: 0.55rem 0 0.25rem;
+      font-size: 0.88rem;
+    }
+    .vc-mb-client-auth-block input,
+    .vc-mb-client-auth-block select {
+      width: 100%;
+      max-width: 100%;
     }
   </style>
   <script>
     (function () {
-      var BUILD = "20260515-fetchfix1";
+      var BUILD = "20260515-authinline1";
       try {
         var url = new URL(window.location.href);
         if (!url.searchParams.get("vcbuild")) {
@@ -574,7 +630,7 @@
       <h2 style="margin-top:0.35rem;margin-bottom:0.25rem" id="mbSvcDeskTitle">Book a service</h2>
       <p class="note" id="mbSvcDeskLead" style="margin-top:0">Three quick steps — we notify you when your provider responds.</p>
       <p class="note vc-mb-signin-hint" id="mbClientSigninHint" hidden>
-        Sign in before sending so we can notify you and save your requests.
+        On the last step you can sign in or create an account — no login needed to browse.
       </p>
       <div class="vc-mb-client-progress" id="mbClientStepProgress" aria-hidden="true">
         <span class="vc-mb-client-progress-seg is-active" data-step="0"></span>
@@ -635,6 +691,46 @@
         <textarea id="mbCliDetails" rows="4" placeholder="Describe the service, timing constraints, allergies, references, etc."></textarea>
         <label for="mbCliSpecialRequests" id="mbCliSpecialRequestsLabel" style="margin-top:0.65rem;display:none">Special requests (optional)</label>
         <textarea id="mbCliSpecialRequests" rows="3" placeholder="Writing on the cake, dietary needs, delivery notes…" hidden></textarea>
+      </div>
+      <div id="mbClientAuthPanel" class="vc-mb-client-auth-panel" hidden>
+        <h3>Sign in or create your account</h3>
+        <p class="note" style="margin:0">We need an account so we can notify you when your baker accepts.</p>
+        <div class="vc-mb-client-auth-modes hero-actions">
+          <button type="button" class="btn btn-primary" id="mbClientAuthModeSignIn">I have an account</button>
+          <button type="button" class="btn btn-secondary" id="mbClientAuthModeRegister">Create account</button>
+        </div>
+        <div id="mbClientAuthSignInBlock" class="vc-mb-client-auth-block">
+          <label for="mbClientAuthEmail">Email</label>
+          <input id="mbClientAuthEmail" type="email" autocomplete="email" />
+          <label for="mbClientAuthPassword">Password</label>
+          <input id="mbClientAuthPassword" type="password" autocomplete="current-password" />
+          <p class="hero-actions" style="margin-top:0.75rem">
+            <button type="button" class="btn btn-primary" id="mbClientAuthSignInBtn">Sign in &amp; send request</button>
+          </p>
+        </div>
+        <div id="mbClientAuthRegisterBlock" class="vc-mb-client-auth-block" hidden>
+          <label for="mbClientAuthRegName">Your name</label>
+          <input id="mbClientAuthRegName" type="text" autocomplete="name" />
+          <label for="mbClientAuthRegEmail">Email</label>
+          <input id="mbClientAuthRegEmail" type="email" autocomplete="email" />
+          <label for="mbClientAuthRegPassword">Password (8+ characters)</label>
+          <input id="mbClientAuthRegPassword" type="password" autocomplete="new-password" />
+          <label for="mbClientAuthRegCountry">Country</label>
+          <select id="mbClientAuthRegCountry">
+            <option value="PL" selected>Poland (PL)</option>
+            <option value="GB">United Kingdom (GB)</option>
+            <option value="IE">Ireland (IE)</option>
+            <option value="US">United States (US)</option>
+            <option value="ZA">South Africa (ZA)</option>
+            <option value="NG">Nigeria (NG)</option>
+            <option value="KE">Kenya (KE)</option>
+            <option value="DE">Germany (DE)</option>
+            <option value="FR">France (FR)</option>
+          </select>
+          <p class="hero-actions" style="margin-top:0.75rem">
+            <button type="button" class="btn btn-primary" id="mbClientAuthRegisterBtn">Create account &amp; send request</button>
+          </p>
+        </div>
       </div>
       <p class="note vc-mb-client-desk-status" id="mbClientDeskStatus" aria-live="polite" style="margin-top:0.65rem;min-height:1.35em"></p>
       <p class="hero-actions vc-mb-client-nav">
@@ -814,30 +910,24 @@
             </div>
           </div>
         </section>
-        <div id="mbCakeLogoBlock" hidden>
-          <label for="bakeryLogoPick">Your logo (dashboard backdrop)</label>
-          <p class="note" style="margin-top:0.15rem">Square logo recommended. Shown subtly behind your desk.</p>
+        <div id="mbCakeLogoBlock" hidden data-mb-show="provider">
+          <label for="bakeryLogoPick">Your logo (desk &amp; share page backdrop)</label>
+          <p class="note" style="margin-top:0.15rem">Square logo recommended. Shown behind your provider desk and on your public booking link.</p>
           <input id="bakeryLogoPick" type="file" accept="image/jpeg,image/png,image/webp" />
           <img id="bakeryLogoPreview" alt="" hidden />
           <input type="hidden" id="bakeryLogoUrl" value="" />
         </div>
         <section id="mbProvShareLinkBlock" class="vc-mb-share-block" hidden data-mb-show="provider">
           <h3 style="margin:0.85rem 0 0.35rem;font-size:1.05rem;">Share your booking link</h3>
-          <p class="note" style="margin:0.35rem 0">Clients see your logo and name, then book on VibeCart. Share on Instagram, Facebook, or with friends.</p>
+          <p class="note" style="margin:0.35rem 0">Clients see your logo, photos, and name — then book on VibeCart. Share on social or with friends.</p>
           <p class="note vc-mb-share-url" id="mbProvShareUrl" style="word-break:break-all;margin:0.5rem 0"></p>
           <p class="hero-actions" style="margin-top:0.35rem">
             <button type="button" class="btn btn-primary" id="mbProvShareCopy">Copy link</button>
             <a class="btn btn-secondary" id="mbProvSharePreview" href="#" target="_blank" rel="noopener noreferrer">Preview</a>
           </p>
         </section>
-        <details id="mbProvAdvancedDetails" data-mb-non-cake>
-          <summary>More options</summary>
-          <p class="note" style="margin:0.45rem 0;">Optional fields for richer cards and media.</p>
-          <div class="vc-biz-row">
-            <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
-            <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
-          </div>
-          <label for="bakeryMediaPick" id="bakeryMediaPickLabel">Photos of your cakes (clients &amp; homepage spotlight)</label>
+        <section id="mbProviderMediaBlock" class="vc-mb-provider-media" hidden data-mb-show="provider">
+          <label for="bakeryMediaPick" id="bakeryMediaPickLabel">Photos &amp; videos of your work</label>
           <p class="note" style="margin-top:0.15rem">
             Upload from your phone or computer (JPEG/PNG/WebP up to 12 MB, MP4 up to 25 MB), or paste a public image/video link below. Up to 12 items.
           </p>
@@ -856,6 +946,14 @@
             <button type="button" class="btn btn-secondary" id="bakeryExternalMediaAdd">Add link</button>
           </div>
           <div id="bakeryGalleryEditor" class="vc-mb-gallery-editor" aria-live="polite"></div>
+        </section>
+        <details id="mbProvAdvancedDetails" data-mb-non-cake>
+          <summary>Slot &amp; cover options</summary>
+          <p class="note" style="margin:0.45rem 0;">For appointment-based services: slot length and optional cover image.</p>
+          <div class="vc-biz-row">
+            <input id="bakerySlotDurationMinutes" type="number" min="15" max="480" step="5" value="60" title="Length of one booking in minutes" />
+            <input id="bakeryImageUrl" type="url" placeholder="Optional cover image URL (https…)" />
+          </div>
         </details>
         <input type="hidden" id="bakeryEditServiceId" value="0" />
         <p class="hero-actions">
@@ -983,7 +1081,7 @@
       }, 1800);
     })();
   </script>
-  <script src="./my-business.js?v=20260515fetchfix1" defer></script>
+  <script src="./my-business.js?v=20260515allproviders1" defer></script>
   <script src="./my-business-slots-hotfix.js?v=20260512slotwindow1" defer></script>
   <script src="./visitor-retention.js?v=20260508ret4" defer></script>
 

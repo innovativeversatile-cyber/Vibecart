@@ -44,9 +44,10 @@
     return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
   }
 
-  function absUrl(path) {
-    var s = String(path || "").trim();
+  function normalizeMediaPath(url) {
+    var s = String(url || "").trim();
     if (!s) return "";
+    if (/^\/api\//i.test(s)) return s;
     if (/^https?:\/\//i.test(s)) {
       try {
         var u = new URL(s);
@@ -56,16 +57,98 @@
       } catch (_) {
         /* ignore */
       }
-      return s;
     }
-    if (s.charAt(0) === "/") return s;
-    var base = apiBase();
-    return base ? base + "/" + s.replace(/^\//, "") : "/" + s.replace(/^\//, "");
+    return s;
+  }
+
+  function mediaUrlForDisplay(url) {
+    var norm = normalizeMediaPath(url);
+    if (!norm) return "";
+    if (/^https?:\/\//i.test(norm)) return norm;
+    try {
+      return new URL(norm, location.origin).href;
+    } catch (_) {
+      return norm.charAt(0) === "/" ? norm : "/" + norm;
+    }
+  }
+
+  function resolveBrandLogo(s) {
+    var logo = normalizeMediaPath(String(s.providerLogoUrl || s.imageUrl || "").trim());
+    if (logo) return logo;
+    if (Array.isArray(s.gallery)) {
+      var i;
+      for (i = 0; i < s.gallery.length; i++) {
+        var g = s.gallery[i];
+        if (g && g.kind === "image" && g.url) {
+          var gu = normalizeMediaPath(g.url);
+          if (gu) return gu;
+        }
+      }
+    }
+    return "";
+  }
+
+  function applyPageBackdrop(logoPath) {
+    var backdrop = document.getElementById("vcBookBackdrop");
+    if (!backdrop) return;
+    if (logoPath) {
+      var bg = mediaUrlForDisplay(logoPath).replace(/"/g, "%22");
+      backdrop.style.backgroundImage = 'url("' + bg + '")';
+    } else {
+      backdrop.style.backgroundImage = "";
+    }
+  }
+
+  function renderMediaTile(it) {
+    if (!it || !it.url) return "";
+    var src = mediaUrlForDisplay(it.url).replace(/"/g, "&quot;");
+    if (!src) return "";
+    if (String(it.kind || "image") === "video") {
+      return (
+        '<div class="vc-book-gallery-tile"><video src="' +
+        src +
+        '" muted playsinline controls preload="metadata"></video></div>'
+      );
+    }
+    return '<div class="vc-book-gallery-tile"><img src="' + src + '" alt="" loading="lazy" decoding="async" /></div>';
+  }
+
+  function renderGallery(s) {
+    var root = document.getElementById("vcBookGallery");
+    if (!root) return;
+    var items = Array.isArray(s.gallery) ? s.gallery : [];
+    if (!items.length && s.imageUrl) {
+      items = [{ kind: "image", url: s.imageUrl }];
+    }
+    items = items.filter(function (it) {
+      return it && it.url;
+    });
+    if (!items.length) {
+      root.innerHTML = "";
+      root.hidden = true;
+      return;
+    }
+    var preview = items.slice(0, 2);
+    var rest = items.slice(2);
+    var html = '<div class="vc-book-gallery-preview">' + preview.map(renderMediaTile).join("") + "</div>";
+    if (rest.length) {
+      var label = rest.length === 1 ? "View 1 more" : "View " + rest.length + " more";
+      html +=
+        '<details class="vc-book-gallery-more"><summary>' +
+        label +
+        "</summary><div class=\"vc-book-gallery-rest\">" +
+        rest.map(renderMediaTile).join("") +
+        "</div></details>";
+    }
+    root.innerHTML = html;
+    root.hidden = false;
   }
 
   function run() {
     var params = qs();
     var sid = Number(params.get("sid") || params.get("serviceId") || 0);
+    var guestNote = document.getElementById("vcBookGuestNote");
+    if (guestNote) guestNote.hidden = false;
     if (!sid) {
       setStatus("Missing baker link. Ask your provider to share their booking URL again.");
       return;
@@ -88,6 +171,7 @@
         var title = document.getElementById("vcBookTitle");
         var meta = document.getElementById("vcBookMeta");
         var price = document.getElementById("vcBookPrice");
+        var req = document.getElementById("vcBookRequirements");
         var cta = document.getElementById("vcBookCta");
         var logo = document.getElementById("vcBookLogo");
         var logoPh = document.getElementById("vcBookLogoPh");
@@ -101,9 +185,10 @@
         var ogI = document.getElementById("vcBookOgImage");
         if (ogT) ogT.setAttribute("content", "Book " + biz + " on VibeCart");
         if (ogD) ogD.setAttribute("content", work);
-        var logoUrl = String(s.providerLogoUrl || s.imageUrl || "").trim();
-        if (logoUrl) {
-          var src = absUrl(logoUrl);
+        var brandPath = resolveBrandLogo(s);
+        applyPageBackdrop(brandPath);
+        if (brandPath) {
+          var src = mediaUrlForDisplay(brandPath);
           if (logo) {
             logo.src = src;
             logo.alt = biz + " logo";
@@ -116,6 +201,14 @@
           logoPh.hidden = false;
           if (logo) logo.hidden = true;
         }
+        var reqText = String(s.requirementsText || "").trim();
+        if (req && reqText) {
+          req.hidden = false;
+          req.textContent = reqText;
+        } else if (req) {
+          req.hidden = true;
+        }
+        renderGallery(s);
         var cur = String(s.currency || "").trim();
         var bp = Number(s.basePrice || 0);
         if (price && bp > 0) {

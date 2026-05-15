@@ -1,9 +1,10 @@
 /* Public page-view beacon → POST /api/public/analytics/visit (same-origin or meta vibecart-api-base). */
 (function () {
   try {
-    if (typeof window === "undefined" || window.__vcAnalyticsVisitBeacon === "1") {
+    if (typeof window === "undefined" || window.__vcAnalyticsVisitQueued === "1") {
       return;
     }
+    window.__vcAnalyticsVisitQueued = "1";
 
     function apiOrigin() {
       try {
@@ -89,10 +90,21 @@
       }).catch(function () {});
     }
 
+    function kick() {
+      var run = function () {
+        send();
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(run, { timeout: 2200 });
+      } else {
+        window.setTimeout(run, 0);
+      }
+    }
+
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", send, { once: true });
+      document.addEventListener("DOMContentLoaded", kick, { once: true });
     } else {
-      send();
+      kick();
     }
   } catch (e) {
     /* ignore */

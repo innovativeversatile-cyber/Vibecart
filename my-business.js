@@ -57,6 +57,7 @@
   var clientSelectedSlot = "";
   var clientPollTimer = null;
   var clientActiveBookingId = 0;
+  var pendingClientReservationBody = null;
 
   var providerBookingsCache = [];
   var mbLastProviderServices = [];
@@ -141,22 +142,49 @@
     if (sz) sz.value = (Array.isArray(m.sizes) ? m.sizes : []).join("\n");
   }
 
+  function isProviderDeskPersona(cfg) {
+    cfg = cfg || loadMbConfig();
+    var p = String((cfg && cfg.persona) || "");
+    return p === "provider" || p === "citizen";
+  }
+
   function applyCakeLineModeUi(service) {
     var cake = isCakeBakeryLine(service);
+    var cfg = loadMbConfig();
+    var isProv = isProviderDeskPersona(cfg);
     document.body.classList.toggle("mb-cake-line", cake);
+    document.body.classList.toggle("mb-provider-branded", isProv);
     var menuEd = document.getElementById("mbCakeMenuEditor");
     var logoBlk = document.getElementById("mbCakeLogoBlock");
+    var shareBlk = document.getElementById("mbProvShareLinkBlock");
+    var mediaBlk = document.getElementById("mbProviderMediaBlock");
     if (menuEd) {
       menuEd.hidden = !cake;
       if (cake) menuEd.removeAttribute("hidden");
     }
     if (logoBlk) {
-      logoBlk.hidden = !cake;
-      if (cake) logoBlk.removeAttribute("hidden");
+      logoBlk.hidden = !isProv;
+      if (isProv) logoBlk.removeAttribute("hidden");
+    }
+    if (shareBlk) {
+      shareBlk.hidden = !isProv;
+      if (isProv) shareBlk.removeAttribute("hidden");
+    }
+    if (mediaBlk) {
+      mediaBlk.hidden = !isProv;
+      if (isProv) mediaBlk.removeAttribute("hidden");
+    }
+    var mediaLbl = document.getElementById("bakeryMediaPickLabel");
+    if (mediaLbl) {
+      mediaLbl.textContent = cake
+        ? "Photos & videos of your cakes (clients & share page)"
+        : "Photos & videos of your work (clients & share page)";
     }
     var adv = document.getElementById("mbProvAdvancedDetails");
     if (adv && cake) {
-      adv.open = true;
+      adv.open = false;
+    } else if (adv && isProv && !cake) {
+      adv.open = false;
     }
     var portHead = document.getElementById("mbPortfolioHead");
     var portLead = document.getElementById("mbPortfolioLead");
@@ -173,8 +201,12 @@
       if (note) note.textContent = "Incoming orders and your menu — keep it simple.";
     }
     syncCakeClientDeskBlocks();
-    applyCakeDashboardBackdrop();
+    applyProviderDashboardBackdrop();
     updateProviderShareLink();
+  }
+
+  function applyProviderDashboardBackdrop() {
+    applyCakeDashboardBackdrop();
   }
 
   function ensureBakeryCurrencyOption(code) {
@@ -223,9 +255,11 @@
     var block = document.getElementById("mbProvShareLinkBlock");
     if (!block) return;
     var cfg = loadMbConfig();
-    var cake = cfg && isCakeBakeryLine(cfg.service);
-    block.hidden = !cake;
-    if (!cake) return;
+    if (!isProviderDeskPersona(cfg)) {
+      block.hidden = true;
+      return;
+    }
+    block.hidden = false;
     var editId = Number((document.getElementById("bakeryEditServiceId") || {}).value || 0);
     var sid = editId;
     if (!sid && Array.isArray(mbLastProviderServices)) {
@@ -249,7 +283,7 @@
     var urlEl = document.getElementById("mbProvShareUrl");
     var preview = document.getElementById("mbProvSharePreview");
     if (!sid) {
-      if (urlEl) urlEl.textContent = "Save and publish your bakery card to generate your link.";
+      if (urlEl) urlEl.textContent = "Save and publish your work card to generate your booking link.";
       if (preview) preview.setAttribute("href", "#");
       return;
     }
@@ -273,6 +307,28 @@
       }
     }
     return s;
+  }
+
+  function mediaUrlForDisplay(url) {
+    var norm = normalizePublicMediaUrl(url);
+    if (!norm) return "";
+    if (/^https?:\/\//i.test(norm)) return norm;
+    try {
+      return new URL(norm, location.origin).href;
+    } catch (_) {
+      return norm.charAt(0) === "/" ? norm : "/" + norm;
+    }
+  }
+
+  function authDeviceBindingPayload() {
+    try {
+      if (window.VibeCartSessionDevice && typeof window.VibeCartSessionDevice.getBinding === "function") {
+        return { deviceBinding: window.VibeCartSessionDevice.getBinding() };
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    return {};
   }
 
   function resolveProviderBrandLogoUrl(svc) {
@@ -307,7 +363,8 @@
     if (!shell || !backdrop) return;
     var logo = resolveProviderBrandLogoUrl(svc);
     if (logo) {
-      backdrop.style.backgroundImage = 'url("' + logo.replace(/"/g, "") + '")';
+      var bg = mediaUrlForDisplay(logo).replace(/"/g, "%22");
+      backdrop.style.backgroundImage = 'url("' + bg + '")';
       shell.classList.add("has-provider-brand");
     } else {
       backdrop.style.backgroundImage = "";
@@ -339,7 +396,7 @@
     }
     var logo = resolveProviderBrandLogoUrl(svc);
     if (logo && img) {
-      img.src = logo;
+      img.src = mediaUrlForDisplay(logo);
       img.alt = biz + " logo";
       img.hidden = false;
       if (ph) ph.hidden = true;
@@ -390,8 +447,10 @@
       var hid = document.getElementById("bakeryLogoUrl");
       if (hid && hid.value) logo = String(hid.value);
     }
+    logo = normalizePublicMediaUrl(logo);
     if (logo && isAllowedPublicMediaUrl(logo)) {
-      backdrop.style.backgroundImage = 'url("' + logo.replace(/"/g, "") + '")';
+      var bg = mediaUrlForDisplay(logo).replace(/"/g, "%22");
+      backdrop.style.backgroundImage = 'url("' + bg + '")';
       backdrop.hidden = false;
     } else {
       backdrop.style.backgroundImage = "";
@@ -972,7 +1031,8 @@
       signHint.textContent =
         "Sign in to book, message providers, or publish offers. Buyer-only accounts still use the booking desk; seller tools appear when your account has the seller role.";
     } else if (signHint && persona === "client") {
-      signHint.textContent = "Sign in before sending so we can notify you and save your requests.";
+      signHint.textContent =
+        "No account needed to browse. On the last step, sign in or create one when you send your request.";
     }
 
     applyCakeLineModeUi(service);
@@ -1119,21 +1179,129 @@
     }
   }
 
-  function promptSignInForReserve() {
-    setStatus("Create or sign in to your VibeCart account before sending a reservation.");
-    try {
-      sessionStorage.setItem("vibecart-mb-pending-reserve", "1");
-    } catch (_) {
-      /* ignore */
+  function showClientAuthPanel() {
+    var panel = document.getElementById("mbClientAuthPanel");
+    if (panel) {
+      panel.hidden = false;
+      try {
+        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } catch (_) {
+        /* ignore */
+      }
     }
-    var go =
-      "./lane-passport.html?next=" +
-      encodeURIComponent(passportReturnUrl()) +
-      "&hint=" +
-      encodeURIComponent("Sign in to send your booking request");
-    if (window.confirm("You need a VibeCart account so we can notify you when your provider accepts.\n\nOpen sign-in / create account now?")) {
-      window.location.href = go;
+    setClientAuthMode("signin");
+    prefillClientAuthFromForm();
+    setStatus("Sign in with email and password, or create an account — then we send your request.");
+  }
+
+  function hideClientAuthPanel() {
+    var panel = document.getElementById("mbClientAuthPanel");
+    if (panel) panel.hidden = true;
+  }
+
+  function setClientAuthMode(mode) {
+    var signIn = document.getElementById("mbClientAuthSignInBlock");
+    var reg = document.getElementById("mbClientAuthRegisterBlock");
+    var btnIn = document.getElementById("mbClientAuthModeSignIn");
+    var btnReg = document.getElementById("mbClientAuthModeRegister");
+    var isSignIn = mode !== "register";
+    if (signIn) signIn.hidden = !isSignIn;
+    if (reg) reg.hidden = isSignIn;
+    if (btnIn) btnIn.classList.toggle("btn-primary", isSignIn);
+    if (btnIn) btnIn.classList.toggle("btn-secondary", !isSignIn);
+    if (btnReg) btnReg.classList.toggle("btn-primary", !isSignIn);
+    if (btnReg) btnReg.classList.toggle("btn-secondary", isSignIn);
+  }
+
+  function saveAuthTokenFromResponse(res) {
+    if (res && res.token) {
+      try {
+        localStorage.setItem(TOKEN_KEY, String(res.token));
+      } catch (_) {
+        /* ignore */
+      }
     }
+    mbSessionUserId = res && res.user && res.user.id ? Number(res.user.id) : mbSessionUserId;
+  }
+
+  function clientAuthSignInThenPost() {
+    var email = String((document.getElementById("mbClientAuthEmail") || {}).value || "")
+      .trim()
+      .toLowerCase();
+    var password = String((document.getElementById("mbClientAuthPassword") || {}).value || "");
+    if (!email || !password) {
+      setStatus("Enter your email and password.");
+      return Promise.resolve();
+    }
+    setStatus("Signing in…");
+    return api("/api/public/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        Object.assign({ email: email, password: password, role: "buyer" }, authDeviceBindingPayload())
+      )
+    })
+      .then(function (res) {
+        saveAuthTokenFromResponse(res);
+        hideClientAuthPanel();
+        return postPendingClientReservation();
+      })
+      .catch(function (err) {
+        setStatus(err.message || "Sign in failed. Check email and password.");
+      });
+  }
+
+  function clientAuthRegisterThenPost() {
+    var email = String((document.getElementById("mbClientAuthRegEmail") || {}).value || "")
+      .trim()
+      .toLowerCase();
+    var password = String((document.getElementById("mbClientAuthRegPassword") || {}).value || "");
+    var fullName = String((document.getElementById("mbClientAuthRegName") || {}).value || "").trim();
+    var country = String((document.getElementById("mbClientAuthRegCountry") || {}).value || "PL")
+      .trim()
+      .toUpperCase()
+      .slice(0, 2);
+    if (!email || fullName.length < 2) {
+      setStatus("Enter your name and email to create an account.");
+      return Promise.resolve();
+    }
+    if (password.length < 8) {
+      setStatus("Choose a password with at least 8 characters.");
+      return Promise.resolve();
+    }
+    setStatus("Creating your account…");
+    return api("/api/public/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        Object.assign(
+          {
+            email: email,
+            password: password,
+            fullName: fullName,
+            countryCode: country,
+            role: "buyer"
+          },
+          authDeviceBindingPayload()
+        )
+      )
+    })
+      .then(function (res) {
+        saveAuthTokenFromResponse(res);
+        hideClientAuthPanel();
+        return postPendingClientReservation();
+      })
+      .catch(function (err) {
+        var msg = String((err && err.message) || "");
+        if (/EMAIL_ALREADY_EXISTS/i.test(msg)) {
+          setStatus("That email is already registered — use Sign in instead.");
+          setClientAuthMode("signin");
+          var em = document.getElementById("mbClientAuthEmail");
+          if (em) em.value = email;
+        } else {
+          setStatus(msg || "Could not create account.");
+        }
+      });
   }
 
   function revealMainAndLoad(cfg) {
@@ -1156,6 +1324,15 @@
       });
   }
 
+  function storePendingReserveSession(pack) {
+    try {
+      sessionStorage.setItem("vibecart-mb-pending-reserve", "1");
+      if (pack) sessionStorage.setItem("vibecart-mb-pending-body", JSON.stringify(pack));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
   function resumePendingReserveAfterSignIn() {
     var pending = false;
     try {
@@ -1166,11 +1343,17 @@
     if (!pending || !getToken()) return;
     try {
       sessionStorage.removeItem("vibecart-mb-pending-reserve");
+      var raw = sessionStorage.getItem("vibecart-mb-pending-body");
+      sessionStorage.removeItem("vibecart-mb-pending-body");
+      if (raw) pendingClientReservationBody = JSON.parse(raw);
     } catch (_) {
       /* ignore */
     }
     clientWizardStep = 2;
     renderClientWizardStep();
+    if (pendingClientReservationBody) {
+      return postPendingClientReservation();
+    }
     setStatus("You're signed in — review and tap Send reservation request when ready.");
   }
 
@@ -1766,18 +1949,7 @@
     return r ? String(r.value || "pay_full") : "pay_full";
   }
 
-  function submitClientReservation() {
-    try {
-      document.body.classList.remove("mb-boot-pending");
-      hideGate();
-    } catch (_) {
-      /* ignore */
-    }
-    setStatus("Send clicked. Validating...");
-    if (!getToken()) {
-      promptSignInForReserve();
-      return Promise.resolve();
-    }
+  function buildClientReservationBody() {
     var cfg = loadMbConfig();
     var sid = Number(document.getElementById("mbCliProviderSelect") && document.getElementById("mbCliProviderSelect").value);
     var name = String(document.getElementById("mbCliCustName") && document.getElementById("mbCliCustName").value || "").trim();
@@ -1791,73 +1963,122 @@
     var specialReq = String((document.getElementById("mbCliSpecialRequests") || {}).value || "").trim();
     if (!sid) {
       setStatus("Choose a provider service.");
-      return Promise.resolve();
+      return null;
     }
     if (name.length < 2) {
       setStatus("Add your name.");
-      return Promise.resolve();
+      return null;
     }
     if (!date) {
       setStatus(cakeMode ? "Pick your delivery date." : "Pick a preferred date.");
-      return Promise.resolve();
+      return null;
     }
     if (cakeMode) {
       if (!clientSelectedFlavor) {
         setStatus("Pick a flavour.");
-        return Promise.resolve();
+        return null;
       }
       if (!clientSelectedSize) {
         setStatus("Pick a size.");
-        return Promise.resolve();
+        return null;
       }
       if (!slotPref) {
         setStatus("Pick a delivery / pickup time.");
-        return Promise.resolve();
+        return null;
       }
     } else if (!slotPref) {
       slotPref = "flexible";
     }
     if (details.length < 8) {
       setStatus("Add a short description (8+ characters).");
-      return Promise.resolve();
+      return null;
     }
     var pay = getClientPaymentPref();
     var line = cfg && cfg.service ? String(cfg.service) : "";
     var occasion = "Payment: " + pay + " · Time preference: " + slotPref;
-    var body = {
-      serviceId: sid,
-      customerName: name,
-      customerPhone: phone,
-      eventDate: date,
-      preferredSlot: slotPref,
-      occasionType: occasion,
-      styleTheme: line,
-      budgetAmount: 0,
-      requestDetails: details,
-      paymentPreference: pay,
-      serviceLine: line,
-      cakeDeliveryMode: cakeMode,
-      selectedFlavor: clientSelectedFlavor,
-      selectedSize: clientSelectedSize,
-      specialRequests: specialReq
+    return {
+      body: {
+        serviceId: sid,
+        customerName: name,
+        customerPhone: phone,
+        eventDate: date,
+        preferredSlot: slotPref,
+        occasionType: occasion,
+        styleTheme: line,
+        budgetAmount: 0,
+        requestDetails: details,
+        paymentPreference: pay,
+        serviceLine: line,
+        cakeDeliveryMode: cakeMode,
+        selectedFlavor: clientSelectedFlavor,
+        selectedSize: clientSelectedSize,
+        specialRequests: specialReq
+      },
+      cakeMode: cakeMode,
+      sid: sid,
+      date: date,
+      slotPref: slotPref
     };
-    setStatus("Validated. Checking session...");
-    return refreshMbSessionUser().then(function () {
-      if (!mbSessionUserId) {
-        promptSignInForReserve();
-        return;
-      }
-      setStatus("Session OK. Posting reservation...");
-      function postBooking() {
-        return api("/api/public/bakery/bookings/create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-      }
-      if (cakeMode) {
-        return postBooking();
-      }
+  }
+
+  function handleClientReservationSuccess(res) {
+    if (!res || !res.bookingId) {
+      setStatus("Could not send: no booking confirmation from the server. Try again.");
+      return;
+    }
+    pendingClientReservationBody = null;
+    try {
+      sessionStorage.removeItem("vibecart-mb-pending-reserve");
+      sessionStorage.removeItem("vibecart-mb-pending-body");
+    } catch (_) {
+      /* ignore */
+    }
+    hideClientAuthPanel();
+    clientActiveBookingId = Number(res.bookingId || 0);
+    try {
+      sessionStorage.setItem("vibecart-mb-last-booking", String(clientActiveBookingId));
+    } catch (_) {
+      /* ignore */
+    }
+    var wait = document.getElementById("mbClientWaitBanner");
+    if (wait) {
+      var pushHint =
+        res && res.providerPush === "no_device_tokens"
+          ? " Provider phone alerts are not enabled yet, but the request is visible on the provider desk now."
+          : "";
+      wait.hidden = false;
+      wait.textContent =
+        "Request sent. Waiting for your provider to accept — we will notify you here and by push when they respond." +
+        pushHint;
+    }
+    setStatus("Reservation sent.");
+    startClientBookingPoll();
+    loadClientDashboard().catch(function () {});
+  }
+
+  function postPendingClientReservation() {
+    var pack = pendingClientReservationBody;
+    if (!pack || !pack.body) {
+      setStatus("Fill the form and tap Send reservation request.");
+      return Promise.resolve();
+    }
+    setStatus("Sending your request…");
+    var body = pack.body;
+    var cakeMode = pack.cakeMode;
+    var sid = pack.sid;
+    var date = pack.date;
+    var slotPref = pack.slotPref;
+
+    function postBooking() {
+      return api("/api/public/bakery/bookings/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    }
+
+    function runPost() {
+      if (cakeMode) return postBooking();
       return api(
         "/api/public/bakery/schedule/slots?serviceId=" +
           encodeURIComponent(String(sid)) +
@@ -1872,36 +2093,55 @@
         }
         return postBooking();
       });
-    })
+    }
+
+    return refreshMbSessionUser()
+      .then(function () {
+        if (!getToken() || !mbSessionUserId) {
+          showClientAuthPanel();
+          return null;
+        }
+        return runPost();
+      })
       .then(function (res) {
-        if (!res || !res.bookingId) {
-          setStatus("Could not send: no booking confirmation from the server. Try again.");
-          return;
-        }
-        clientActiveBookingId = Number(res.bookingId || 0);
-        try {
-          sessionStorage.setItem("vibecart-mb-last-booking", String(clientActiveBookingId));
-        } catch (_) {
-          /* ignore */
-        }
-        var wait = document.getElementById("mbClientWaitBanner");
-        if (wait) {
-          var pushHint =
-            res && res.providerPush === "no_device_tokens"
-              ? " Provider phone alerts are not enabled yet, but the request is visible on the provider desk now."
-              : "";
-          wait.hidden = false;
-          wait.textContent =
-            "Request sent. Waiting for your provider to accept — we will notify you here and by push when they respond." +
-            pushHint;
-        }
-        setStatus("Reservation sent.");
-        startClientBookingPoll();
-        loadClientDashboard().catch(function () {});
+        if (res) handleClientReservationSuccess(res);
       })
       .catch(function (err) {
-        setStatus("Could not send: " + err.message);
+        var msg = String((err && err.message) || "");
+        if (/SIGNIN_REQUIRED|401|unauthorized/i.test(msg)) {
+          showClientAuthPanel();
+          setStatus("Sign in or create an account to send your request.");
+        } else {
+          setStatus("Could not send: " + msg);
+        }
       });
+  }
+
+  function prefillClientAuthFromForm() {
+    var name = String((document.getElementById("mbCliCustName") || {}).value || "").trim();
+    var regName = document.getElementById("mbClientAuthRegName");
+    if (regName && name && !String(regName.value || "").trim()) regName.value = name;
+  }
+
+  function submitClientReservation() {
+    try {
+      document.body.classList.remove("mb-boot-pending");
+      hideGate();
+    } catch (_) {
+      /* ignore */
+    }
+    setStatus("Checking your details…");
+    var pack = buildClientReservationBody();
+    if (!pack) return Promise.resolve();
+    pendingClientReservationBody = pack;
+    storePendingReserveSession(pack);
+    hideClientAuthPanel();
+    if (getToken()) {
+      return postPendingClientReservation();
+    }
+    prefillClientAuthFromForm();
+    showClientAuthPanel();
+    return Promise.resolve();
   }
 
   function startClientBookingPoll() {
@@ -2701,6 +2941,30 @@
         submitClientReservation();
       }, { capture: true, passive: false });
     }
+    var authModeIn = document.getElementById("mbClientAuthModeSignIn");
+    var authModeReg = document.getElementById("mbClientAuthModeRegister");
+    if (authModeIn) {
+      authModeIn.addEventListener("click", function () {
+        setClientAuthMode("signin");
+      });
+    }
+    if (authModeReg) {
+      authModeReg.addEventListener("click", function () {
+        setClientAuthMode("register");
+      });
+    }
+    var authSignInBtn = document.getElementById("mbClientAuthSignInBtn");
+    if (authSignInBtn) {
+      authSignInBtn.addEventListener("click", function () {
+        clientAuthSignInThenPost();
+      });
+    }
+    var authRegBtn = document.getElementById("mbClientAuthRegisterBtn");
+    if (authRegBtn) {
+      authRegBtn.addEventListener("click", function () {
+        clientAuthRegisterThenPost();
+      });
+    }
     var send = document.getElementById("mbClientChatSend");
     if (send) {
       send.addEventListener("click", function () {
@@ -2826,7 +3090,7 @@
     }
     root.innerHTML = mbWorkGallery
       .map(function (item, idx) {
-        var u = escapeHtml(item.url);
+        var u = escapeHtml(mediaUrlForDisplay(item.url));
         var k = String(item.kind || "image") === "video" ? "video" : "image";
         var inner =
           k === "video"
@@ -2944,6 +3208,65 @@
     if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function collectServiceMediaItems(s) {
+    var items = [];
+    if (Array.isArray(s.gallery) && s.gallery.length) {
+      items = s.gallery.slice();
+    } else if (s && s.imageUrl) {
+      items = [{ kind: "image", url: s.imageUrl }];
+    }
+    return items.filter(function (it) {
+      return it && it.url && isAllowedPublicMediaUrl(it.url);
+    });
+  }
+
+  function renderClientMediaTileHtml(it) {
+    var u = escapeHtml(mediaUrlForDisplay(it.url));
+    if (String(it.kind || "image") === "video") {
+      return (
+        '<div class="vc-mb-gallery-tile vc-mb-cli-gallery-tile"><video src="' +
+        u +
+        '" muted playsinline controls preload="metadata"></video></div>'
+      );
+    }
+    return (
+      '<div class="vc-mb-gallery-tile vc-mb-cli-gallery-tile"><img src="' +
+      u +
+      '" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></div>'
+    );
+  }
+
+  function renderClientDeskMediaHtml(s) {
+    var items = collectServiceMediaItems(s);
+    if (!items.length) return "";
+    var preview = items.slice(0, 2);
+    var rest = items.slice(2);
+    var previewClass =
+      "vc-mb-cli-media-preview" + (preview.length === 1 ? " vc-mb-cli-media-preview--single" : "");
+    var html = '<div class="' + previewClass + '">' + preview.map(renderClientMediaTileHtml).join("") + "</div>";
+    if (rest.length) {
+      var label = rest.length === 1 ? "View 1 more photo" : "View " + rest.length + " more photos";
+      html +=
+        '<details class="vc-mb-cli-gallery-more">' +
+        "<summary>" +
+        escapeHtml(label) +
+        "</summary>" +
+        '<div class="vc-mb-cli-gallery-rest">' +
+        rest.map(renderClientMediaTileHtml).join("") +
+        "</div></details>";
+    }
+    return html;
+  }
+
+  function wireClientDeskMediaClicks(root) {
+    if (!root) return;
+    root.querySelectorAll("img").forEach(function (img) {
+      img.addEventListener("click", function () {
+        openMbClientImageLightbox(img.getAttribute("src"));
+      });
+    });
+  }
+
   function renderServiceCardMediaHtml(s) {
     var items = [];
     if (Array.isArray(s.gallery) && s.gallery.length) {
@@ -2957,7 +3280,7 @@
       items
         .map(function (it) {
           if (!it || !it.url || !isAllowedPublicMediaUrl(it.url)) return "";
-          var u = escapeHtml(String(it.url).trim());
+          var u = escapeHtml(mediaUrlForDisplay(it.url));
           if (String(it.kind || "image") === "video") {
             return '<div class="vc-mb-gallery-tile"><video src="' + u + '" muted playsinline controls preload="metadata"></video></div>';
           }
@@ -2988,13 +3311,9 @@
     if (svc.requirementsText) {
       bits.push("<p class=\"note\" style=\"margin-top:0\">" + escapeHtml(svc.requirementsText) + "</p>");
     }
-    bits.push(renderServiceCardMediaHtml(svc));
+    bits.push(renderClientDeskMediaHtml(svc));
     root.innerHTML = bits.join("");
-    root.querySelectorAll("img").forEach(function (img) {
-      img.addEventListener("click", function () {
-        openMbClientImageLightbox(img.getAttribute("src"));
-      });
-    });
+    wireClientDeskMediaClicks(root);
     renderClientCakeMenuChips();
     updateClientQuickStartVisibility();
   }
@@ -4207,8 +4526,8 @@
       shareCopy.addEventListener("click", function () {
         var urlEl = document.getElementById("mbProvShareUrl");
         var text = urlEl ? String(urlEl.textContent || "").trim() : "";
-        if (!text || text.indexOf("book-bakery") < 0) {
-          setStatus("Save and publish your bakery card first to get a share link.");
+        if (!text || !/^https?:\/\//i.test(text)) {
+          setStatus("Save and publish your work card first to get a share link.");
           return;
         }
         function done() {
@@ -4335,7 +4654,7 @@
               prev.src = res.url;
               prev.hidden = false;
             }
-            applyCakeDashboardBackdrop();
+            applyProviderDashboardBackdrop();
             setStatus("Logo uploaded — save your work card to keep it.");
           })
           .catch(function (err) {

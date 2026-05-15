@@ -59,6 +59,40 @@
     }
   }
 
+  /** Persists across tab sessions so returning to Home does not replay cinematic / wow lane / simple-wow card. */
+  var VC_HOME_INTRO_DONE_LS = "vibecart-home-intro-done-v3";
+
+  function homeIntroReplayRequested() {
+    try {
+      var q = String((window.location && window.location.search) || "");
+      return /[?&]replayCinematic=1(?:&|$)/i.test(q);
+    } catch {
+      return false;
+    }
+  }
+
+  function isHomeIntroDone() {
+    if (homeIntroReplayRequested()) return false;
+    try {
+      return localStorage.getItem(VC_HOME_INTRO_DONE_LS) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function markHomeIntroDone() {
+    try {
+      localStorage.setItem(VC_HOME_INTRO_DONE_LS, "1");
+      sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
+      sessionStorage.setItem("vibecart-mobile-wow-first5-v1", "1");
+      sessionStorage.setItem("vibecart-cinematic-done-v1", "1");
+      sessionStorage.setItem("vibecart-mobile-intro-session-v1", "1");
+      sessionStorage.setItem("vibecart-first-prompt-active-v1", "0");
+    } catch {
+      /* ignore */
+    }
+  }
+
   function resetWowLaneVisualArtifacts() {
     if (!isVibeCartHomePath()) return;
     var b = document.body;
@@ -2072,6 +2106,7 @@
     }
     var heroCopy = document.querySelector(".hero-copy");
     if (!heroCopy) return;
+    if (isHomeIntroDone() && document.getElementById("vcFirst5Proof")) return;
     try {
       // Only block on the cinematic close event when the opener actually mounted.
       // Otherwise WOW-off / skipped opener / stale session keys would wait forever and strand first‑5 + intro UI.
@@ -2334,6 +2369,7 @@
             sessionStorage.setItem("vibecart-first-prompt-active-v1", "0");
             sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
             sessionStorage.setItem("vibecart-mobile-wow-first5-v1", "1");
+            markHomeIntroDone();
           } catch {
             /* ignore */
           }
@@ -2396,7 +2432,7 @@
     } catch {
       seenThisSession = false;
     }
-    if (seenThisSession) return;
+    if (seenThisSession || isHomeIntroDone()) return;
     var welcomeSheet = document.getElementById("vcMobileWelcomeSheet");
     if (welcomeSheet) {
       var onWelcomeDone = function () {
@@ -2414,6 +2450,7 @@
     var lastSeenKey = "vibecart-mobile-last-seen-v1";
     var introSessionKey = "vibecart-mobile-intro-session-v1";
     if (document.getElementById("vcMobileWelcomeSheet")) return;
+    if (isHomeIntroDone()) return;
     try {
       if (sessionStorage.getItem(introSessionKey) === "1") return;
     } catch {
@@ -3421,6 +3458,7 @@
 
   function initSimpleWowEntry() {
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (isHomeIntroDone()) return;
     if (document.getElementById("vcSimpleWowEntry")) return;
     var mount = document.querySelector("main") || document.body;
     if (!mount) return;
@@ -3516,6 +3554,7 @@
 
   function initShockHeroCinematic() {
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (isHomeIntroDone()) return;
     var hero = document.querySelector(".hero");
     if (!hero || document.getElementById("vcShockHeroAura")) return;
     var fx = document.createElement("div");
@@ -3539,6 +3578,11 @@
         sessionStorage.removeItem("vibecart-mobile-wow-done-v1");
         sessionStorage.removeItem("vibecart-cinematic-done-v1");
         try {
+          localStorage.removeItem(VC_HOME_INTRO_DONE_LS);
+        } catch {
+          /* ignore */
+        }
+        try {
           var uC = new URL(window.location.href);
           uC.searchParams.delete("replayCinematic");
           window.history.replaceState({}, "", uC.pathname + uC.search + uC.hash);
@@ -3554,6 +3598,15 @@
       if (sessionStorage.getItem("vibecart-cinematic-done-v1") === "1") return;
     } catch {
       /* ignore */
+    }
+    if (isHomeIntroDone()) {
+      try {
+        sessionStorage.setItem("vibecart-cinematic-done-v1", "1");
+        sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
+      } catch {
+        /* ignore */
+      }
+      return;
     }
     var wrap = document.createElement("div");
     var lane = "buy";
@@ -3693,6 +3746,7 @@
         if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
         try {
           sessionStorage.setItem("vibecart-cinematic-done-v1", "1");
+          markHomeIntroDone();
         } catch {
           /* ignore */
         }
@@ -4095,6 +4149,7 @@
 
   function initMindBlowingCalmFlow() {
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (isHomeIntroDone()) return;
     document.body.classList.add("vc-one-moment-flow");
     document.body.classList.add("vc-motion-lite");
     var calmTimer = null;
@@ -4124,6 +4179,7 @@
 
   function initGoosebumpsPack() {
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (isHomeIntroDone()) return;
     if (window.__vcGoosebumpsPackBound) return;
     window.__vcGoosebumpsPackBound = true;
     var root = document.body;
@@ -4365,6 +4421,7 @@
 
   function initCinematicLaneBadge() {
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    if (isHomeIntroDone()) return;
     if (document.getElementById("vcCinematicLaneBadge")) return;
     var heroCopy = document.querySelector(".hero-copy");
     if (!heroCopy) return;

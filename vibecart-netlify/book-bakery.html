@@ -10,10 +10,38 @@
   <meta property="og:title" content="Book on VibeCart" id="vcBookOgTitle" />
   <meta property="og:description" content="Reserve with your baker on VibeCart." id="vcBookOgDesc" />
   <meta property="og:image" content="" id="vcBookOgImage" />
-  <link rel="stylesheet" href="./styles.css?v=20260515book1" />
+  <link rel="stylesheet" href="./styles.css?v=20260515book2" />
   <style>
+    body.vc-book-page {
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+    #vcBookBackdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-size: cover;
+      background-position: center;
+      filter: blur(28px) saturate(1.15);
+      opacity: 0.45;
+      transform: scale(1.08);
+      pointer-events: none;
+    }
+    body.vc-book-page::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(180deg, rgba(8, 10, 14, 0.55), rgba(8, 10, 14, 0.92));
+      pointer-events: none;
+    }
+    .vc-book-shell {
+      position: relative;
+      z-index: 1;
+    }
     .vc-book-landing {
-      max-width: 28rem;
+      max-width: 32rem;
       margin: 2rem auto 3rem;
       padding: 0 1rem;
     }
@@ -47,9 +75,52 @@
       font-size: 1.45rem;
     }
     .vc-book-card .vc-book-meta {
-      margin: 0 0 1rem;
+      margin: 0 0 0.75rem;
       opacity: 0.88;
       font-size: 0.95rem;
+    }
+    .vc-book-requirements {
+      text-align: left;
+      margin: 0 0 1rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .vc-book-gallery {
+      margin: 0 0 1rem;
+      text-align: left;
+    }
+    .vc-book-gallery-preview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+    .vc-book-gallery-tile img,
+    .vc-book-gallery-tile video {
+      width: 100%;
+      height: 88px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .vc-book-gallery-more {
+      margin-top: 0.5rem;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .vc-book-gallery-more summary {
+      cursor: pointer;
+      padding: 0.45rem 0.55rem;
+      font-size: 0.88rem;
+    }
+    .vc-book-gallery-rest {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 0.4rem;
+      padding: 0 0.55rem 0.55rem;
     }
     .vc-book-price {
       font-size: 1.05rem;
@@ -65,9 +136,17 @@
       font-size: 0.82rem;
       opacity: 0.7;
     }
+    .vc-book-note {
+      text-align: center;
+      margin-top: 0.75rem;
+      font-size: 0.88rem;
+      opacity: 0.85;
+    }
   </style>
 </head>
-<body class="vc-dark-page">
+<body class="vc-dark-page vc-book-page">
+  <div id="vcBookBackdrop" aria-hidden="true"></div>
+  <div class="vc-book-shell">
   <header class="shops-lane-topbar">
     <a class="btn btn-secondary" href="./index.html">← VibeCart</a>
   </header>
@@ -77,6 +156,8 @@
       <div id="vcBookLogoPh" class="vc-book-logo vc-book-logo--placeholder" aria-hidden="true"></div>
       <h1 id="vcBookTitle">Loading…</h1>
       <p class="vc-book-meta" id="vcBookMeta"></p>
+      <p class="vc-book-requirements note" id="vcBookRequirements" hidden></p>
+      <div class="vc-book-gallery" id="vcBookGallery" hidden></div>
       <p class="vc-book-price" id="vcBookPrice" hidden></p>
       <div class="vc-book-actions">
         <a class="btn btn-primary" id="vcBookCta" href="./my-business.html">Book now</a>
@@ -84,7 +165,9 @@
       <p class="vc-book-powered">Powered by VibeCart · secure booking &amp; messages</p>
     </div>
     <p class="note" id="vcBookStatus" aria-live="polite">Loading…</p>
+    <p class="vc-book-note" id="vcBookGuestNote" hidden>No account needed to start — sign in when you send your request.</p>
   </main>
-  <script src="./book-bakery.js?v=20260515fetchfix1" defer></script>
+  </div>
+  <script src="./book-bakery.js?v=20260515allproviders1" defer></script>
 </body>
 </html>
