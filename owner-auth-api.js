@@ -6486,9 +6486,129 @@ async function handlePublicAnalyticsVisit(req, res) {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [path, referrer || null, countryCode, regionKey, visitorDayHash, ipHash, uaHash]
     );
-    return sendJson(res, 200, { ok: true });
+    return sendJson(res, 200, { ok: true, stored: true });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("analytics visit insert failed:", error.message || error);
+    return sendJson(res, 503, { ok: false, code: "VISIT_STORE_FAILED", stored: false });
+  }
+}
+
+const CONTACT_RATE_WINDOW_MS = 60 * 1000;
+const CONTACT_RATE_MAX = 10;
+const contactMessageHits = new Map();
+
+function isContactMessageRateLimited(ip) {
+  const key = String(ip || "unknown").slice(0, 80);
+  const now = Date.now();
+  const item = contactMessageHits.get(key) || { count: 0, start: now };
+  if (now - item.start > CONTACT_RATE_WINDOW_MS) {
+    item.count = 0;
+    item.start = now;
+  }
+  item.count += 1;
+  contactMessageHits.set(key, item);
+  return item.count > CONTACT_RATE_MAX;
+}
+
+async function ensurePublicContactMessagesTable() {
+  await pool.execute(
+    `CREATE TABLE IF NOT EXISTS public_contact_messages (
+      id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      category VARCHAR(32) NOT NULL,
+      is_crucial TINYINT(1) NOT NULL DEFAULT 0,
+      name VARCHAR(120) NULL,
+      email VARCHAR(255) NULL,
+      message TEXT NOT NULL,
+      page_url VARCHAR(512) NULL,
+      brandon_reply TEXT NULL,
+      ip_hash CHAR(64) NOT NULL,
+      INDEX idx_pcm_created (created_at),
+      INDEX idx_pcm_crucial (is_crucial, created_at)
+    )`
+  );
+}
+
+function buildBrandonContactReply(category, message) {
+  const cat = String(category || "general").toLowerCase();
+  const snippet = String(message || "").trim().slice(0, 120);
+  const openers = {
+    review: "Thank you — reviews like yours keep the lanes honest and alive.",
+    order: "Got it. For live order status, open Orders & tracking from the menu; I can walk you through the steps.",
+    seller: "Love the seller energy. Start from Sell journey — listings, photos, and price are the three things that convert fastest.",
+    coach: "Coach lane is on Wellbeing — you can preview plans before checkout. Tell me your goal (strength, weight, habits) and we will tune from there.",
+    payment: "I have flagged this for our team inbox. If you included an email, watch for a reply; keep your order reference handy.",
+    security: "Your safety note is with our team now. If this is active fraud, change your password and contact your bank as well.",
+    bug: "Sorry you hit a snag. Try a hard refresh; if it persists, note the page URL and what you tapped right before it broke.",
+    general: "Thanks for reaching out — I read every note that lands here."
+  };
+  const core = openers[cat] || openers.general;
+  return `${core} ${snippet ? `You wrote: “${snippet}${snippet.length >= 120 ? "…" : ""}” — ` : ""}Tap the Brandon bubble anytime for a faster guided route.`;
+}
+
+function isCrucialContact(category, message) {
+  const cat = String(category || "").toLowerCase();
+  if (new Set(["security", "payment", "safety", "legal", "urgent"]).has(cat)) {
+    return true;
+  }
+  const m = String(message || "").toLowerCase();
+  return /\b(hack|hacked|stolen|fraud|chargeback|unauthorized|breach|scam|refund|charge|card|paypal|stripe)\b/.test(m);
+}
+
+async function handlePublicContactMessage(req, res) {
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+  }
+  const ip = getIp(req);
+  if (isContactMessageRateLimited(ip)) {
+    return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
+  }
+  let body = {};
+  try {
+    body = (await readJson(req)) || {};
   } catch {
-    return sendJson(res, 200, { ok: true, note: "visit_accepted_but_db_unavailable" });
+    return sendJson(res, 400, { ok: false, code: "INVALID_JSON" });
+  }
+  const message = String(body.message || body.text || "").trim();
+  if (message.length < 8 || message.length > 2000) {
+    return sendJson(res, 400, { ok: false, code: "INVALID_MESSAGE" });
+  }
+  const category = String(body.category || "general").trim().slice(0, 32);
+  const name = String(body.name || "").trim().slice(0, 120);
+  const email = String(body.email || "").trim().slice(0, 255);
+  const pageUrl = String(body.pageUrl || body.page_url || "").trim().slice(0, 512);
+  const crucial = isCrucialContact(category, message);
+  const brandonReply = buildBrandonContactReply(category, message);
+  const ipHash = crypto.createHash("sha256").update(`${ANALYTICS_VISITOR_SALT}|contact|${ip}`, "utf8").digest("hex");
+  try {
+    await ensurePublicContactMessagesTable();
+    await pool.execute(
+      `INSERT INTO public_contact_messages (category, is_crucial, name, email, message, page_url, brandon_reply, ip_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [category, crucial ? 1 : 0, name || null, email || null, message, pageUrl || null, brandonReply, ipHash]
+    );
+    if (crucial) {
+      void sendAdminNotificationEmail(`Contact · ${category}`, [
+        `Category: ${category}`,
+        name ? `Name: ${name}` : "",
+        email ? `Email: ${email}` : "",
+        pageUrl ? `Page: ${pageUrl}` : "",
+        "",
+        message
+      ]);
+    }
+    return sendJson(res, 200, {
+      ok: true,
+      escalated: crucial,
+      brandonReply
+    });
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "CONTACT_STORE_FAILED",
+      message: String(error.message || error)
+    });
   }
 }
 
@@ -9268,11 +9388,12 @@ const server = http.createServer(async (req, res) => {
     const isStripeWebhook = req.method === "POST" && pathname === "/api/public/payments/webhook/stripe";
     const isLogoEmailRoute = req.method === "POST" && pathname === "/api/public/brand/email-logo";
     const isPublicAnalyticsVisit = req.method === "POST" && pathname === "/api/public/analytics/visit";
+    const isPublicContactMessage = req.method === "POST" && pathname === "/api/public/contact/message";
     if (isLogoEmailRoute) {
       if (isLogoEmailIpLimited(ip)) {
         return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
       }
-    } else if (!isStripeWebhook && !isPublicAnalyticsVisit && isRateLimited(ip, req.method)) {
+    } else if (!isStripeWebhook && !isPublicAnalyticsVisit && !isPublicContactMessage && isRateLimited(ip, req.method)) {
       return sendJson(res, 429, { ok: false, code: "RATE_LIMITED" });
     }
 
@@ -9332,6 +9453,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/public/analytics/visit") {
       return await handlePublicAnalyticsVisit(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/public/contact/message") {
+      return await handlePublicContactMessage(req, res);
     }
     if (req.method === "POST" && pathname === "/api/public/mobile/push/register") {
       return await handlePublicMobilePushRegister(req, res);

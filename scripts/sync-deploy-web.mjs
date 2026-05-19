@@ -109,7 +109,9 @@ const ROOT_JS_ALWAYS_DEPLOY = new Set([
   "skechers-affiliate.js",
   "brandon-bootstrap.js",
   "visitor-retention.js",
-  "vc-global-ux.js"
+  "vc-global-ux.js",
+  "vc-contact-hub.js",
+  "session-device.js"
 ]);
 
 /** Only copy root .js files that already exist in deploy-web (avoids shipping server bundles). */

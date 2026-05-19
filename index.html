@@ -2,6 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var m = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+          var q = String(window.location.search || "");
+          if (m || /[?&]vcShell=1(?:&|$)/i.test(q)) {
+            document.documentElement.classList.add("vc-simple-wow-pending");
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
     <!-- API base omitted: use same-origin /api (Netlify proxy → Railway). Override with meta vibecart-api-base if needed. -->
     <title>VibeCart | Africa-Europe-Asia Trade Bridge Marketplace</title>

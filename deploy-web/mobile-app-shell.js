@@ -45,9 +45,62 @@
       } catch {
         /* ignore */
       }
+      syncHomeIntroPendingClass();
     } catch {
       /* ignore */
     }
+  }
+
+  function syncHomeIntroPendingClass() {
+    try {
+      var root = document.documentElement;
+      var body = document.body;
+      if (!isVibeCartHomePath() || !isSimpleWowModeEnabled()) {
+        root.classList.remove("vc-simple-wow-pending");
+        return;
+      }
+      var done = sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1";
+      if (done) {
+        root.classList.remove("vc-simple-wow-pending");
+        return;
+      }
+      if (root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone")) {
+        root.classList.add("vc-simple-wow-pending");
+        if (body) {
+          body.classList.add("vc-intro-blocking");
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function releaseHomeIntroPending() {
+    try {
+      document.documentElement.classList.remove("vc-simple-wow-pending");
+      document.body.classList.remove("vc-intro-blocking");
+      document.body.classList.remove("vc-intro-pulse-bridge");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!window.__vcIntroReleaseBound) {
+    window.__vcIntroReleaseBound = true;
+    window.addEventListener(
+      "vibecart-first-prompt-complete",
+      function () {
+        releaseHomeIntroPending();
+      },
+      { passive: true }
+    );
+    window.addEventListener(
+      "vibecart-cinematic-done",
+      function () {
+        /* Intent blast mounts right after; keep pending until first-prompt-complete. */
+      },
+      { passive: true }
+    );
   }
 
   function isVibeCartHomePath() {
@@ -63,12 +116,20 @@
     if (!isVibeCartHomePath()) return;
     var b = document.body;
     if (!b) return;
-    [
+    var introActive = false;
+    try {
+      introActive =
+        sessionStorage.getItem("vibecart-mobile-wow-done-v1") !== "1" &&
+        (sessionStorage.getItem("vibecart-first-prompt-active-v1") === "1" ||
+          !!document.getElementById("vcThreeSecondCinematic") ||
+          !!document.getElementById("vcIntentBlast"));
+    } catch {
+      introActive = false;
+    }
+    var strip = [
       "vc-warp-out",
       "vc-auto-calm",
       "vc-one-moment-flow",
-      "vc-intro-blocking",
-      "vc-intro-pulse-bridge",
       "vc-cine-active",
       "vc-cine-beat",
       "vc-cine-lane-buy",
@@ -78,7 +139,11 @@
       "vc-heartbeat-lock",
       "vc-lane-aura-shift",
       "vc-motion-lite"
-    ].forEach(function (c) {
+    ];
+    if (!introActive) {
+      strip.push("vc-intro-blocking", "vc-intro-pulse-bridge");
+    }
+    strip.forEach(function (c) {
       b.classList.remove(c);
     });
     b.style.filter = "";
@@ -2317,19 +2382,17 @@
           "<button type='button' class='btn btn-secondary vc-intent-blast__skip' id='vcIntentBlastSkip'>Skip</button>" +
           "</div>";
         document.body.appendChild(splash);
-      window.setTimeout(function () {
-        splash.classList.add("is-active");
-        splash.classList.add("vc-intent-blast--pulse-bridge");
-        window.setTimeout(function () {
-          splash.classList.remove("vc-intent-blast--pulse-bridge");
-        }, 900);
-        document.body.classList.remove("vc-intro-pulse-bridge");
-      }, 20);
+      document.body.classList.add("vc-intro-blocking");
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          splash.classList.add("is-active");
+        });
+      });
 
         function closeSplash(reason, intent) {
           if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
           document.body.classList.remove("vc-intro-pulse-bridge");
-          document.body.classList.remove("vc-intro-blocking");
+          releaseHomeIntroPending();
           try {
             sessionStorage.setItem("vibecart-first-prompt-active-v1", "0");
             sessionStorage.setItem("vibecart-mobile-wow-done-v1", "1");
@@ -3532,6 +3595,13 @@
 
   function initThreeSecondCinematicOpener() {
     if (!isSimpleWowModeEnabled() || !isSimpleWowLandingPage()) return;
+    try {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
     if (document.getElementById("vcThreeSecondCinematic")) return;
     try {
       var qsCine = String((window.location && window.location.search) || "");
@@ -3673,6 +3743,7 @@
       "</button>" +
       "</div>";
     document.body.appendChild(wrap);
+    wrap.classList.add("is-active");
     playCinematicTone(lane);
     try {
       if (navigator && navigator.vibrate && Array.isArray(chosen.vibrate)) navigator.vibrate(chosen.vibrate);
@@ -3681,6 +3752,7 @@
     }
     document.body.classList.add("vc-cine-active");
     document.body.classList.add("vc-intro-blocking");
+    syncHomeIntroPendingClass();
     document.body.classList.add("vc-cine-lane-" + lane);
     var beatTimer = window.setInterval(function () {
       document.body.classList.toggle("vc-cine-beat");
@@ -3698,19 +3770,14 @@
         }
         document.body.classList.remove("vc-cine-active");
         document.body.classList.remove("vc-cine-beat");
-        // Cinematic used this to dim chrome; clear it so Brandon + page controls work again.
-        // Intent blast re-adds vc-intro-blocking only when that modal actually mounts.
-        document.body.classList.remove("vc-intro-blocking");
-        // Keep blocking layer until wow-lane prompt mounts to avoid visual flash/jump.
         document.body.classList.remove("vc-cine-lane-buy", "vc-cine-lane-book", "vc-cine-lane-sell", "vc-cine-lane-fast");
-        document.body.classList.add("vc-intro-pulse-bridge");
-        window.setTimeout(function () {
-          try {
-            window.dispatchEvent(new CustomEvent("vibecart-cinematic-done", { detail: { lane: lane } }));
-          } catch {
-            /* ignore */
-          }
-        }, 40);
+        document.body.classList.add("vc-intro-blocking");
+        syncHomeIntroPendingClass();
+        try {
+          window.dispatchEvent(new CustomEvent("vibecart-cinematic-done", { detail: { lane: lane } }));
+        } catch {
+          /* ignore */
+        }
         try {
           localStorage.setItem("vibecart-mobile-cinematic-last-lane-v1", lane);
         } catch {
@@ -3718,9 +3785,6 @@
         }
       }, 180);
     }
-    var t1 = window.setTimeout(function () {
-      wrap.classList.add("is-active");
-    }, 40);
     var t2 = window.setTimeout(close, Number(chosen.ms || 3000));
     var skip = document.getElementById("vcThreeCinematicSkip");
     if (skip) {
@@ -3738,7 +3802,6 @@
     window.addEventListener(
       "pagehide",
       function () {
-        window.clearTimeout(t1);
         window.clearTimeout(t2);
         window.clearInterval(beatTimer);
       },
@@ -4301,10 +4364,42 @@
     }
   }
 
+  function runPostIntroHomeChrome() {
+    if (!isSimpleWowLandingPage()) return;
+    try {
+      document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
+    } catch {
+      /* ignore */
+    }
+    initMindBlowingCalmFlow();
+    initGoosebumpsPack();
+    initMobileFocusMode();
+    initThumbFlowBoost();
+    initTrustSnapshotCard();
+    initShockHeroCinematic();
+    initCinematicLaneBadge();
+    try {
+      initBrandonGhostAssistMode();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!window.__vcPostIntroChromeBound) {
+    window.__vcPostIntroChromeBound = true;
+    window.addEventListener(
+      "vibecart-first-prompt-complete",
+      function () {
+        runPostIntroHomeChrome();
+      },
+      { once: false, passive: true }
+    );
+  }
+
   function runMobileHudPack() {
+    syncHomeIntroPendingClass();
     resetWowLaneVisualArtifacts();
     /* WOW home: lean opener + restored hero richness (trust snapshot, first‑5 / starter pack, name whisper, lane chrome). Heavy sticker HUD still gated by mountHeavyMobileStickers(). */
-    enhanceHero();
     initCinematicAudioUnlock();
     initSimpleWowUserSticker();
     if (isSimpleWowModeEnabled()) {
@@ -4314,34 +4409,28 @@
       document.body.classList.remove("vc-simple-wow-on");
       document.body.classList.remove("vc-v3-wow");
     }
+    var introDone = false;
+    try {
+      introDone = sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1";
+    } catch {
+      introDone = false;
+    }
     initSimpleWowEntry();
     initThreeSecondCinematicOpener();
-    if (isSimpleWowLandingPage()) {
-      try {
-        document.querySelector(".brand-mark")?.classList.add("brand-mark--shell-boost");
-      } catch {
-        /* ignore */
-      }
-      initMindBlowingCalmFlow();
-      initGoosebumpsPack();
-      initMobileFocusMode();
-      initThumbFlowBoost();
-      initTrustSnapshotCard();
-      initShockHeroCinematic();
-      initCinematicLaneBadge();
-      initFirstFiveWowExperience();
-      try {
-        initBrandonGhostAssistMode();
-      } catch {
-        /* ignore */
-      }
+    initFirstFiveWowExperience();
+    if (isSimpleWowLandingPage() && introDone) {
+      enhanceHero();
+      runPostIntroHomeChrome();
+    } else if (isSimpleWowLandingPage()) {
       window.setTimeout(function () {
         try {
-          initFirstFiveWowExperience(true);
+          enhanceHero();
         } catch {
           /* ignore */
         }
-      }, 4200);
+      }, 120);
+    } else {
+      enhanceHero();
     }
     var heavy = mountHeavyMobileStickers();
     if (heavy) {

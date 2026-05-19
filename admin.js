@@ -2997,11 +2997,13 @@ async function refreshAnalyticsOverview() {
       node.textContent = String(val ?? "—");
     }
   };
+  setText("analyticsVisitsAll", v.allTime);
   setText("analyticsVisits7d", v.last7Days);
   setText("analyticsVisits30d", v.last30Days);
   setText("analyticsUnique7d", v.uniqueVisitorsApprox7d);
   setText("analyticsUnique30d", v.uniqueVisitorsApprox30d);
   setText("analyticsAccountsTotal", a.total);
+  setText("analyticsAccountsPassport", a.passportApprox);
   const totalEl = document.getElementById("kpiPublicUsersTotal");
   const subEl = document.getElementById("kpiPublicUsersBreakdown");
   if (totalEl) {

@@ -97,9 +97,35 @@
     }
   }
 
+  function skipArrivalForMobileIntro() {
+    try {
+      var root = document.documentElement;
+      if (root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone")) {
+        return true;
+      }
+      if (root.classList.contains("vc-simple-wow-pending")) {
+        return true;
+      }
+      if (sessionStorage.getItem("vibecart-mobile-wow-done-v1") !== "1") {
+        var p = String((window.location && window.location.pathname) || "").replace(/\\/g, "/");
+        if (p === "/" || p === "" || /index\.html$/i.test(p)) {
+          if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) {
+            return true;
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
+  }
+
   function initHomeArrival() {
     var hero = document.getElementById("scene-top");
     if (!hero) return;
+    if (skipArrivalForMobileIntro()) {
+      return;
+    }
     var root = document.documentElement;
     if (prefersReducedMotion()) {
       root.classList.add("vc-arrival-reduced");

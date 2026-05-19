@@ -4,7 +4,33 @@
  */
 (function (w) {
   "use strict";
+  function introFlowStillActive() {
+    try {
+      if (w.sessionStorage && w.sessionStorage.getItem("vibecart-mobile-wow-done-v1") === "1") {
+        return false;
+      }
+      if (w.sessionStorage && w.sessionStorage.getItem("vibecart-first-prompt-active-v1") === "1") {
+        return true;
+      }
+      var p = String((w.location && w.location.pathname) || "").replace(/\\/g, "/");
+      var onHome = p === "/" || p === "" || /index\.html$/i.test(p);
+      if (!onHome) {
+        return false;
+      }
+      var root = w.document && w.document.documentElement;
+      if (root && (root.classList.contains("vc-mobile-app") || root.classList.contains("vc-phone"))) {
+        return true;
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return false;
+  }
+
   function stripIntroBlocking() {
+    if (introFlowStillActive()) {
+      return;
+    }
     try {
       if (w.document && w.document.body) {
         w.document.body.classList.remove("vc-intro-blocking");

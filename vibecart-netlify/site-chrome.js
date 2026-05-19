@@ -1111,7 +1111,7 @@
     return;
   }
   window.__vcAnalyticsVisitScheduled = "1";
-  var src = "./analytics-visit.js?v=20260501visit1";
+  var src = "./analytics-visit.js?v=20260516visit1";
   function inject() {
     if (window.__vcAnalyticsVisitLoaded === "1") {
       return;
@@ -1150,6 +1150,28 @@
   function inject() {
     if (thinFlow()) return;
     if (document.querySelector('script[src*="vc-global-ux.js"]')) return;
+    var s = document.createElement("script");
+    s.src = src;
+    s.defer = true;
+    (document.head || document.documentElement).appendChild(s);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", inject, { once: true });
+  } else {
+    inject();
+  }
+})();
+
+(function scheduleVcContactHub() {
+  if (typeof window === "undefined" || window.__vcContactHubScheduled === "1") {
+    return;
+  }
+  window.__vcContactHubScheduled = "1";
+  var src = "./vc-contact-hub.js?v=20260516contact1";
+  function inject() {
+    if (window.__vcContactHubBooted === "1" || document.querySelector('script[src*="vc-contact-hub"]')) {
+      return;
+    }
     var s = document.createElement("script");
     s.src = src;
     s.defer = true;
