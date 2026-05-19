@@ -78,6 +78,7 @@
       "<label class='vc-contact-hub-field'>Message" +
       "<textarea id='vcContactMessage' rows='4' maxlength='2000' placeholder='Tell us what happened or what you need…'></textarea></label>" +
       "<button type='button' class='btn btn-primary' id='vcContactSend'>Send</button>" +
+      "<p class='note'><a href='/lane-passport.html'>Create your free passport</a> for saved lanes and faster checkout.</p>" +
       "<p class='note vc-contact-hub-status' id='vcContactStatus' role='status' aria-live='polite'></p>" +
       "<div class='vc-contact-hub-reply hidden' id='vcContactReplyBox'>" +
       "<p class='vc-contact-hub-reply__label'>Brandon</p>" +

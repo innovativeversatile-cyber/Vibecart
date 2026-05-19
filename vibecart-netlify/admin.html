@@ -163,6 +163,22 @@
             </div>
           </div>
         </section>
+        <section class="section alt" id="contactInboxSection">
+          <h2>Contact inbox</h2>
+          <p class="note">
+            Messages from the public <strong>Contact</strong> chip. Priority topics (security, payment) also email
+            <code>NOTIFICATION_EMAIL</code> when SMTP is configured. Brandon auto-replies on the site for other topics.
+          </p>
+          <div class="hero-actions">
+            <button type="button" id="refreshContactInbox" class="btn btn-secondary">Refresh inbox</button>
+            <label class="note" style="display: inline-flex; align-items: center; gap: 0.35rem; margin: 0">
+              <input type="checkbox" id="contactInboxCrucialOnly" />
+              Crucial only
+            </label>
+          </div>
+          <p class="note" id="contactInboxMeta">Sign in and refresh to load messages.</p>
+          <div id="contactInboxList" class="messages-box"></div>
+        </section>
         <div class="pulse-feed-wrap">
           <p class="note">Live Pulse</p>
           <div id="pulseFeed" class="pulse-feed"></div>

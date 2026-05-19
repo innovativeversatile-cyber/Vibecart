@@ -3036,6 +3036,51 @@ async function refreshAnalyticsOverview() {
   }
 }
 
+async function refreshContactInbox() {
+  const crucialOnly = Boolean(document.getElementById("contactInboxCrucialOnly")?.checked);
+  const payload = await authedPost("/api/owner/contact/messages/list", {
+    limit: 80,
+    crucialOnly
+  });
+  const list = document.getElementById("contactInboxList");
+  const meta = document.getElementById("contactInboxMeta");
+  const rows = Array.isArray(payload.messages) ? payload.messages : [];
+  if (meta) {
+    meta.textContent = crucialOnly
+      ? `${rows.length} crucial message(s) shown · ${payload.crucialLast7d ?? 0} crucial in last 7 days`
+      : `${rows.length} message(s) · ${payload.crucialLast7d ?? 0} crucial in last 7 days`;
+  }
+  if (!list) {
+    return;
+  }
+  if (!rows.length) {
+    list.innerHTML = "<div class='msg msg-buyer'>No contact messages yet.</div>";
+    return;
+  }
+  list.innerHTML = rows
+    .map((row) => {
+      const crucial = row.isCrucial === 1 || row.isCrucial === true;
+      const when = row.created_at ? new Date(row.created_at).toLocaleString() : "—";
+      const category = String(row.category || "general");
+      const name = String(row.name || "").trim() || "Anonymous";
+      const email = String(row.email || "").trim();
+      const message = String(row.message || "").trim();
+      const pageUrl = String(row.pageUrl || "").trim();
+      const brandon = String(row.brandonReply || "").trim();
+      const tag = crucial ? "msg-seller" : "msg-buyer";
+      return (
+        `<div class='msg ${tag}'>` +
+        `<strong>${category}${crucial ? " · PRIORITY" : ""}</strong> · ${when}<br />` +
+        `${name}${email ? ` · ${email}` : ""}` +
+        `${pageUrl ? `<br /><span class='note'>${pageUrl}</span>` : ""}` +
+        `<br />${message.replace(/</g, "&lt;")}` +
+        `${brandon ? `<br /><span class='note'>Brandon: ${brandon.replace(/</g, "&lt;")}</span>` : ""}` +
+        `</div>`
+      );
+    })
+    .join("");
+}
+
 function ensureClientEventsHotspotCard() {
   if (document.getElementById("clientEventsHotspotCard")) {
     return;
@@ -3566,6 +3611,7 @@ async function unlockPanelInner() {
   runPartnerSecurityCheck();
   softRefresh(refreshPublicUserStats, "Public user stats").catch(() => {});
   softRefresh(refreshAnalyticsOverview, "Traffic analytics").catch(() => {});
+  softRefresh(refreshContactInbox, "Contact inbox").catch(() => {});
   softRefresh(refreshAiOps, "AI operations").catch(() => {});
 }
 
@@ -3890,6 +3936,7 @@ function initializeOwnerSecurity() {
     refreshOwnerRevenueDashboard().catch(() => {});
     refreshPublicUserStats().catch(() => {});
     refreshAnalyticsOverview().catch(() => {});
+    refreshContactInbox().catch(() => {});
     refreshClientEventHotspots().catch(() => {});
     if (localStorage.getItem(LIVE_MONEY_DASHBOARD_KEY) === "1") {
       startLiveMoneyDashboard();
@@ -4241,6 +4288,8 @@ const clickHandlers = {
     refreshPublicUserStats().catch((error) => setStatus(`Account counts refresh failed: ${error.message}`)),
   refreshAnalyticsOverview: () =>
     refreshAnalyticsOverview().catch((error) => setStatus(`Analytics refresh failed: ${error.message}`)),
+  refreshContactInbox: () =>
+    refreshContactInbox().catch((error) => setStatus(`Contact inbox refresh failed: ${error.message}`)),
   requestOwnerPayout: () => requestOwnerPayoutFromPanel().catch((error) => setStatus(`Payout request failed: ${error.message}`)),
   updateOwnerPayoutStatus: () =>
     updateOwnerPayoutStatusFromPanel().catch((error) => setStatus(`Payout status update failed: ${error.message}`))
@@ -4290,6 +4339,13 @@ if (commissionOfferFilterNode) {
           ? "Offer list now shows all offers in saved order."
           : "Offer list now prioritizes commission-enabled offers."
     );
+  });
+}
+
+const contactInboxCrucialOnlyNode = document.getElementById("contactInboxCrucialOnly");
+if (contactInboxCrucialOnlyNode) {
+  contactInboxCrucialOnlyNode.addEventListener("change", () => {
+    refreshContactInbox().catch((error) => setStatus(`Contact inbox refresh failed: ${error.message}`));
   });
 }
 

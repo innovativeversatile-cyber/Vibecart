@@ -6481,6 +6481,16 @@ async function handlePublicAnalyticsVisit(req, res) {
   const regionKey = getMacroRegionFromCountry(countryCode);
   try {
     await ensureSiteAnalyticsVisitsTable();
+    const [dupRows] = await pool.execute(
+      `SELECT id FROM site_analytics_visits
+       WHERE visitor_day_hash = ? AND path = ?
+         AND created_at >= (NOW() - INTERVAL 2 MINUTE)
+       LIMIT 1`,
+      [visitorDayHash, path]
+    );
+    if (dupRows && dupRows.length > 0) {
+      return sendJson(res, 200, { ok: true, stored: false, deduped: true });
+    }
     await pool.execute(
       `INSERT INTO site_analytics_visits (path, referrer, country_code, region_key, visitor_day_hash, ip_hash, user_agent_hash)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -6607,6 +6617,45 @@ async function handlePublicContactMessage(req, res) {
     return sendJson(res, 503, {
       ok: false,
       code: "CONTACT_STORE_FAILED",
+      message: String(error.message || error)
+    });
+  }
+}
+
+async function handleOwnerContactMessagesList(req, res) {
+  const data = await readBodyWithSession(req, res);
+  if (!data) {
+    return;
+  }
+  const limit = Math.min(120, Math.max(10, Number(data.body.limit) || 60));
+  const crucialOnly = data.body.crucialOnly === true || data.body.crucialOnly === 1;
+  try {
+    await ensurePublicContactMessagesTable();
+    const sql = crucialOnly
+      ? `SELECT id, created_at, category, is_crucial AS isCrucial, name, email,
+                LEFT(message, 800) AS message, page_url AS pageUrl, LEFT(brandon_reply, 400) AS brandonReply
+         FROM public_contact_messages
+         WHERE is_crucial = 1
+         ORDER BY created_at DESC
+         LIMIT ?`
+      : `SELECT id, created_at, category, is_crucial AS isCrucial, name, email,
+                LEFT(message, 800) AS message, page_url AS pageUrl, LEFT(brandon_reply, 400) AS brandonReply
+         FROM public_contact_messages
+         ORDER BY created_at DESC
+         LIMIT ?`;
+    const [rows] = await pool.execute(sql, [limit]);
+    const [countRows] = await pool.execute(
+      `SELECT COUNT(*) AS n FROM public_contact_messages WHERE is_crucial = 1 AND created_at >= (NOW() - INTERVAL 7 DAY)`
+    );
+    return sendJson(res, 200, {
+      ok: true,
+      messages: rows || [],
+      crucialLast7d: Number(countRows[0]?.n || 0)
+    });
+  } catch (error) {
+    return sendJson(res, 503, {
+      ok: false,
+      code: "CONTACT_LIST_FAILED",
       message: String(error.message || error)
     });
   }
@@ -9760,6 +9809,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/owner/analytics/overview") {
       return await handleOwnerAnalyticsOverview(req, res);
+    }
+    if (req.method === "POST" && pathname === "/api/owner/contact/messages/list") {
+      return await handleOwnerContactMessagesList(req, res);
     }
     if (req.method === "POST" && pathname === "/api/owner/notifications/reliability") {
       return await handleOwnerNotificationReliability(req, res);
